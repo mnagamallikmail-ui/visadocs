@@ -50,22 +50,9 @@ services:
     build: ./frontend
     container_name: PVCFrontend
     ports:
-      - "8081:80"
+      - "8091:80"
     depends_on:
       - backend
-    networks:
-      - app-network
-
-  proxy:
-    image: nginx:alpine
-    container_name: PVCProxy
-    ports:
-      - "80:80"
-    volumes:
-      - ./nginx-proxy/nginx.conf:/etc/nginx/nginx.conf:ro
-    depends_on:
-      - backend
-      - frontend
     networks:
       - app-network
 
