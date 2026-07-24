@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'dart:typed_data';
+// ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart' as enc;

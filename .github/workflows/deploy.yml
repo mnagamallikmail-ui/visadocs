@@ -24,6 +24,13 @@ jobs:
             git fetch origin
             git reset --hard origin/master
 
-            docker compose up -d --build
+            # Rebuild all containers — no-cache ensures frontend JS is always fresh
+            docker compose build --no-cache
 
+            docker compose up -d
+
+            # Remove dangling images to reclaim disk space
             docker image prune -f
+
+            # Reload host nginx to pick up any config changes
+            nginx -t && systemctl reload nginx || true

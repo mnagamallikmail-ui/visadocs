@@ -35,7 +35,19 @@ class ApiService {
             if (onTcRequired != null) {
               final Map<String, dynamic> body =
                   e.response?.data is Map<String, dynamic>
-                      ? e.response!.data
+                      ? e.response!.data as Map<String, dynamic>
                       : {'activeVersion': 'v1.0'};
 
-              final String activeVer
+              final String activeVer =
+                  body['activeVersion']?.toString() ?? 'v1.0';
+
+              onTcRequired!(activeVer);
+            }
+          }
+
+          return handler.next(e);
+        },
+      ),
+    );
+  }
+}

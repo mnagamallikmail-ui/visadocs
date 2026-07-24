@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
-import 'dart:html' as html;
 import '../../theme/design_system.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/web_file_picker.dart';
 import 'valuation_model.dart';
 import 'valuation_repository.dart';
 
@@ -52,19 +52,15 @@ class _ValuationFormWidgetState extends State<ValuationFormWidget> {
     "Copy of latest Electricity Bill"
   ];
 
-  void _pickDocument(String category) {
-    final uploadInput = html.FileUploadInputElement();
-    uploadInput.accept = '.pdf,.doc,.docx,.jpg,.jpeg,.png';
-    uploadInput.click();
-    uploadInput.onChange.listen((e) {
-      final files = uploadInput.files;
-      if (files != null && files.isNotEmpty) {
-        final file = files[0];
-        setState(() {
-          _uploadedDocs[category] = file.name;
-        });
-      }
-    });
+  Future<void> _pickDocument(String category) async {
+    final picked = await WebFilePicker.pickFile(
+      accept: '.pdf,.doc,.docx,.jpg,.jpeg,.png',
+    );
+    if (picked != null && mounted) {
+      setState(() {
+        _uploadedDocs[category] = picked.name;
+      });
+    }
   }
 
   void _submitForm() {
@@ -343,7 +339,7 @@ class _ValuationFormWidgetState extends State<ValuationFormWidget> {
                           ),
                         ),
                         ElevatedButton.icon(
-                          onPressed: () => _pickDocument(cat),
+                          onPressed: () async => await _pickDocument(cat),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: isUploaded ? Colors.transparent : DesignSystem.primary,
                             foregroundColor: isUploaded ? DesignSystem.primary : Colors.white,

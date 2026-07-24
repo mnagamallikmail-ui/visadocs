@@ -2,6 +2,7 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: PVCPostgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: provaluer
       POSTGRES_USER: provaluer
@@ -12,10 +13,16 @@ services:
       - pgdata:/var/lib/postgresql/data
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U provaluer -d provaluer"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backup-postgres:
     image: postgres:16-alpine
     container_name: PVCBackupPostgres
+    restart: unless-stopped
     environment:
       POSTGRES_DB: provaluer_backup
       POSTGRES_USER: provaluer
@@ -26,16 +33,25 @@ services:
       - backup_pgdata:/var/lib/postgresql/data
     networks:
       - app-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U provaluer -d provaluer_backup"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   backend:
     build: ./backend
     container_name: PVCBackend
+    restart: unless-stopped
     ports:
       - "8082:8080"
     depends_on:
-      - postgres
-      - backup-postgres
+      postgres:
+        condition: service_healthy
+      backup-postgres:
+        condition: service_healthy
     environment:
+      SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/provaluer
       SPRING_DATASOURCE_USERNAME: provaluer
       SPRING_DATASOURCE_PASSWORD: K1ngcobr@
@@ -49,6 +65,7 @@ services:
   frontend:
     build: ./frontend
     container_name: PVCFrontend
+    restart: unless-stopped
     ports:
       - "8091:80"
     depends_on:
