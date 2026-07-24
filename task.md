@@ -1,0 +1,38 @@
+# Task Checklist: ProValuer Full-Stack Web Application
+
+- [x] 1. Infrastructure & Orchestration
+  - [x] Update `docker-compose.yml` to include secondary backup database container `PVCBackupPostgres`
+  - [x] Configure volume mappings for persistent backup logs
+  - [x] Set up environment parameters for main and backup databases
+- [x] 2. Spring Boot Core Setup
+  - [x] Create `backend/build.gradle` with docx4j 11.4.11 (without Apache POI)
+  - [x] Create `backend/src/main/resources/application.yml`
+  - [x] Create Flyway database migration `V1__init_schema.sql` (schema for users, orders, settings, templates, transactions, and audit logs)
+- [x] 3. Backend Core Logic & Controllers
+  - [x] Implement Terms & Conditions API Interceptor to check schema versions
+  - [x] Create `DocxTemplateEngine.java` using docx4j
+    - [x] Token normalization loop (restitch fragmented runs)
+    - [x] XML paragraph and table cell traversal
+    - [x] Image slot EMU to pixel/inch resolution
+  - [x] Implement `SlaService.java` for working hours (9:00 AM - 6:00 PM) excluding weekends
+  - [x] Create `SlaCronScheduler.java` for 6-hour PA rules and auto-reassignments
+  - [x] Implement `SignatureController.java` with decoupled mock Class 3 HSM API
+  - [x] Implement `PaymentController.java` with 0.1% value-based balance gate calculator
+  - [x] Create REST controllers for Auth, Template Management, and Order processing
+- [x] 4. Flutter Web App Setup
+  - [x] Create `frontend/pubspec.yaml` with required package dependencies
+  - [x] Create `frontend/lib/main.dart` with routing and primary styling (Montserrat font, #1E57A4 trust blue, #FABB1F gold)
+- [x] 5. Frontend Dashboards & Layouts
+  - [x] Build Client Dashboard with file size checker, timeline tracker, and balance-gate payment
+  - [x] Build PA Dashboard with claims pool and heartbeat telemetry timer
+  - [x] Build SPA Dashboard with audit review panel and Cloud HSM digital signature Verification
+  - [x] Build Admin Dashboard with T&C updater and FL Chart performance graphs
+- [x] 6. Verification and Local Deployment
+  - [x] Write unit tests for docx4j parsing and SLA hours calculation
+  - [x] Spin up Docker containers and perform full integration testing
+
+- [ ] 7. Phase 3: Finalizing Report Access & Populating Layouts
+  - [x] Enable PDF download button for Property Analyst (PA) in ValuationPortalWidget
+  - [x] Implement `_openPopulateReportFullScreen` dialog overlay in ValuationPortalWidget
+  - [x] Integrate full-page button triggers in side sheet Action B (compiling) and Action C (reviewing)
+  - [x] Display Client Name and Bank Name inline in the valuation report queue list items
