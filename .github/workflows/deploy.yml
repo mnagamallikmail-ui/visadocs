@@ -1,29 +1,29 @@
-name: Deploy Web Application
+name: Deploy Visadocs
 
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Deploy to VPS via SSH
+      - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.0.3
+
         with:
           host: ${{ secrets.VPS_SSH_HOST }}
           username: ${{ secrets.VPS_SSH_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+
           script: |
-            mkdir -p ~/apps/pro-valuer
-            cd ~/apps/pro-valuer
-            if [ ! -d ".git" ]; then
-              # NOTE: Replace with your actual repository SSH or HTTPS URL
-              git clone https://github.com/YOUR_ORGANIZATION/YOUR_REPO.git .
-            else
-              git pull origin main
-            fi
-            docker compose down
-            docker compose up --build -d
+            cd /root/visadocs
+
+            git fetch origin
+            git reset --hard origin/master
+
+            docker compose up -d --build
+
             docker image prune -f
