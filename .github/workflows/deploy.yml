@@ -17,6 +17,8 @@ jobs:
           host: ${{ secrets.VPS_SSH_HOST }}
           username: ${{ secrets.VPS_SSH_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
+          timeout: 30m
+          command_timeout: 30m
 
           script: |
             cd /root/visadocs
@@ -24,10 +26,9 @@ jobs:
             git fetch origin
             git reset --hard origin/master
 
-            # Rebuild all containers — no-cache ensures frontend JS is always fresh
-            docker compose build --no-cache
-
-            docker compose up -d
+            # Deploy with production-grade incremental build using Docker cache
+            # This rebuilds only changed services and keeps database volumes intact
+            docker compose up -d --build
 
             # Remove dangling images to reclaim disk space
             docker image prune -f
