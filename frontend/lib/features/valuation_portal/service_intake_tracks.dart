@@ -7,15 +7,15 @@ import 'package:google_fonts/google_fonts.dart';
 // ─── Shared tile helpers ──────────────────────────────────────
 
 BoxDecoration _tileDecor(bool sel) => BoxDecoration(
-  color: sel ? const Color(0xFF1E293B) : Colors.white,
+  color: sel ? AppColors.sidebarSelected : Colors.white,
   border: Border.all(
-    color: sel ? DesignSystem.secondary : DesignSystem.border,
+    color: sel ? AppColors.brandBlue : DesignSystem.border,
     width: sel ? 1.5 : 1.0,
   ),
   borderRadius: BorderRadius.circular(12),
   boxShadow: sel ? [
     BoxShadow(
-      color: DesignSystem.secondary.withOpacity(0.15),
+      color: AppColors.brandBlue.withOpacity(0.12),
       blurRadius: 8,
       offset: const Offset(0, 2),
     )
@@ -29,7 +29,7 @@ BoxDecoration _tileDecor(bool sel) => BoxDecoration(
 );
 
 TextStyle _tileLabelStyle(bool sel) => DesignSystem.body(
-  color: sel ? Colors.white : DesignSystem.textPrimary,
+  color: sel ? AppColors.brandBlue : DesignSystem.textPrimary,
   fontSize: 11,
   fontWeight: sel ? FontWeight.bold : FontWeight.w600,
 );

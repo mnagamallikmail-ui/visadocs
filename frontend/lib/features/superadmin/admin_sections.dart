@@ -15,10 +15,10 @@ import '../../services/api_service.dart';
 
 Widget _sectionHeader(String title, String subtitle, {Widget? action}) =>
     Container(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 22),
+      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
       decoration: const BoxDecoration(
-        color: AppColors.canvas,
-        border: Border(bottom: BorderSide(color: AppColors.hairlineSoft)),
+        color: AppColors.surface,
+        border: Border(bottom: BorderSide(color: AppColors.hairline)),
       ),
       child: Row(
         children: [
@@ -33,7 +33,7 @@ Widget _sectionHeader(String title, String subtitle, {Widget? action}) =>
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13),
+                  style: AppTypography.bodySm().copyWith(color: AppColors.slate),
                 ),
               ],
             ),
@@ -46,11 +46,7 @@ Widget _sectionHeader(String title, String subtitle, {Widget? action}) =>
 Widget _statCard(String label, String value, IconData icon, Color color) =>
     Container(
       padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppColors.canvas,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.hairlineSoft, width: 1),
-      ),
+      decoration: AppComponents.cardBase(),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -58,10 +54,10 @@ Widget _statCard(String label, String value, IconData icon, Color color) =>
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: AppColors.canvas,
+              color: AppColors.sidebarSelected,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: AppColors.slate, size: 18),
+            child: Icon(icon, color: AppColors.brandBlue, size: 18),
           ),
           const SizedBox(height: 20),
           Column(
@@ -90,15 +86,16 @@ Widget _statCard(String label, String value, IconData icon, Color color) =>
 Widget _placeholderSection(String icon, String title, String msg) =>
     Center(
       child: Padding(
-        padding: const EdgeInsets.all(48.0),
+        padding: const EdgeInsets.all(32.0),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppColors.canvas,
+                color: AppColors.surface,
                 borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: AppColors.hairline),
               ),
               child: Text(icon, style: const TextStyle(fontSize: 36)),
             ),
@@ -172,19 +169,19 @@ class _AdminOverviewSectionState extends State<AdminOverviewSection> {
               child: Column(
                 children: [
                   GridView.count(
-                    crossAxisCount: MediaQuery.of(context).size.width > 1200 ? 3 : 2,
+                    crossAxisCount: MediaQuery.of(context).size.width > 1400 ? 4 : (MediaQuery.of(context).size.width > 900 ? 3 : 2),
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: 1.6,
+                    crossAxisSpacing: 20,
+                    mainAxisSpacing: 20,
+                    childAspectRatio: MediaQuery.of(context).size.width > 1400 ? 2.1 : 1.8,
                     children: [
                       _statCard('Total Active Users', '${_data?['totalUsers'] ?? '0'}', Icons.people_outline, AppColors.primary),
                       _statCard('Total Orders', '${_data?['totalOrders'] ?? '0'}', Icons.folder_outlined, AppColors.brandBlue),
-                      _statCard('Open Orders', '${_data?['openOrders'] ?? '0'}', Icons.hourglass_empty, const Color(0xFFD97706)),
-                      _statCard('SPA Gate Orders', '${_data?['spaGateOrders'] ?? '0'}', Icons.supervisor_account_outlined, const Color(0xFF8B5CF6)),
+                      _statCard('Open Orders', '${_data?['openOrders'] ?? '0'}', Icons.hourglass_empty, AppColors.warning),
+                      _statCard('SPA Gate Orders', '${_data?['spaGateOrders'] ?? '0'}', Icons.supervisor_account_outlined, AppColors.brandBlue),
                       _statCard('Final Delivery', '${_data?['finalDeliveryOrders'] ?? '0'}', Icons.check_circle_outline, AppColors.success),
-                      _statCard('Active Templates', '${_data?['activeTemplates'] ?? '0'}', Icons.description_outlined, const Color(0xFF0891B2)),
+                      _statCard('Active Templates', '${_data?['activeTemplates'] ?? '0'}', Icons.description_outlined, AppColors.successAccent),
                     ],
                   ),
                 ],
@@ -1635,9 +1632,9 @@ class _AdminReportSectionState extends State<AdminReportSection> {
                             _overrideBtn('Release Delivery', AppColors.success, () => _forceStatus(o, 'FINAL_DELIVERY')),
                             const SizedBox(width: 8),
                           ],
-                          _overrideBtn('Force SPA Gate', const Color(0xFF8B5CF6), () => _forceStatus(o, 'SPA_GATE')),
+                          _overrideBtn('Force SPA Gate', AppColors.brandBlue, () => _forceStatus(o, 'SPA_GATE')),
                           const SizedBox(width: 8),
-                          _overrideBtn('Reset Draft', const Color(0xFF64748B), () => _forceStatus(o, 'DRAFT')),
+                          _overrideBtn('Reset Draft', AppColors.slate, () => _forceStatus(o, 'DRAFT')),
                         ],
                       ),
                     ],

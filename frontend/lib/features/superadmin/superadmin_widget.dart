@@ -833,8 +833,8 @@ class _HoverableSidebarItemState extends State<_HoverableSidebarItem> {
           padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
           decoration: BoxDecoration(
             color: isActive
-                ? AppColors.sidebarSelected      // Blue-600
-                : (_hovered ? AppColors.sidebarSelected.withOpacity(0.5) : Colors.transparent),
+                ? AppColors.sidebarSelected      // Blue 50 tint
+                : (_hovered ? AppColors.sidebarHover : Colors.transparent),
             borderRadius: BorderRadius.circular(7),
           ),
           child: Row(
@@ -843,8 +843,8 @@ class _HoverableSidebarItemState extends State<_HoverableSidebarItem> {
                 widget.icon,
                 size: 16,
                 color: isActive
-                    ? AppColors.sidebarText
-                    : AppColors.sidebarMuted.withOpacity(_hovered ? 0.9 : 0.65),
+                    ? AppColors.sidebarAccent
+                    : (_hovered ? AppColors.sidebarText : AppColors.sidebarMuted),
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -852,8 +852,8 @@ class _HoverableSidebarItemState extends State<_HoverableSidebarItem> {
                   widget.label,
                   style: AppTypography.bodySm().copyWith(
                     color: isActive
-                        ? AppColors.sidebarText
-                        : AppColors.sidebarMuted.withOpacity(_hovered ? 0.9 : 0.65),
+                        ? AppColors.sidebarAccent
+                        : (_hovered ? AppColors.sidebarText : AppColors.sidebarMuted),
                     fontSize: 13,
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                   ),

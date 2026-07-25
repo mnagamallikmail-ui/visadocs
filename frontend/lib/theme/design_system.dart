@@ -25,10 +25,10 @@ class DesignSystem {
 
   // ── Colors (all delegate to AppColors) ───────────────────────────────────
   static const Color black              = AppColors.inkDeep;
-  static const Color white              = AppColors.canvas;
-  static const Color background         = AppColors.surface;
+  static const Color white              = AppColors.surface;
+  static const Color background         = AppColors.canvas;
   static const Color backgroundAlt      = AppColors.surfaceSoft;
-  static const Color surface            = AppColors.canvas;
+  static const Color surface            = AppColors.surface;
   static const Color border             = AppColors.hairline;
   static const Color borderDark         = AppColors.hairlineStrong;
   static const Color structural         = AppColors.surface;
@@ -56,7 +56,7 @@ class DesignSystem {
   static const Color sidebarText        = AppColors.sidebarText;
   static const Color sidebarMuted       = AppColors.sidebarMuted;
   static const Color sidebarAccent      = AppColors.sidebarAccent;
-  static const Color sidebarHover       = Color(0x22000000); // 13% black on teal sidebar
+  static const Color sidebarHover       = AppColors.sidebarHover;
 
   // ── Spacing (delegate to AppSpacing) ─────────────────────────────────────
   static const double space4  = AppSpacing.xxs;

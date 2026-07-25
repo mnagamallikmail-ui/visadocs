@@ -26,7 +26,7 @@ class AppSpacing {
 
   // Section padding helpers
   static EdgeInsets pagePadding({bool isDesktop = true}) =>
-      EdgeInsets.symmetric(horizontal: isDesktop ? section : xxl, vertical: isDesktop ? section : xxl);
+      EdgeInsets.symmetric(horizontal: isDesktop ? xxl : xl, vertical: isDesktop ? xxl : xl);
 }
 
 /// AppRadius — Modern SaaS border-radius tokens

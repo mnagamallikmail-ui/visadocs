@@ -59,16 +59,16 @@ class AppColors {
   /// Error background tint (#FEE2E2 - Red 100)
   static const Color brandRed      = Color(0xFFFEE2E2);
 
-  // ── Sidebar (Enterprise Navy) ───────────────────────────────────────────
-  /// Deep navy sidebar background (#0F172A)
-  static const Color sidebarBg       = Color(0xFF0F172A);
-  /// Active/Hover sidebar state (#1E293B)
-  static const Color sidebarSelected = Color(0xFF1E293B);
-  /// Sidebar Primary Text (#FFFFFF)
-  static const Color sidebarText     = Color(0xFFFFFFFF);
-  /// Sidebar Muted Text (#94A3B8)
-  static const Color sidebarMuted    = Color(0xFF94A3B8);
-  /// Sidebar Active Accent Indicator (#2563EB)
+  // ── Sidebar (Enterprise Soft Neutral - Linear/Claude/Vercel style) ─────
+  /// Soft neutral sidebar background (#F8FAFC - Slate 50)
+  static const Color sidebarBg       = Color(0xFFF8FAFC);
+  /// Active/Selected sidebar state tint (#EFF6FF - Blue 50)
+  static const Color sidebarSelected = Color(0xFFEFF6FF);
+  /// Sidebar Primary Text (#0F172A - Slate 900)
+  static const Color sidebarText     = Color(0xFF0F172A);
+  /// Sidebar Muted Text (#64748B - Slate 500)
+  static const Color sidebarMuted    = Color(0xFF64748B);
+  /// Sidebar Active Accent Indicator (#2563EB - Blue 600)
   static const Color sidebarAccent   = Color(0xFF2563EB);
 
   // ── Legacy / Backward-compat aliases ────────────────────────────────────
@@ -97,7 +97,7 @@ class AppColors {
   static const Color primaryPressed   = bluePressed;
   static const Color primaryDisabled  = hairlineStrong;
   
-  static const Color footerBg         = sidebarBg;
+  static const Color footerBg         = Color(0xFF0F172A); // Keep footer dark navy
   static const Color white            = surface;
   static const Color background       = canvas;
   static const Color backgroundAlt    = surfaceSoft;
@@ -113,5 +113,5 @@ class AppColors {
   static const Color infoBg           = surfacePricingFeatured;
   static const Color structural       = canvas;
   static const Color backgroundSecondary = surfaceSoft;
-  static const Color sidebarHover     = sidebarSelected;
+  static const Color sidebarHover     = Color(0xFFF1F5F9); // Slate 100 on hover
 }

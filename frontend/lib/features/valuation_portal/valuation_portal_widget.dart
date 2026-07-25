@@ -904,7 +904,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                DesignSystem.logo(fontSize: 18, darkMode: true),
+                DesignSystem.logo(fontSize: 18, darkMode: false),
                 const SizedBox(height: 4),
                 Text(
                   widget.role == 'CLIENT'
@@ -923,7 +923,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
           ),
           Container(
             height: 1,
-            color: Colors.white.withOpacity(0.05),
+            color: AppColors.hairlineSoft,
             margin: const EdgeInsets.symmetric(horizontal: 20),
           ),
           const SizedBox(height: 8),
@@ -941,9 +941,9 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
             margin: const EdgeInsets.all(12),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.03),
+              color: AppColors.surface,
               borderRadius: AppRadius.brLg,
-              border: Border.all(color: Colors.white.withOpacity(0.05)),
+              border: Border.all(color: AppColors.hairlineSoft),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -990,7 +990,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                 const SizedBox(height: 12),
                 Container(
                   height: 1,
-                  color: Colors.white.withOpacity(0.08),
+                  color: AppColors.hairlineSoft,
                   margin: const EdgeInsets.only(bottom: 12),
                 ),
                 if ((widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN') && widget.onBackToAdmin != null) ...[
@@ -1073,7 +1073,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
 
   Widget _buildDefaultWelcome() {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(48.0),
+      padding: const EdgeInsets.all(32.0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1087,7 +1087,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
             "${widget.role.replaceAll('_', ' ')} Workspace  ·  Here's what's happening today.",
             style: AppTypography.body(color: AppColors.slate),
           ),
-          const SizedBox(height: 48),
+          const SizedBox(height: 32),
 
           // KPI Cards (4 columns)
           LayoutBuilder(
@@ -1099,7 +1099,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                 physics: const NeverScrollableScrollPhysics(),
                 crossAxisSpacing: 24,
                 mainAxisSpacing: 24,
-                childAspectRatio: cols == 4 ? 1.6 : 2.0,
+                childAspectRatio: cols == 4 ? (constraints.maxWidth > 1400 ? 2.1 : 1.6) : 2.0,
                 children: [
                   _buildKpiCard(title: 'Active Tasks', value: '12', trend: '+2 this week', icon: Icons.hourglass_top, color: AppColors.brandBlue),
                   _buildKpiCard(title: 'Due Today', value: '3', trend: 'Needs attention', icon: Icons.warning_amber_rounded, color: AppColors.warning),
@@ -1110,7 +1110,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
             },
           ),
           
-          const SizedBox(height: 48),
+          const SizedBox(height: 32),
 
           // Lower section: 2 columns (Recent Assignments / Productivity)
           LayoutBuilder(
@@ -1124,8 +1124,8 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                     flex: isDesktop ? 6 : 0,
                     child: _buildRecentAssignmentsSection(),
                   ),
-                  if (isDesktop) const SizedBox(width: 32),
-                  if (!isDesktop) const SizedBox(height: 32),
+                  if (isDesktop) const SizedBox(width: 24),
+                  if (!isDesktop) const SizedBox(height: 24),
                   Expanded(
                     flex: isDesktop ? 4 : 0,
                     child: _buildProductivityOverview(),
@@ -1361,7 +1361,10 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
     return LayoutBuilder(builder: (context, constraints) {
       int crossAxisCount = 3;
       double aspectRatio = 1.0;
-      if (constraints.maxWidth > 900) {
+      if (constraints.maxWidth > 1200) {
+        crossAxisCount = 4;
+        aspectRatio = 1.1;
+      } else if (constraints.maxWidth > 900) {
         crossAxisCount = 3;
         aspectRatio = 0.95;
       } else if (constraints.maxWidth > 600) {
@@ -1373,57 +1376,52 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
       }
 
       return SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 48),
-        child: Center(
-          child: Container(
-            constraints: const BoxConstraints(maxWidth: 960),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Page header — no wrapper card
-                Text(
-                  'New Request',
-                  style: AppTypography.heading2(color: AppColors.ink),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Choose the service type you want to initiate.',
-                  style: AppTypography.bodyMd(color: AppColors.slate),
-                ),
-                const SizedBox(height: 40),
-                // Service cards — clean grid, no outer wrapper
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: crossAxisCount,
-                    crossAxisSpacing: 16,
-                    mainAxisSpacing: 16,
-                    childAspectRatio: aspectRatio,
-                  ),
-                  itemCount: services.length,
-                  itemBuilder: (ctx, i) {
-                    final svc = services[i];
-                    final key = svc['key'] as String;
-
-                    return _ClientServiceCard(
-                      title: svc['label'] as String,
-                      description: svc['description'] as String,
-                      icon: svc['icon'] as IconData,
-                      isSelected: false,
-                      tooltip: svc['tooltip'] as String,
-                      onTap: () {
-                        // Navigate immediately — no selection state, no Continue button
-                        setState(() {
-                          _selectedServiceType = key;
-                        });
-                      },
-                    );
-                  },
-                ),
-              ],
+        padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Page header — no wrapper card
+            Text(
+              'New Request',
+              style: AppTypography.heading2(color: AppColors.ink),
             ),
-          ),
+            const SizedBox(height: 8),
+            Text(
+              'Choose the service type you want to initiate.',
+              style: AppTypography.bodyMd(color: AppColors.slate),
+            ),
+            const SizedBox(height: 32),
+            // Service cards — clean grid, no outer wrapper
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 20,
+                mainAxisSpacing: 20,
+                childAspectRatio: aspectRatio,
+              ),
+              itemCount: services.length,
+              itemBuilder: (ctx, i) {
+                final svc = services[i];
+                final key = svc['key'] as String;
+
+                return _ClientServiceCard(
+                  title: svc['label'] as String,
+                  description: svc['description'] as String,
+                  icon: svc['icon'] as IconData,
+                  isSelected: false,
+                  tooltip: svc['tooltip'] as String,
+                  onTap: () {
+                    // Navigate immediately — no selection state, no Continue button
+                    setState(() {
+                      _selectedServiceType = key;
+                    });
+                  },
+                );
+              },
+            ),
+          ],
         ),
       );
     });
@@ -1472,95 +1470,90 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
       children: [
         _buildProgressTracker(),
         Expanded(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
-              child: Container(
-                constraints: const BoxConstraints(maxWidth: 1000),
-                child: Card(
-                  color: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    side: const BorderSide(color: DesignSystem.border),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(40),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 32),
+            child: Card(
+              color: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+                side: const BorderSide(color: DesignSystem.border),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.all(32),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
                       children: [
-                        Row(
-                          children: [
-                            InkWell(
-                              onTap: () {
-                                if (_currentValuationStep > 1) {
-                                  setState(() {
-                                    _currentValuationStep--;
-                                  });
-                                } else {
-                                  setState(() {
-                                    _selectedServiceType = null;
-                                    _resetValuationFields();
-                                  });
-                                }
-                              },
-                              borderRadius: BorderRadius.circular(6),
-                              child: Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  border: Border.all(color: DesignSystem.border),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: const Icon(Icons.arrow_back_ios_new, size: 12, color: DesignSystem.textPrimary),
-                              ),
-                            ),
-                            const SizedBox(width: 16),
-                            Text(
-                              _getStepHeaderTitle(),
-                              style: DesignSystem.label(color: DesignSystem.sidebarMuted),
-                            ),
-                            const Spacer(),
-                            TextButton(
-                              onPressed: () {
-                                setState(() {
-                                  _resetValuationFields();
-                                  _currentValuationStep = 1;
-                                });
-                              },
-                              child: Text(
-                                "Reset Form",
-                                style: DesignSystem.body(
-                                  color: DesignSystem.error,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const Divider(height: 32),
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 250),
-                          transitionBuilder: (Widget child, Animation<double> animation) {
-                            return FadeTransition(
-                              opacity: animation,
-                              child: SlideTransition(
-                                position: Tween<Offset>(
-                                  begin: const Offset(0.01, 0),
-                                  end: Offset.zero,
-                                ).animate(animation),
-                                child: child,
-                              ),
-                            );
+                        InkWell(
+                          onTap: () {
+                            if (_currentValuationStep > 1) {
+                              setState(() {
+                                _currentValuationStep--;
+                              });
+                            } else {
+                              setState(() {
+                                _selectedServiceType = null;
+                                _resetValuationFields();
+                              });
+                            }
                           },
-                          child: KeyedSubtree(
-                            key: ValueKey<int>(_currentValuationStep),
-                            child: _buildCurrentStepContent(),
+                          borderRadius: BorderRadius.circular(6),
+                          child: Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              border: Border.all(color: DesignSystem.border),
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: const Icon(Icons.arrow_back_ios_new, size: 12, color: DesignSystem.textPrimary),
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Text(
+                          _getStepHeaderTitle(),
+                          style: DesignSystem.label(color: DesignSystem.sidebarMuted),
+                        ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () {
+                            setState(() {
+                              _resetValuationFields();
+                              _currentValuationStep = 1;
+                            });
+                          },
+                          child: Text(
+                            "Reset Form",
+                            style: DesignSystem.body(
+                              color: DesignSystem.error,
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                  ),
+                    const Divider(height: 32),
+                    AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 250),
+                      transitionBuilder: (Widget child, Animation<double> animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0.01, 0),
+                              end: Offset.zero,
+                            ).animate(animation),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: KeyedSubtree(
+                        key: ValueKey<int>(_currentValuationStep),
+                        child: _buildCurrentStepContent(),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -1685,124 +1678,108 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
     ];
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 32),
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(bottom: BorderSide(color: DesignSystem.border)),
       ),
-      child: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 1000),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: List.generate(steps.length, (index) {
-              final stepNum = index + 1;
-              final isCompleted = _currentValuationStep > stepNum;
-              final isActive = _currentValuationStep == stepNum;
-              final step = steps[index];
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: List.generate(steps.length, (index) {
+          final stepNum = index + 1;
+          final isCompleted = _currentValuationStep > stepNum;
+          final isActive = _currentValuationStep == stepNum;
+          final step = steps[index];
 
-              return Expanded(
-                child: Row(
-                  children: [
-                    InkWell(
-                      onTap: isCompleted
-                          ? () {
-                              setState(() {
-                                _currentValuationStep = stepNum;
-                              });
-                            }
-                          : null,
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
-                            width: 28,
-                            height: 28,
-                            decoration: BoxDecoration(
-                              color: isCompleted
-                                  ? DesignSystem.primary
-                                  : isActive
-                                      ? Colors.white
-                                      : Colors.transparent,
-                              border: Border.all(
-                                color: isCompleted || isActive ? DesignSystem.primary : DesignSystem.borderDark,
-                                width: 2,
-                              ),
-                              shape: BoxShape.circle,
-                              boxShadow: isActive
-                                  ? [
-                                      BoxShadow(
-                                        color: DesignSystem.primary.withOpacity(0.15),
-                                        blurRadius: 8,
-                                        spreadRadius: 2,
-                                      )
-                                    ]
-                                  : null,
-                            ),
-                            child: Center(
-                              child: isCompleted
-                                  ? const Icon(Icons.check, size: 14, color: Colors.white)
-                                  : Text(
-                                      '$stepNum',
-                                      style: GoogleFonts.montserrat(
-                                        color: isActive ? DesignSystem.primary : DesignSystem.textMuted,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                            ),
+          return Expanded(
+            child: Row(
+              children: [
+                InkWell(
+                  onTap: isCompleted
+                      ? () {
+                          setState(() {
+                            _currentValuationStep = stepNum;
+                          });
+                        }
+                      : null,
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 24,
+                        height: 24,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isCompleted
+                              ? DesignSystem.primary
+                              : isActive
+                                  ? DesignSystem.primary.withOpacity(0.1)
+                                  : DesignSystem.background,
+                          border: Border.all(
+                            color: isActive || isCompleted ? DesignSystem.primary : DesignSystem.border,
+                            width: 1.5,
                           ),
-                          const SizedBox(width: 12),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(
-                                step['title']!,
-                                style: GoogleFonts.montserrat(
-                                  color: isActive
-                                      ? DesignSystem.textPrimary
-                                      : isCompleted
-                                          ? DesignSystem.primary
-                                          : DesignSystem.textMuted,
-                                  fontSize: 11,
-                                  fontWeight: isActive || isCompleted ? FontWeight.bold : FontWeight.w600,
-                                ),
-                              ),
-                              if (step['value'] != null)
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 2),
-                                  child: Text(
-                                    step['value']!,
-                                    style: DesignSystem.body(
-                                      color: DesignSystem.textSecondary,
-                                      fontSize: 9,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
+                        ),
+                        child: Center(
+                          child: isCompleted
+                              ? const Icon(Icons.check, size: 14, color: Colors.white)
+                              : Text(
+                                  '$stepNum',
+                                  style: GoogleFonts.montserrat(
+                                    color: isActive ? DesignSystem.primary : DesignSystem.textMuted,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                    if (index < steps.length - 1)
-                      Expanded(
-                        child: Container(
-                          height: 2,
-                          margin: const EdgeInsets.symmetric(horizontal: 16),
-                          color: isCompleted ? DesignSystem.primary : DesignSystem.border,
                         ),
                       ),
-                  ],
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            step['title']!,
+                            style: GoogleFonts.montserrat(
+                              color: isActive
+                                  ? DesignSystem.textPrimary
+                                  : isCompleted
+                                      ? DesignSystem.primary
+                                      : DesignSystem.textMuted,
+                              fontSize: 11,
+                              fontWeight: isActive || isCompleted ? FontWeight.bold : FontWeight.w600,
+                            ),
+                          ),
+                          if (step['value'] != null)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 2),
+                              child: Text(
+                                step['value']!,
+                                style: DesignSystem.body(
+                                  color: DesignSystem.textSecondary,
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              );
-            }),
-          ),
-        ),
+                if (index < steps.length - 1)
+                  Expanded(
+                    child: Container(
+                      height: 2,
+                      margin: const EdgeInsets.symmetric(horizontal: 16),
+                      color: isCompleted ? DesignSystem.primary : DesignSystem.border,
+                    ),
+                  ),
+              ],
+            ),
+          );
+        }),
       ),
     );
   }
@@ -3587,7 +3564,7 @@ class _HoverablePortalSidebarItemState extends State<_HoverablePortalSidebarItem
           decoration: BoxDecoration(
             color: isActive
                 ? AppColors.sidebarSelected
-                : (_hovered ? AppColors.sidebarSelected.withOpacity(0.5) : Colors.transparent),
+                : (_hovered ? AppColors.sidebarHover : Colors.transparent),
             borderRadius: AppRadius.brMd,
           ),
           child: Row(
@@ -3605,10 +3582,10 @@ class _HoverablePortalSidebarItemState extends State<_HoverablePortalSidebarItem
                   widget.label,
                   style: AppTypography.bodySm(
                     color: isActive
-                        ? AppColors.sidebarText
+                        ? AppColors.sidebarAccent
                         : ( _hovered ? AppColors.sidebarText : AppColors.sidebarMuted ),
                   ).copyWith(
-                    fontWeight: isActive ? FontWeight.w500 : FontWeight.w400,
+                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),
               ),
