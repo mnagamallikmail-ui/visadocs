@@ -1,3 +1,0 @@
-ALTER TABLE orders ADD COLUMN client_name VARCHAR(255);
-ALTER TABLE orders ADD COLUMN bank_name VARCHAR(255);
-ALTER TABLE orders ADD COLUMN branch_name VARCHAR(255);

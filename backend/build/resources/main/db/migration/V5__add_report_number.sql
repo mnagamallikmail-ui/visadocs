@@ -1,1 +1,0 @@
-ALTER TABLE orders ADD COLUMN report_number VARCHAR(100) UNIQUE;
