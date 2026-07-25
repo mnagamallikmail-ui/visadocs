@@ -43,7 +43,7 @@ class _ClientDashboardState extends State<ClientDashboard> {
                   Container(
                     padding: const EdgeInsets.all(AppSpacing.md),
                     decoration: BoxDecoration(
-                      color: AppColors.surfaceYellow,
+                      color: AppColors.yellowLight,
                       borderRadius: AppRadius.brFull,
                     ),
                     child: const Icon(Icons.gavel_outlined,

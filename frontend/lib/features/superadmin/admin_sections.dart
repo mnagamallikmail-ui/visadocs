@@ -1353,6 +1353,9 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
 
   @override
   Widget build(BuildContext context) {
+    int activeTemplates = _templates.where((t) => t['isActive'] == 'Y').length;
+    int inactiveTemplates = _templates.length - activeTemplates;
+
     return Column(
       children: [
         _sectionHeader(
@@ -1360,72 +1363,126 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
           'Manage document generation templates',
           action: Row(
             children: [
-              ElevatedButton.icon(
-                onPressed: _uploadTemplate,
-                icon: const Icon(Icons.upload_file, size: 16),
-                label: const Text('Upload DOCX'),
-                style: DesignSystem.primaryButton.copyWith(
-                  backgroundColor: WidgetStateProperty.all(DesignSystem.primary),
-                  padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
-                ),
+              OutlinedButton.icon(
+                label: const Text('Refresh'),
+                icon: const Icon(Icons.refresh),
+                onPressed: _load,
+                style: AppComponents.secondaryButton,
               ),
               const SizedBox(width: 8),
               ElevatedButton.icon(
-                onPressed: _load,
-                icon: const Icon(Icons.refresh, size: 16),
-                label: const Text('Refresh'),
-                style: DesignSystem.outlinedButton.copyWith(
-                  padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
+                label: const Text('Upload DOCX'),
+                icon: const Icon(Icons.upload_file),
+                onPressed: _uploadTemplate,
+                style: AppComponents.primaryButton,
+              ),
+            ],
+          ),
+        ),
+        
+        // Top KPI Grid
+        Padding(
+          padding: const EdgeInsets.fromLTRB(28, 28, 28, 0),
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: AppComponents.cardBase(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Total Templates', style: AppTypography.bodySmMedium(color: AppColors.slate)),
+                      const SizedBox(height: 8),
+                      Text('${_templates.length}', style: AppTypography.statDisplay(color: AppColors.ink)),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: AppComponents.cardBase(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Active (In Use)', style: AppTypography.bodySmMedium(color: AppColors.slate)),
+                      const SizedBox(height: 8),
+                      Text('$activeTemplates', style: AppTypography.statDisplay(color: AppColors.brandBlue)),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Container(
+                  padding: const EdgeInsets.all(20),
+                  decoration: AppComponents.cardBase(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Draft / Inactive', style: AppTypography.bodySmMedium(color: AppColors.slate)),
+                      const SizedBox(height: 8),
+                      Text('$inactiveTemplates', style: AppTypography.statDisplay(color: AppColors.warning)),
+                    ],
+                  ),
                 ),
               ),
             ],
           ),
         ),
+
         if (_loading)
           const Expanded(child: Center(child: CircularProgressIndicator()))
         else if (_templates.isEmpty)
-          Expanded(child: _placeholderSection('📄', 'No Templates Configured', 'Click "Upload DOCX" to ingest a document template.'))
+          Expanded(
+            child: Center(
+              child: AppComponents.emptyState(
+                icon: Icons.description_outlined,
+                title: 'No Templates Available',
+                description: 'Upload your first DOCX template to start generating dynamic reports.',
+                primaryButtonText: 'Upload Template',
+                onPrimaryAction: _uploadTemplate,
+              ),
+            ),
+          )
         else
           Expanded(
             child: ListView.builder(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(28),
               itemCount: _templates.length,
               itemBuilder: (_, i) {
                 final t = _templates[i];
                 final isActive = t['isActive'] == 'Y';
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(16),
-                  decoration: DesignSystem.cardDecoration,
+                  padding: const EdgeInsets.all(20),
+                  decoration: AppComponents.cardBase(),
                   child: Row(
                     children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceSoft,
+                          borderRadius: AppRadius.brMd,
+                        ),
+                        child: Icon(Icons.file_present_rounded, color: AppColors.slate, size: 24),
+                      ),
+                      const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('${t['name']}', style: DesignSystem.body(color: DesignSystem.textPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 6),
+                            Text('${t['name']}', style: AppTypography.bodyMdMedium(color: AppColors.ink)),
+                            const SizedBox(height: 4),
                             Row(
                               children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                  decoration: BoxDecoration(
-                                    color: isActive ? DesignSystem.successBg : DesignSystem.structural,
-                                    borderRadius: BorderRadius.circular(12),
-                                  ),
-                                  child: Text(
-                                    isActive ? 'Active' : 'Inactive',
-                                    style: DesignSystem.body(
-                                      color: isActive ? DesignSystem.success : DesignSystem.textSecondary,
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
+                                AppComponents.statusBadge(isActive ? 'Active' : 'Inactive'),
                                 const SizedBox(width: 12),
                                 Text(
                                   'Status: ${t['status']}',
-                                  style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 12),
+                                  style: AppTypography.caption(color: AppColors.slate),
                                 ),
                               ],
                             ),
@@ -1438,17 +1495,16 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                           if (!isActive) ...[
                             ElevatedButton(
                               onPressed: () => _showTemplatePreviewDialog(t),
-                              style: DesignSystem.primaryButton.copyWith(
-                                padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
-                              ),
-                              child: Text('Finalize', style: DesignSystem.body(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                              style: AppComponents.primaryButton,
+                              child: const Text('Finalize'),
                             ),
                             const SizedBox(width: 8),
                           ],
-                          IconButton(
+                          ElevatedButton.icon(
+                            label: const Text('Delete'),
+                            icon: const Icon(Icons.delete_outline),
                             onPressed: () => _deleteTemplate(t),
-                            icon: const Icon(Icons.delete_outline, color: DesignSystem.error, size: 20),
-                            tooltip: 'Delete Template',
+                            style: AppComponents.dangerButton,
                           ),
                         ],
                       ),

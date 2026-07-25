@@ -1,45 +1,48 @@
 import 'package:flutter/material.dart';
 
-/// AppSpacing — Design.md spacing tokens (base unit: 4px)
+/// AppSpacing — Strict 8pt SaaS Scale
 class AppSpacing {
   AppSpacing._();
 
-  static const double xxs       = 4.0;   // {spacing.xxs}
-  static const double xs        = 8.0;   // {spacing.xs}
-  static const double sm        = 12.0;  // {spacing.sm}
-  static const double md        = 16.0;  // {spacing.md}
-  static const double lg        = 20.0;  // {spacing.lg}
-  static const double xl        = 24.0;  // {spacing.xl}
-  static const double xxl       = 32.0;  // {spacing.xxl}
-  static const double xxxl      = 40.0;  // {spacing.xxxl}
-  static const double sectionSm = 48.0;  // {spacing.section-sm}
-  static const double section   = 64.0;  // {spacing.section}
-  static const double sectionLg = 96.0;  // {spacing.section-lg}
-  static const double hero      = 120.0; // {spacing.hero}
+  static const double xs  = 4.0;
+  static const double sm  = 8.0;
+  static const double md  = 12.0;
+  static const double lg  = 16.0;
+  static const double xl  = 24.0;
+  static const double xxl = 32.0;
+  static const double sectionSm = 48.0;
+  static const double section   = 64.0;
+  
+  // Legacy mappings to prevent build breaks temporarily
+  static const double xxs  = 4.0;
+  static const double xxxl = 48.0;
+  static const double sectionLg = 64.0;
+  static const double hero = 64.0;
 
   // Card padding shortcuts
-  static const EdgeInsets cardPadding        = EdgeInsets.all(xl);   // 24px compact cards
-  static const EdgeInsets cardPaddingFeature = EdgeInsets.all(xxl);  // 32px feature panels
-  static const EdgeInsets buttonPadding      = EdgeInsets.symmetric(horizontal: xl, vertical: sm); // 12×24
+  static const EdgeInsets cardPadding        = EdgeInsets.all(xl);
+  static const EdgeInsets cardPaddingFeature = EdgeInsets.all(xxl);
+  static const EdgeInsets buttonPadding      = EdgeInsets.symmetric(horizontal: lg, vertical: sm);
 
   // Section padding helpers
   static EdgeInsets pagePadding({bool isDesktop = true}) =>
-      EdgeInsets.symmetric(horizontal: isDesktop ? sectionLg : xxl, vertical: isDesktop ? sectionLg : section);
+      EdgeInsets.symmetric(horizontal: isDesktop ? section : xxl, vertical: isDesktop ? section : xxl);
 }
 
-/// AppRadius — Design.md border-radius tokens
+/// AppRadius — Modern SaaS border-radius tokens
 class AppRadius {
   AppRadius._();
 
-  static const double xs      = 4.0;    // {rounded.xs} — small chips
-  static const double sm      = 6.0;    // {rounded.sm} — discount badges
-  static const double md      = 8.0;    // {rounded.md} — inputs, search-pill
-  static const double lg      = 12.0;   // {rounded.lg} — standard cards, table containers
-  static const double xl      = 16.0;   // {rounded.xl} — pricing cards, feature panels
-  static const double xxl     = 20.0;   // {rounded.xxl} — larger feature cards
-  static const double xxxl    = 28.0;   // {rounded.xxxl} — pastel feature cards
-  static const double feature = 32.0;   // {rounded.feature} — hero CTA banner cards
-  static const double full    = 9999.0; // {rounded.full} — ALL buttons, pill tabs, badges
+  static const double xs      = 4.0;
+  static const double sm      = 6.0;
+  static const double md      = 8.0;
+  static const double lg      = 12.0;
+  static const double xl      = 16.0;
+  static const double xxl     = 24.0;
+  static const double full    = 9999.0;
+  
+  static const double xxxl    = 24.0; // Legacy mapping
+  static const double feature = 16.0; // Legacy mapping
 
   // BorderRadius helpers
   static BorderRadius brXs      = BorderRadius.circular(xs);
@@ -53,48 +56,48 @@ class AppRadius {
   static BorderRadius brFull    = BorderRadius.circular(full);
 }
 
-/// AppShadows — Design.md elevation model
+/// AppShadows — Enterprise SaaS elevation model (Linear/Stripe inspired)
 class AppShadows {
   AppShadows._();
 
   /// Level 0 — flat (no shadow, hairline-soft border)
   static const List<BoxShadow> flat = [];
 
-  /// Level 1 — subtle hover-elevated tile
-  static const List<BoxShadow> subtle = [
+  /// Level 1 — standard cards
+  static const List<BoxShadow> card = [
     BoxShadow(
-      color: Color(0x0A050038), // rgba(5,0,56,0.04)
-      blurRadius: 2,
-      offset: Offset(0, 1),
+      color: Color(0x0A0F172A), // Slate 900 at 4%
+      blurRadius: 4,
+      offset: Offset(0, 2),
     ),
   ];
 
-  /// Level 2 — standard feature cards
-  static const List<BoxShadow> card = [
+  /// Level 2 — hover states
+  static const List<BoxShadow> subtle = [
     BoxShadow(
-      color: Color(0x0F050038), // rgba(5,0,56,0.06)
+      color: Color(0x140F172A), // Slate 900 at 8%
       blurRadius: 12,
       offset: Offset(0, 4),
     ),
   ];
 
-  /// Level 3 — hero whiteboard mockup framing
+  /// Level 3 — dropdowns, popovers
   static const List<BoxShadow> mockup = [
     BoxShadow(
-      color: Color(0x14050038), // rgba(5,0,56,0.08)
-      blurRadius: 32,
+      color: Color(0x1A0F172A), // Slate 900 at 10%
+      blurRadius: 24,
       spreadRadius: -4,
       offset: Offset(0, 12),
     ),
   ];
 
-  /// Level 4 — modals, dropdowns
+  /// Level 4 — modals
   static const List<BoxShadow> modal = [
     BoxShadow(
-      color: Color(0x1F050038), // rgba(5,0,56,0.12)
+      color: Color(0x260F172A), // Slate 900 at 15%
       blurRadius: 48,
       spreadRadius: -8,
-      offset: Offset(0, 16),
+      offset: Offset(0, 24),
     ),
   ];
 }

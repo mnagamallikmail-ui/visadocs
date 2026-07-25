@@ -850,95 +850,62 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
   }
 
   Widget _buildSidebar() {
-    List<Widget> menuItems = [];
+    Map<String, List<Widget>> menuGroups = {};
+
     if (widget.role == 'CLIENT') {
-      menuItems = [
-        _buildSidebarItem(
-          key: 'start_new',
-          label: "Start a New Project",
-          icon: Icons.add_circle_outline,
-        ),
-        const SizedBox(height: 8),
-        _buildSidebarItem(
-          key: 'in_progress',
-          label: "Projects in Progress",
-          icon: Icons.hourglass_empty,
-        ),
-        const SizedBox(height: 8),
-        _buildSidebarItem(
-          key: 'completed',
-          label: "Completed Projects",
-          icon: Icons.check_circle_outline,
-        ),
+      menuGroups['WORKSPACE'] = [
+        _buildSidebarItem(key: 'start_new', label: "Start a New Project", icon: Icons.add_circle_outline),
+        _buildSidebarItem(key: 'in_progress', label: "Projects in Progress", icon: Icons.hourglass_empty),
+        _buildSidebarItem(key: 'completed', label: "Completed Projects", icon: Icons.check_circle_outline),
       ];
     } else if (widget.role == 'PA') {
-      menuItems = [
-        _buildSidebarItem(
-          key: 'unassigned',
-          label: "Unassigned Pool",
-          icon: Icons.list_alt,
-        ),
-        const SizedBox(height: 8),
-        _buildSidebarItem(
-          key: 'in_progress',
-          label: "My Active Tasks",
-          icon: Icons.hourglass_empty,
-        ),
-        const SizedBox(height: 8),
-        _buildSidebarItem(
-          key: 'completed',
-          label: "Completed Tasks",
-          icon: Icons.check_circle_outline,
-        ),
-        const SizedBox(height: 8),
-        _buildSidebarItem(
-          key: 'create_report',
-          label: "Create New Report",
-          icon: Icons.add_chart,
-        ),
+      menuGroups['WORKSPACE'] = [
+        _buildSidebarItem(key: 'in_progress', label: "My Active Tasks", icon: Icons.hourglass_empty),
+        _buildSidebarItem(key: 'completed', label: "Completed Tasks", icon: Icons.check_circle_outline),
+      ];
+      menuGroups['OPERATIONS'] = [
+        _buildSidebarItem(key: 'unassigned', label: "Unassigned Pool", icon: Icons.list_alt),
+        _buildSidebarItem(key: 'create_report', label: "Create New Report", icon: Icons.add_chart),
       ];
     } else {
-      menuItems = [
-        _buildSidebarItem(
-          key: 'under_review',
-          label: "Review Queue",
-          icon: Icons.rate_review,
-        ),
-        const SizedBox(height: 8),
-        _buildSidebarItem(
-          key: 'in_progress',
-          label: "My Active Tasks",
-          icon: Icons.hourglass_empty,
-        ),
-        const SizedBox(height: 8),
-        _buildSidebarItem(
-          key: 'completed',
-          label: "Completed Reports",
-          icon: Icons.check_circle_outline,
-        ),
-        const SizedBox(height: 8),
-        _buildSidebarItem(
-          key: 'create_report',
-          label: "Create New Report",
-          icon: Icons.add_chart,
-        ),
+      menuGroups['WORKSPACE'] = [
+        _buildSidebarItem(key: 'in_progress', label: "My Active Tasks", icon: Icons.hourglass_empty),
+        _buildSidebarItem(key: 'completed', label: "Completed Reports", icon: Icons.check_circle_outline),
+      ];
+      menuGroups['OPERATIONS'] = [
+        _buildSidebarItem(key: 'under_review', label: "Review Queue", icon: Icons.rate_review),
+        _buildSidebarItem(key: 'create_report', label: "Create New Report", icon: Icons.add_chart),
       ];
     }
 
+    List<Widget> navList = [];
+    menuGroups.forEach((groupName, items) {
+      navList.add(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+          child: Text(
+            groupName,
+            style: AppTypography.microUppercase(color: AppColors.sidebarMuted),
+          ),
+        ),
+      );
+      navList.addAll(items);
+    });
+
     return Container(
-      width: 240.0,
-      color: DesignSystem.sidebarBg,
+      width: 280.0,
+      color: AppColors.sidebarBg,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Logo area
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 22, 20, 8),
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                DesignSystem.logo(fontSize: 16, darkMode: true),
-                const SizedBox(height: 2),
+                DesignSystem.logo(fontSize: 18, darkMode: true),
+                const SizedBox(height: 4),
                 Text(
                   widget.role == 'CLIENT'
                       ? 'Client Portal'
@@ -946,121 +913,117 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                           ? 'Analyst Workspace'
                           : 'Review Workspace',
                   style: GoogleFonts.inter(
-                    color: DesignSystem.sidebarMuted,
-                    fontSize: 11,
+                    color: AppColors.sidebarMuted,
+                    fontSize: 12,
                     fontWeight: FontWeight.w400,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 4),
           Container(
             height: 1,
-            color: Colors.white.withOpacity(0.06),
+            color: Colors.white.withOpacity(0.05),
             margin: const EdgeInsets.symmetric(horizontal: 20),
           ),
           const SizedBox(height: 8),
+          
           // Nav items
           Expanded(
             child: ListView(
               padding: const EdgeInsets.symmetric(horizontal: 12),
-              children: menuItems,
+              children: navList,
             ),
           ),
+          
           // Profile footer
           Container(
-            margin: const EdgeInsets.all(10),
+            margin: const EdgeInsets.all(12),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white.withOpacity(0.08)),
+              color: Colors.white.withOpacity(0.03),
+              borderRadius: AppRadius.brLg,
+              border: Border.all(color: Colors.white.withOpacity(0.05)),
             ),
             child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Container(
-                            width: 30,
-                            height: 30,
-                            decoration: BoxDecoration(
-                              color: AppColors.brandYellow.withOpacity(0.15),
-                              borderRadius: BorderRadius.circular(7),
-                            ),
-                            child: Center(
-                              child: Text(
-                                widget.fullName.isEmpty ? '?' : widget.fullName[0].toUpperCase(),
-                                style: AppTypography.bodySm(
-                                  color: AppColors.brandYellow,
-                                ).copyWith(fontWeight: FontWeight.w700),
-                              ),
-                            ),
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 36,
+                      height: 36,
+                      decoration: BoxDecoration(
+                        color: AppColors.brandBlue.withOpacity(0.15),
+                        borderRadius: AppRadius.brMd,
+                        border: Border.all(color: AppColors.brandBlue.withOpacity(0.3)),
+                      ),
+                      child: Center(
+                        child: Text(
+                          widget.fullName.isEmpty ? '?' : widget.fullName[0].toUpperCase(),
+                          style: AppTypography.bodyMdMedium(
+                            color: AppColors.brandBlue,
                           ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  widget.fullName,
-                                  style: AppTypography.bodySm(color: AppColors.sidebarText)
-                                      .copyWith(fontWeight: FontWeight.w600, fontSize: 12),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                Text(
-                                  widget.role.replaceAll('_', ' '),
-                                  style: AppTypography.caption(color: AppColors.sidebarMuted)
-                                      .copyWith(fontSize: 10),
-                                ),
-                              ],
-                            ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            widget.fullName,
+                            style: AppTypography.bodySmMedium(color: AppColors.sidebarText),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            widget.email,
+                            style: AppTypography.caption(color: AppColors.sidebarMuted).copyWith(fontSize: 11),
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ],
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        widget.email,
-                        style: AppTypography.caption(color: AppColors.sidebarMuted).copyWith(fontSize: 10),
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                      Container(
-                        height: 1,
-                        color: Colors.white.withOpacity(0.08),
-                        margin: const EdgeInsets.symmetric(vertical: 10),
-                      ),
-                      if ((widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN') && widget.onBackToAdmin != null) ...[
-                        GestureDetector(
-                          onTap: widget.onBackToAdmin,
-                          child: Row(
-                            children: [
-                              Icon(Icons.admin_panel_settings_outlined, color: AppColors.sidebarAccent, size: 13),
-                              const SizedBox(width: 6),
-                              Text(
-                                'Admin Console',
-                                style: AppTypography.captionBold(color: AppColors.sidebarAccent).copyWith(fontSize: 11),
-                              ),
-                            ],
-                          ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  height: 1,
+                  color: Colors.white.withOpacity(0.08),
+                  margin: const EdgeInsets.only(bottom: 12),
+                ),
+                if ((widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN') && widget.onBackToAdmin != null) ...[
+                  GestureDetector(
+                    onTap: widget.onBackToAdmin,
+                    child: Row(
+                      children: [
+                        Icon(Icons.admin_panel_settings_outlined, color: AppColors.sidebarMuted, size: 16),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Admin Console',
+                          style: AppTypography.bodySmMedium(color: AppColors.sidebarMuted),
                         ),
-                        const SizedBox(height: 8),
                       ],
-                      GestureDetector(
-                        onTap: widget.onLogout,
-                        child: Row(
-                          children: [
-                            Icon(Icons.logout_rounded, color: AppColors.brandRedDark.withOpacity(0.8), size: 13),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Sign Out',
-                              style: AppTypography.captionBold(color: AppColors.brandRedDark.withOpacity(0.8)).copyWith(fontSize: 11),
-                            ),
-                          ],
-                        ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                ],
+                GestureDetector(
+                  onTap: widget.onLogout,
+                  child: Row(
+                    children: [
+                      Icon(Icons.logout_rounded, color: AppColors.brandRedDark, size: 16),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Sign Out',
+                        style: AppTypography.bodySmMedium(color: AppColors.brandRedDark),
                       ),
                     ],
                   ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -1109,107 +1072,236 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
   }
 
   Widget _buildDefaultWelcome() {
-    return Center(
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 650),
-        padding: const EdgeInsets.all(32.0),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              "Welcome, ${widget.fullName}",
-              style: DesignSystem.h1(color: DesignSystem.textPrimary),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              "System Role: ${widget.role.replaceAll('_', ' ')} Workspace",
-              style: DesignSystem.body(
-                color: DesignSystem.textSecondary,
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            const SizedBox(height: 44),
-            Text(
-              "WORKFLOW",
-              style: GoogleFonts.inter(
-                color: DesignSystem.textMuted,
-                fontSize: 11,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 1.5,
-              ),
-            ),
-            const SizedBox(height: 24),
-            _buildInstructionStep(
-              stepNumber: "1",
-              title: "Initiate Valuation Project",
-              description: "The client submits an intake and uploads at least 1 mandated document. The system generates a report number (PV-yymm-xxxx) instantly.",
-            ),
-            const SizedBox(height: 20),
-            _buildInstructionStep(
-              stepNumber: "2",
-              title: "Claim Task & Dynamic Form Compilation",
-              description: "A Property Analyst (PA) claims the task, associates a layout template, and fills out the dynamic parameters form, then submits to SPA.",
-            ),
-            const SizedBox(height: 20),
-            _buildInstructionStep(
-              stepNumber: "3",
-              title: "Approval, PDF Seal, & Secure Delivery",
-              description: "SPA or Superadmin reviews inputs, enters the final property value, verifies via simulated mobile OTP, and seals it. Client decrypts and downloads PDF directly.",
-            ),
-          ],
-        ),
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(48.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Greeting & Top KPI Section
+          Text(
+            "Welcome back, ${widget.fullName.split(' ').first}",
+            style: AppTypography.pageTitle(color: AppColors.ink),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            "${widget.role.replaceAll('_', ' ')} Workspace  ·  Here's what's happening today.",
+            style: AppTypography.body(color: AppColors.slate),
+          ),
+          const SizedBox(height: 48),
+
+          // KPI Cards (4 columns)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              int cols = constraints.maxWidth > 900 ? 4 : (constraints.maxWidth > 600 ? 2 : 1);
+              return GridView.count(
+                crossAxisCount: cols,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 24,
+                mainAxisSpacing: 24,
+                childAspectRatio: cols == 4 ? 1.6 : 2.0,
+                children: [
+                  _buildKpiCard(title: 'Active Tasks', value: '12', trend: '+2 this week', icon: Icons.hourglass_top, color: AppColors.brandBlue),
+                  _buildKpiCard(title: 'Due Today', value: '3', trend: 'Needs attention', icon: Icons.warning_amber_rounded, color: AppColors.warning),
+                  _buildKpiCard(title: 'Pending Review', value: '7', trend: 'Awaiting SPA', icon: Icons.pending_actions, color: AppColors.slate),
+                  _buildKpiCard(title: 'Completed', value: '104', trend: '+15 this month', icon: Icons.check_circle_outline, color: AppColors.successAccent),
+                ],
+              );
+            },
+          ),
+          
+          const SizedBox(height: 48),
+
+          // Lower section: 2 columns (Recent Assignments / Productivity)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              bool isDesktop = constraints.maxWidth > 900;
+              return Flex(
+                direction: isDesktop ? Axis.horizontal : Axis.vertical,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    flex: isDesktop ? 6 : 0,
+                    child: _buildRecentAssignmentsSection(),
+                  ),
+                  if (isDesktop) const SizedBox(width: 32),
+                  if (!isDesktop) const SizedBox(height: 32),
+                  Expanded(
+                    flex: isDesktop ? 4 : 0,
+                    child: _buildProductivityOverview(),
+                  ),
+                ],
+              );
+            },
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildInstructionStep({required String stepNumber, required String title, required String description}) {
+  Widget _buildKpiCard({required String title, required String value, required String trend, required IconData icon, required Color color}) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: AppComponents.cardBase(),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(title, style: AppTypography.bodySmMedium(color: AppColors.slate)),
+              Icon(icon, size: 20, color: color.withOpacity(0.8)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Text(value, style: AppTypography.statDisplay(color: AppColors.ink)),
+          const Spacer(),
+          Text(trend, style: AppTypography.caption(color: AppColors.steel)),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRecentAssignmentsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Recent Assignments', style: AppTypography.sectionTitle(color: AppColors.ink)),
+        const SizedBox(height: 24),
+        Container(
+          decoration: AppComponents.cardBase(),
+          child: ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: 4,
+            separatorBuilder: (context, index) => Divider(height: 1, color: AppColors.hairline),
+            itemBuilder: (context, index) {
+              // Dummy data for design redesign
+              List<String> statuses = ['In Progress', 'In Progress', 'Pending Review', 'Completed'];
+              List<String> titles = ['Commercial Plaza Valuation', 'Residential Plot Survey', 'Warehouse Asset Check', 'Downtown Office Space'];
+              List<String> ids = ['PV-2310-4492', 'PV-2310-4493', 'PV-2310-4491', 'PV-2310-4485'];
+              
+              return Padding(
+                padding: const EdgeInsets.all(20.0),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceSoft,
+                        borderRadius: AppRadius.brMd,
+                      ),
+                      child: Icon(Icons.maps_home_work_outlined, color: AppColors.slate, size: 20),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(titles[index], style: AppTypography.bodyMdMedium(color: AppColors.ink)),
+                          const SizedBox(height: 4),
+                          Text('${ids[index]}  ·  Assigned 2h ago', style: AppTypography.caption(color: AppColors.slate)),
+                        ],
+                      ),
+                    ),
+                    AppComponents.statusBadge(statuses[index]),
+                    const SizedBox(width: 16),
+                    Icon(Icons.chevron_right, color: AppColors.stone),
+                  ],
+                ),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildProductivityOverview() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Productivity & Timeline', style: AppTypography.sectionTitle(color: AppColors.ink)),
+        const SizedBox(height: 24),
+        Container(
+          padding: const EdgeInsets.all(24),
+          decoration: AppComponents.cardBase(),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Mock chart area
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Weekly Output', style: AppTypography.bodySmMedium(color: AppColors.slate)),
+                  Icon(Icons.bar_chart, color: AppColors.slate),
+                ],
+              ),
+              const SizedBox(height: 16),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  for (int i = 0; i < 7; i++)
+                    Container(
+                      width: 24,
+                      height: [40.0, 70.0, 30.0, 90.0, 60.0, 20.0, 50.0][i],
+                      decoration: BoxDecoration(
+                        color: i == 4 ? AppColors.brandBlue : AppColors.surfaceSoft,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                    )
+                ],
+              ),
+              const SizedBox(height: 32),
+              Divider(height: 1, color: AppColors.hairline),
+              const SizedBox(height: 32),
+              
+              // Timeline
+              Text('Activity Timeline', style: AppTypography.bodySmMedium(color: AppColors.slate)),
+              const SizedBox(height: 24),
+              _buildTimelineItem('Submitted PV-2310-4485 to SPA', '10:42 AM', isLast: false),
+              _buildTimelineItem('Claimed PV-2310-4492 from pool', '09:15 AM', isLast: false),
+              _buildTimelineItem('Logged in to workspace', '09:00 AM', isLast: true),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildTimelineItem(String text, String time, {required bool isLast}) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Container(
-          width: 28,
-          height: 28,
-          decoration: BoxDecoration(
-            color: DesignSystem.background,
-            shape: BoxShape.circle,
-            border: Border.all(color: DesignSystem.border),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            stepNumber,
-            style: GoogleFonts.inter(
-              color: DesignSystem.textSecondary,
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
+        Column(
+          children: [
+            Container(
+              width: 10,
+              height: 10,
+              decoration: const BoxDecoration(
+                color: AppColors.brandBlue,
+                shape: BoxShape.circle,
+              ),
             ),
-          ),
+            if (!isLast)
+              Container(
+                width: 2,
+                height: 32,
+                color: AppColors.hairline,
+              ),
+          ],
         ),
         const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                title,
-                style: GoogleFonts.inter(
-                  color: DesignSystem.textPrimary,
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  letterSpacing: -0.2,
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                description,
-                style: GoogleFonts.inter(
-                  color: DesignSystem.textSecondary,
-                  fontSize: 13,
-                  height: 1.55,
-                  letterSpacing: -0.1,
-                ),
-              ),
+              Text(text, style: AppTypography.bodySm(color: AppColors.ink)),
+              const SizedBox(height: 2),
+              Text(time, style: AppTypography.caption(color: AppColors.slate)),
+              if (!isLast) const SizedBox(height: 16),
             ],
           ),
         ),
@@ -3311,7 +3403,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
         return DesignSystem.textSecondary;
     }
   }
-}
+} // End of _ValuationPortalWidgetState
 
 class _ClientServiceCard extends StatefulWidget {
   final String title;
@@ -3365,7 +3457,7 @@ class _ClientServiceCardState extends State<_ClientServiceCard> {
                 curve: Curves.easeOut,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
                 decoration: BoxDecoration(
-                  color: widget.isSelected ? AppColors.surfaceYellow : AppColors.canvas,
+                  color: widget.isSelected ? AppColors.yellowLight : AppColors.canvas,
                   borderRadius: AppRadius.brXxxl, // Matching landing page
                   border: Border.all(
                     color: widget.isSelected
@@ -3491,23 +3583,23 @@ class _HoverablePortalSidebarItemState extends State<_HoverablePortalSidebarItem
           duration: const Duration(milliseconds: 150),
           curve: Curves.easeOut,
           margin: const EdgeInsets.only(bottom: 2),
-          padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 11),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 12),
           decoration: BoxDecoration(
             color: isActive
                 ? AppColors.sidebarSelected
                 : (_hovered ? AppColors.sidebarSelected.withOpacity(0.5) : Colors.transparent),
-            borderRadius: AppRadius.brSm,
+            borderRadius: AppRadius.brMd,
           ),
           child: Row(
             children: [
               Icon(
                 widget.icon,
-                size: 15,
+                size: 16,
                 color: isActive
                     ? AppColors.sidebarAccent
                     : ( _hovered ? AppColors.sidebarText : AppColors.sidebarMuted ),
               ),
-              const SizedBox(width: 10),
+              const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   widget.label,
@@ -3516,7 +3608,7 @@ class _HoverablePortalSidebarItemState extends State<_HoverablePortalSidebarItem
                         ? AppColors.sidebarText
                         : ( _hovered ? AppColors.sidebarText : AppColors.sidebarMuted ),
                   ).copyWith(
-                    fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
+                    fontWeight: isActive ? FontWeight.w500 : FontWeight.w400,
                   ),
                 ),
               ),

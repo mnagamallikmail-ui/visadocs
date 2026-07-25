@@ -177,7 +177,7 @@ class _HeroSection extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.surfaceYellow,
+              color: AppColors.yellowLight,
               borderRadius: AppRadius.brFull,
             ),
             child: Text(

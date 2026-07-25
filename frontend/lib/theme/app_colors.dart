@@ -1,134 +1,117 @@
 import 'package:flutter/material.dart';
 
-/// AppColors — Design.md color tokens
-/// Maps exactly to the Miro-inspired palette specified in Design.md.
-/// Use ONLY these tokens; never hardcode colors in UI code.
+/// AppColors — Strict SaaS Premium Color System
+/// Maps to the redesigned Enterprise theme (Linear/Stripe inspired).
 class AppColors {
   AppColors._();
 
-  // ── Brand & Accent ──────────────────────────────────────────────────────
-  /// Miro canary yellow — wordmark, promo banner, yellow-tag chips ONLY
-  static const Color brandYellow      = Color(0xFFFFD02B);
-  /// Darker hover variant of brand yellow
-  static const Color brandYellowDeep  = Color(0xFFE5B800);
-  /// Pale yellow background tint for tag chips
-  static const Color yellowLight      = Color(0xFFFFF8D6);
-  /// Yellow-tag text (dark olive) for chip foreground
-  static const Color yellowDark       = Color(0xFF5C4B00);
-  /// Action blue — inline links, featured-pricing border
-  static const Color brandBlue        = Color(0xFF1A73E8);
-  /// Pressed-state blue
-  static const Color bluePressed      = Color(0xFF1557B0);
-  /// Coral accent for warm callouts
-  static const Color brandCoral       = Color(0xFFFF6B47);
-  /// Pale coral for feature card backgrounds
-  static const Color coralLight       = Color(0xFFFFEDE8);
-  /// Coral-tag text (deep wine)
-  static const Color coralDark        = Color(0xFF7A1F00);
-  /// Soft rose-pink for feature card variants
-  static const Color brandRose        = Color(0xFFF9A8C9);
-  /// Pale rose for feature card backgrounds
-  static const Color roseLight        = Color(0xFFFFF0F5);
-  /// Brand teal
-  static const Color brandTeal        = Color(0xFF00B8A9);
-  /// Pale teal for feature card backgrounds
-  static const Color tealLight        = Color(0xFFE0FAF7);
-  /// Deep teal-green text color (moss)
-  static const Color mossDark         = Color(0xFF004D47);
-  /// Pale pink for soft callouts
-  static const Color brandPink        = Color(0xFFFCE4EC);
-  /// Soft orange for feature card backgrounds
-  static const Color brandOrangeLight = Color(0xFFFFF3E0);
+  // ── Core Surface & Background ─────────────────────────────────────────────
+  /// Page background (#F8FAFC - Slate 50)
+  static const Color canvas       = Color(0xFFF8FAFC);
+  /// Surface background for cards/modals (#FFFFFF - White)
+  static const Color surface      = Color(0xFFFFFFFF);
+  /// Subtle offset surface for inner containers (#F1F5F9 - Slate 100)
+  static const Color surfaceSoft  = Color(0xFFF1F5F9);
+  
+  // ── Borders ─────────────────────────────────────────────────────────────
+  /// Default borders and dividers (#E2E8F0 - Slate 200)
+  static const Color hairline     = Color(0xFFE2E8F0);
+  /// Soft borders for inner dividers (#F1F5F9 - Slate 100)
+  static const Color hairlineSoft = Color(0xFFF1F5F9);
+  /// Strong borders for inputs/focus (#CBD5E1 - Slate 300)
+  static const Color hairlineStrong = Color(0xFFCBD5E1);
 
-  // ── Surface ─────────────────────────────────────────────────────────────
-  /// Page background and primary card surface (stark white canvas)
-  static const Color canvas                = Color(0xFFFFFFFF);
-  /// Subtle section backgrounds, search-pill rest
-  static const Color surface               = Color(0xFFF7F7F7);
-  /// Quieter section divisions
-  static const Color surfaceSoft           = Color(0xFFFAFAFA);
-  /// Pale yellow-tinted surface for tag chip
-  static const Color surfaceYellow         = Color(0xFFFFF8D6);
-  /// Pale lavender for featured pricing tier
-  static const Color surfacePricingFeatured = Color(0xFFEEF2FF);
-  /// 1px borders and primary dividers
-  static const Color hairline             = Color(0xFFE0E0E0);
-  /// Quieter table-row dividers
-  static const Color hairlineSoft         = Color(0xFFEEEEEE);
-  /// Stronger 1px border for inputs
-  static const Color hairlineStrong       = Color(0xFFBDBDBD);
+  // ── Text & Typography ───────────────────────────────────────────────────
+  /// Primary headlines and body text (#0F172A - Slate 900)
+  static const Color ink          = Color(0xFF0F172A);
+  /// Secondary text, metadata, captions (#64748B - Slate 500)
+  static const Color slate        = Color(0xFF64748B);
+  /// Tertiary muted text (#94A3B8 - Slate 400)
+  static const Color steel        = Color(0xFF94A3B8);
+  /// Disabled labels (#CBD5E1 - Slate 300)
+  static const Color stone        = Color(0xFFCBD5E1);
+  /// Pure white for text on dark backgrounds
+  static const Color onDark       = Color(0xFFFFFFFF);
+  /// Muted white for secondary text on dark
+  static const Color onDarkMuted  = Color(0xFF94A3B8);
 
-  // ── Text ────────────────────────────────────────────────────────────────
-  /// Headlines on lighter feature cards
-  static const Color inkDeep     = Color(0xFF0A0A0A);
-  /// Primary headlines and body text
-  static const Color ink         = Color(0xFF1A1A1A);
-  /// Body emphasis text
-  static const Color charcoal    = Color(0xFF2D2D2D);
-  /// Secondary text, metadata
-  static const Color slate       = Color(0xFF616161);
-  /// Tertiary text, footer links
-  static const Color steel       = Color(0xFF9E9E9E);
-  /// Captions, muted labels
-  static const Color stone       = Color(0xFFBDBDBD);
-  /// Disabled labels, input placeholders
-  static const Color muted       = Color(0xFFD4D4D4);
-  /// White text on dark surfaces
-  static const Color onDark      = Color(0xFFFFFFFF);
-  /// Reduced-opacity white on dark
-  static const Color onDarkMuted = Color(0xFFAAAAAA);
-
-  // ── Primary & UI ────────────────────────────────────────────────────────
-  /// Black — dominant primary CTA color
-  static const Color primary   = Color(0xFF1A1A1A);
-  /// White — text on primary (black) surfaces
-  static const Color onPrimary = Color(0xFFFFFFFF);
-  /// Dark charcoal — pressed state for primary buttons
-  static const Color primaryPressed = Color(0xFF2D2D2D);
-  /// Disabled button background
-  static const Color primaryDisabled = Color(0xFFE0E0E0);
+  // ── Brand Accents (Action) ──────────────────────────────────────────────
+  /// Primary Action/Accent (#2563EB - Blue 600)
+  static const Color brandBlue    = Color(0xFF2563EB);
+  /// Primary Action/Accent Hover (#1D4ED8 - Blue 700)
+  static const Color bluePressed  = Color(0xFF1D4ED8);
+  /// Very light blue tint for active rows/selections (#EFF6FF - Blue 50)
+  static const Color surfacePricingFeatured = Color(0xFFEFF6FF);
 
   // ── Semantic ────────────────────────────────────────────────────────────
-  /// Confirmation/success indicator green
-  static const Color successAccent = Color(0xFF1E8C45);
-  /// Soft red for error backgrounds
-  static const Color brandRed      = Color(0xFFFFEBEE);
-  /// Stronger red for error borders
-  static const Color brandRedDark  = Color(0xFFE53935);
+  /// Success/Completed indicator (#10B981 - Emerald 500)
+  static const Color successAccent = Color(0xFF10B981);
+  /// Success background tint (#D1FAE5 - Emerald 100)
+  static const Color successBg     = Color(0xFFD1FAE5);
+  
+  /// Warning/Pending indicator (#F59E0B - Amber 500)
+  static const Color warning       = Color(0xFFF59E0B);
+  /// Warning background tint (#FEF3C7 - Amber 100)
+  static const Color warningBg     = Color(0xFFFEF3C7);
+  
+  /// Error/Rejected indicator (#EF4444 - Red 500)
+  static const Color brandRedDark  = Color(0xFFEF4444);
+  /// Error background tint (#FEE2E2 - Red 100)
+  static const Color brandRed      = Color(0xFFFEE2E2);
 
-  // ── Footer ──────────────────────────────────────────────────────────────
-  /// Massive dark footer background
-  static const Color footerBg = Color(0xFF111111);
+  // ── Sidebar (Enterprise Navy) ───────────────────────────────────────────
+  /// Deep navy sidebar background (#0F172A)
+  static const Color sidebarBg       = Color(0xFF0F172A);
+  /// Active/Hover sidebar state (#1E293B)
+  static const Color sidebarSelected = Color(0xFF1E293B);
+  /// Sidebar Primary Text (#FFFFFF)
+  static const Color sidebarText     = Color(0xFFFFFFFF);
+  /// Sidebar Muted Text (#94A3B8)
+  static const Color sidebarMuted    = Color(0xFF94A3B8);
+  /// Sidebar Active Accent Indicator (#2563EB)
+  static const Color sidebarAccent   = Color(0xFF2563EB);
 
-  // ── Legacy / Backward-compat aliases (used by existing providers/services)
-  static const Color white           = canvas;
-  static const Color background      = surface;
-  static const Color backgroundAlt   = surfaceSoft;
-  static const Color border          = hairline;
-  static const Color borderDark      = hairlineStrong;
-  static const Color textPrimary     = ink;
-  static const Color textSecondary   = slate;
-  static const Color textMuted       = steel;
-  static const Color success         = successAccent;
-  static const Color successBg       = Color(0xFFF0FDF4);
-  static const Color warning         = Color(0xFFF59E0B);
-  static const Color warningBg       = Color(0xFFFFFBEB);
-  static const Color error           = brandRedDark;
-  static const Color errorBg         = brandRed;
-  static const Color info            = brandBlue;
-  static const Color infoBg          = Color(0xFFEFF6FF);
-  static const Color structural      = surface;
-  static const Color backgroundSecondary = Color(0xFFF5F5F5);
-
-  // ── Sidebar ──────────────────────────────────────────────────────────────
-  /// Premium monochrome sidebar foundation
-  static const Color sidebarBg       = inkDeep;
-  /// Subtle charcoal for hover/selected states
-  static const Color sidebarSelected = Color(0xFF1F1F1F);
-  /// Crisp white for active text
-  static const Color sidebarText     = onDark;
-  /// Muted gray for inactive text
-  static const Color sidebarMuted    = stone;
-  /// Warm yellow accent for active indicator
-  static const Color sidebarAccent   = brandYellow;
+  // ── Legacy / Backward-compat aliases ────────────────────────────────────
+  // Ensuring existing widgets don't break during transition.
+  static const Color brandYellow      = Color(0xFFF59E0B); // Mapped to warning
+  static const Color brandYellowDeep  = Color(0xFFD97706);
+  static const Color yellowLight      = Color(0xFFFEF3C7);
+  static const Color yellowDark       = Color(0xFF92400E);
+  static const Color brandCoral       = Color(0xFFF97316);
+  static const Color coralLight       = Color(0xFFFFEDD5);
+  static const Color coralDark        = Color(0xFF9A3412);
+  static const Color brandRose        = Color(0xFFEC4899);
+  static const Color roseLight        = Color(0xFFFCE7F3);
+  static const Color brandTeal        = Color(0xFF14B8A6);
+  static const Color tealLight        = Color(0xFFCCFBF1);
+  static const Color mossDark         = Color(0xFF115E59);
+  static const Color brandPink        = Color(0xFFFBCFE8);
+  static const Color brandOrangeLight = Color(0xFFFFEDD5);
+  
+  static const Color inkDeep          = ink;
+  static const Color charcoal         = ink;
+  static const Color muted            = stone;
+  
+  static const Color primary          = brandBlue;
+  static const Color onPrimary        = onDark;
+  static const Color primaryPressed   = bluePressed;
+  static const Color primaryDisabled  = hairlineStrong;
+  
+  static const Color footerBg         = sidebarBg;
+  static const Color white            = surface;
+  static const Color background       = canvas;
+  static const Color backgroundAlt    = surfaceSoft;
+  static const Color border           = hairline;
+  static const Color borderDark       = hairlineStrong;
+  static const Color textPrimary      = ink;
+  static const Color textSecondary    = slate;
+  static const Color textMuted        = steel;
+  static const Color success          = successAccent;
+  static const Color error            = brandRedDark;
+  static const Color errorBg          = brandRed;
+  static const Color info             = brandBlue;
+  static const Color infoBg           = surfacePricingFeatured;
+  static const Color structural       = canvas;
+  static const Color backgroundSecondary = surfaceSoft;
+  static const Color sidebarHover     = sidebarSelected;
 }
