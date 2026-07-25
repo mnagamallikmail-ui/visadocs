@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../../theme/design_system.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_typography.dart';
+import '../../theme/app_spacing.dart';
+import '../../theme/app_components.dart';
 import '../../services/api_service.dart';
 import '../valuation_portal/valuation_portal_widget.dart';
 import 'admin_sections.dart';
@@ -62,20 +65,20 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
   Future<void> _softDelete(dynamic user) async {
     try {
       await _api.dio.delete('/api/v1/admin/users/${user['id']}');
-      _showSnack('User archived successfully.', DesignSystem.success);
+      _showSnack('User archived successfully.', AppColors.success);
       _loadUsers();
     } catch (_) {
-      _showSnack('Action failed.', DesignSystem.error);
+      _showSnack('Action failed.', AppColors.brandRedDark);
     }
   }
 
   Future<void> _hardDelete(dynamic user) async {
     try {
       await _api.dio.delete('/api/v1/admin/users/${user['id']}/hard');
-      _showSnack('User permanently purged.', DesignSystem.success);
+      _showSnack('User permanently purged.', AppColors.success);
       _loadUsers();
     } catch (_) {
-      _showSnack('Hard delete failed.', DesignSystem.error);
+      _showSnack('Hard delete failed.', AppColors.brandRedDark);
     }
   }
 
@@ -83,7 +86,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
     final isLocked = user['locked'] == true;
     try {
       await _api.dio.post('/api/v1/admin/users/${user['id']}/${isLocked ? 'unlock' : 'lock'}');
-      _showSnack('Account ${isLocked ? 'unlocked' : 'locked'}.', DesignSystem.success);
+      _showSnack('Account ${isLocked ? 'unlocked' : 'locked'}.', AppColors.success);
       _loadUsers();
     } catch (_) {}
   }
@@ -96,7 +99,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       content: Text(
         msg,
-        style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+        style: AppTypography.bodySm().copyWith(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
       ),
     ));
   }
@@ -105,41 +108,41 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: DesignSystem.white,
+        backgroundColor: AppColors.canvas,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
-          side: const BorderSide(color: DesignSystem.border),
+          side: const BorderSide(color: AppColors.hairlineSoft),
         ),
         title: Row(
           children: [
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: DesignSystem.background,
+                color: AppColors.canvas,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.archive_outlined, color: DesignSystem.textSecondary, size: 18),
+              child: const Icon(Icons.archive_outlined, color: AppColors.slate, size: 18),
             ),
             const SizedBox(width: 12),
             Expanded(
               child: Text(
                 'Confirm Archive',
-                style: DesignSystem.h3(color: DesignSystem.textPrimary),
+                style: AppTypography.heading4().copyWith(color: AppColors.ink),
               ),
             ),
           ],
         ),
         content: Text(
           'Are you sure you want to archive this record? This will hide the item from all active directories, but it can still be recovered by the system administrator for compliance auditing.',
-          style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 13).copyWith(height: 1.6),
+          style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13).copyWith(height: 1.6),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
             child: Text(
               'Cancel',
-              style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+              style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13, fontWeight: FontWeight.w600),
             ),
           ),
           ElevatedButton(
@@ -148,7 +151,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
               _softDelete(user);
             },
             style: ElevatedButton.styleFrom(
-              backgroundColor: DesignSystem.warning,
+              backgroundColor: AppColors.yellowDark,
               foregroundColor: Colors.white,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -156,7 +159,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
             ),
             child: Text(
               'Archive',
-              style: DesignSystem.body(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+              style: AppTypography.bodySm().copyWith(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
             ),
           ),
         ],
@@ -170,27 +173,27 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, ss) => AlertDialog(
-          backgroundColor: DesignSystem.white,
+          backgroundColor: AppColors.canvas,
           surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
-            side: const BorderSide(color: DesignSystem.border),
+            side: const BorderSide(color: AppColors.hairlineSoft),
           ),
           title: Row(
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: DesignSystem.errorBg,
+                  color: AppColors.errorBg,
                   borderRadius: BorderRadius.circular(10),
                 ),
-                child: const Icon(Icons.delete_forever_outlined, color: DesignSystem.error, size: 18),
+                child: const Icon(Icons.delete_forever_outlined, color: AppColors.brandRedDark, size: 18),
               ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
                   'Permanent Deletion',
-                  style: DesignSystem.h3(color: DesignSystem.error),
+                  style: AppTypography.heading4().copyWith(color: AppColors.brandRedDark),
                 ),
               ),
             ],
@@ -201,13 +204,13 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
             children: [
               Text(
                 'This action is completely irreversible. Hard deleting this record will permanently erase it along with all its linked logs, historical data, and file references from the database. Type \'DELETE\' to confirm.',
-                style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 13).copyWith(height: 1.6),
+                style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13).copyWith(height: 1.6),
               ),
               const SizedBox(height: 16),
               TextField(
                 controller: ctrl,
                 autofocus: true,
-                style: DesignSystem.body(fontSize: 13),
+                style: AppTypography.bodySm().copyWith(fontSize: 13),
                 onChanged: (_) => ss(() {}),
                 decoration: InputDecoration(
                   hintText: 'Type DELETE here...',
@@ -226,7 +229,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
               },
               child: Text(
                 'Cancel',
-                style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+                style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13, fontWeight: FontWeight.w600),
               ),
             ),
             ElevatedButton(
@@ -238,16 +241,16 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                     }
                   : null,
               style: ElevatedButton.styleFrom(
-                backgroundColor: DesignSystem.error,
+                backgroundColor: AppColors.brandRedDark,
                 foregroundColor: Colors.white,
-                disabledBackgroundColor: DesignSystem.border,
+                disabledBackgroundColor: AppColors.hairlineSoft,
                 elevation: 0,
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
               ),
               child: Text(
                 'Erase Data',
-                style: DesignSystem.body(
+                style: AppTypography.bodySm().copyWith(
                   color: ctrl.text.trim() == 'DELETE' ? Colors.white : Colors.black26,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -299,11 +302,11 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
       );
     }
     return Scaffold(
-      backgroundColor: DesignSystem.background,
+      backgroundColor: AppColors.canvas,
       body: Row(
         children: [
           _buildSidebar(),
-          Container(width: 1, color: DesignSystem.border),
+          Container(width: 1, color: AppColors.hairlineSoft),
           Expanded(child: _buildCanvas()),
         ],
       ),
@@ -313,7 +316,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
   Widget _buildSidebar() {
     return Container(
       width: 240,
-      color: DesignSystem.sidebarBg, // Slate-800 #1E293B
+      color: AppColors.sidebarBg, // Slate-800 #1E293B
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -323,12 +326,12 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                DesignSystem.logo(fontSize: 17, darkMode: true),
+                AppComponents.logo(fontSize: 17, darkMode: true),
                 const SizedBox(height: 3),
                 Text(
                   'Admin Console',
-                  style: GoogleFonts.inter(
-                    color: DesignSystem.sidebarMuted,
+                  style: AppTypography.bodySm().copyWith(
+                    color: AppColors.sidebarMuted,
                     fontSize: 11,
                     fontWeight: FontWeight.w400,
                     letterSpacing: 0.1,
@@ -370,14 +373,14 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                       width: 32,
                       height: 32,
                       decoration: BoxDecoration(
-                        color: DesignSystem.primary.withOpacity(0.25),
+                        color: AppColors.primary.withOpacity(0.25),
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Center(
                         child: Text(
                           widget.fullName.isNotEmpty ? widget.fullName[0].toUpperCase() : 'A',
-                          style: GoogleFonts.inter(
-                            color: DesignSystem.sidebarAccent,
+                          style: AppTypography.bodySm().copyWith(
+                            color: AppColors.sidebarAccent,
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
                           ),
@@ -391,8 +394,8 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                         children: [
                           Text(
                             widget.fullName,
-                            style: GoogleFonts.inter(
-                              color: DesignSystem.sidebarText,
+                            style: AppTypography.bodySm().copyWith(
+                              color: AppColors.sidebarText,
                               fontSize: 12,
                               fontWeight: FontWeight.w600,
                             ),
@@ -400,8 +403,8 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                           ),
                           Text(
                             widget.role.replaceAll('_', ' '),
-                            style: GoogleFonts.inter(
-                              color: DesignSystem.sidebarMuted,
+                            style: AppTypography.bodySm().copyWith(
+                              color: AppColors.sidebarMuted,
                               fontSize: 11,
                               fontWeight: FontWeight.w400,
                             ),
@@ -414,8 +417,8 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                 const SizedBox(height: 4),
                 Text(
                   widget.email,
-                  style: GoogleFonts.inter(
-                    color: DesignSystem.sidebarMuted,
+                  style: AppTypography.bodySm().copyWith(
+                    color: AppColors.sidebarMuted,
                     fontSize: 11,
                   ),
                   overflow: TextOverflow.ellipsis,
@@ -431,14 +434,14 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                     children: [
                       Icon(
                         Icons.logout_rounded,
-                        color: DesignSystem.error.withOpacity(0.8),
+                        color: AppColors.brandRedDark.withOpacity(0.8),
                         size: 14,
                       ),
                       const SizedBox(width: 6),
                       Text(
                         'Sign Out',
-                        style: GoogleFonts.inter(
-                          color: DesignSystem.error.withOpacity(0.8),
+                        style: AppTypography.bodySm().copyWith(
+                          color: AppColors.brandRedDark.withOpacity(0.8),
                           fontSize: 12,
                           fontWeight: FontWeight.w500,
                         ),
@@ -513,7 +516,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
           padding: const EdgeInsets.all(24),
           decoration: const BoxDecoration(
             color: Colors.white,
-            border: Border(bottom: BorderSide(color: DesignSystem.border)),
+            border: Border(bottom: BorderSide(color: AppColors.hairlineSoft)),
           ),
           child: Row(
             children: [
@@ -523,12 +526,12 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                   children: [
                     Text(
                       'User Management',
-                      style: DesignSystem.h2(color: DesignSystem.textPrimary),
+                      style: AppTypography.heading3().copyWith(color: AppColors.ink),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Manage all portal user accounts — lock, archive, or permanently erase.',
-                      style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 13),
+                      style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13),
                     ),
                   ],
                 ),
@@ -537,7 +540,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                 onPressed: _loadUsers,
                 icon: const Icon(Icons.refresh, size: 16),
                 label: const Text('Refresh'),
-                style: DesignSystem.outlinedButton.copyWith(
+                style: AppComponents.secondaryButtonStyle().copyWith(
                   padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
                 ),
               ),
@@ -552,15 +555,15 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.error_outline, color: DesignSystem.error, size: 40),
+                  const Icon(Icons.error_outline, color: AppColors.brandRedDark, size: 40),
                   const SizedBox(height: 12),
-                  Text(_usersError!, style: DesignSystem.body(color: DesignSystem.error, fontSize: 13, fontWeight: FontWeight.w600)),
+                  Text(_usersError!, style: AppTypography.bodySm().copyWith(color: AppColors.brandRedDark, fontSize: 13, fontWeight: FontWeight.w600)),
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
                     onPressed: _loadUsers,
                     icon: const Icon(Icons.refresh, size: 14),
                     label: const Text('Retry'),
-                    style: DesignSystem.primaryButton,
+                    style: AppComponents.primaryButtonStyle(),
                   ),
                 ],
               ),
@@ -572,11 +575,11 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.people_outline, color: DesignSystem.textMuted, size: 48),
+                  const Icon(Icons.people_outline, color: AppColors.muted, size: 48),
                   const SizedBox(height: 12),
-                  Text('No Users Found', style: DesignSystem.h3(color: DesignSystem.textSecondary)),
+                  Text('No Users Found', style: AppTypography.heading4().copyWith(color: AppColors.slate)),
                   const SizedBox(height: 4),
-                  Text('Accounts created on the platform will appear here.', style: DesignSystem.body(color: DesignSystem.textMuted, fontSize: 13)),
+                  Text('Accounts created on the platform will appear here.', style: AppTypography.bodySm().copyWith(color: AppColors.muted, fontSize: 13)),
                 ],
               ),
             ),
@@ -591,7 +594,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: const BoxDecoration(
-                      color: DesignSystem.structural,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.only(topLeft: Radius.circular(8), topRight: Radius.circular(8)),
                     ),
                     child: Row(
@@ -600,28 +603,28 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                           width: 60,
                           child: Text(
                             'ID',
-                            style: DesignSystem.label(color: DesignSystem.textSecondary),
+                            style: AppTypography.captionBold().copyWith(color: AppColors.slate),
                           ),
                         ),
                         Expanded(
                           flex: 3,
                           child: Text(
                             'Name / Email',
-                            style: DesignSystem.label(color: DesignSystem.textSecondary),
+                            style: AppTypography.captionBold().copyWith(color: AppColors.slate),
                           ),
                         ),
                         Expanded(
                           flex: 2,
                           child: Text(
                             'Role',
-                            style: DesignSystem.label(color: DesignSystem.textSecondary),
+                            style: AppTypography.captionBold().copyWith(color: AppColors.slate),
                           ),
                         ),
                         SizedBox(
                           width: 90,
                           child: Text(
                             'Status',
-                            style: DesignSystem.label(color: DesignSystem.textSecondary),
+                            style: AppTypography.captionBold().copyWith(color: AppColors.slate),
                             textAlign: TextAlign.center,
                           ),
                         ),
@@ -629,7 +632,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                           width: 240,
                           child: Text(
                             'Actions',
-                            style: DesignSystem.label(color: DesignSystem.textSecondary),
+                            style: AppTypography.captionBold().copyWith(color: AppColors.slate),
                             textAlign: TextAlign.right,
                           ),
                         ),
@@ -652,9 +655,9 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
       decoration: const BoxDecoration(
         color: Colors.white,
         border: Border(
-          bottom: BorderSide(color: DesignSystem.border),
-          left: BorderSide(color: DesignSystem.border),
-          right: BorderSide(color: DesignSystem.border),
+          bottom: BorderSide(color: AppColors.hairlineSoft),
+          left: BorderSide(color: AppColors.hairlineSoft),
+          right: BorderSide(color: AppColors.hairlineSoft),
         ),
       ),
       child: Row(
@@ -663,7 +666,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
             width: 60,
             child: Text(
               '#${u['id']}',
-              style: DesignSystem.body(color: DesignSystem.textMuted, fontSize: 13),
+              style: AppTypography.bodySm().copyWith(color: AppColors.muted, fontSize: 13),
             ),
           ),
           Expanded(
@@ -673,13 +676,13 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
               children: [
                 Text(
                   '${u['fullName'] ?? '—'}',
-                  style: DesignSystem.body(color: DesignSystem.textPrimary, fontSize: 14, fontWeight: FontWeight.w600),
+                  style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 14, fontWeight: FontWeight.w600),
                   overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 2),
                 Text(
                   '${u['email'] ?? '—'}',
-                  style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 12),
+                  style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 12),
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
@@ -695,12 +698,12 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: DesignSystem.structural,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.circular(4),
                     ),
                     child: Text(
                       '${u['role']}'.replaceAll('_', ' '),
-                      style: DesignSystem.body(color: DesignSystem.textPrimary, fontSize: 11, fontWeight: FontWeight.w600),
+                      style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 11, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ],
@@ -713,13 +716,13 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: isLocked ? DesignSystem.errorBg : DesignSystem.successBg,
+                  color: isLocked ? AppColors.errorBg : AppColors.successBg,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   isLocked ? 'Locked' : 'Active',
-                  style: DesignSystem.body(
-                    color: isLocked ? DesignSystem.error : DesignSystem.success,
+                  style: AppTypography.bodySm().copyWith(
+                    color: isLocked ? AppColors.brandRedDark : AppColors.success,
                     fontSize: 11,
                     fontWeight: FontWeight.w600,
                   ),
@@ -735,7 +738,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                 _actionBtn(
                   isLocked ? 'Unlock' : 'Lock',
                   isLocked ? Icons.lock_open_outlined : Icons.lock_outline,
-                  DesignSystem.primary,
+                  AppColors.primary,
                   () => _toggleLock(u),
                   true,
                 ),
@@ -743,7 +746,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                 _actionBtn(
                   'Archive',
                   Icons.archive_outlined,
-                  DesignSystem.warning,
+                  AppColors.yellowDark,
                   () => _showSoftDeleteDialog(u),
                   true,
                 ),
@@ -751,7 +754,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                 _actionBtn(
                   'Erase',
                   Icons.delete_forever_outlined,
-                  DesignSystem.error,
+                  AppColors.brandRedDark,
                   () => _showHardDeleteDialog(u),
                   false,
                 ),
@@ -769,7 +772,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
             color: outlined ? Colors.transparent : color.withOpacity(0.08),
-            border: Border.all(color: outlined ? DesignSystem.border : color.withOpacity(0.3), width: 1.0),
+            border: Border.all(color: outlined ? AppColors.hairlineSoft : color.withOpacity(0.3), width: 1.0),
             borderRadius: BorderRadius.circular(7),
           ),
           child: Row(
@@ -779,7 +782,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
               const SizedBox(width: 5),
               Text(
                 label,
-                style: GoogleFonts.inter(
+                style: AppTypography.bodySm().copyWith(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: color,
@@ -830,8 +833,8 @@ class _HoverableSidebarItemState extends State<_HoverableSidebarItem> {
           padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 12),
           decoration: BoxDecoration(
             color: isActive
-                ? DesignSystem.sidebarSelected      // Blue-600
-                : (_hovered ? DesignSystem.sidebarHover : Colors.transparent),
+                ? AppColors.sidebarSelected      // Blue-600
+                : (_hovered ? AppColors.sidebarSelected.withOpacity(0.5) : Colors.transparent),
             borderRadius: BorderRadius.circular(7),
           ),
           child: Row(
@@ -840,17 +843,17 @@ class _HoverableSidebarItemState extends State<_HoverableSidebarItem> {
                 widget.icon,
                 size: 16,
                 color: isActive
-                    ? DesignSystem.sidebarText
-                    : DesignSystem.sidebarMuted.withOpacity(_hovered ? 0.9 : 0.65),
+                    ? AppColors.sidebarText
+                    : AppColors.sidebarMuted.withOpacity(_hovered ? 0.9 : 0.65),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   widget.label,
-                  style: GoogleFonts.inter(
+                  style: AppTypography.bodySm().copyWith(
                     color: isActive
-                        ? DesignSystem.sidebarText
-                        : DesignSystem.sidebarMuted.withOpacity(_hovered ? 0.9 : 0.65),
+                        ? AppColors.sidebarText
+                        : AppColors.sidebarMuted.withOpacity(_hovered ? 0.9 : 0.65),
                     fontSize: 13,
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                   ),
@@ -863,4 +866,7 @@ class _HoverableSidebarItemState extends State<_HoverableSidebarItem> {
     );
   }
 }
+
+
+
 

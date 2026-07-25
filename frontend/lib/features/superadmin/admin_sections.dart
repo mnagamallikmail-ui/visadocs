@@ -5,7 +5,10 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_fonts/google_fonts.dart';
 import '../../services/web_file_picker.dart';
-import '../../theme/design_system.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_typography.dart';
+import '../../theme/app_spacing.dart';
+import '../../theme/app_components.dart';
 import '../../services/api_service.dart';
 
 // ─── Shared helpers ───────────────────────────────────────────
@@ -14,8 +17,8 @@ Widget _sectionHeader(String title, String subtitle, {Widget? action}) =>
     Container(
       padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 22),
       decoration: const BoxDecoration(
-        color: DesignSystem.white,
-        border: Border(bottom: BorderSide(color: DesignSystem.border)),
+        color: AppColors.canvas,
+        border: Border(bottom: BorderSide(color: AppColors.hairlineSoft)),
       ),
       child: Row(
         children: [
@@ -25,12 +28,12 @@ Widget _sectionHeader(String title, String subtitle, {Widget? action}) =>
               children: [
                 Text(
                   title,
-                  style: DesignSystem.h2(color: DesignSystem.textPrimary),
+                  style: AppTypography.heading3().copyWith(color: AppColors.ink),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   subtitle,
-                  style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 13),
+                  style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13),
                 ),
               ],
             ),
@@ -44,9 +47,9 @@ Widget _statCard(String label, String value, IconData icon, Color color) =>
     Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: DesignSystem.white,
+        color: AppColors.canvas,
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: DesignSystem.border, width: 1),
+        border: Border.all(color: AppColors.hairlineSoft, width: 1),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -55,10 +58,10 @@ Widget _statCard(String label, String value, IconData icon, Color color) =>
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: DesignSystem.background,
+              color: AppColors.canvas,
               borderRadius: BorderRadius.circular(10),
             ),
-            child: Icon(icon, color: DesignSystem.textSecondary, size: 18),
+            child: Icon(icon, color: AppColors.slate, size: 18),
           ),
           const SizedBox(height: 20),
           Column(
@@ -66,8 +69,8 @@ Widget _statCard(String label, String value, IconData icon, Color color) =>
             children: [
               Text(
                 value,
-                style: GoogleFonts.inter(
-                  color: DesignSystem.textPrimary,
+                style: AppTypography.bodySm().copyWith(
+                  color: AppColors.ink,
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
                   letterSpacing: -1.0,
@@ -76,7 +79,7 @@ Widget _statCard(String label, String value, IconData icon, Color color) =>
               const SizedBox(height: 4),
               Text(
                 label,
-                style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 13, fontWeight: FontWeight.w400),
+                style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13, fontWeight: FontWeight.w400),
               ),
             ],
           ),
@@ -94,17 +97,17 @@ Widget _placeholderSection(String icon, String title, String msg) =>
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: DesignSystem.background,
+                color: AppColors.canvas,
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Text(icon, style: const TextStyle(fontSize: 36)),
             ),
             const SizedBox(height: 20),
-            Text(title, style: DesignSystem.h3(color: DesignSystem.textPrimary)),
+            Text(title, style: AppTypography.heading4().copyWith(color: AppColors.ink)),
             const SizedBox(height: 8),
             Text(
               msg,
-              style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 14),
+              style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 14),
               textAlign: TextAlign.center,
             ),
           ],
@@ -155,7 +158,7 @@ class _AdminOverviewSectionState extends State<AdminOverviewSection> {
             onPressed: _load,
             icon: const Icon(Icons.refresh, size: 16),
             label: const Text('Refresh'),
-            style: DesignSystem.outlinedButton.copyWith(
+            style: AppComponents.secondaryButtonStyle().copyWith(
               padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
             ),
           ),
@@ -176,11 +179,11 @@ class _AdminOverviewSectionState extends State<AdminOverviewSection> {
                     mainAxisSpacing: 16,
                     childAspectRatio: 1.6,
                     children: [
-                      _statCard('Total Active Users', '${_data?['totalUsers'] ?? '0'}', Icons.people_outline, DesignSystem.primary),
-                      _statCard('Total Orders', '${_data?['totalOrders'] ?? '0'}', Icons.folder_outlined, DesignSystem.secondary),
+                      _statCard('Total Active Users', '${_data?['totalUsers'] ?? '0'}', Icons.people_outline, AppColors.primary),
+                      _statCard('Total Orders', '${_data?['totalOrders'] ?? '0'}', Icons.folder_outlined, AppColors.brandBlue),
                       _statCard('Open Orders', '${_data?['openOrders'] ?? '0'}', Icons.hourglass_empty, const Color(0xFFD97706)),
                       _statCard('SPA Gate Orders', '${_data?['spaGateOrders'] ?? '0'}', Icons.supervisor_account_outlined, const Color(0xFF8B5CF6)),
-                      _statCard('Final Delivery', '${_data?['finalDeliveryOrders'] ?? '0'}', Icons.check_circle_outline, DesignSystem.success),
+                      _statCard('Final Delivery', '${_data?['finalDeliveryOrders'] ?? '0'}', Icons.check_circle_outline, AppColors.success),
                       _statCard('Active Templates', '${_data?['activeTemplates'] ?? '0'}', Icons.description_outlined, const Color(0xFF0891B2)),
                     ],
                   ),
@@ -231,7 +234,7 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
       _load();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          backgroundColor: DesignSystem.success,
+          backgroundColor: AppColors.success,
           content: Text('Order force-released to FINAL_DELIVERY.'),
         ));
       }
@@ -244,7 +247,7 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
       _load();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          backgroundColor: DesignSystem.success,
+          backgroundColor: AppColors.success,
           content: Text('Payment waived successfully.'),
         ));
       }
@@ -268,11 +271,11 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
           children: [
             Container(
               padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: DesignSystem.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
-              child: const Icon(Icons.add_shopping_cart, color: DesignSystem.primary, size: 20),
+              decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
+              child: const Icon(Icons.add_shopping_cart, color: AppColors.primary, size: 20),
             ),
             const SizedBox(width: 12),
-            Text('Create New Order', style: DesignSystem.h3(color: DesignSystem.textPrimary)),
+            Text('Create New Order', style: AppTypography.heading4().copyWith(color: AppColors.ink)),
           ],
         ),
         content: SingleChildScrollView(
@@ -282,7 +285,7 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
               const SizedBox(height: 8),
               TextField(
                 controller: categoryCtrl,
-                style: DesignSystem.body(fontSize: 13),
+                style: AppTypography.bodySm().copyWith(fontSize: 13),
                 decoration: const InputDecoration(
                   labelText: 'Property Category',
                   hintText: 'VALUATION / NETWORTH / CHARTERED_ENGINEER',
@@ -291,7 +294,7 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
               const SizedBox(height: 12),
               TextField(
                 controller: purposeCtrl,
-                style: DesignSystem.body(fontSize: 13),
+                style: AppTypography.bodySm().copyWith(fontSize: 13),
                 decoration: const InputDecoration(
                   labelText: 'Purpose',
                 ),
@@ -299,7 +302,7 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
               const SizedBox(height: 12),
               TextField(
                 controller: valueCtrl,
-                style: DesignSystem.body(fontSize: 13),
+                style: AppTypography.bodySm().copyWith(fontSize: 13),
                 decoration: const InputDecoration(
                   labelText: 'Estimated Value',
                 ),
@@ -308,7 +311,7 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
               const SizedBox(height: 12),
               TextField(
                 controller: templateIdCtrl,
-                style: DesignSystem.body(fontSize: 13),
+                style: AppTypography.bodySm().copyWith(fontSize: 13),
                 decoration: const InputDecoration(
                   labelText: 'Template ID (Optional)',
                 ),
@@ -317,7 +320,7 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
               const SizedBox(height: 12),
               TextField(
                 controller: clientIdCtrl,
-                style: DesignSystem.body(fontSize: 13),
+                style: AppTypography.bodySm().copyWith(fontSize: 13),
                 decoration: const InputDecoration(
                   labelText: 'Client ID (Optional)',
                 ),
@@ -329,7 +332,7 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+            child: Text('Cancel', style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13, fontWeight: FontWeight.w600)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -349,21 +352,21 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                 _load();
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    backgroundColor: DesignSystem.success,
+                    backgroundColor: AppColors.success,
                     content: Text('Order created successfully!'),
                   ));
                 }
               } catch (_) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    backgroundColor: DesignSystem.error,
+                    backgroundColor: AppColors.brandRedDark,
                     content: Text('Failed to create order.'),
                   ));
                 }
               }
             },
-            style: DesignSystem.primaryButton,
-            child: Text('Create', style: DesignSystem.body(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+            style: AppComponents.primaryButtonStyle(),
+            child: Text('Create', style: AppTypography.bodySm().copyWith(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
           ),
         ],
       ),
@@ -383,8 +386,8 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                 onPressed: _showCreateOrderDialog,
                 icon: const Icon(Icons.add, size: 16),
                 label: const Text('Create Order'),
-                style: DesignSystem.primaryButton.copyWith(
-                  backgroundColor: WidgetStateProperty.all(DesignSystem.primary),
+                style: AppComponents.primaryButtonStyle().copyWith(
+                  backgroundColor: WidgetStateProperty.all(AppColors.primary),
                   padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
                 ),
               ),
@@ -393,7 +396,7 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                 onPressed: _load,
                 icon: const Icon(Icons.refresh, size: 16),
                 label: const Text('Refresh'),
-                style: DesignSystem.outlinedButton.copyWith(
+                style: AppComponents.secondaryButtonStyle().copyWith(
                   padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
                 ),
               ),
@@ -413,26 +416,26 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     decoration: const BoxDecoration(
-                      color: DesignSystem.structural,
+                      color: AppColors.surface,
                       borderRadius: BorderRadius.only(topLeft: Radius.circular(8), topRight: Radius.circular(8)),
                     ),
                     child: Row(
                       children: [
                         SizedBox(
                           width: 80,
-                          child: Text('ID', style: DesignSystem.label(color: DesignSystem.textSecondary)),
+                          child: Text('ID', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
                         ),
                         Expanded(
                           flex: 2,
-                          child: Text('Status', style: DesignSystem.label(color: DesignSystem.textSecondary)),
+                          child: Text('Status', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
                         ),
                         Expanded(
                           flex: 4,
-                          child: Text('Purpose', style: DesignSystem.label(color: DesignSystem.textSecondary)),
+                          child: Text('Purpose', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
                         ),
                         SizedBox(
                           width: 220,
-                          child: Text('Actions', style: DesignSystem.label(color: DesignSystem.textSecondary), textAlign: TextAlign.right),
+                          child: Text('Actions', style: AppTypography.captionBold().copyWith(color: AppColors.slate), textAlign: TextAlign.right),
                         ),
                       ],
                     ),
@@ -442,9 +445,9 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                         decoration: const BoxDecoration(
                           color: Colors.white,
                           border: Border(
-                            bottom: BorderSide(color: DesignSystem.border),
-                            left: BorderSide(color: DesignSystem.border),
-                            right: BorderSide(color: DesignSystem.border),
+                            bottom: BorderSide(color: AppColors.hairlineSoft),
+                            left: BorderSide(color: AppColors.hairlineSoft),
+                            right: BorderSide(color: AppColors.hairlineSoft),
                           ),
                         ),
                         child: Row(
@@ -453,7 +456,7 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                               width: 80,
                               child: Text(
                                 '#${o['id']}',
-                                style: DesignSystem.body(color: DesignSystem.textMuted, fontSize: 13, fontWeight: FontWeight.w500),
+                                style: AppTypography.bodySm().copyWith(color: AppColors.muted, fontSize: 13, fontWeight: FontWeight.w500),
                               ),
                             ),
                             Expanded(
@@ -463,12 +466,12 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: DesignSystem.structural,
+                                      color: AppColors.surface,
                                       borderRadius: BorderRadius.circular(4),
                                     ),
                                     child: Text(
                                       '${o['status']}'.replaceAll('_', ' '),
-                                      style: DesignSystem.body(color: DesignSystem.textPrimary, fontSize: 11, fontWeight: FontWeight.w600),
+                                      style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 11, fontWeight: FontWeight.w600),
                                     ),
                                   ),
                                 ],
@@ -478,7 +481,7 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                               flex: 4,
                               child: Text(
                                 '${o['purpose'] ?? '—'}',
-                                style: DesignSystem.body(color: DesignSystem.textPrimary, fontSize: 13, fontWeight: FontWeight.w500),
+                                style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 13, fontWeight: FontWeight.w500),
                                 overflow: TextOverflow.ellipsis,
                               ),
                             ),
@@ -487,9 +490,9 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
-                                  _queueBtn('Release', Icons.send_outlined, DesignSystem.primary, () => _forceRelease(o)),
+                                  _queueBtn('Release', Icons.send_outlined, AppColors.primary, () => _forceRelease(o)),
                                   const SizedBox(width: 8),
-                                  _queueBtn('Waive Payment', Icons.money_off_outlined, DesignSystem.success, () => _waivePayment(o)),
+                                  _queueBtn('Waive Payment', Icons.money_off_outlined, AppColors.success, () => _waivePayment(o)),
                                 ],
                               ),
                             ),
@@ -521,7 +524,7 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
               const SizedBox(width: 4),
               Text(
                 label,
-                style: GoogleFonts.montserrat(
+                style: AppTypography.heading5().copyWith(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
                   color: color,
@@ -576,7 +579,7 @@ class _AdminSlaSectionState extends State<AdminSlaSection> {
             onPressed: _load,
             icon: const Icon(Icons.refresh, size: 16),
             label: const Text('Refresh'),
-            style: DesignSystem.outlinedButton.copyWith(
+            style: AppComponents.secondaryButtonStyle().copyWith(
               padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
             ),
           ),
@@ -594,20 +597,20 @@ class _AdminSlaSectionState extends State<AdminSlaSection> {
                 final s = _sla[idx];
                 final health = s['slaHealth'] ?? 'OK';
                 final Color hColor = health == 'CRITICAL'
-                    ? DesignSystem.error
+                    ? AppColors.brandRedDark
                     : health == 'WARNING'
-                        ? DesignSystem.warning
-                        : DesignSystem.success;
+                        ? AppColors.yellowDark
+                        : AppColors.success;
                 final Color hColorBg = health == 'CRITICAL'
-                    ? DesignSystem.errorBg
+                    ? AppColors.errorBg
                     : health == 'WARNING'
-                        ? DesignSystem.warningBg
-                        : DesignSystem.successBg;
+                        ? AppColors.yellowLight
+                        : AppColors.successBg;
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                  decoration: DesignSystem.cardDecoration,
+                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: AppRadius.brXl, border: Border.all(color: AppColors.hairlineSoft)),
                   child: Row(
                     children: [
                       Container(
@@ -623,12 +626,12 @@ class _AdminSlaSectionState extends State<AdminSlaSection> {
                           children: [
                             Text(
                               'Order #${s['orderId']}',
-                              style: DesignSystem.body(color: DesignSystem.textPrimary, fontSize: 14, fontWeight: FontWeight.bold),
+                              style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 14, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 2),
                             Text(
                               '${s['status']}'.replaceAll('_', ' '),
-                              style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 12),
+                              style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 12),
                             ),
                           ],
                         ),
@@ -637,7 +640,7 @@ class _AdminSlaSectionState extends State<AdminSlaSection> {
                         flex: 3,
                         child: Text(
                           '${s['purpose'] ?? '—'}',
-                          style: DesignSystem.body(color: DesignSystem.textPrimary, fontSize: 13, fontWeight: FontWeight.w500),
+                          style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 13, fontWeight: FontWeight.w500),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -649,13 +652,13 @@ class _AdminSlaSectionState extends State<AdminSlaSection> {
                         ),
                         child: Text(
                           health,
-                          style: DesignSystem.body(color: hColor, fontSize: 11, fontWeight: FontWeight.bold),
+                          style: AppTypography.bodySm().copyWith(color: hColor, fontSize: 11, fontWeight: FontWeight.bold),
                         ),
                       ),
                       const SizedBox(width: 24),
                       Text(
                         '${s['remainingHours'] ?? '—'} hours left',
-                        style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 13, fontWeight: FontWeight.w600),
+                        style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13, fontWeight: FontWeight.w600),
                       ),
                     ],
                   ),
@@ -710,7 +713,7 @@ class _AdminPricingSectionState extends State<AdminPricingSection> {
       await _api.dio.put('/api/v1/admin/pricing/$key', data: {'value': double.tryParse(_controllers[key]?.text ?? '0') ?? 0});
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          backgroundColor: DesignSystem.success,
+          backgroundColor: AppColors.success,
           content: Text('Pricing updated successfully.'),
         ));
       }
@@ -741,7 +744,7 @@ class _AdminPricingSectionState extends State<AdminPricingSection> {
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(20),
-                  decoration: DesignSystem.cardDecoration,
+                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: AppRadius.brXl, border: Border.all(color: AppColors.hairlineSoft)),
                   child: Row(
                     children: [
                       Expanded(
@@ -750,12 +753,12 @@ class _AdminPricingSectionState extends State<AdminPricingSection> {
                           children: [
                             Text(
                               key.replaceAll('_', ' ').toUpperCase(),
-                              style: DesignSystem.body(color: DesignSystem.textPrimary, fontSize: 13, fontWeight: FontWeight.bold),
+                              style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 13, fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               '${c['description'] ?? ''}',
-                              style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 12),
+                              style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 12),
                             ),
                           ],
                         ),
@@ -766,7 +769,7 @@ class _AdminPricingSectionState extends State<AdminPricingSection> {
                         height: 40,
                         child: TextField(
                           controller: _controllers[key],
-                          style: DesignSystem.body(fontSize: 13, fontWeight: FontWeight.bold),
+                          style: AppTypography.bodySm().copyWith(fontSize: 13, fontWeight: FontWeight.bold),
                           keyboardType: const TextInputType.numberWithOptions(decimal: true),
                           decoration: InputDecoration(
                             contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -778,10 +781,10 @@ class _AdminPricingSectionState extends State<AdminPricingSection> {
                       const SizedBox(width: 12),
                       ElevatedButton(
                         onPressed: () => _save(key),
-                        style: DesignSystem.primaryButton.copyWith(
+                        style: AppComponents.primaryButtonStyle().copyWith(
                           padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 16, vertical: 12)),
                         ),
-                        child: Text('Save', style: DesignSystem.body(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                        child: Text('Save', style: AppTypography.bodySm().copyWith(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                       ),
                     ],
                   ),
@@ -842,7 +845,7 @@ class _AdminTcSectionState extends State<AdminTcSection> {
       await _api.dio.put('/api/v1/admin/tc', data: {'version': _versionCtrl.text.trim()});
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          backgroundColor: DesignSystem.success,
+          backgroundColor: AppColors.success,
           content: Text('T&C version updated. All clients must re-accept.'),
         ));
       }
@@ -867,11 +870,11 @@ class _AdminTcSectionState extends State<AdminTcSection> {
                   // Version editor card
                   Container(
                     padding: const EdgeInsets.all(20),
-                    decoration: DesignSystem.cardDecoration,
+                    decoration: BoxDecoration(color: AppColors.surface, borderRadius: AppRadius.brXl, border: Border.all(color: AppColors.hairlineSoft)),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Current Agreement Version', style: DesignSystem.body(color: DesignSystem.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
+                        Text('Current Agreement Version', style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 13, fontWeight: FontWeight.bold)),
                         const SizedBox(height: 12),
                         Row(
                           children: [
@@ -880,7 +883,7 @@ class _AdminTcSectionState extends State<AdminTcSection> {
                                 height: 40,
                                 child: TextField(
                                   controller: _versionCtrl,
-                                  style: DesignSystem.body(fontSize: 13, fontWeight: FontWeight.bold),
+                                  style: AppTypography.bodySm().copyWith(fontSize: 13, fontWeight: FontWeight.bold),
                                   decoration: InputDecoration(
                                     contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
@@ -892,57 +895,57 @@ class _AdminTcSectionState extends State<AdminTcSection> {
                             const SizedBox(width: 12),
                             ElevatedButton(
                               onPressed: _updateVersion,
-                              style: DesignSystem.primaryButton.copyWith(
+                              style: AppComponents.primaryButtonStyle().copyWith(
                                 padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 20, vertical: 12)),
                               ),
-                              child: Text('Publish Version', style: DesignSystem.body(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
+                              child: Text('Publish Version', style: AppTypography.bodySm().copyWith(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold)),
                             ),
                           ],
                         ),
                         const SizedBox(height: 16),
                         Row(
                           children: [
-                            _tcStat('Accepted clients', '${_tc?['acceptedCount'] ?? 0}', DesignSystem.success),
+                            _tcStat('Accepted clients', '${_tc?['acceptedCount'] ?? 0}', AppColors.success),
                             const SizedBox(width: 12),
-                            _tcStat('Pending consent', '${_tc?['pendingCount'] ?? 0}', DesignSystem.warning),
+                            _tcStat('Pending consent', '${_tc?['pendingCount'] ?? 0}', AppColors.yellowDark),
                           ],
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 28),
-                  Text('ACCEPTANCE COMPLIANCE LOG', style: DesignSystem.label(color: DesignSystem.textSecondary)),
+                  Text('ACCEPTANCE COMPLIANCE LOG', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
                   const SizedBox(height: 12),
                   ..._log.map((e) => Container(
                         margin: const EdgeInsets.only(bottom: 8),
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: DesignSystem.cardDecoration,
+                        decoration: BoxDecoration(color: AppColors.surface, borderRadius: AppRadius.brXl, border: Border.all(color: AppColors.hairlineSoft)),
                         child: Row(
                           children: [
                             Icon(
                               e['compliant'] == true ? Icons.check_circle_outline : Icons.pending_actions_outlined,
-                              color: e['compliant'] == true ? DesignSystem.success : DesignSystem.warning,
+                              color: e['compliant'] == true ? AppColors.success : AppColors.yellowDark,
                               size: 18,
                             ),
                             const SizedBox(width: 12),
                             Expanded(
                               child: Text(
                                 '${e['email']}',
-                                style: DesignSystem.body(color: DesignSystem.textPrimary, fontSize: 13, fontWeight: FontWeight.w600),
+                                style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 13, fontWeight: FontWeight.w600),
                               ),
                             ),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(color: DesignSystem.structural, borderRadius: BorderRadius.circular(4)),
+                              decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(4)),
                               child: Text(
                                 '${e['role']}',
-                                style: DesignSystem.body(color: DesignSystem.textPrimary, fontSize: 10, fontWeight: FontWeight.bold),
+                                style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 10, fontWeight: FontWeight.bold),
                               ),
                             ),
                             const SizedBox(width: 16),
                             Text(
                               'Version Accepted: v${e['acceptedVersion'] ?? '—'}',
-                              style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 12, fontWeight: FontWeight.w500),
+                              style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 12, fontWeight: FontWeight.w500),
                             ),
                           ],
                         ),
@@ -965,9 +968,9 @@ class _AdminTcSectionState extends State<AdminTcSection> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(val, style: DesignSystem.body(color: color, fontSize: 16, fontWeight: FontWeight.bold)),
+            Text(val, style: AppTypography.bodySm().copyWith(color: color, fontSize: 16, fontWeight: FontWeight.bold)),
             const SizedBox(width: 8),
-            Text(label, style: DesignSystem.body(color: color, fontSize: 12, fontWeight: FontWeight.w500)),
+            Text(label, style: AppTypography.bodySm().copyWith(color: color, fontSize: 12, fontWeight: FontWeight.w500)),
           ],
         ),
       );
@@ -1010,7 +1013,7 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
       await _api.dio.delete('/api/v1/templates/${t['id']}');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          backgroundColor: DesignSystem.success,
+          backgroundColor: AppColors.success,
           content: Text('Template deleted successfully.'),
         ));
       }
@@ -1041,7 +1044,7 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
       if (fileBytes == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-            backgroundColor: DesignSystem.error,
+            backgroundColor: AppColors.brandRedDark,
             content: Text('Failed to read file bytes.'),
           ));
         }
@@ -1057,10 +1060,10 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
           backgroundColor: Colors.white,
           surfaceTintColor: Colors.transparent,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          title: Text('Name your Template', style: DesignSystem.h3(color: DesignSystem.textPrimary)),
+          title: Text('Name your Template', style: AppTypography.heading4().copyWith(color: AppColors.ink)),
           content: TextField(
             controller: nameCtrl,
-            style: DesignSystem.body(fontSize: 13),
+            style: AppTypography.bodySm().copyWith(fontSize: 13),
             decoration: const InputDecoration(
               labelText: 'Template Name',
             ),
@@ -1068,7 +1071,7 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx),
-              child: Text('Cancel', style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+              child: Text('Cancel', style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13, fontWeight: FontWeight.w600)),
             ),
             ElevatedButton(
               onPressed: () async {
@@ -1089,14 +1092,14 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                   setState(() => _loading = false);
                   if (mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      backgroundColor: DesignSystem.error,
+                      backgroundColor: AppColors.brandRedDark,
                       content: Text('Failed to upload template.'),
                     ));
                   }
                 }
               },
-              style: DesignSystem.primaryButton,
-              child: Text('Upload', style: DesignSystem.body(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
+              style: AppComponents.primaryButtonStyle(),
+              child: Text('Upload', style: AppTypography.bodySm().copyWith(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600)),
             ),
           ],
         ),
@@ -1104,7 +1107,7 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
     } catch (_) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          backgroundColor: DesignSystem.error,
+          backgroundColor: AppColors.brandRedDark,
           content: Text('File selection failed.'),
         ));
       }
@@ -1157,8 +1160,8 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
               return Container(
                 padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: DesignSystem.structural,
-                  border: Border.all(color: DesignSystem.border),
+                  color: AppColors.surface,
+                  border: Border.all(color: AppColors.hairlineSoft),
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Column(
@@ -1170,7 +1173,7 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                         Expanded(
                           child: Text(
                             key,
-                            style: DesignSystem.body(color: DesignSystem.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
+                            style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 12, fontWeight: FontWeight.bold),
                             overflow: TextOverflow.ellipsis,
                           ),
                         ),
@@ -1178,13 +1181,13 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: DesignSystem.primary.withOpacity(0.08),
+                            color: AppColors.primary.withOpacity(0.08),
                             borderRadius: BorderRadius.circular(4),
                           ),
                           child: DropdownButtonHideUnderline(
                             child: DropdownButton<String>(
                               value: ['TEXT', 'DATE', 'IMAGE', 'NUMBER'].contains(type) ? type : 'TEXT',
-                              style: DesignSystem.body(color: DesignSystem.primary, fontSize: 10, fontWeight: FontWeight.bold),
+                              style: AppTypography.bodySm().copyWith(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.bold),
                               isDense: true,
                               dropdownColor: Colors.white,
                               items: <String>['TEXT', 'DATE', 'IMAGE', 'NUMBER'].map((String val) {
@@ -1206,14 +1209,14 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                         const SizedBox(width: 8),
                         Text(
                           'L: $lineGroupId',
-                          style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 10),
+                          style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 10),
                         ),
                       ],
                     ),
                     const SizedBox(height: 10),
                     TextField(
                       controller: questionControllers[idx],
-                      style: DesignSystem.body(fontSize: 12),
+                      style: AppTypography.bodySm().copyWith(fontSize: 12),
                       decoration: const InputDecoration(
                         labelText: 'Input Prompt / Question',
                         isDense: true,
@@ -1268,7 +1271,7 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                       const SizedBox(height: 6),
                       Text(
                         'IMAGE PLACEHOLDERS',
-                        style: DesignSystem.body(color: DesignSystem.secondary, fontSize: 11, fontWeight: FontWeight.bold),
+                        style: AppTypography.bodySm().copyWith(color: AppColors.brandBlue, fontSize: 11, fontWeight: FontWeight.bold),
                       ),
                     ],
                   ),
@@ -1288,14 +1291,14 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
             return AlertDialog(
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.transparent,
-              title: Text('Template Parsing Preview: ${template['name']}', style: DesignSystem.h3(color: DesignSystem.textPrimary)),
+              title: Text('Template Parsing Preview: ${template['name']}', style: AppTypography.heading4().copyWith(color: AppColors.ink)),
               content: SizedBox(
                 width: 600,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Verify and customize the prompt text for each extracted placeholder:', style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 13)),
+                    Text('Verify and customize the prompt text for each extracted placeholder:', style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13)),
                     const SizedBox(height: 12),
                     Expanded(
                       child: ListView(
@@ -1312,7 +1315,7 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                     Navigator.pop(ctx);
                     _load();
                   },
-                  child: Text('Cancel', style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+                  child: Text('Cancel', style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13, fontWeight: FontWeight.w600)),
                 ),
                 ElevatedButton(
                   onPressed: () async {
@@ -1326,22 +1329,22 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                       await _api.dio.post('/api/v1/templates/${template['id']}/confirm', data: updatedFieldMapping);
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                          backgroundColor: DesignSystem.success,
+                          backgroundColor: AppColors.success,
                           content: Text('Template finalized and activated successfully!'),
                         ));
                       }
                     } catch (_) {
                       if (mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                          backgroundColor: DesignSystem.error,
+                          backgroundColor: AppColors.brandRedDark,
                           content: Text('Failed to finalize template.'),
                         ));
                       }
                     }
                     _load();
                   },
-                  style: DesignSystem.primaryButton,
-                  child: Text('Confirm & Finalize', style: DesignSystem.body(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                  style: AppComponents.primaryButtonStyle(),
+                  child: Text('Confirm & Finalize', style: AppTypography.bodySm().copyWith(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                 ),
               ],
             );
@@ -1557,7 +1560,7 @@ class _AdminReportSectionState extends State<AdminReportSection> {
       _load();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-          backgroundColor: DesignSystem.success,
+          backgroundColor: AppColors.success,
           content: Text('Workflow forced to $status.'),
         ));
       }
@@ -1575,7 +1578,7 @@ class _AdminReportSectionState extends State<AdminReportSection> {
             onPressed: _load,
             icon: const Icon(Icons.refresh, size: 16),
             label: const Text('Refresh'),
-            style: DesignSystem.outlinedButton.copyWith(
+            style: AppComponents.secondaryButtonStyle().copyWith(
               padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
             ),
           ),
@@ -1595,29 +1598,29 @@ class _AdminReportSectionState extends State<AdminReportSection> {
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(20),
-                  decoration: DesignSystem.cardDecoration,
+                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: AppRadius.brXl, border: Border.all(color: AppColors.hairlineSoft)),
                   child: Row(
                     children: [
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Order #${o['id']}', style: DesignSystem.body(color: DesignSystem.textPrimary, fontSize: 14, fontWeight: FontWeight.bold)),
+                            Text('Order #${o['id']}', style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 14, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 4),
                             Text(
                               'Purpose: ${o['purpose'] ?? '—'}  |  Category: ${o['propertyCategory'] ?? '—'}',
-                              style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 12),
+                              style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 12),
                             ),
                             const SizedBox(height: 6),
                             Row(
                               children: [
-                                Text('Workflow Status: ', style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 12)),
+                                Text('Workflow Status: ', style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 12)),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(color: DesignSystem.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(4)),
+                                  decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(4)),
                                   child: Text(
                                     '${o['status']}',
-                                    style: DesignSystem.body(color: DesignSystem.primary, fontSize: 10, fontWeight: FontWeight.bold),
+                                    style: AppTypography.bodySm().copyWith(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.bold),
                                   ),
                                 ),
                               ],
@@ -1629,7 +1632,7 @@ class _AdminReportSectionState extends State<AdminReportSection> {
                       Row(
                         children: [
                           if (hasLock) ...[
-                            _overrideBtn('Release Delivery', DesignSystem.success, () => _forceStatus(o, 'FINAL_DELIVERY')),
+                            _overrideBtn('Release Delivery', AppColors.success, () => _forceStatus(o, 'FINAL_DELIVERY')),
                             const SizedBox(width: 8),
                           ],
                           _overrideBtn('Force SPA Gate', const Color(0xFF8B5CF6), () => _forceStatus(o, 'SPA_GATE')),
@@ -1659,7 +1662,7 @@ class _AdminReportSectionState extends State<AdminReportSection> {
           ),
           child: Text(
             label,
-            style: GoogleFonts.montserrat(
+            style: AppTypography.heading5().copyWith(
               fontSize: 11,
               fontWeight: FontWeight.w600,
               color: color,
@@ -1716,7 +1719,7 @@ class _AdminSigningSectionState extends State<AdminSigningSection> {
             onPressed: _load,
             icon: const Icon(Icons.refresh, size: 16),
             label: const Text('Refresh'),
-            style: DesignSystem.outlinedButton.copyWith(
+            style: AppComponents.secondaryButtonStyle().copyWith(
               padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
             ),
           ),
@@ -1735,26 +1738,26 @@ class _AdminSigningSectionState extends State<AdminSigningSection> {
                 return Container(
                   margin: const EdgeInsets.only(bottom: 8),
                   padding: const EdgeInsets.all(16),
-                  decoration: DesignSystem.cardDecoration,
+                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: AppRadius.brXl, border: Border.all(color: AppColors.hairlineSoft)),
                   child: Row(
                     children: [
                       Container(
                         padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: DesignSystem.successBg, borderRadius: BorderRadius.circular(6)),
-                        child: const Icon(Icons.verified_user_outlined, color: DesignSystem.success, size: 18),
+                        decoration: BoxDecoration(color: AppColors.successBg, borderRadius: BorderRadius.circular(6)),
+                        child: const Icon(Icons.verified_user_outlined, color: AppColors.success, size: 18),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('${log['action']}', style: DesignSystem.body(color: DesignSystem.textPrimary, fontSize: 13, fontWeight: FontWeight.bold)),
+                            Text('${log['action']}', style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 13, fontWeight: FontWeight.bold)),
                             const SizedBox(height: 4),
-                            Text('${log['details']}', style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 12)),
+                            Text('${log['details']}', style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 12)),
                             const SizedBox(height: 6),
                             Text(
                               'Actor: ${log['actorEmail']}  |  Entity: ${log['entityType']} #${log['entityId']}',
-                              style: DesignSystem.body(color: DesignSystem.textMuted, fontSize: 11, fontWeight: FontWeight.w500),
+                              style: AppTypography.bodySm().copyWith(color: AppColors.muted, fontSize: 11, fontWeight: FontWeight.w500),
                             ),
                           ],
                         ),
@@ -1828,20 +1831,20 @@ class _DictionaryDialogWidgetState extends State<DictionaryDialogWidget> {
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('Edit Predefined Question', style: DesignSystem.h3(color: DesignSystem.textPrimary)),
+        title: Text('Edit Predefined Question', style: AppTypography.heading4().copyWith(color: AppColors.ink)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               'Placeholder Key: ${q['placeholderKey']}',
-              style: DesignSystem.body(color: DesignSystem.primary, fontSize: 12, fontWeight: FontWeight.bold),
+              style: AppTypography.bodySm().copyWith(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: ctrl,
               maxLines: 3,
-              style: DesignSystem.body(fontSize: 13),
+              style: AppTypography.bodySm().copyWith(fontSize: 13),
               decoration: InputDecoration(
                 hintText: 'Enter question text mapping...',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(6)),
@@ -1852,7 +1855,7 @@ class _DictionaryDialogWidgetState extends State<DictionaryDialogWidget> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+            child: Text('Cancel', style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13, fontWeight: FontWeight.w600)),
           ),
           ElevatedButton(
             onPressed: () async {
@@ -1865,21 +1868,21 @@ class _DictionaryDialogWidgetState extends State<DictionaryDialogWidget> {
                 _loadQuestions();
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    backgroundColor: DesignSystem.success,
+                    backgroundColor: AppColors.success,
                     content: Text('Predefined dictionary updated successfully!'),
                   ));
                 }
               } catch (_) {
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                    backgroundColor: DesignSystem.error,
+                    backgroundColor: AppColors.brandRedDark,
                     content: Text('Failed to update dictionary mapping.'),
                   ));
                 }
               }
             },
-            style: DesignSystem.primaryButton,
-            child: Text('Save', style: DesignSystem.body(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+            style: AppComponents.primaryButtonStyle(),
+            child: Text('Save', style: AppTypography.bodySm().copyWith(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -1896,11 +1899,11 @@ class _DictionaryDialogWidgetState extends State<DictionaryDialogWidget> {
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: DesignSystem.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
-            child: const Icon(Icons.book_outlined, color: DesignSystem.primary, size: 20),
+            decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(8)),
+            child: const Icon(Icons.book_outlined, color: AppColors.primary, size: 20),
           ),
           const SizedBox(width: 12),
-          Text('Questions Dictionary Lookup', style: DesignSystem.h3(color: DesignSystem.textPrimary)),
+          Text('Questions Dictionary Lookup', style: AppTypography.heading4().copyWith(color: AppColors.ink)),
         ],
       ),
       content: SizedBox(
@@ -1914,7 +1917,7 @@ class _DictionaryDialogWidgetState extends State<DictionaryDialogWidget> {
                 _searchQuery = val;
                 _filterQuestions();
               },
-              style: DesignSystem.body(fontSize: 13),
+              style: AppTypography.bodySm().copyWith(fontSize: 13),
               decoration: InputDecoration(
                 hintText: 'Search placeholder keys or question texts...',
                 prefixIcon: const Icon(Icons.search, size: 18),
@@ -1927,7 +1930,7 @@ class _DictionaryDialogWidgetState extends State<DictionaryDialogWidget> {
             if (_loading)
               const Expanded(child: Center(child: CircularProgressIndicator()))
             else if (_filteredQuestions.isEmpty)
-              Expanded(child: Center(child: Text('No dictionary mappings found.', style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 13))))
+              Expanded(child: Center(child: Text('No dictionary mappings found.', style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13))))
             else
               Expanded(
                 child: ListView.builder(
@@ -1940,7 +1943,7 @@ class _DictionaryDialogWidgetState extends State<DictionaryDialogWidget> {
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: DesignSystem.border),
+                        border: Border.all(color: AppColors.hairlineSoft),
                       ),
                       child: Row(
                         children: [
@@ -1948,16 +1951,16 @@ class _DictionaryDialogWidgetState extends State<DictionaryDialogWidget> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Text('${q['placeholderKey']}', style: DesignSystem.body(color: DesignSystem.primary, fontSize: 12, fontWeight: FontWeight.bold)),
+                                Text('${q['placeholderKey']}', style: AppTypography.bodySm().copyWith(color: AppColors.primary, fontSize: 12, fontWeight: FontWeight.bold)),
                                 const SizedBox(height: 6),
-                                Text('${q['questionText'] ?? '—'}', style: DesignSystem.body(color: DesignSystem.textPrimary, fontSize: 13)),
+                                Text('${q['questionText'] ?? '—'}', style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 13)),
                               ],
                             ),
                           ),
                           const SizedBox(width: 8),
                           IconButton(
                             onPressed: () => _editQuestion(q),
-                            icon: const Icon(Icons.edit_outlined, size: 18, color: DesignSystem.primary),
+                            icon: const Icon(Icons.edit_outlined, size: 18, color: AppColors.primary),
                             tooltip: 'Edit Mapping',
                           ),
                         ],
@@ -1972,9 +1975,12 @@ class _DictionaryDialogWidgetState extends State<DictionaryDialogWidget> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: Text('Close', style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 13, fontWeight: FontWeight.w600)),
+          child: Text('Close', style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13, fontWeight: FontWeight.w600)),
         ),
       ],
     );
   }
 }
+
+
+
