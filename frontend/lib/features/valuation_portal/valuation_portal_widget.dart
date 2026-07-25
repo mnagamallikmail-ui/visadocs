@@ -13,6 +13,10 @@ import '../../providers/order_provider.dart';
 import '../../services/web_file_picker.dart';
 import 'service_intake_tracks.dart';
 import '../../theme/design_system.dart';
+import '../../theme/app_colors.dart';
+import '../../theme/app_typography.dart';
+import '../../theme/app_components.dart';
+import '../../theme/app_spacing.dart';
 
 class ValuationPortalWidget extends StatefulWidget {
   final String role;
@@ -982,17 +986,15 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                             width: 30,
                             height: 30,
                             decoration: BoxDecoration(
-                              color: DesignSystem.primary.withOpacity(0.25),
+                              color: AppColors.brandYellow.withOpacity(0.15),
                               borderRadius: BorderRadius.circular(7),
                             ),
                             child: Center(
                               child: Text(
                                 widget.fullName.isEmpty ? '?' : widget.fullName[0].toUpperCase(),
-                                style: GoogleFonts.inter(
-                                  color: DesignSystem.sidebarAccent,
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                ),
+                                style: AppTypography.bodySm(
+                                  color: AppColors.brandYellow,
+                                ).copyWith(fontWeight: FontWeight.w700),
                               ),
                             ),
                           ),
@@ -1003,20 +1005,14 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                               children: [
                                 Text(
                                   widget.fullName,
-                                  style: GoogleFonts.inter(
-                                    color: DesignSystem.sidebarText,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
+                                  style: AppTypography.bodySm(color: AppColors.sidebarText)
+                                      .copyWith(fontWeight: FontWeight.w600, fontSize: 12),
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 Text(
                                   widget.role.replaceAll('_', ' '),
-                                  style: GoogleFonts.inter(
-                                    color: DesignSystem.sidebarMuted,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w400,
-                                  ),
+                                  style: AppTypography.caption(color: AppColors.sidebarMuted)
+                                      .copyWith(fontSize: 10),
                                 ),
                               ],
                             ),
@@ -1026,7 +1022,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                       const SizedBox(height: 6),
                       Text(
                         widget.email,
-                        style: GoogleFonts.inter(color: DesignSystem.sidebarMuted, fontSize: 10),
+                        style: AppTypography.caption(color: AppColors.sidebarMuted).copyWith(fontSize: 10),
                         overflow: TextOverflow.ellipsis,
                       ),
                       Container(
@@ -1039,11 +1035,11 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                           onTap: widget.onBackToAdmin,
                           child: Row(
                             children: [
-                              Icon(Icons.admin_panel_settings_outlined, color: DesignSystem.sidebarAccent, size: 13),
+                              Icon(Icons.admin_panel_settings_outlined, color: AppColors.sidebarAccent, size: 13),
                               const SizedBox(width: 6),
                               Text(
                                 'Admin Console',
-                                style: GoogleFonts.inter(color: DesignSystem.sidebarAccent, fontSize: 11, fontWeight: FontWeight.w500),
+                                style: AppTypography.captionBold(color: AppColors.sidebarAccent).copyWith(fontSize: 11),
                               ),
                             ],
                           ),
@@ -1054,11 +1050,11 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                         onTap: widget.onLogout,
                         child: Row(
                           children: [
-                            Icon(Icons.logout_rounded, color: DesignSystem.error.withOpacity(0.8), size: 13),
+                            Icon(Icons.logout_rounded, color: AppColors.brandRedDark.withOpacity(0.8), size: 13),
                             const SizedBox(width: 6),
                             Text(
                               'Sign Out',
-                              style: GoogleFonts.inter(color: DesignSystem.error.withOpacity(0.8), fontSize: 11, fontWeight: FontWeight.w500),
+                              style: AppTypography.captionBold(color: AppColors.brandRedDark.withOpacity(0.8)).copyWith(fontSize: 11),
                             ),
                           ],
                         ),
@@ -1295,22 +1291,12 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                 // Page header — no wrapper card
                 Text(
                   'New Request',
-                  style: GoogleFonts.inter(
-                    color: DesignSystem.textPrimary,
-                    fontSize: 36,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -1.0,
-                    height: 1.1,
-                  ),
+                  style: AppTypography.heading2(color: AppColors.ink),
                 ),
                 const SizedBox(height: 8),
                 Text(
                   'Choose the service type you want to initiate.',
-                  style: GoogleFonts.inter(
-                    color: DesignSystem.textSecondary,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w400,
-                  ),
+                  style: AppTypography.bodyMd(color: AppColors.slate),
                 ),
                 const SizedBox(height: 40),
                 // Service cards — clean grid, no outer wrapper
@@ -3379,12 +3365,12 @@ class _ClientServiceCardState extends State<_ClientServiceCard> {
                 curve: Curves.easeOut,
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
                 decoration: BoxDecoration(
-                  color: widget.isSelected ? const Color(0xFFEFF6FF) : Colors.white,
-                  borderRadius: BorderRadius.circular(16),
+                  color: widget.isSelected ? AppColors.surfaceYellow : AppColors.canvas,
+                  borderRadius: AppRadius.brXxxl, // Matching landing page
                   border: Border.all(
                     color: widget.isSelected
-                        ? DesignSystem.primary
-                        : (_isHovered ? const Color(0xFF93C5FD) : DesignSystem.border),
+                        ? AppColors.brandYellow
+                        : (_isHovered ? AppColors.hairlineStrong : AppColors.hairlineSoft),
                     width: widget.isSelected ? 2.0 : 1.0,
                   ),
                   boxShadow: [
@@ -3410,14 +3396,14 @@ class _ClientServiceCardState extends State<_ClientServiceCard> {
                             height: 56,
                             decoration: BoxDecoration(
                               color: widget.isSelected
-                                  ? DesignSystem.primary.withOpacity(0.1)
-                                  : const Color(0xFFF1F5F9),
-                              borderRadius: BorderRadius.circular(14),
+                                  ? AppColors.brandYellow.withOpacity(0.2)
+                                  : AppColors.surface,
+                              borderRadius: AppRadius.brMd, // Matching landing page icons
                             ),
                             child: Center(
                               child: Icon(
                                 widget.icon,
-                                color: widget.isSelected ? DesignSystem.primary : DesignSystem.textSecondary,
+                                color: widget.isSelected ? AppColors.inkDeep : AppColors.slate,
                                 size: 26,
                               ),
                             ),
@@ -3426,23 +3412,15 @@ class _ClientServiceCardState extends State<_ClientServiceCard> {
                           Text(
                             widget.title,
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(
-                              color: widget.isSelected ? DesignSystem.primary : DesignSystem.textPrimary,
-                              fontSize: 15,
-                              fontWeight: FontWeight.w600,
-                              letterSpacing: -0.2,
+                            style: AppTypography.heading5(
+                              color: widget.isSelected ? AppColors.inkDeep : AppColors.ink,
                             ),
                           ),
                           const SizedBox(height: 6),
                           Text(
                             widget.description,
                             textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(
-                              color: DesignSystem.textSecondary,
-                              fontSize: 12.5,
-                              height: 1.5,
-                              letterSpacing: -0.1,
-                            ),
+                            style: AppTypography.bodySm(color: AppColors.slate).copyWith(height: 1.5),
                           ),
                         ],
                       ),
@@ -3455,12 +3433,12 @@ class _ClientServiceCardState extends State<_ClientServiceCard> {
                           width: 22,
                           height: 22,
                           decoration: const BoxDecoration(
-                            color: DesignSystem.primary,
+                            color: AppColors.brandYellow,
                             shape: BoxShape.circle,
                           ),
                           child: const Icon(
                             Icons.check_rounded,
-                            color: Colors.white,
+                            color: AppColors.primary,
                             size: 13,
                           ),
                         ),
@@ -3516,9 +3494,9 @@ class _HoverablePortalSidebarItemState extends State<_HoverablePortalSidebarItem
           padding: const EdgeInsets.symmetric(vertical: 9, horizontal: 11),
           decoration: BoxDecoration(
             color: isActive
-                ? DesignSystem.sidebarSelected     // Blue-600
-                : (_hovered ? DesignSystem.sidebarHover : Colors.transparent),
-            borderRadius: BorderRadius.circular(7),
+                ? AppColors.sidebarSelected
+                : (_hovered ? AppColors.sidebarSelected.withOpacity(0.5) : Colors.transparent),
+            borderRadius: AppRadius.brSm,
           ),
           child: Row(
             children: [
@@ -3526,18 +3504,18 @@ class _HoverablePortalSidebarItemState extends State<_HoverablePortalSidebarItem
                 widget.icon,
                 size: 15,
                 color: isActive
-                    ? DesignSystem.sidebarText
-                    : DesignSystem.sidebarMuted.withOpacity(_hovered ? 0.9 : 0.65),
+                    ? AppColors.sidebarAccent
+                    : ( _hovered ? AppColors.sidebarText : AppColors.sidebarMuted ),
               ),
               const SizedBox(width: 10),
               Expanded(
                 child: Text(
                   widget.label,
-                  style: GoogleFonts.inter(
+                  style: AppTypography.bodySm(
                     color: isActive
-                        ? DesignSystem.sidebarText
-                        : DesignSystem.sidebarMuted.withOpacity(_hovered ? 0.9 : 0.65),
-                    fontSize: 12,
+                        ? AppColors.sidebarText
+                        : ( _hovered ? AppColors.sidebarText : AppColors.sidebarMuted ),
+                  ).copyWith(
                     fontWeight: isActive ? FontWeight.w600 : FontWeight.w400,
                   ),
                 ),

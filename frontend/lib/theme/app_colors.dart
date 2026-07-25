@@ -121,11 +121,14 @@ class AppColors {
   static const Color backgroundSecondary = Color(0xFFF5F5F5);
 
   // ── Sidebar ──────────────────────────────────────────────────────────────
-  /// New brand teal sidebar — #4FA6A8
-  static const Color sidebarBg       = Color(0xFF4FA6A8);
-  /// Slightly darker teal for selected/active menu items
-  static const Color sidebarSelected = Color(0xFF3D8A8C);
+  /// Premium monochrome sidebar foundation
+  static const Color sidebarBg       = inkDeep;
+  /// Subtle charcoal for hover/selected states
+  static const Color sidebarSelected = Color(0xFF1F1F1F);
+  /// Crisp white for active text
   static const Color sidebarText     = onDark;
-  static const Color sidebarMuted    = Color(0xFFCCEEEF);
-  static const Color sidebarAccent   = Color(0xFFFFFFFF);
+  /// Muted gray for inactive text
+  static const Color sidebarMuted    = stone;
+  /// Warm yellow accent for active indicator
+  static const Color sidebarAccent   = brandYellow;
 }
