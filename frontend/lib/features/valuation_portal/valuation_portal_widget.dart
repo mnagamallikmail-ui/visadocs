@@ -588,7 +588,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
       return;
     }
 
-    // Pre-flight file validation (size <= 20MB, supported format)
+    // Pre-flight file validation (size <= 20MB)
     for (final entry in _uploadedDocFiles.entries) {
       final file = entry.value;
       if (file.bytes != null && file.bytes!.length > 20 * 1024 * 1024) {
@@ -596,17 +596,6 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
           SnackBar(
             backgroundColor: DesignSystem.error,
             content: Text("File '${file.name}' exceeds the 20 MB size limit. Please attach a smaller file."),
-          ),
-        );
-        return;
-      }
-      final lower = file.name.toLowerCase();
-      if (!lower.endsWith(".pdf") && !lower.endsWith(".doc") && !lower.endsWith(".docx") &&
-          !lower.endsWith(".jpg") && !lower.endsWith(".jpeg") && !lower.endsWith(".png")) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            backgroundColor: DesignSystem.error,
-            content: Text("File '${file.name}' has an unsupported format. Allowed: pdf, doc, docx, jpg, png."),
           ),
         );
         return;
@@ -684,8 +673,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
   Future<void> _pickFile(String category) async {
     try {
       final FilePickerResult? result = await FilePicker.platform.pickFiles(
-        type: FileType.custom,
-        allowedExtensions: ['pdf', 'doc', 'docx', 'jpg', 'jpeg', 'png'],
+        type: FileType.any,
         withData: true,
       );
       if (result != null && result.files.isNotEmpty) {

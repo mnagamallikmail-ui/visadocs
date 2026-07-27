@@ -97,11 +97,6 @@ public class OrderDocumentController {
         if (filename == null) {
             return ResponseEntity.badRequest().body("Filename is invalid");
         }
-        String lower = filename.toLowerCase();
-        if (!lower.endsWith(".pdf") && !lower.endsWith(".doc") && !lower.endsWith(".docx") &&
-            !lower.endsWith(".jpg") && !lower.endsWith(".jpeg") && !lower.endsWith(".png")) {
-            return ResponseEntity.badRequest().body("Unsupported file format");
-        }
 
         try {
             User user = userRepository.findById(principal.getId()).orElseThrow(() -> new RuntimeException("User not found"));
