@@ -289,7 +289,11 @@ public class OrderController {
             boolean isSpaOrAdmin = principal.getAuthorities().stream()
                     .anyMatch(a -> a.getAuthority().equals("ROLE_SPA") || a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
 
-            order.setStatus(isSpaOrAdmin ? "SUPER_ADMIN_GATE" : "SPA_GATE");
+            // SPA/Admin only saves inputs — status is preserved so the order stays visible in review queue.
+            // Only a PA submission advances the status to SPA_GATE.
+            if (!isSpaOrAdmin) {
+                order.setStatus("SPA_GATE");
+            }
             Order saved = orderRepository.save(order);
             return ResponseEntity.ok(saved);
         }
@@ -317,6 +321,20 @@ public class OrderController {
 
             Order saved = orderRepository.save(order);
             return ResponseEntity.ok(saved);
+        }
+        return ResponseEntity.notFound().build();
+    }
+
+    @PostMapping("/{id}/revert-to-review")
+    @Transactional
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> revertToReview(@PathVariable Long id) {
+        Optional<Order> orderOpt = orderRepository.findById(id);
+        if (orderOpt.isPresent()) {
+            Order order = orderOpt.get();
+            // Super Admin override: push an approved report back to SPA review
+            order.setStatus("SPA_GATE");
+            return ResponseEntity.ok(orderRepository.save(order));
         }
         return ResponseEntity.notFound().build();
     }

@@ -887,6 +887,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
       ];
       menuGroups['OPERATIONS'] = [
         _buildSidebarItem(key: 'under_review', label: "Review Queue", icon: Icons.rate_review),
+        _buildSidebarItem(key: 'approved', label: "Approved Reports", icon: Icons.verified_outlined),
         _buildSidebarItem(key: 'create_report', label: "Create New Report", icon: Icons.add_chart),
       ];
     }
@@ -1077,6 +1078,8 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
         return _buildRoleInProgressDirectory();
       case 'under_review':
         return _buildSpaReviewQueueDirectory();
+      case 'approved':
+        return _buildApprovedReportsDirectory();
       case 'completed':
         return _buildRoleCompletedDirectory();
       default:
@@ -2363,7 +2366,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
         if (widget.role == 'CLIENT') {
           list = provider.clientOrders.where((o) => o['status'] != 'FINAL_DELIVERY' && o['status'] != 'DRAFT').toList();
         } else if (widget.role == 'PA') {
-          list = provider.paOrders.where((o) => o['status'] == 'ASSIGNED' || o['status'] == 'ACTION_NEEDED' || o['status'] == 'SPA_GATE' || o['status'] == 'SUPER_ADMIN_GATE' || o['status'] == 'SPA_CONFIRMED' || o['status'] == 'FINAL_DELIVERY').toList();
+          list = provider.paOrders.where((o) => o['status'] == 'ASSIGNED' || o['status'] == 'ACTION_NEEDED' || o['status'] == 'SPA_GATE' || o['status'] == 'SPA_CONFIRMED' || o['status'] == 'FINAL_DELIVERY').toList();
         } else if (widget.role == 'SPA') {
           list = provider.allOrders.where((o) => o['status'] == 'SPA_GATE' || o['status'] == 'SPA_CONFIRMED').toList();
         }
@@ -2381,7 +2384,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
         final list = provider.allOrders.where((o) {
           final String status = o['status'] ?? '';
           if (widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN') {
-            return status == 'SUPER_ADMIN_GATE' || status == 'SPA_GATE' || status == 'SPA_CONFIRMED' || status == 'FINAL_DELIVERY';
+            return status == 'SPA_GATE' || status == 'SPA_CONFIRMED' || status == 'FINAL_DELIVERY';
           }
           return status == 'SPA_GATE' || status == 'SPA_CONFIRMED' || status == 'FINAL_DELIVERY';
         }).toList();
@@ -2406,6 +2409,20 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
         }
         return _buildDirectoryList(
           title: "COMPLETED & SEALED REPORTS ARCHIVE",
+          orders: list,
+        );
+      },
+    );
+  }
+
+  Widget _buildApprovedReportsDirectory() {
+    return Consumer<OrderProvider>(
+      builder: (context, provider, _) {
+        final list = provider.allOrders
+            .where((o) => o['status'] == 'SPA_CONFIRMED')
+            .toList();
+        return _buildDirectoryList(
+          title: "APPROVED REPORTS — AWAITING FINAL DELIVERY",
           orders: list,
         );
       },
@@ -2738,8 +2755,9 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
         ],
 
         // Action C: Review and approval forms (For SPA / SUPER_ADMIN / ADMIN)
+        // SPA and Admin have full edit rights on both SPA_GATE and SPA_CONFIRMED orders.
         if ((widget.role == 'SPA' || widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN') &&
-            (status == 'SPA_GATE' || status == 'SUPER_ADMIN_GATE' || (status == 'FINAL_DELIVERY' && (widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN')))) ...[
+            (status == 'SPA_GATE' || status == 'SPA_CONFIRMED' || (status == 'FINAL_DELIVERY' && (widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN')))) ...[
           if (status != 'FINAL_DELIVERY') ...[
             Text(
               "REVIEW DRAFT DATA FIELDS",
@@ -2883,9 +2901,48 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
               ),
             ],
           ),
+          const SizedBox(height: 12),
+
+          // Super Admin Override: revert an approved report back to SPA review
+          if (status == 'SPA_CONFIRMED' &&
+              (widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN')) ...[    
+            const Divider(),
+            const SizedBox(height: 10),
+            Text(
+              "SUPER ADMIN OVERRIDE",
+              style: GoogleFonts.montserrat(color: Colors.orange.shade700, fontSize: 10, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              height: 38,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.undo, size: 16, color: Colors.white),
+                onPressed: () async {
+                  final ok = await provider.revertToReview(order['id']);
+                  if (ok && mounted) {
+                    _refreshData();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        backgroundColor: Colors.orange,
+                        content: Text("Report reverted to SPA Review Queue."),
+                      ),
+                    );
+                  }
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange.shade700,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                ),
+                label: const Text(
+                  "OVERRIDE — REVERT TO SPA REVIEW",
+                  style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+          ],
         ],
 
-        // Bottom Action Button: Secure Decrypted Download
         if (isCompleted && widget.role == 'CLIENT') ...[
           const SizedBox(height: 12),
           SizedBox(
@@ -2909,7 +2966,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
         ],
 
         // Bottom Action Button: DOCX & PDF Download for Staff
-        if ((status == 'FINAL_DELIVERY' || status == 'SPA_GATE') &&
+        if ((status == 'FINAL_DELIVERY' || status == 'SPA_GATE' || status == 'SPA_CONFIRMED') &&
             (widget.role == 'PA' || widget.role == 'SPA' || widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN')) ...[
           const SizedBox(height: 12),
           Row(

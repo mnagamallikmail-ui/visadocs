@@ -252,7 +252,8 @@ class OrderProvider extends ChangeNotifier {
     try {
       final response = await _apiService.dio.post('/api/v1/orders/$orderId/submit-draft', data: inputs);
       if (response.statusCode == 200) {
-        stopHeartbeat();
+        await fetchAllOrders();
+        notifyListeners();
         return true;
       }
     } catch (e) {
@@ -268,10 +269,29 @@ class OrderProvider extends ChangeNotifier {
         queryParams['finalValue'] = finalValue;
       }
       final response = await _apiService.dio.post('/api/v1/orders/$orderId/spa-verify', queryParameters: queryParams);
-      return response.statusCode == 200;
+      if (response.statusCode == 200) {
+        await fetchAllOrders();
+        notifyListeners();
+        return true;
+      }
+      return false;
     } catch (e) {
       return false;
     }
+  }
+
+  Future<bool> revertToReview(int orderId) async {
+    try {
+      final response = await _apiService.dio.post('/api/v1/orders/$orderId/revert-to-review');
+      if (response.statusCode == 200) {
+        await fetchAllOrders();
+        notifyListeners();
+        return true;
+      }
+    } catch (e) {
+      // Error reverting to review
+    }
+    return false;
   }
 
   Future<bool> processBalancePayment(int orderId, double amount) async {
