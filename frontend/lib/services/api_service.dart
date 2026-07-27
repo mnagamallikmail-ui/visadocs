@@ -1,9 +1,22 @@
+import 'dart:html' as html;
 import 'package:dio/dio.dart';
 
 class ApiService {
+  static String _determineBaseUrl() {
+    try {
+      final String origin = html.window.location.origin;
+      if (origin.contains('localhost') || origin.contains('127.0.0.1')) {
+        return 'https://visadocs.online';
+      }
+      return origin;
+    } catch (_) {
+      return 'https://visadocs.online';
+    }
+  }
+
   final Dio dio = Dio(
     BaseOptions(
-      baseUrl: 'https://visadocs.online',
+      baseUrl: _determineBaseUrl(),
       connectTimeout: const Duration(minutes: 5),
       receiveTimeout: const Duration(minutes: 5),
       sendTimeout: const Duration(minutes: 5),
