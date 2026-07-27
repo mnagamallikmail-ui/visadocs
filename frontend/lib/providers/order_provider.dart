@@ -4,6 +4,12 @@ import '../services/api_service.dart';
 import 'package:dio/dio.dart';
 import 'dart:typed_data';
 
+class UploadResult {
+  final bool success;
+  final String? errorMessage;
+  UploadResult({required this.success, this.errorMessage});
+}
+
 class OrderProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
 
@@ -128,6 +134,19 @@ class OrderProvider extends ChangeNotifier {
       // Error saving draft
     }
     return null;
+  }
+
+  Future<bool> deleteDraft(int orderId) async {
+    try {
+      final response = await _apiService.dio.delete('/api/v1/orders/$orderId/draft');
+      if (response.statusCode == 200) {
+        await fetchClientOrders();
+        return true;
+      }
+    } catch (e) {
+      // Error deleting draft
+    }
+    return false;
   }
 
   Future<bool> submitIntake(int orderId, double depositAmount) async {
@@ -331,7 +350,7 @@ class OrderProvider extends ChangeNotifier {
     return null;
   }
 
-  Future<bool> uploadDocument(int orderId, String category, String filename, List<int> bytes) async {
+  Future<UploadResult> uploadDocument(int orderId, String category, String filename, List<int> bytes) async {
     try {
       final formData = FormData.fromMap({
         'file': MultipartFile.fromBytes(bytes, filename: filename),
@@ -341,9 +360,19 @@ class OrderProvider extends ChangeNotifier {
         '/api/v1/orders/$orderId/documents/upload',
         data: formData,
       );
-      return response.statusCode == 200;
+      return UploadResult(success: response.statusCode == 200);
+    } on DioException catch (e) {
+      String msg = "Failed to upload document.";
+      if (e.response?.data != null && e.response!.data is String) {
+        msg = e.response!.data.toString();
+      } else if (e.response?.data != null && e.response!.data is Map && e.response!.data['message'] != null) {
+        msg = e.response!.data['message'].toString();
+      } else if (e.message != null) {
+        msg = e.message!;
+      }
+      return UploadResult(success: false, errorMessage: msg);
     } catch (e) {
-      return false;
+      return UploadResult(success: false, errorMessage: e.toString());
     }
   }
 

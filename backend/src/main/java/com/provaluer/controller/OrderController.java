@@ -93,6 +93,36 @@ public class OrderController {
         return ResponseEntity.ok(savedOrder);
     }
 
+    @DeleteMapping("/{id}/draft")
+    @Transactional
+    @PreAuthorize("hasAnyRole('CLIENT', 'SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> deleteDraft(@PathVariable Long id) {
+        UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Optional<Order> orderOpt = orderRepository.findById(id);
+        if (!orderOpt.isPresent()) {
+            return ResponseEntity.notFound().build();
+        }
+        Order order = orderOpt.get();
+
+        boolean isAdmin = principal.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin && !order.getClientId().equals(principal.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied to delete this draft order");
+        }
+
+        if (!"DRAFT".equals(order.getStatus())) {
+            return ResponseEntity.badRequest().body("Only orders in DRAFT status can be deleted");
+        }
+
+        List<OrderInput> existingInputs = orderInputRepository.findAllByOrderId(id);
+        orderInputRepository.deleteAll(existingInputs);
+
+        List<OrderDocument> existingDocs = orderDocumentRepository.findAllByOrderId(id);
+        orderDocumentRepository.deleteAll(existingDocs);
+
+        orderRepository.delete(order);
+        return ResponseEntity.ok("Draft order deleted successfully");
+    }
+
     @PostMapping("/{id}/submit")
     @Transactional
     public ResponseEntity<?> submitIntake(@PathVariable Long id) {

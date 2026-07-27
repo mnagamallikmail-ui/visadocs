@@ -588,6 +588,31 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
       return;
     }
 
+    // Pre-flight file validation (size <= 20MB, supported format)
+    for (final entry in _uploadedDocFiles.entries) {
+      final file = entry.value;
+      if (file.bytes != null && file.bytes!.length > 20 * 1024 * 1024) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: DesignSystem.error,
+            content: Text("File '${file.name}' exceeds the 20 MB size limit. Please attach a smaller file."),
+          ),
+        );
+        return;
+      }
+      final lower = file.name.toLowerCase();
+      if (!lower.endsWith(".pdf") && !lower.endsWith(".doc") && !lower.endsWith(".docx") &&
+          !lower.endsWith(".jpg") && !lower.endsWith(".jpeg") && !lower.endsWith(".png")) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: DesignSystem.error,
+            content: Text("File '${file.name}' has an unsupported format. Allowed: pdf, doc, docx, jpg, png."),
+          ),
+        );
+        return;
+      }
+    }
+
     final provider = Provider.of<OrderProvider>(context, listen: false);
     final String propertyCategory = _selectedPropertyType == 'Others'
         ? _customPropertyTypeController.text.trim()
@@ -611,28 +636,28 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
     final int orderId = draft['id'];
 
     // Step 2: Upload each picked document to the order via the documents API
-    int uploadFailures = 0;
     for (final entry in _uploadedDocFiles.entries) {
       final String category = entry.key;
       final PlatformFile file = entry.value;
       if (file.bytes != null) {
-        final uploaded = await provider.uploadDocument(
+        final res = await provider.uploadDocument(
           orderId,
           category,
           file.name,
           file.bytes!,
         );
-        if (!uploaded) uploadFailures++;
+        if (!res.success) {
+          // Atomic rollback: delete draft order if any file fails to upload
+          await provider.deleteDraft(orderId);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: DesignSystem.error,
+              content: Text("Upload failed for '${file.name}': ${res.errorMessage ?? 'Unknown error'}. Project initiation cancelled."),
+            ),
+          );
+          return;
+        }
       }
-    }
-
-    if (uploadFailures > 0) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          backgroundColor: DesignSystem.warning,
-          content: Text("$uploadFailures document(s) failed to upload. Please re-upload them after submission."),
-        ),
-      );
     }
 
     // Step 3: Submit the intake (marks order as PAID_INTAKE, generates report number)
@@ -694,8 +719,8 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
       if (result != null && result.files.isNotEmpty) {
         final file = result.files.first;
         if (file.bytes != null) {
-          final success = await provider.uploadDocument(orderId, category, file.name, file.bytes!);
-          if (success) {
+          final res = await provider.uploadDocument(orderId, category, file.name, file.bytes!);
+          if (res.success) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 backgroundColor: DesignSystem.success,
@@ -706,9 +731,9 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
             _refreshData();
           } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
+              SnackBar(
                 backgroundColor: DesignSystem.error,
-                content: Text("Failed to upload document."),
+                content: Text(res.errorMessage ?? "Failed to upload document."),
               ),
             );
           }
