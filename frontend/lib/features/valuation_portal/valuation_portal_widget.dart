@@ -3196,59 +3196,67 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
   }
 
   Future<void> _generateReportAndFinalize(OrderProvider provider, int orderId, double? finalValue) async {
-    // Gather all inputs to save any modifications made by the SPA/Admin
+    // Gather any in-memory edits made by the SPA/Admin via the full-page editor.
     _entryControllers.forEach((k, c) {
       if (k != 'FINAL_VALUE_INPUT') {
         _entryValues[k] = c.text;
       }
     });
 
-    final draftSuccess = await provider.submitReportDraft(orderId, _entryValues);
-    if (!draftSuccess) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to save updated draft before finalization.")),
-      );
-      return;
+    // FIX: Only call submitReportDraft when the SPA has actual in-memory edits to
+    // persist. Calling it with an empty map would overwrite and wipe all field
+    // inputs previously saved by the PA, which is the root cause of the Confirm
+    // button silently breaking when the full-page editor was never opened.
+    if (_entryValues.isNotEmpty) {
+      final draftSuccess = await provider.submitReportDraft(orderId, _entryValues);
+      if (!draftSuccess) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text("Failed to save updated draft before finalization.")),
+          );
+        }
+        return;
+      }
     }
 
     final success = await provider.spaVerify(orderId, finalValue);
     if (success) {
+      // FIX: Await the full data refresh so provider.allOrders is up to date
+      // before we search it for the updated order reference.  The previous
+      // addPostFrameCallback pattern fired before fetchAllOrders completed,
+      // leaving _selectedProject pointing at the stale pre-confirm snapshot.
       await _loadOrderInputs(orderId);
-      _refreshData();
-      
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        setState(() {
-          dynamic updatedOrder;
-          for (var o in provider.allOrders) {
-            if (o['id'] == orderId) {
-              updatedOrder = o;
-              break;
-            }
+      await provider.fetchAllOrders();
+
+      if (!mounted) return;
+
+      setState(() {
+        dynamic updatedOrder;
+        for (var o in provider.allOrders) {
+          if (o['id'] == orderId) {
+            updatedOrder = o;
+            break;
           }
-          if (updatedOrder == null) {
-            for (var o in provider.paOrders) {
-              if (o['id'] == orderId) {
-                updatedOrder = o;
-                break;
-              }
-            }
-          }
-          if (updatedOrder != null) {
-            _selectedProject = updatedOrder;
-          }
-        });
+        }
+        if (updatedOrder != null) {
+          _selectedProject = updatedOrder;
+        }
       });
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          backgroundColor: DesignSystem.success,
-          content: Text("Report generated successfully! Download links are now active."),
-        ),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: DesignSystem.success,
+            content: Text("Report confirmed successfully! Download links are now active."),
+          ),
+        );
+      }
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to generate and finalize report.")),
-      );
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text("Failed to generate and finalize report.")),
+        );
+      }
     }
   }
 
