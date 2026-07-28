@@ -334,7 +334,11 @@ class OrderProvider extends ChangeNotifier {
     return null;
   }
 
+  String? _lastDocxError;
+  String? get lastDocxError => _lastDocxError;
+
   Future<Uint8List?> downloadReportDocx(int orderId) async {
+    _lastDocxError = null;
     try {
       final response = await _apiService.dio.get(
         '/api/v1/orders/$orderId/download-docx',
@@ -352,8 +356,25 @@ class OrderProvider extends ChangeNotifier {
       if (response.statusCode == 200) {
         return Uint8List.fromList(response.data);
       }
+      _lastDocxError = 'Server returned status ${response.statusCode}';
+    } on DioException catch (e) {
+      if (e.response?.data != null) {
+        try {
+          // Try to decode the error body (may be bytes or string)
+          final raw = e.response!.data;
+          if (raw is List<int>) {
+            _lastDocxError = String.fromCharCodes(raw);
+          } else {
+            _lastDocxError = raw.toString();
+          }
+        } catch (_) {
+          _lastDocxError = e.message ?? 'DOCX download failed (${e.response?.statusCode})';
+        }
+      } else {
+        _lastDocxError = e.message ?? 'DOCX download failed';
+      }
     } catch (e) {
-      // Error downloading docx report
+      _lastDocxError = e.toString();
     }
     return null;
   }

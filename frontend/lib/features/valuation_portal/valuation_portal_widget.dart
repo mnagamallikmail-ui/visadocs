@@ -805,9 +805,15 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
     final provider = Provider.of<OrderProvider>(context, listen: false);
     final bytes = await provider.downloadReportDocx(orderId);
     if (bytes == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Failed to download DOCX report.")),
-      );
+      final errMsg = provider.lastDocxError ?? 'Failed to download DOCX report.';
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: DesignSystem.error,
+            content: Text(errMsg),
+          ),
+        );
+      }
       return;
     }
 
@@ -2758,7 +2764,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
         // SPA and Admin have full edit rights on both SPA_GATE and SPA_CONFIRMED orders.
         if ((widget.role == 'SPA' || widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN') &&
             (status == 'SPA_GATE' || status == 'SPA_CONFIRMED' || (status == 'FINAL_DELIVERY' && (widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN')))) ...[
-          if (status != 'FINAL_DELIVERY') ...[
+          if (status == 'SPA_GATE') ...[
             Text(
               "REVIEW DRAFT DATA FIELDS",
               style: GoogleFonts.montserrat(color: DesignSystem.secondary, fontSize: 10, fontWeight: FontWeight.bold),
