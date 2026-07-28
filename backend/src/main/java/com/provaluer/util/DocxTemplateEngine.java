@@ -587,6 +587,23 @@ public class DocxTemplateEngine {
                 substituteInParagraph(wordMLPackage, p, inputs, images);
             } else if (unwrapped instanceof Tbl) {
                 Tbl tbl = (Tbl) unwrapped;
+                
+                // Enforce FIXED layout to prevent horizontal expansion of columns
+                TblPr tblPr = tbl.getTblPr();
+                if (tblPr == null) {
+                    ObjectFactory factory = new ObjectFactory();
+                    tblPr = factory.createTblPr();
+                    tbl.setTblPr(tblPr);
+                }
+                if (tblPr.getTblLayout() == null) {
+                    ObjectFactory factory = new ObjectFactory();
+                    CTTblLayoutType layout = factory.createCTTblLayoutType();
+                    layout.setType(STTblLayoutType.FIXED);
+                    tblPr.setTblLayout(layout);
+                } else {
+                    tblPr.getTblLayout().setType(STTblLayoutType.FIXED);
+                }
+
                 for (Object rowObj : tbl.getContent()) {
                     Object unwrappedRow = unwrap(rowObj);
                     if (unwrappedRow instanceof Tr) {
@@ -619,12 +636,25 @@ public class DocxTemplateEngine {
                 String key = matchedName.toUpperCase();
                 byte[] imgBytes = getUploadedOrPlaceholderImage(key, images, inputs);
                 if (imgBytes != null) {
+                    long originalCx = inline.getExtent() != null ? inline.getExtent().getCx() : 2743200L;
+                    long originalCy = inline.getExtent() != null ? inline.getExtent().getCy() : 1828800L;
+                    
+                    imgBytes = padImageToFitEmu(imgBytes, originalCx, originalCy);
+
                     BinaryPartAbstractImage imagePart = BinaryPartAbstractImage.createImagePart(wordMLPackage, imgBytes);
                     Inline inlineImage = imagePart.createImageInline("Uploaded Image", "Image", 10002, 10003, false);
+                    
                     if (inline.getExtent() != null) {
-                        inlineImage.getExtent().setCx(inline.getExtent().getCx());
-                        inlineImage.getExtent().setCy(inline.getExtent().getCy());
+                        inlineImage.getExtent().setCx(originalCx);
+                        inlineImage.getExtent().setCy(originalCy);
                     }
+                    
+                    org.docx4j.dml.picture.Pic pic = inlineImage.getGraphic().getGraphicData().getPic();
+                    if (pic != null && pic.getSpPr() != null && pic.getSpPr().getXfrm() != null && pic.getSpPr().getXfrm().getExt() != null) {
+                        pic.getSpPr().getXfrm().getExt().setCx(originalCx);
+                        pic.getSpPr().getXfrm().getExt().setCy(originalCy);
+                    }
+                    
                     replaceDrawingInParagraph(p, inline, inlineImage);
                 }
             }
@@ -642,12 +672,25 @@ public class DocxTemplateEngine {
                 String key = matchedName.toUpperCase();
                 byte[] imgBytes = getUploadedOrPlaceholderImage(key, images, inputs);
                 if (imgBytes != null) {
+                    long originalCx = anchor.getExtent() != null ? anchor.getExtent().getCx() : 2743200L;
+                    long originalCy = anchor.getExtent() != null ? anchor.getExtent().getCy() : 1828800L;
+                    
+                    imgBytes = padImageToFitEmu(imgBytes, originalCx, originalCy);
+
                     BinaryPartAbstractImage imagePart = BinaryPartAbstractImage.createImagePart(wordMLPackage, imgBytes);
                     Inline inlineImage = imagePart.createImageInline("Uploaded Image", "Image", 10002, 10003, false);
+                    
                     if (anchor.getExtent() != null) {
-                        inlineImage.getExtent().setCx(anchor.getExtent().getCx());
-                        inlineImage.getExtent().setCy(anchor.getExtent().getCy());
+                        inlineImage.getExtent().setCx(originalCx);
+                        inlineImage.getExtent().setCy(originalCy);
                     }
+                    
+                    org.docx4j.dml.picture.Pic pic = inlineImage.getGraphic().getGraphicData().getPic();
+                    if (pic != null && pic.getSpPr() != null && pic.getSpPr().getXfrm() != null && pic.getSpPr().getXfrm().getExt() != null) {
+                        pic.getSpPr().getXfrm().getExt().setCx(originalCx);
+                        pic.getSpPr().getXfrm().getExt().setCy(originalCy);
+                    }
+
                     replaceDrawingInParagraph(p, anchor, inlineImage);
                 }
             }
@@ -802,6 +845,43 @@ public class DocxTemplateEngine {
             return baos.toByteArray();
         } catch (Exception e) {
             return null;
+        }
+    }
+
+    private byte[] padImageToFitEmu(byte[] originalImageBytes, long emuCx, long emuCy) {
+        try {
+            // Approx EMU to pixel conversion (96 DPI)
+            int targetW = (int) (emuCx / 9525);
+            int targetH = (int) (emuCy / 9525);
+            if (targetW <= 0 || targetH <= 0) return originalImageBytes;
+
+            BufferedImage srcImg = ImageIO.read(new ByteArrayInputStream(originalImageBytes));
+            if (srcImg == null) return originalImageBytes;
+
+            double scaleX = (double) targetW / srcImg.getWidth();
+            double scaleY = (double) targetH / srcImg.getHeight();
+            double scale = Math.min(scaleX, scaleY);
+
+            int scaledW = (int) (srcImg.getWidth() * scale);
+            int scaledH = (int) (srcImg.getHeight() * scale);
+
+            BufferedImage canvas = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_ARGB);
+            Graphics2D g = canvas.createGraphics();
+            // Transparent background by default for ARGB
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+            g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+            g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            int x = (targetW - scaledW) / 2;
+            int y = (targetH - scaledH) / 2;
+            g.drawImage(srcImg, x, y, scaledW, scaledH, null);
+            g.dispose();
+
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            ImageIO.write(canvas, "png", baos);
+            return baos.toByteArray();
+        } catch (Exception e) {
+            return originalImageBytes;
         }
     }
 
