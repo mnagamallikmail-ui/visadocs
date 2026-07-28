@@ -349,7 +349,6 @@ class OrderProvider extends ChangeNotifier {
           // Base64-encodes the byte[] into a JSON string instead of raw binary.
           headers: {
             'Accept': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document, application/octet-stream, */*',
-            'Content-Type': null, // Clear inherited JSON content-type for this GET request
           },
         ),
       );
