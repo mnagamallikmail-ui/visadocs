@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Flat Minimalist Design</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Navigation -->
+        <aside class="sidebar">
+            <h2>ProValuer</h2>
+            <div class="flex-col">
+                <button class="btn-primary" style="width: 100%; justify-content: flex-start; padding-left: 16px;">
+                    Dashboard
+                </button>
+                <button class="btn-secondary" style="width: 100%; justify-content: flex-start; border-color: transparent; color: var(--text-secondary); padding-left: 16px;">
+                    Valuations
+                </button>
+                <button class="btn-secondary" style="width: 100%; justify-content: flex-start; border-color: transparent; color: var(--text-secondary); padding-left: 16px;">
+                    Clients
+                </button>
+                <button class="btn-secondary" style="width: 100%; justify-content: flex-start; border-color: transparent; color: var(--text-secondary); padding-left: 16px;">
+                    Settings
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="header">
+                <div>
+                    <h1>Dashboard Overview</h1>
+                    <p style="color: var(--text-secondary); margin-bottom: 0;">Welcome back to the valuation portal.</p>
+                </div>
+                <div class="flex-row">
+                    <input type="text" class="form-field" placeholder="Search..." style="width: 250px;">
+                    <button class="btn-primary">New Order</button>
+                </div>
+            </header>
+
+            <div class="flex-row" style="margin-bottom: 24px;">
+                <!-- Summary Card -->
+                <div class="card" style="flex: 1;">
+                    <h3>Total Valuations</h3>
+                    <div style="font-size: 32px; font-weight: 700; color: var(--primary);">142</div>
+                    <p style="color: var(--text-secondary); font-size: 12px; margin-top: 8px; margin-bottom: 0;">+12% from last month</p>
+                </div>
+                <!-- Summary Card -->
+                <div class="card" style="flex: 1;">
+                    <h3>Pending Review</h3>
+                    <div style="font-size: 32px; font-weight: 700; color: var(--state-warning);">28</div>
+                    <p style="color: var(--text-secondary); font-size: 12px; margin-top: 8px; margin-bottom: 0;">Require immediate attention</p>
+                </div>
+                <!-- Summary Card -->
+                <div class="card" style="flex: 1;">
+                    <h3>Completed Today</h3>
+                    <div style="font-size: 32px; font-weight: 700; color: var(--state-success);">15</div>
+                    <p style="color: var(--text-secondary); font-size: 12px; margin-top: 8px; margin-bottom: 0;">All reports submitted</p>
+                </div>
+            </div>
+
+            <!-- Form Example -->
+            <div class="card">
+                <h2>Quick Filter</h2>
+                <div class="flex-row">
+                    <div class="form-group" style="flex: 1;">
+                        <label for="client">Client Name</label>
+                        <input type="text" id="client" class="form-field" placeholder="Enter client name">
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label for="status">Status</label>
+                        <select id="status" class="dropdown form-field" style="height: auto; padding: 12px 16px;">
+                            <option>All Statuses</option>
+                            <option>Pending</option>
+                            <option>Completed</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="flex: 1;">
+                        <label>&nbsp;</label>
+                        <button class="btn-secondary" style="width: 100%;">Apply Filters</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Table -->
+            <h2 style="margin-top: 40px; margin-bottom: 16px;">Recent Orders</h2>
+            <div class="table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Order details</th>
+                            <th>Client</th>
+                            <th>Date / Time</th>
+                            <th>Status</th>
+                            <th style="text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>
+                                <div class="td-stacked">
+                                    <span class="primary-text">ORD-2026-089</span>
+                                    <span class="secondary-text">Commercial Valuation</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="td-stacked">
+                                    <span class="primary-text">Acme Corp</span>
+                                    <span class="secondary-text">contact@acme.com</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="td-stacked">
+                                    <span class="primary-text">Jul 29, 2026</span>
+                                    <span class="secondary-text">10:45 AM</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="tag warning">Pending</span>
+                            </td>
+                            <td style="text-align: right;">
+                                <button class="btn-secondary" style="padding: 6px 12px; font-size: 12px;">View</button>
+                            </td>
+                        </tr>
+                        <tr>
+                            <td>
+                                <div class="td-stacked">
+                                    <span class="primary-text">ORD-2026-088</span>
+                                    <span class="secondary-text">Residential Appraisal</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="td-stacked">
+                                    <span class="primary-text">Jane Doe</span>
+                                    <span class="secondary-text">jane.doe@example.com</span>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="td-stacked">
+                                    <span class="primary-text">Jul 28, 2026</span>
+                                    <span class="secondary-text">02:30 PM</span>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="tag success">Completed</span>
+                            </td>
+                            <td style="text-align: right;">
+                                <button class="btn-secondary" style="padding: 6px 12px; font-size: 12px;">View</button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+    <script src="script.js"></script>
+</body>
+</html>
