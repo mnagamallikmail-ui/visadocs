@@ -75,7 +75,24 @@ class AppTypography {
         size: 11, weight: FontWeight.w600, height: 1.40, letterSpacing: 0.5, color: color);
   static TextStyle statDisplay({Color color = AppColors.ink}) => _make(
         size: 48, weight: FontWeight.w600, height: 1.10, letterSpacing: -1.0, color: color);
-  static TextStyle heroDisplayResponsive(double width, {Color color = AppColors.ink}) => pageTitle(color: color);
+  static TextStyle heroDisplayResponsive(double width, {Color color = AppColors.ink}) {
+    final size = width >= 1280
+        ? 56.0
+        : width >= 1024
+            ? 48.0
+            : width >= 768
+                ? 40.0
+                : width >= 480
+                    ? 34.0
+                    : 28.0;
+    return _make(
+      size: size,
+      weight: FontWeight.w700,
+      height: 1.08,
+      letterSpacing: -1.5,
+      color: color,
+    );
+  }
   
   static TextStyle label({Color color = AppColors.slate}) => caption(color: color);
   static TextStyle metadata({Color color = AppColors.slate}) => caption(color: color);
