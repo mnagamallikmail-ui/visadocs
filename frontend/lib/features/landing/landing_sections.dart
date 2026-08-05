@@ -6,6 +6,7 @@ import '../../theme/app_typography.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_components.dart';
 import 'animated_hero_words.dart';
+import 'widgets/hero_video_widget.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LANDING HEADER
@@ -239,6 +240,8 @@ class HeroSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
+    // Tablet: 768–1023px  |  Mobile: <768px
+    final isTablet = w >= 768 && w < 1024;
 
     return Container(
       width: double.infinity,
@@ -253,15 +256,30 @@ class HeroSection extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1200),
           child: isDesktop
+              // ── Desktop: side-by-side, flex 55 / 45 ──────────────────────
               ? Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
                     Expanded(flex: 55, child: _leftContent(context, w)),
                     const SizedBox(width: AppSpacing.xxl),
-                    Expanded(flex: 45, child: _rightVisual()),
+                    const Expanded(
+                      flex: 45,
+                      child: HeroVideoWidget(height: 480),
+                    ),
                   ],
                 )
-              : _leftContent(context, w),
+              // ── Tablet / Mobile: stacked column ──────────────────────────
+              : Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _leftContent(context, w),
+                    SizedBox(height: isTablet ? AppSpacing.xxl : AppSpacing.xl),
+                    // Full-width video below hero text on tablet and mobile.
+                    HeroVideoWidget(
+                      height: isTablet ? 360 : 260,
+                    ),
+                  ],
+                ),
         ),
       ),
     );
@@ -405,173 +423,6 @@ class HeroSection extends StatelessWidget {
         ],
       );
 
-  Widget _rightVisual() {
-    return Container(
-      height: 480,
-      decoration: BoxDecoration(
-        color: AppColors.cardBg,
-        borderRadius: AppRadius.brXxl,
-        border: Border.all(color: AppColors.hairline),
-        boxShadow: AppShadows.subtle,
-      ),
-      child: Column(
-        children: [
-          // Dashboard header bar
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceSoft,
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              border: Border(bottom: BorderSide(color: AppColors.hairline)),
-            ),
-            child: Row(
-              children: [
-                Container(
-                  width: 10, height: 10,
-                  decoration: BoxDecoration(
-                    color: AppColors.featurePink,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Container(
-                  width: 10, height: 10,
-                  decoration: BoxDecoration(
-                    color: AppColors.featureOchre,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 6),
-                Container(
-                  width: 10, height: 10,
-                  decoration: BoxDecoration(
-                    color: AppColors.successAccent,
-                    shape: BoxShape.circle,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Container(
-                    height: 24,
-                    decoration: BoxDecoration(
-                      color: AppColors.cardBg,
-                      borderRadius: AppRadius.brMd,
-                    ),
-                    padding: const EdgeInsets.symmetric(horizontal: 8),
-                    alignment: Alignment.centerLeft,
-                    child: Text('provaluer.com/portal',
-                        style: AppTypography.caption(color: AppColors.stone)),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Dashboard content
-          Expanded(
-            child: Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Valuation Dashboard',
-                      style: AppTypography.cardTitle(color: AppColors.ink)),
-                  const SizedBox(height: 4),
-                  Text('Active cases overview',
-                      style: AppTypography.caption(color: AppColors.textMuted)),
-                  const SizedBox(height: 16),
-                  // Stat cards row
-                  Row(
-                    children: [
-                      _miniStatCard('Active', '12', AppColors.deepTeal, AppColors.tealLight),
-                      const SizedBox(width: 8),
-                      _miniStatCard('Review', '4', AppColors.featureOchre, AppColors.featureOchreLight),
-                      const SizedBox(width: 8),
-                      _miniStatCard('Done', '48', AppColors.successAccent, AppColors.successBg),
-                    ],
-                  ),
-                  const SizedBox(height: 16),
-                  // Report list preview
-                  ...[
-                    ['PV-2024-0089', 'Land Valuation', 'In Progress'],
-                    ['PV-2024-0088', 'CE Certificate', 'Under Review'],
-                    ['PV-2024-0087', 'Net Worth Cert', 'Completed'],
-                    ['PV-2024-0086', 'Plant & Mach.', 'Completed'],
-                  ].map((row) => _reportRow(row[0], row[1], row[2])).toList(),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    ).animate(delay: 600.ms).fadeIn(duration: 700.ms).slideX(begin: 0.08, end: 0, duration: 700.ms);
-  }
-
-  Widget _miniStatCard(String label, String value, Color accent, Color bg) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: AppRadius.brMd,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(value,
-                style: AppTypography.captionBold(color: accent)
-                    .copyWith(fontSize: 18, fontWeight: FontWeight.w700)),
-            Text(label, style: AppTypography.micro(color: AppColors.textMuted)),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _reportRow(String id, String type, String status) {
-    Color statusColor;
-    Color statusBg;
-    switch (status) {
-      case 'Completed':
-        statusColor = const Color(0xFF15803D);
-        statusBg = AppColors.successBg;
-        break;
-      case 'Under Review':
-        statusColor = const Color(0xFF7A5A10);
-        statusBg = AppColors.featureOchreLight;
-        break;
-      default:
-        statusColor = AppColors.deepTeal;
-        statusBg = AppColors.tealLight;
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: Text(id,
-                style: AppTypography.micro(color: AppColors.textMuted)),
-          ),
-          Expanded(
-            flex: 3,
-            child: Text(type,
-                style: AppTypography.caption(color: AppColors.textSecondary)),
-          ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-            decoration: BoxDecoration(
-              color: statusBg,
-              borderRadius: AppRadius.brFull,
-            ),
-            child: Text(status,
-                style: AppTypography.micro(color: statusColor)
-                    .copyWith(fontWeight: FontWeight.w600)),
-          ),
-        ],
-      ),
-    );
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════

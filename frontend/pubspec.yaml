@@ -30,6 +30,7 @@ dependencies:
   crypto: ^3.0.3
   animations: ^2.2.0
   lottie: ^3.3.3
+  video_player: ^2.9.2
 
 dev_dependencies:
   flutter_test:
@@ -38,3 +39,7 @@ dev_dependencies:
 
 flutter:
   uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/videos/
