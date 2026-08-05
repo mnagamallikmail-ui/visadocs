@@ -846,15 +846,15 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
     final viewportHeight = MediaQuery.of(context).size.height;
 
     return Scaffold(
-      backgroundColor: DesignSystem.background,
+      backgroundColor: AppColors.canvas,
       body: SizedBox(
         height: viewportHeight,
         child: Row(
           children: [
             _buildSidebar(),
             Container(
-              width: 1.5,
-              color: DesignSystem.border,
+              width: 1,
+              color: AppColors.hairline,
             ),
             Expanded(
               child: SizedBox(
@@ -956,14 +956,14 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
             ),
           ),
           
-          // Profile footer
+          // Profile footer — warm cream palette
           Container(
             margin: const EdgeInsets.all(12),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: AppColors.surface,
+              color: AppColors.surfaceSoft,
               borderRadius: AppRadius.brLg,
-              border: Border.all(color: AppColors.hairlineSoft),
+              border: Border.all(color: AppColors.hairline),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -974,15 +974,15 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: AppColors.brandBlue.withOpacity(0.15),
+                        color: AppColors.tealLight,
                         borderRadius: AppRadius.brMd,
-                        border: Border.all(color: AppColors.brandBlue.withOpacity(0.3)),
+                        border: Border.all(color: AppColors.deepTeal.withOpacity(0.2)),
                       ),
                       child: Center(
                         child: Text(
                           widget.fullName.isEmpty ? '?' : widget.fullName[0].toUpperCase(),
                           style: AppTypography.bodyMdMedium(
-                            color: AppColors.brandBlue,
+                            color: AppColors.deepTeal,
                           ),
                         ),
                       ),
@@ -1029,17 +1029,20 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                   ),
                   const SizedBox(height: 12),
                 ],
-                GestureDetector(
-                  onTap: widget.onLogout,
-                  child: Row(
-                    children: [
-                      Icon(Icons.logout_rounded, color: AppColors.brandRedDark, size: 16),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Sign Out',
-                        style: AppTypography.bodySmMedium(color: AppColors.brandRedDark),
-                      ),
-                    ],
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: widget.onLogout,
+                    child: Row(
+                      children: [
+                        Icon(Icons.logout_rounded, color: AppColors.brandRedDark, size: 16),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Sign Out',
+                          style: AppTypography.bodySmMedium(color: AppColors.brandRedDark),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],

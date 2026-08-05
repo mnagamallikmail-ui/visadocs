@@ -3,9 +3,12 @@ import 'app_colors.dart';
 import 'app_spacing.dart';
 import 'app_typography.dart';
 
-/// AppComponents — Reusable SaaS Widget Factory
+/// AppComponents — Clay Enterprise PropTech Widget Factory
+/// All existing method signatures preserved. Visual styles updated.
 class AppComponents {
   AppComponents._();
+
+  // ── Logo ──────────────────────────────────────────────────────────────────
 
   static Widget logo({
     double fontSize = 22,
@@ -13,46 +16,49 @@ class AppComponents {
     Color? overrideWordmark,
     Color? overrideAccent,
   }) {
+    final boxColor = overrideWordmark ?? AppColors.deepTeal;
+    final textColor = darkMode
+        ? (overrideAccent ?? AppColors.onDark)
+        : (overrideAccent ?? AppColors.ink);
+
     return Row(
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
-          width: fontSize * 1.2,
-          height: fontSize * 1.2,
+          width: fontSize * 1.25,
+          height: fontSize * 1.25,
           decoration: BoxDecoration(
-            color: overrideWordmark ?? AppColors.brandBlue,
-            borderRadius: AppRadius.brXs,
+            color: boxColor,
+            borderRadius: AppRadius.brMd,
           ),
           alignment: Alignment.center,
           child: Text(
             'P',
-            style: AppTypography.bodyMdMedium(
-              color: AppColors.onDark,
-            ).copyWith(fontSize: fontSize * 0.7, fontWeight: FontWeight.w600),
+            style: AppTypography.bodyMdMedium(color: AppColors.onDark)
+                .copyWith(
+                    fontSize: fontSize * 0.68,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: -0.5),
           ),
         ),
-        const SizedBox(width: 8),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              'Pro Valuer',
-              style: AppTypography.bodyMdMedium(
-                color: darkMode ? (overrideAccent ?? AppColors.onDark) : (overrideAccent ?? AppColors.ink),
-              ).copyWith(fontSize: fontSize, fontWeight: FontWeight.w600, height: 1.1),
-            ),
-          ],
+        const SizedBox(width: 9),
+        Text(
+          'Pro Valuer',
+          style: AppTypography.bodyMdMedium(color: textColor).copyWith(
+              fontSize: fontSize,
+              fontWeight: FontWeight.w600,
+              letterSpacing: -0.3,
+              height: 1.1),
         ),
       ],
     );
   }
 
-  // ── Button Styles ────────────────────────────────────────────────────────
+  // ── Button Styles ─────────────────────────────────────────────────────────
 
   static ButtonStyle primaryButtonStyle() => ElevatedButton.styleFrom(
-        backgroundColor: AppColors.brandBlue,
+        backgroundColor: AppColors.deepTeal,
         foregroundColor: AppColors.onDark,
         disabledBackgroundColor: AppColors.hairlineStrong,
         disabledForegroundColor: AppColors.slate,
@@ -62,10 +68,15 @@ class AppComponents {
         shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
         textStyle: AppTypography.buttonMd(color: AppColors.onDark),
       ).copyWith(
-        backgroundColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
-          if (states.contains(WidgetState.disabled)) return AppColors.hairlineStrong;
-          if (states.contains(WidgetState.hovered)) return AppColors.bluePressed;
-          return AppColors.brandBlue;
+        backgroundColor:
+            WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+          if (states.contains(WidgetState.disabled)) {
+            return AppColors.hairlineStrong;
+          }
+          if (states.contains(WidgetState.hovered)) {
+            return AppColors.deepTealPressed;
+          }
+          return AppColors.deepTeal;
         }),
       );
 
@@ -77,7 +88,8 @@ class AppComponents {
         shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
         textStyle: AppTypography.buttonMd(color: AppColors.ink),
       ).copyWith(
-        backgroundColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+        backgroundColor:
+            WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
           if (states.contains(WidgetState.hovered)) return AppColors.surfaceSoft;
           return AppColors.surface;
         }),
@@ -91,8 +103,11 @@ class AppComponents {
         shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
         textStyle: AppTypography.buttonMd(color: AppColors.onDark),
       ).copyWith(
-        backgroundColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
-          if (states.contains(WidgetState.hovered)) return const Color(0xFFDC2626); // Darker red
+        backgroundColor:
+            WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+          if (states.contains(WidgetState.hovered)) {
+            return const Color(0xFFDC2626);
+          }
           return AppColors.brandRedDark;
         }),
       );
@@ -103,17 +118,19 @@ class AppComponents {
         shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
         textStyle: AppTypography.buttonMd(color: AppColors.slate),
       ).copyWith(
-        backgroundColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+        backgroundColor:
+            WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
           if (states.contains(WidgetState.hovered)) return AppColors.surfaceSoft;
           return Colors.transparent;
         }),
-        foregroundColor: WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
+        foregroundColor:
+            WidgetStateProperty.resolveWith<Color>((Set<WidgetState> states) {
           if (states.contains(WidgetState.hovered)) return AppColors.ink;
           return AppColors.slate;
         }),
       );
 
-  // Legacy compat aliases
+  // Legacy aliases
   static ButtonStyle get primaryButton => primaryButtonStyle();
   static ButtonStyle get secondaryButton => secondaryButtonStyle();
   static ButtonStyle get outlinedButton => secondaryButtonStyle();
@@ -121,36 +138,76 @@ class AppComponents {
   static ButtonStyle get premiumButton => primaryButtonStyle();
   static ButtonStyle yellowButtonStyle() => primaryButtonStyle();
   static ButtonStyle blueButtonStyle() => primaryButtonStyle();
-  static ButtonStyle onDarkButtonStyle() => secondaryButtonStyle();
+  static ButtonStyle onDarkButtonStyle() => ElevatedButton.styleFrom(
+        backgroundColor: AppColors.onDark,
+        foregroundColor: AppColors.deepTeal,
+        elevation: 0,
+        padding: AppSpacing.buttonPadding,
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
+      );
 
-
-  // ── Card Decorations ────────────────────────────────────────────────────
+  // ── Card Decorations ──────────────────────────────────────────────────────
 
   static BoxDecoration cardBase() => BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.brLg, // 12px
+        color: AppColors.cardBg,
+        borderRadius: AppRadius.brXl, // 16px
         border: Border.all(color: AppColors.hairline),
         boxShadow: AppShadows.card,
       );
 
-  // Map legacy cards to the new standard to maintain consistency
-  static BoxDecoration cardFeature() => cardBase();
-  static BoxDecoration cardFeatureYellow() => cardBase();
-  static BoxDecoration cardFeatureCoral() => cardBase();
-  static BoxDecoration cardFeatureTeal() => cardBase();
-  static BoxDecoration cardFeatureRose() => cardBase();
+  /// Clay-inspired feature card — cream base
+  static BoxDecoration cardFeature() => BoxDecoration(
+        color: AppColors.cardBg,
+        borderRadius: AppRadius.brFeature, // 24px
+        border: Border.all(color: AppColors.hairline),
+      );
+
+  /// Feature card — ochre (yellow) variant
+  static BoxDecoration cardFeatureYellow() => BoxDecoration(
+        color: AppColors.featureOchreLight,
+        borderRadius: AppRadius.brFeature,
+        border: Border.all(color: AppColors.featureOchre.withOpacity(0.3)),
+      );
+
+  /// Feature card — peach (coral) variant
+  static BoxDecoration cardFeatureCoral() => BoxDecoration(
+        color: AppColors.featurePeachLight,
+        borderRadius: AppRadius.brFeature,
+        border: Border.all(color: AppColors.featurePeach.withOpacity(0.3)),
+      );
+
+  /// Feature card — deep teal variant
+  static BoxDecoration cardFeatureTeal() => BoxDecoration(
+        color: AppColors.featureTeal,
+        borderRadius: AppRadius.brFeature,
+        border: Border.all(color: AppColors.featureTeal.withOpacity(0.5)),
+      );
+
+  /// Feature card — rose/pink variant
+  static BoxDecoration cardFeatureRose() => BoxDecoration(
+        color: AppColors.featurePinkLight,
+        borderRadius: AppRadius.brFeature,
+        border: Border.all(color: AppColors.featurePink.withOpacity(0.3)),
+      );
+
+  /// Feature card — lavender variant
+  static BoxDecoration cardFeatureLavender() => BoxDecoration(
+        color: AppColors.featureLavenderLight,
+        borderRadius: AppRadius.brFeature,
+        border: Border.all(color: AppColors.featureLavender.withOpacity(0.3)),
+      );
+
   static BoxDecoration pricingCard() => cardBase();
   static BoxDecoration pricingCardFeatured() => BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: AppRadius.brLg,
-        border: Border.all(color: AppColors.brandBlue, width: 2),
+        color: AppColors.tealLight,
+        borderRadius: AppRadius.brXl,
+        border: Border.all(color: AppColors.deepTeal, width: 2),
         boxShadow: AppShadows.card,
       );
   static BoxDecoration pricingCardEnterprise() => cardBase();
   static BoxDecoration get cardDecoration => cardBase();
 
-
-  // ── Input Decorations ───────────────────────────────────────────────────
+  // ── Input Decoration ──────────────────────────────────────────────────────
 
   static InputDecoration textInput({
     String? label,
@@ -166,11 +223,11 @@ class AppComponents {
         filled: true,
         fillColor: AppColors.surface,
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: AppSpacing.md,
-          vertical: AppSpacing.sm,
+          horizontal: AppSpacing.lg,
+          vertical: 14,
         ),
         border: OutlineInputBorder(
-          borderRadius: AppRadius.brMd,
+          borderRadius: AppRadius.brMd, // 12px
           borderSide: const BorderSide(color: AppColors.hairlineStrong),
         ),
         enabledBorder: OutlineInputBorder(
@@ -179,7 +236,7 @@ class AppComponents {
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: AppRadius.brMd,
-          borderSide: const BorderSide(color: AppColors.brandBlue, width: 2),
+          borderSide: const BorderSide(color: AppColors.deepTeal, width: 2),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: AppRadius.brMd,
@@ -191,56 +248,56 @@ class AppComponents {
         ),
         labelStyle: AppTypography.bodySm(color: AppColors.slate),
         hintStyle: AppTypography.bodySm(color: AppColors.stone),
-        floatingLabelStyle: AppTypography.caption(color: AppColors.brandBlue),
+        floatingLabelStyle: AppTypography.caption(color: AppColors.deepTeal),
       );
 
-  // ── Status Badges ───────────────────────────────────────────────────────
-  
+  // ── Status Badges ─────────────────────────────────────────────────────────
+
   static Widget statusBadge(String status) {
     Color bg;
     Color fg;
-    
+
     switch (status.toLowerCase()) {
       case 'new':
       case 'in_progress':
-        bg = const Color(0xFFEFF6FF); // Blue 50
-        fg = const Color(0xFF1D4ED8); // Blue 700
+        bg = AppColors.tealLight;
+        fg = AppColors.deepTeal;
         break;
       case 'assigned':
       case 'under_review':
       case 'pending':
-        bg = const Color(0xFFFEF3C7); // Amber 100
-        fg = const Color(0xFFB45309); // Amber 700
+        bg = AppColors.featureOchreLight;
+        fg = const Color(0xFF7A5A10);
         break;
       case 'completed':
       case 'approved':
-        bg = const Color(0xFFD1FAE5); // Emerald 100
-        fg = const Color(0xFF047857); // Emerald 700
+        bg = AppColors.successBg;
+        fg = const Color(0xFF15803D);
         break;
       case 'rejected':
       case 'failed':
-        bg = const Color(0xFFFEE2E2); // Red 100
-        fg = const Color(0xFFB91C1C); // Red 700
+        bg = AppColors.brandRed;
+        fg = const Color(0xFFB91C1C);
         break;
       default:
-        bg = AppColors.surfaceSoft;
+        bg = AppColors.cardBg;
         fg = AppColors.slate;
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: bg,
         borderRadius: AppRadius.brFull,
       ),
       child: Text(
-        status.toUpperCase(),
+        status.toUpperCase().replaceAll('_', ' '),
         style: AppTypography.captionBold(color: fg).copyWith(fontSize: 11),
       ),
     );
   }
 
-  // Legacy badge wrappers
+  // Legacy badge aliases
   static Widget badgePromo(String text) => statusBadge(text);
   static Widget badgeTagYellow(String text) => statusBadge(text);
   static Widget badgeTagPurple(String text) => statusBadge(text);
@@ -248,7 +305,8 @@ class AppComponents {
   static Widget badgeSuccess(String text) => statusBadge('completed');
   static Widget badgeDiscount(String text) => statusBadge(text);
 
-  // ── Pill Tab ─────────────────────────────────────────────────────────────
+  // ── Pill Tab ──────────────────────────────────────────────────────────────
+
   static Widget pillTab({
     required String label,
     required bool isActive,
@@ -259,9 +317,10 @@ class AppComponents {
       borderRadius: AppRadius.brFull,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
+        padding: const EdgeInsets.symmetric(
+            horizontal: AppSpacing.lg, vertical: AppSpacing.sm),
         decoration: BoxDecoration(
-          color: isActive ? AppColors.brandBlue : Colors.transparent,
+          color: isActive ? AppColors.deepTeal : Colors.transparent,
           borderRadius: AppRadius.brFull,
         ),
         child: Text(
@@ -273,6 +332,8 @@ class AppComponents {
       ),
     );
   }
+
+  // ── Icon Circle Button ────────────────────────────────────────────────────
 
   static Widget iconCircular({
     required IconData icon,
@@ -286,7 +347,7 @@ class AppComponents {
         width: size,
         height: size,
         decoration: BoxDecoration(
-          color: AppColors.surface,
+          color: AppColors.cardBg,
           shape: BoxShape.circle,
           border: Border.all(color: AppColors.hairline),
         ),
@@ -296,8 +357,8 @@ class AppComponents {
     );
   }
 
-  // ── Empty State ──────────────────────────────────────────────────────────
-  
+  // ── Empty State ───────────────────────────────────────────────────────────
+
   static Widget emptyState({
     required IconData icon,
     required String title,
@@ -315,15 +376,16 @@ class AppComponents {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
-              color: AppColors.surfaceSoft,
+              color: AppColors.tealLight,
               shape: BoxShape.circle,
             ),
-            child: Icon(icon, size: 48, color: AppColors.slate),
+            child: Icon(icon, size: 40, color: AppColors.deepTeal),
           ),
           const SizedBox(height: AppSpacing.xl),
-          Text(title, style: AppTypography.sectionTitle(color: AppColors.ink)),
+          Text(title,
+              style: AppTypography.sectionTitle(color: AppColors.ink)),
           const SizedBox(height: AppSpacing.sm),
           Container(
             constraints: const BoxConstraints(maxWidth: 400),
@@ -357,28 +419,32 @@ class AppComponents {
     );
   }
 
-  // ── Snack bar helpers ─────────────────────────────────────────────────────
+  // ── Snack Bars ────────────────────────────────────────────────────────────
+
   static SnackBar successSnack(String message) => SnackBar(
         backgroundColor: AppColors.successAccent,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(AppSpacing.md),
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.brLg),
-        content: Text(message, style: AppTypography.bodySmMedium(color: AppColors.onDark)),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
+        content:
+            Text(message, style: AppTypography.bodySmMedium(color: AppColors.onDark)),
       );
 
   static SnackBar errorSnack(String message) => SnackBar(
         backgroundColor: AppColors.brandRedDark,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(AppSpacing.md),
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.brLg),
-        content: Text(message, style: AppTypography.bodySmMedium(color: AppColors.onDark)),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
+        content:
+            Text(message, style: AppTypography.bodySmMedium(color: AppColors.onDark)),
       );
 
   static SnackBar warningSnack(String message) => SnackBar(
         backgroundColor: AppColors.warning,
         behavior: SnackBarBehavior.floating,
         margin: const EdgeInsets.all(AppSpacing.md),
-        shape: RoundedRectangleBorder(borderRadius: AppRadius.brLg),
-        content: Text(message, style: AppTypography.bodySmMedium(color: AppColors.onDark)),
+        shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
+        content:
+            Text(message, style: AppTypography.bodySmMedium(color: AppColors.onDark)),
       );
 }

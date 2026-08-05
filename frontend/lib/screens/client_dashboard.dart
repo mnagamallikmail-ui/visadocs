@@ -23,35 +23,35 @@ class _ClientDashboardState extends State<ClientDashboard> {
     // T&C interceptor — Miro-inspired modal overlay
     if (authProvider.tcRequired) {
       return Scaffold(
-        backgroundColor: AppColors.surface,
+        backgroundColor: AppColors.canvas,
         body: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 500),
+            constraints: const BoxConstraints(maxWidth: 480),
             child: Container(
               margin: const EdgeInsets.all(AppSpacing.xl),
               padding: const EdgeInsets.all(AppSpacing.section),
               decoration: BoxDecoration(
                 color: AppColors.canvas,
-                borderRadius: AppRadius.brXxxl,
-                border: Border.all(color: AppColors.hairlineSoft),
+                borderRadius: AppRadius.brXxl,
+                border: Border.all(color: AppColors.hairline),
                 boxShadow: AppShadows.modal,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Yellow icon badge — brand signature
+                  // Deep teal icon badge
                   Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
+                    padding: const EdgeInsets.all(AppSpacing.lg),
                     decoration: BoxDecoration(
-                      color: AppColors.yellowLight,
+                      color: AppColors.tealLight,
                       borderRadius: AppRadius.brFull,
                     ),
                     child: const Icon(Icons.gavel_outlined,
-                        color: AppColors.yellowDark, size: 32),
+                        color: AppColors.deepTeal, size: 32),
                   ),
                   const SizedBox(height: AppSpacing.xxl),
                   Text('Agreement Update Required',
-                      style: AppTypography.heading3(color: AppColors.ink),
+                      style: AppTypography.sectionTitle(color: AppColors.ink),
                       textAlign: TextAlign.center),
                   const SizedBox(height: AppSpacing.md),
                   Text(
@@ -59,14 +59,14 @@ class _ClientDashboardState extends State<ClientDashboard> {
                     'you must read and accept our updated T&C guidelines version '
                     '(v${authProvider.activeTcVersion}).',
                     textAlign: TextAlign.center,
-                    style: AppTypography.bodyMd(color: AppColors.slate),
+                    style: AppTypography.bodyMd(color: AppColors.textMuted),
                   ),
                   const SizedBox(height: AppSpacing.xxxl),
                   Row(
                     children: [
                       Expanded(
                         child: SizedBox(
-                          height: 44,
+                          height: 48,
                           child: ElevatedButton(
                             onPressed: () =>
                                 authProvider.acceptTc(authProvider.activeTcVersion),
@@ -79,14 +79,14 @@ class _ClientDashboardState extends State<ClientDashboard> {
                       ),
                       const SizedBox(width: AppSpacing.sm),
                       SizedBox(
-                        height: 44,
+                        height: 48,
                         child: OutlinedButton(
                           onPressed: () => authProvider.logout(),
                           style: OutlinedButton.styleFrom(
                             foregroundColor: AppColors.brandRedDark,
                             side: const BorderSide(color: AppColors.hairline),
                             shape: RoundedRectangleBorder(
-                                borderRadius: AppRadius.brFull),
+                                borderRadius: AppRadius.brMd),
                           ),
                           child: Text('Logout',
                               style: AppTypography.buttonMd(

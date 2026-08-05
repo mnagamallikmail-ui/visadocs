@@ -5,23 +5,25 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_components.dart';
+import 'animated_hero_words.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // LANDING HEADER
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/// Sticky header that transitions from transparent (over dark hero) to
-/// solid white (after scrolling). On mobile, collapses to a hamburger.
 class LandingHeader extends StatelessWidget {
   final bool isDesktop;
-  final bool isTransparent;
+  final bool isScrolled;
   final Future<void> Function(String) launchWhatsApp;
   final VoidCallback? onMenuTap;
+
+  // Legacy compat — isTransparent maps to !isScrolled
+  bool get isTransparent => !isScrolled;
 
   const LandingHeader({
     super.key,
     required this.isDesktop,
-    required this.isTransparent,
+    required this.isScrolled,
     required this.launchWhatsApp,
     this.onMenuTap,
   });
@@ -31,23 +33,34 @@ class LandingHeader extends StatelessWidget {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
       padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.md,
+        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
         vertical: AppSpacing.sm,
       ),
       decoration: BoxDecoration(
-        color: isTransparent ? Colors.transparent : AppColors.canvas,
+        color: isScrolled
+            ? AppColors.canvas.withOpacity(0.97)
+            : AppColors.canvas,
         border: Border(
           bottom: BorderSide(
-            color: isTransparent ? Colors.transparent : AppColors.hairlineSoft,
+            color: isScrolled ? AppColors.hairline : Colors.transparent,
           ),
         ),
+        boxShadow: isScrolled
+            ? [
+                BoxShadow(
+                  color: AppColors.deepTeal.withOpacity(0.04),
+                  blurRadius: 16,
+                  offset: const Offset(0, 2),
+                )
+              ]
+            : [],
       ),
       child: SafeArea(
         bottom: false,
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            AppComponents.logo(fontSize: 18, darkMode: isTransparent),
+            AppComponents.logo(fontSize: 18),
             if (isDesktop) ...[
               Row(children: [
                 _navLink('Services'),
@@ -73,10 +86,7 @@ class LandingHeader extends StatelessWidget {
               ]),
             ] else
               IconButton(
-                icon: Icon(
-                  Icons.menu,
-                  color: isTransparent ? AppColors.onDark : AppColors.ink,
-                ),
+                icon: const Icon(Icons.menu, color: AppColors.ink),
                 onPressed: onMenuTap,
               ),
           ],
@@ -89,9 +99,7 @@ class LandingHeader extends StatelessWidget {
         cursor: SystemMouseCursors.click,
         child: Text(
           text,
-          style: AppTypography.bodySmMedium(
-            color: isTransparent ? AppColors.onDarkMuted : AppColors.slate,
-          ),
+          style: AppTypography.bodySmMedium(color: AppColors.textSecondary),
         ),
       );
 
@@ -100,35 +108,26 @@ class LandingHeader extends StatelessWidget {
     required bool isPrimary,
     required VoidCallback onTap,
   }) {
-    final Color bg;
-    final Color fg;
-    Border? border;
-
-    if (isPrimary) {
-      bg = isTransparent ? AppColors.onDark : AppColors.primary;
-      fg = isTransparent ? AppColors.primary : AppColors.onPrimary;
-    } else {
-      bg = Colors.transparent;
-      fg = isTransparent ? AppColors.onDark : AppColors.ink;
-      border = Border.all(
-        color: isTransparent
-            ? const Color(0x40FFFFFF)
-            : AppColors.hairlineStrong,
-      );
-    }
-
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
         onTap: onTap,
-        child: Container(
-          padding: AppSpacing.buttonPadding,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
           decoration: BoxDecoration(
-            color: bg,
+            color: isPrimary ? AppColors.deepTeal : Colors.transparent,
             borderRadius: AppRadius.brFull,
-            border: border,
+            border: isPrimary
+                ? null
+                : Border.all(color: AppColors.hairlineStrong),
           ),
-          child: Text(label, style: AppTypography.buttonMd(color: fg)),
+          child: Text(
+            label,
+            style: AppTypography.buttonMd(
+              color: isPrimary ? AppColors.onDark : AppColors.ink,
+            ),
+          ),
         ),
       ),
     );
@@ -139,7 +138,6 @@ class LandingHeader extends StatelessWidget {
 // MOBILE MENU DRAWER
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/// Full-height drawer for mobile navigation — nav links + Login/Consult CTAs.
 class MobileMenuDrawer extends StatelessWidget {
   final Future<void> Function(String) launchWhatsApp;
   const MobileMenuDrawer({super.key, required this.launchWhatsApp});
@@ -171,53 +169,43 @@ class MobileMenuDrawer extends StatelessWidget {
               _menuItem('Empanelment'),
               _menuItem('Who We Serve'),
               const Spacer(),
-              // Login button — full width
               SizedBox(
                 width: double.infinity,
-                child: MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      context.go('/login');
-                    },
-                    child: Container(
-                      padding: AppSpacing.buttonPadding,
-                      decoration: BoxDecoration(
-                        borderRadius: AppRadius.brFull,
-                        border: Border.all(color: AppColors.hairlineStrong),
-                      ),
-                      alignment: Alignment.center,
-                      child: Text('Client Login',
-                          style: AppTypography.buttonMd(color: AppColors.ink)),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    context.go('/login');
+                  },
+                  child: Container(
+                    padding: AppSpacing.buttonPadding,
+                    decoration: BoxDecoration(
+                      borderRadius: AppRadius.brFull,
+                      border: Border.all(color: AppColors.hairlineStrong),
                     ),
+                    alignment: Alignment.center,
+                    child: Text('Client Login',
+                        style: AppTypography.buttonMd(color: AppColors.ink)),
                   ),
                 ),
               ),
               const SizedBox(height: AppSpacing.sm),
-              // Consult button — full width
               SizedBox(
                 width: double.infinity,
-                child: MouseRegion(
-                  cursor: SystemMouseCursors.click,
-                  child: GestureDetector(
-                    onTap: () {
-                      Navigator.of(context).pop();
-                      launchWhatsApp(
-                        'Hello Provaluer, I would like to consult with your valuation team.',
-                      );
-                    },
-                    child: Container(
-                      padding: AppSpacing.buttonPadding,
-                      decoration: BoxDecoration(
-                        color: AppColors.primary,
-                        borderRadius: AppRadius.brFull,
-                      ),
-                      alignment: Alignment.center,
-                      child: Text('Consult Now',
-                          style:
-                              AppTypography.buttonMd(color: AppColors.onPrimary)),
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).pop();
+                    launchWhatsApp(
+                        'Hello Provaluer, I would like to consult with your valuation team.');
+                  },
+                  child: Container(
+                    padding: AppSpacing.buttonPadding,
+                    decoration: BoxDecoration(
+                      color: AppColors.deepTeal,
+                      borderRadius: AppRadius.brFull,
                     ),
+                    alignment: Alignment.center,
+                    child: Text('Consult Now',
+                        style: AppTypography.buttonMd(color: AppColors.onDark)),
                   ),
                 ),
               ),
@@ -235,16 +223,14 @@ class MobileMenuDrawer extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// HERO OVERLAY CONTENT
+// HERO SECTION — Editorial cream layout with animated words
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/// Text content that sits on top of the dark boomerang hero background.
-/// All text is white/light for contrast.
-class HeroOverlayContent extends StatelessWidget {
+class HeroSection extends StatelessWidget {
   final bool isDesktop;
   final Future<void> Function(String) launchWhatsApp;
 
-  const HeroOverlayContent({
+  const HeroSection({
     super.key,
     required this.isDesktop,
     required this.launchWhatsApp,
@@ -254,9 +240,14 @@ class HeroOverlayContent extends StatelessWidget {
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
 
-    return Padding(
-      padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.md,
+    return Container(
+      width: double.infinity,
+      color: AppColors.canvas,
+      padding: EdgeInsets.only(
+        top: isDesktop ? 140 : 110,
+        bottom: isDesktop ? 100 : 80,
+        left: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
+        right: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
       ),
       child: Center(
         child: ConstrainedBox(
@@ -265,67 +256,124 @@ class HeroOverlayContent extends StatelessWidget {
               ? Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Expanded(flex: 6, child: _textContent(context, w)),
-                    const SizedBox(width: AppSpacing.section),
-                    Expanded(flex: 4, child: _consultCard()),
+                    Expanded(flex: 55, child: _leftContent(context, w)),
+                    const SizedBox(width: AppSpacing.xxl),
+                    Expanded(flex: 45, child: _rightVisual()),
                   ],
                 )
-              : _textContent(context, w),
+              : _leftContent(context, w),
         ),
       ),
     );
   }
 
-  Widget _textContent(BuildContext context, double w) {
+  Widget _leftContent(BuildContext context, double w) {
     return Column(
-      mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        // Eyebrow badge — yellow pill
+        // Eyebrow badge
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
           decoration: BoxDecoration(
-            color: AppColors.yellowLight,
+            color: AppColors.tealLight,
             borderRadius: AppRadius.brFull,
+            border: Border.all(color: AppColors.deepTeal.withOpacity(0.2)),
           ),
           child: Text(
             'HYDERABAD & SECUNDERABAD',
-            style: AppTypography.microUppercase(color: AppColors.yellowDark),
+            style: AppTypography.microUppercase(color: AppColors.deepTeal),
           ),
-        )
-            .animate()
-            .fadeIn(duration: 500.ms)
-            .slideX(begin: -0.1, end: 0, duration: 500.ms),
+        ).animate().fadeIn(duration: 500.ms).slideX(begin: -0.1, end: 0, duration: 500.ms),
 
         const SizedBox(height: AppSpacing.xxl),
 
-        // Headline
+        // Headline line 1
         Text(
-          isDesktop
-              ? 'Independent\nValuation &\nAdvisory Services'
-              : 'Independent\nValuation &\nAdvisory',
-          style: AppTypography.heroDisplayResponsive(w, color: AppColors.onDark),
-        )
-            .animate(delay: 200.ms)
-            .fadeIn(duration: 600.ms)
-            .slideY(begin: 0.15, end: 0, duration: 600.ms),
+          'Property Valuation\nfor',
+          style: AppTypography.heroDisplayResponsive(w, color: AppColors.ink),
+        ).animate(delay: 150.ms).fadeIn(duration: 600.ms).slideY(begin: 0.1, end: 0, duration: 600.ms),
 
-        const SizedBox(height: AppSpacing.xl),
+        const SizedBox(height: 12),
+
+        // Animated rotating words
+        AnimatedHeroWords(
+          textSize: w >= 1280
+              ? 72
+              : w >= 1024
+                  ? 56
+                  : w >= 768
+                      ? 44
+                      : w >= 480
+                          ? 36
+                          : 30,
+          pillColor: AppColors.deepTeal,
+          pillTextColor: AppColors.onDark,
+        ).animate(delay: 400.ms).fadeIn(duration: 600.ms),
+
+        const SizedBox(height: AppSpacing.xxl),
 
         // Subtitle
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
           child: Text(
-            'Team of IBBI Registered Valuers providing valuation, certification '
-            'and engineering advisory services across Hyderabad and Secunderabad.',
-            style: AppTypography.subtitle(color: AppColors.onDarkMuted),
+            'Property valuation, engineering certification and advisory services '
+            'trusted by leading banks, financial institutions and enterprises.',
+            style: AppTypography.bodyMd(color: AppColors.textMuted),
           ),
-        )
-            .animate(delay: 400.ms)
-            .fadeIn(duration: 600.ms)
-            .slideY(begin: 0.1, end: 0, duration: 600.ms),
+        ).animate(delay: 600.ms).fadeIn(duration: 600.ms).slideY(begin: 0.1, end: 0, duration: 600.ms),
 
         const SizedBox(height: AppSpacing.xxxl),
+
+        // CTA buttons
+        Wrap(
+          spacing: AppSpacing.md,
+          runSpacing: AppSpacing.md,
+          children: [
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () => launchWhatsApp(
+                  'Hello Provaluer, I am seeking a valuation consultation for my property/asset.',
+                ),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: AppColors.deepTeal,
+                    borderRadius: AppRadius.brMd,
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.chat_outlined, color: AppColors.onDark, size: 16),
+                      const SizedBox(width: 8),
+                      Text('Request Consultation',
+                          style: AppTypography.buttonMd(color: AppColors.onDark)),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () => context.go('/login'),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.transparent,
+                    borderRadius: AppRadius.brMd,
+                    border: Border.all(color: AppColors.hairlineStrong),
+                  ),
+                  child: Text('Client Login',
+                      style: AppTypography.buttonMd(color: AppColors.ink)),
+                ),
+              ),
+            ),
+          ],
+        ).animate(delay: 800.ms).fadeIn(duration: 600.ms).slideY(begin: 0.1, end: 0, duration: 600.ms),
+
+        const SizedBox(height: AppSpacing.xxl),
 
         // Trust marks
         Wrap(
@@ -333,37 +381,10 @@ class HeroOverlayContent extends StatelessWidget {
           runSpacing: AppSpacing.xs,
           children: [
             _trustMark('IBBI Registered Valuers'),
-            _trustMark('Empanelled with Leading Banks'),
-            _trustMark('Professional Reports'),
-            _trustMark('Fast Turnaround'),
+            _trustMark('20+ Bank Empanelments'),
+            _trustMark('500+ Reports'),
           ],
-        ).animate(delay: 600.ms).fadeIn(duration: 600.ms),
-
-        const SizedBox(height: AppSpacing.sectionSm),
-
-        // CTA buttons
-        Wrap(
-          spacing: AppSpacing.sm,
-          runSpacing: AppSpacing.sm,
-          children: [
-            _heroButton(
-              label: 'WhatsApp Consultation',
-              isPrimary: true,
-              onTap: () => launchWhatsApp(
-                'Hello Provaluer, I am seeking a valuation consultation '
-                'for my property/asset.',
-              ),
-            ),
-            _heroButton(
-              label: 'Client Login',
-              isPrimary: false,
-              onTap: () => context.go('/login'),
-            ),
-          ],
-        )
-            .animate(delay: 800.ms)
-            .fadeIn(duration: 600.ms)
-            .slideY(begin: 0.1, end: 0, duration: 600.ms),
+        ).animate(delay: 1000.ms).fadeIn(duration: 600.ms),
       ],
     );
   }
@@ -371,104 +392,183 @@ class HeroOverlayContent extends StatelessWidget {
   Widget _trustMark(String text) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.check_circle_outline,
-              size: 14, color: AppColors.successAccent),
+          Container(
+            width: 6,
+            height: 6,
+            decoration: const BoxDecoration(
+              color: AppColors.successAccent,
+              shape: BoxShape.circle,
+            ),
+          ),
           const SizedBox(width: 6),
-          Text(text,
-              style: AppTypography.caption(color: AppColors.onDarkMuted)),
+          Text(text, style: AppTypography.caption(color: AppColors.textMuted)),
         ],
       );
 
-  Widget _heroButton({
-    required String label,
-    required bool isPrimary,
-    required VoidCallback onTap,
-  }) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: AppSpacing.buttonPadding,
-          decoration: BoxDecoration(
-            color: isPrimary ? AppColors.onDark : Colors.transparent,
-            borderRadius: AppRadius.brFull,
-            border:
-                isPrimary ? null : Border.all(color: const Color(0x4DFFFFFF)),
-          ),
-          child: Text(
-            label,
-            style: AppTypography.buttonMd(
-              color: isPrimary ? AppColors.primary : AppColors.onDark,
+  Widget _rightVisual() {
+    return Container(
+      height: 480,
+      decoration: BoxDecoration(
+        color: AppColors.cardBg,
+        borderRadius: AppRadius.brXxl,
+        border: Border.all(color: AppColors.hairline),
+        boxShadow: AppShadows.subtle,
+      ),
+      child: Column(
+        children: [
+          // Dashboard header bar
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceSoft,
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border(bottom: BorderSide(color: AppColors.hairline)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 10, height: 10,
+                  decoration: BoxDecoration(
+                    color: AppColors.featurePink,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  width: 10, height: 10,
+                  decoration: BoxDecoration(
+                    color: AppColors.featureOchre,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Container(
+                  width: 10, height: 10,
+                  decoration: BoxDecoration(
+                    color: AppColors.successAccent,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Container(
+                    height: 24,
+                    decoration: BoxDecoration(
+                      color: AppColors.cardBg,
+                      borderRadius: AppRadius.brMd,
+                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 8),
+                    alignment: Alignment.centerLeft,
+                    child: Text('provaluer.com/portal',
+                        style: AppTypography.caption(color: AppColors.stone)),
+                  ),
+                ),
+              ],
             ),
           ),
+          // Dashboard content
+          Expanded(
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Valuation Dashboard',
+                      style: AppTypography.cardTitle(color: AppColors.ink)),
+                  const SizedBox(height: 4),
+                  Text('Active cases overview',
+                      style: AppTypography.caption(color: AppColors.textMuted)),
+                  const SizedBox(height: 16),
+                  // Stat cards row
+                  Row(
+                    children: [
+                      _miniStatCard('Active', '12', AppColors.deepTeal, AppColors.tealLight),
+                      const SizedBox(width: 8),
+                      _miniStatCard('Review', '4', AppColors.featureOchre, AppColors.featureOchreLight),
+                      const SizedBox(width: 8),
+                      _miniStatCard('Done', '48', AppColors.successAccent, AppColors.successBg),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  // Report list preview
+                  ...[
+                    ['PV-2024-0089', 'Land Valuation', 'In Progress'],
+                    ['PV-2024-0088', 'CE Certificate', 'Under Review'],
+                    ['PV-2024-0087', 'Net Worth Cert', 'Completed'],
+                    ['PV-2024-0086', 'Plant & Mach.', 'Completed'],
+                  ].map((row) => _reportRow(row[0], row[1], row[2])).toList(),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    ).animate(delay: 600.ms).fadeIn(duration: 700.ms).slideX(begin: 0.08, end: 0, duration: 700.ms);
+  }
+
+  Widget _miniStatCard(String label, String value, Color accent, Color bg) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: bg,
+          borderRadius: AppRadius.brMd,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(value,
+                style: AppTypography.captionBold(color: accent)
+                    .copyWith(fontSize: 18, fontWeight: FontWeight.w700)),
+            Text(label, style: AppTypography.micro(color: AppColors.textMuted)),
+          ],
         ),
       ),
     );
   }
 
-  Widget _consultCard() {
-    return Container(
-      padding: const EdgeInsets.all(AppSpacing.xxl),
-      decoration: BoxDecoration(
-        color: const Color(0x1AFFFFFF), // ~10% white — glass effect
-        borderRadius: AppRadius.brXxl,
-        border: Border.all(color: const Color(0x26FFFFFF)),
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text('Request Consultation',
-              style: AppTypography.heading4(color: AppColors.onDark)),
-          const SizedBox(height: AppSpacing.xs),
-          Text('Direct connection to engineering & valuation experts.',
-              style: AppTypography.bodySm(color: AppColors.onDarkMuted)),
-          const SizedBox(height: AppSpacing.xxl),
-          _consultItem('Land & Building Valuation',
-              'I would like to inquire about Land & Building Valuation services.'),
-          const SizedBox(height: AppSpacing.xs),
-          _consultItem('Plant & Machinery Valuation',
-              'I would like to inquire about Plant & Machinery Valuation services.'),
-          const SizedBox(height: AppSpacing.xs),
-          _consultItem('Chartered Engineer Certificate',
-              'I would like to inquire about Chartered Engineer services.'),
-        ],
-      ),
-    )
-        .animate(delay: 500.ms)
-        .fadeIn(duration: 700.ms)
-        .slideX(begin: 0.1, end: 0, duration: 700.ms);
-  }
+  Widget _reportRow(String id, String type, String status) {
+    Color statusColor;
+    Color statusBg;
+    switch (status) {
+      case 'Completed':
+        statusColor = const Color(0xFF15803D);
+        statusBg = AppColors.successBg;
+        break;
+      case 'Under Review':
+        statusColor = const Color(0xFF7A5A10);
+        statusBg = AppColors.featureOchreLight;
+        break;
+      default:
+        statusColor = AppColors.deepTeal;
+        statusBg = AppColors.tealLight;
+    }
 
-  Widget _consultItem(String label, String message) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: () => launchWhatsApp(message),
-        child: Container(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.sm,
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: Text(id,
+                style: AppTypography.micro(color: AppColors.textMuted)),
           ),
-          decoration: BoxDecoration(
-            color: const Color(0x0DFFFFFF),
-            borderRadius: AppRadius.brLg,
-            border: Border.all(color: const Color(0x1AFFFFFF)),
+          Expanded(
+            flex: 3,
+            child: Text(type,
+                style: AppTypography.caption(color: AppColors.textSecondary)),
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(label,
-                    style:
-                        AppTypography.bodySmMedium(color: AppColors.onDark)),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              const Icon(Icons.arrow_forward,
-                  size: 14, color: AppColors.onDarkMuted),
-            ],
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+            decoration: BoxDecoration(
+              color: statusBg,
+              borderRadius: AppRadius.brFull,
+            ),
+            child: Text(status,
+                style: AppTypography.micro(color: statusColor)
+                    .copyWith(fontWeight: FontWeight.w600)),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -478,7 +578,6 @@ class HeroOverlayContent extends StatelessWidget {
 // TRUST BAR
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/// "Trusted by leading banking institutions" — bank name pill chips.
 class TrustBar extends StatelessWidget {
   const TrustBar({super.key});
 
@@ -488,11 +587,10 @@ class TrustBar extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
           vertical: AppSpacing.xxl, horizontal: AppSpacing.xxl),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceSoft,
         border: Border.symmetric(
-          horizontal: BorderSide(color: AppColors.hairlineSoft),
-        ),
+            horizontal: BorderSide(color: AppColors.hairline)),
       ),
       child: Center(
         child: Column(
@@ -511,6 +609,7 @@ class TrustBar extends StatelessWidget {
                 'Punjab National Bank',
                 'Central Bank of India',
                 'Axis Bank',
+                'Canara Bank',
               ].map(_bankChip).toList(),
             ),
           ],
@@ -528,16 +627,14 @@ class TrustBar extends StatelessWidget {
           border: Border.all(color: AppColors.hairline),
         ),
         child: Text(name,
-            style: AppTypography.bodySmMedium(color: AppColors.slate)),
+            style: AppTypography.bodySmMedium(color: AppColors.textSecondary)),
       );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SERVICES GRID
+// SERVICES GRID — Clay alternating colored cards
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/// 8-card services grid with pastel card cycling (yellow/coral/teal/rose).
-/// 4-col desktop, 2-col tablet, 1-col mobile.
 class ServicesGrid extends StatelessWidget {
   final bool isDesktop;
   final bool isTablet;
@@ -593,12 +690,12 @@ class ServicesGrid extends StatelessWidget {
     ],
   ];
 
-  // Pastel card color cycle — matches sticky-note palette from Design.md
+  // Clay-palette card variants
   static const _cardVariants = [
-    null, 'yellow', null, 'coral', null, 'teal', null, 'rose',
+    'teal', 'ochre', 'lavender', 'peach',
+    'teal', 'pink', 'ochre', 'cream',
   ];
 
-  // Icons for each service
   static const _cardIcons = [
     Icons.apartment_outlined,
     Icons.precision_manufacturing_outlined,
@@ -616,7 +713,7 @@ class ServicesGrid extends StatelessWidget {
     return Container(
       color: AppColors.canvas,
       padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.md,
+        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
         vertical: AppSpacing.sectionLg,
       ),
       child: Center(
@@ -625,22 +722,23 @@ class ServicesGrid extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Section eyebrow
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                 decoration: BoxDecoration(
-                  color: AppColors.yellowLight,
+                  color: AppColors.featureOchreLight,
                   borderRadius: AppRadius.brFull,
+                  border: Border.all(
+                      color: AppColors.featureOchre.withOpacity(0.3)),
                 ),
                 child: Text('OUR CORE EXPERTISE',
                     style: AppTypography.microUppercase(
-                        color: AppColors.yellowDark)),
+                        color: const Color(0xFF7A5A10))),
               ),
               const SizedBox(height: AppSpacing.lg),
               Text(
                 'Professional Engineering\n& Valuation Services',
-                style: AppTypography.heading2(color: AppColors.ink),
+                style: AppTypography.sectionHeading(color: AppColors.ink),
               ),
               const SizedBox(height: AppSpacing.sectionSm),
               GridView.builder(
@@ -670,9 +768,9 @@ class ServicesGrid extends StatelessWidget {
   }
 }
 
-class _ServiceCard extends StatelessWidget {
+class _ServiceCard extends StatefulWidget {
   final String title, description, message;
-  final String? variant;
+  final String variant;
   final IconData icon;
   final Future<void> Function(String) launchWhatsApp;
 
@@ -685,80 +783,375 @@ class _ServiceCard extends StatelessWidget {
     required this.launchWhatsApp,
   });
 
+  @override
+  State<_ServiceCard> createState() => _ServiceCardState();
+}
+
+class _ServiceCardState extends State<_ServiceCard> {
+  bool _hovered = false;
+
   BoxDecoration _deco() {
-    switch (variant) {
-      case 'yellow':
-        return AppComponents.cardFeatureYellow();
-      case 'coral':
-        return AppComponents.cardFeatureCoral();
+    switch (widget.variant) {
       case 'teal':
-        return AppComponents.cardFeatureTeal();
-      case 'rose':
-        return AppComponents.cardFeatureRose();
-      default:
-        return AppComponents.cardFeature();
+        return BoxDecoration(
+          color: AppColors.featureTeal,
+          borderRadius: AppRadius.brFeature,
+        );
+      case 'ochre':
+        return BoxDecoration(
+          color: AppColors.featureOchreLight,
+          borderRadius: AppRadius.brFeature,
+          border: Border.all(color: AppColors.featureOchre.withOpacity(0.3)),
+        );
+      case 'lavender':
+        return BoxDecoration(
+          color: AppColors.featureLavenderLight,
+          borderRadius: AppRadius.brFeature,
+          border:
+              Border.all(color: AppColors.featureLavender.withOpacity(0.3)),
+        );
+      case 'peach':
+        return BoxDecoration(
+          color: AppColors.featurePeachLight,
+          borderRadius: AppRadius.brFeature,
+          border: Border.all(color: AppColors.featurePeach.withOpacity(0.3)),
+        );
+      case 'pink':
+        return BoxDecoration(
+          color: AppColors.featurePinkLight,
+          borderRadius: AppRadius.brFeature,
+          border: Border.all(color: AppColors.featurePink.withOpacity(0.3)),
+        );
+      default: // cream
+        return BoxDecoration(
+          color: AppColors.cardBg,
+          borderRadius: AppRadius.brFeature,
+          border: Border.all(color: AppColors.hairline),
+        );
     }
   }
 
+  Color get _iconColor {
+    if (widget.variant == 'teal') return AppColors.onDark;
+    if (widget.variant == 'ochre') return const Color(0xFF7A5A10);
+    if (widget.variant == 'lavender') return const Color(0xFF5A3ABF);
+    if (widget.variant == 'peach') return const Color(0xFF8A4010);
+    if (widget.variant == 'pink') return AppColors.featurePink;
+    return AppColors.deepTeal;
+  }
+
+  Color get _iconBg {
+    if (widget.variant == 'teal') return AppColors.onDark.withOpacity(0.12);
+    return Colors.black.withOpacity(0.05);
+  }
+
+  Color get _titleColor =>
+      widget.variant == 'teal' ? AppColors.onDark : AppColors.ink;
+  Color get _descColor =>
+      widget.variant == 'teal' ? AppColors.onDarkMuted : AppColors.textMuted;
+  Color get _linkColor =>
+      widget.variant == 'teal' ? AppColors.onDark : AppColors.deepTeal;
+
   @override
-  Widget build(BuildContext context) => Container(
-        decoration: _deco(),
-        padding: const EdgeInsets.all(AppSpacing.xxl),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Icon in a small container
-            Container(
-              padding: const EdgeInsets.all(AppSpacing.sm),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceSoft,
-                borderRadius: AppRadius.brMd,
+  Widget build(BuildContext context) => MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _hovered = true),
+        onExit: (_) => setState(() => _hovered = false),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          decoration: _deco().copyWith(
+            boxShadow: _hovered ? AppShadows.subtle : AppShadows.card,
+          ),
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: _iconBg,
+                  borderRadius: AppRadius.brMd,
+                ),
+                child: Icon(widget.icon, color: _iconColor, size: 20),
               ),
-              child: Icon(icon, color: AppColors.brandBlue, size: 20),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title,
-                      style: AppTypography.heading5(color: AppColors.ink)),
-                  const SizedBox(height: AppSpacing.sm),
-                  Text(description,
-                      style: AppTypography.bodySm(color: AppColors.slate),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis),
-                ],
+              const SizedBox(height: AppSpacing.lg),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(widget.title,
+                        style: AppTypography.cardTitle(color: _titleColor)),
+                    const SizedBox(height: AppSpacing.sm),
+                    Text(widget.description,
+                        style: AppTypography.bodySm(color: _descColor),
+                        maxLines: 3,
+                        overflow: TextOverflow.ellipsis),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: AppSpacing.lg),
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: () => launchWhatsApp(message),
+              const SizedBox(height: AppSpacing.lg),
+              GestureDetector(
+                onTap: () => widget.launchWhatsApp(widget.message),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text('Get Enquiry',
-                        style: AppTypography.bodySmMedium(
-                            color: AppColors.brandBlue)),
+                        style: AppTypography.bodySmMedium(color: _linkColor)),
                     const SizedBox(width: 6),
-                    const Icon(Icons.arrow_forward,
-                        size: 13, color: AppColors.brandBlue),
+                    Icon(Icons.arrow_forward, size: 13, color: _linkColor),
                   ],
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// WHY CHOOSE US
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class WhyChooseUsSection extends StatelessWidget {
+  final bool isDesktop;
+  const WhyChooseUsSection({super.key, required this.isDesktop});
+
+  static const _reasons = [
+    [Icons.verified_outlined, 'IBBI Registered', 'Our valuers are registered under the Insolvency and Bankruptcy Board of India for all asset classes.'],
+    [Icons.account_balance_outlined, 'Bank Empanelled', 'Empanelled with 20+ leading banks and NBFCs for mortgage and collateral valuations.'],
+    [Icons.speed_outlined, 'Fast Turnaround', '24-48 hour turnaround for standard reports. Expedited service available.'],
+    [Icons.gavel_outlined, 'Legally Compliant', 'All reports comply with SEBI, RBI, IBBI, and Customs regulations.'],
+    [Icons.support_agent_outlined, 'Expert Team', 'Chartered Engineers and Registered Valuers with 10+ years domain expertise.'],
+    [Icons.star_outline_rounded, '100% Accuracy', 'Rigorous QC process ensures every report meets institutional-grade accuracy standards.'],
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: AppColors.surfaceSoft,
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
+        vertical: AppSpacing.sectionLg,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.tealLight,
+                  borderRadius: AppRadius.brFull,
+                  border: Border.all(color: AppColors.deepTeal.withOpacity(0.2)),
+                ),
+                child: Text('WHY CHOOSE US',
+                    style: AppTypography.microUppercase(color: AppColors.deepTeal)),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text(
+                'Built for Banks, Trusted\nby Institutions',
+                style: AppTypography.sectionHeading(color: AppColors.ink),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: AppSpacing.sectionSm),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: isDesktop ? 3 : 1,
+                  crossAxisSpacing: AppSpacing.md,
+                  mainAxisSpacing: AppSpacing.md,
+                  childAspectRatio: isDesktop ? 1.6 : 3.5,
+                ),
+                itemCount: _reasons.length,
+                itemBuilder: (_, i) => Container(
+                  padding: const EdgeInsets.all(AppSpacing.xxl),
+                  decoration: AppComponents.cardBase(),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: AppColors.tealLight,
+                          borderRadius: AppRadius.brMd,
+                        ),
+                        child: Icon(_reasons[i][0] as IconData,
+                            color: AppColors.deepTeal, size: 18),
+                      ),
+                      const SizedBox(width: AppSpacing.lg),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(_reasons[i][1] as String,
+                                style:
+                                    AppTypography.cardTitle(color: AppColors.ink)
+                                        .copyWith(fontSize: 15)),
+                            const SizedBox(height: AppSpacing.xs),
+                            Text(_reasons[i][2] as String,
+                                style: AppTypography.bodySm(
+                                    color: AppColors.textMuted),
+                                maxLines: 3,
+                                overflow: TextOverflow.ellipsis),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// VALUATION WORKFLOW
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class ValuationWorkflowSection extends StatelessWidget {
+  final bool isDesktop;
+  const ValuationWorkflowSection({super.key, required this.isDesktop});
+
+  static const _steps = [
+    ['01', 'Submit Request', 'Share property details and documents via our secure client portal or WhatsApp.'],
+    ['02', 'Site Inspection', 'Our registered valuer visits the property and conducts a thorough physical inspection.'],
+    ['03', 'Analysis & Report', 'Data is analyzed using approved methodologies and compiled into a detailed valuation report.'],
+    ['04', 'Delivery & Sign', 'Report is digitally signed by the registered valuer and delivered to you and your bank.'],
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: AppColors.canvas,
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
+        vertical: AppSpacing.sectionLg,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.featureLavenderLight,
+                  borderRadius: AppRadius.brFull,
+                  border: Border.all(color: AppColors.featureLavender.withOpacity(0.3)),
+                ),
+                child: Text('HOW IT WORKS',
+                    style: AppTypography.microUppercase(
+                        color: const Color(0xFF5A3ABF))),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text('Valuation in 4 Simple Steps',
+                  style: AppTypography.sectionHeading(color: AppColors.ink)),
+              const SizedBox(height: AppSpacing.sectionSm),
+              if (isDesktop)
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: List.generate(
+                    _steps.length,
+                    (i) => Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(right: i < _steps.length - 1 ? 16 : 0),
+                        child: _WorkflowStep(
+                          number: _steps[i][0],
+                          title: _steps[i][1],
+                          description: _steps[i][2],
+                          isLast: i == _steps.length - 1,
+                        ),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Column(
+                  children: List.generate(
+                    _steps.length,
+                    (i) => Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: _WorkflowStep(
+                        number: _steps[i][0],
+                        title: _steps[i][1],
+                        description: _steps[i][2],
+                        isLast: i == _steps.length - 1,
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _WorkflowStep extends StatelessWidget {
+  final String number, title, description;
+  final bool isLast;
+  const _WorkflowStep({
+    required this.number,
+    required this.title,
+    required this.description,
+    required this.isLast,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: AppColors.deepTeal,
+                borderRadius: AppRadius.brMd,
+              ),
+              alignment: Alignment.center,
+              child: Text(number,
+                  style: AppTypography.captionBold(color: AppColors.onDark)
+                      .copyWith(fontSize: 12)),
+            ),
+            if (!isLast) ...[
+              const SizedBox(width: 8),
+              Expanded(
+                child: Container(height: 1, color: AppColors.hairline),
+              ),
+            ],
+          ],
+        ),
+        const SizedBox(height: AppSpacing.lg),
+        Text(title,
+            style: AppTypography.cardTitle(color: AppColors.ink)
+                .copyWith(fontSize: 15)),
+        const SizedBox(height: AppSpacing.sm),
+        Text(description,
+            style: AppTypography.bodySm(color: AppColors.textMuted)),
+      ],
+    );
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // WHO WE SERVE
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/// 3-card industry sector grid with icons.
 class WhoWeServeSection extends StatelessWidget {
   final bool isDesktop;
   const WhoWeServeSection({super.key, required this.isDesktop});
@@ -779,14 +1172,29 @@ class WhoWeServeSection extends StatelessWidget {
       'Valuation of factory premises, machinery life, asset capitalization, and EPCG licensing compliance.',
       Icons.precision_manufacturing_outlined,
     ],
+    [
+      'NBFCs & Fintechs',
+      'Collateral verification, digital lending support, and property risk assessment for modern lenders.',
+      Icons.credit_card_outlined,
+    ],
+    [
+      'Government & Public Sector',
+      'Government scheme valuations, EPCG compliance reports, and public sector asset assessments.',
+      Icons.gavel_outlined,
+    ],
+    [
+      'Individuals & HNIs',
+      'Personal property valuations for loans, insurance, estate planning, and net worth certifications.',
+      Icons.person_outline,
+    ],
   ];
 
   @override
   Widget build(BuildContext context) => Container(
         width: double.infinity,
-        color: AppColors.surface,
+        color: AppColors.surfaceSoft,
         padding: EdgeInsets.symmetric(
-          horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.md,
+          horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
           vertical: AppSpacing.sectionLg,
         ),
         child: Center(
@@ -795,21 +1203,22 @@ class WhoWeServeSection extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Section eyebrow
                 Container(
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                   decoration: BoxDecoration(
-                    color: AppColors.coralLight,
+                    color: AppColors.featurePeachLight,
                     borderRadius: AppRadius.brFull,
+                    border: Border.all(
+                        color: AppColors.featurePeach.withOpacity(0.3)),
                   ),
                   child: Text('CLIENT SECTORS',
                       style: AppTypography.microUppercase(
-                          color: AppColors.coralDark)),
+                          color: const Color(0xFF8A4010))),
                 ),
                 const SizedBox(height: AppSpacing.lg),
                 Text('Industries We\nRegularly Serve',
-                    style: AppTypography.heading2(color: AppColors.ink)),
+                    style: AppTypography.sectionHeading(color: AppColors.ink)),
                 const SizedBox(height: AppSpacing.sectionSm),
                 GridView.builder(
                   shrinkWrap: true,
@@ -818,36 +1227,39 @@ class WhoWeServeSection extends StatelessWidget {
                     crossAxisCount: isDesktop ? 3 : 1,
                     crossAxisSpacing: AppSpacing.md,
                     mainAxisSpacing: AppSpacing.md,
-                    childAspectRatio: isDesktop ? 1.5 : 2.5,
+                    childAspectRatio: isDesktop ? 1.8 : 3.5,
                   ),
                   itemCount: _groups.length,
                   itemBuilder: (_, i) => Container(
                     padding: const EdgeInsets.all(AppSpacing.xxl),
-                    decoration: AppComponents.cardFeature(),
+                    decoration: AppComponents.cardBase(),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(AppSpacing.sm),
+                          padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceSoft,
+                            color: AppColors.featurePeachLight,
                             borderRadius: AppRadius.brMd,
                           ),
                           child: Icon(_groups[i][2] as IconData,
-                              color: AppColors.brandBlue, size: 22),
+                              color: const Color(0xFF8A4010), size: 20),
                         ),
                         const SizedBox(width: AppSpacing.lg),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(_groups[i][0] as String,
-                                  style: AppTypography.heading5(
-                                      color: AppColors.ink)),
+                                  style: AppTypography.cardTitle(color: AppColors.ink)
+                                      .copyWith(fontSize: 15)),
                               const SizedBox(height: AppSpacing.xs),
                               Text(_groups[i][1] as String,
                                   style: AppTypography.bodySm(
-                                      color: AppColors.slate)),
+                                      color: AppColors.textMuted),
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis),
                             ],
                           ),
                         ),
@@ -866,7 +1278,6 @@ class WhoWeServeSection extends StatelessWidget {
 // STATS SECTION
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/// Animated stat counters — numbers count up using flutter_animate.
 class StatsSection extends StatelessWidget {
   final bool isDesktop;
   const StatsSection({super.key, required this.isDesktop});
@@ -882,9 +1293,9 @@ class StatsSection extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      color: AppColors.surfaceSoft,
+      color: AppColors.deepTeal,
       padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.md,
+        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
         vertical: AppSpacing.sectionSm,
       ),
       child: Center(
@@ -921,7 +1332,7 @@ class StatsSection extends StatelessWidget {
         result.add(Container(
           width: 1,
           height: 64,
-          color: AppColors.hairline,
+          color: AppColors.onDark.withOpacity(0.15),
         ));
       }
     }
@@ -929,7 +1340,6 @@ class StatsSection extends StatelessWidget {
   }
 }
 
-/// Individual animated stat counter using flutter_animate's custom effect.
 class _AnimatedStat extends StatelessWidget {
   final int target;
   final String suffix;
@@ -948,20 +1358,19 @@ class _AnimatedStat extends StatelessWidget {
       children: [
         Text(
           '0$suffix',
-          style: AppTypography.statDisplay(color: AppColors.brandBlue),
+          style: AppTypography.statDisplay(color: AppColors.onDark),
         ).animate(delay: 800.ms).custom(
               duration: 2000.ms,
               curve: Curves.easeOutCubic,
               builder: (_, value, __) => Text(
                 '${(target * value).round()}$suffix',
-                style:
-                    AppTypography.statDisplay(color: AppColors.brandBlue),
+                style: AppTypography.statDisplay(color: AppColors.onDark),
               ),
             ),
         const SizedBox(height: AppSpacing.xs),
         Text(
           label,
-          style: AppTypography.bodySm(color: AppColors.slate),
+          style: AppTypography.bodySm(color: AppColors.onDarkMuted),
           textAlign: TextAlign.center,
         ),
       ],
@@ -970,10 +1379,287 @@ class _AnimatedStat extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
+// TESTIMONIALS
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class TestimonialsSection extends StatelessWidget {
+  final bool isDesktop;
+  const TestimonialsSection({super.key, required this.isDesktop});
+
+  static const _testimonials = [
+    [
+      'The valuation report was delivered within 48 hours and accepted by the bank without any queries. Extremely professional team.',
+      'Rajesh K.',
+      'Home Loan Applicant',
+      'State Bank of India',
+    ],
+    [
+      'We needed a Chartered Engineer Certificate for customs clearance urgently. Pro Valuer delivered in record time with complete accuracy.',
+      'Priya M.',
+      'Import/Export Manager',
+      'Manufacturing Co.',
+    ],
+    [
+      'Their LIE reports for our infrastructure project were thorough and met all consortium bank requirements perfectly.',
+      'Suresh R.',
+      'CFO',
+      'Infrastructure Pvt. Ltd.',
+    ],
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: AppColors.canvas,
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
+        vertical: AppSpacing.sectionLg,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.featurePinkLight,
+                  borderRadius: AppRadius.brFull,
+                  border: Border.all(color: AppColors.featurePink.withOpacity(0.3)),
+                ),
+                child: Text('CLIENT STORIES',
+                    style: AppTypography.microUppercase(
+                        color: AppColors.featurePink)),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text('What Our Clients Say',
+                  style: AppTypography.sectionHeading(color: AppColors.ink),
+                  textAlign: TextAlign.center),
+              const SizedBox(height: AppSpacing.sectionSm),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: isDesktop ? 3 : 1,
+                  crossAxisSpacing: AppSpacing.md,
+                  mainAxisSpacing: AppSpacing.md,
+                  childAspectRatio: isDesktop ? 1.3 : 2.5,
+                ),
+                itemCount: _testimonials.length,
+                itemBuilder: (_, i) => Container(
+                  padding: const EdgeInsets.all(AppSpacing.xxl),
+                  decoration: AppComponents.cardBase(),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Stars
+                      Row(
+                        children: List.generate(
+                          5,
+                          (_) => const Icon(Icons.star,
+                              color: AppColors.featureOchre, size: 14),
+                        ),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      Expanded(
+                        child: Text('"${_testimonials[i][0]}"',
+                            style: AppTypography.bodyMd(color: AppColors.textSecondary)
+                                .copyWith(
+                                    fontStyle: FontStyle.italic, height: 1.7)),
+                      ),
+                      const SizedBox(height: AppSpacing.lg),
+                      Row(
+                        children: [
+                          Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: AppColors.tealLight,
+                              shape: BoxShape.circle,
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              _testimonials[i][1][0],
+                              style: AppTypography.captionBold(
+                                  color: AppColors.deepTeal),
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(_testimonials[i][1],
+                                  style: AppTypography.bodySmMedium(
+                                      color: AppColors.ink)),
+                              Text(
+                                  '${_testimonials[i][2]} · ${_testimonials[i][3]}',
+                                  style: AppTypography.caption(
+                                      color: AppColors.textMuted)),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// FAQ SECTION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class FaqSection extends StatelessWidget {
+  final bool isDesktop;
+  const FaqSection({super.key, required this.isDesktop});
+
+  static const _faqs = [
+    [
+      'What is an IBBI Registered Valuer?',
+      'IBBI (Insolvency and Bankruptcy Board of India) registers qualified valuers who are authorized to provide valuation services for statutory and regulatory purposes including bank loans, NCLT proceedings, and government compliance.',
+    ],
+    [
+      'How long does a property valuation take?',
+      'Standard residential valuations take 24-48 hours after site inspection. Commercial and industrial valuations may take 3-5 working days depending on complexity.',
+    ],
+    [
+      'Which banks accept your valuation reports?',
+      'We are empanelled with 20+ banks including State Bank of India, Union Bank, Punjab National Bank, Axis Bank, Central Bank of India, and many more leading lenders.',
+    ],
+    [
+      'Can you provide valuation for properties outside Hyderabad?',
+      'Our primary service area is Hyderabad and Secunderabad. For properties in other locations within Telangana and Andhra Pradesh, please contact us to discuss coverage.',
+    ],
+    [
+      'What documents are needed for a valuation?',
+      'Typically: Sale/Title Deed, Approved Building Plan, Occupancy Certificate, Property Tax Receipts, and Electricity Bill. Specific documents vary by property type and purpose.',
+    ],
+    [
+      'Do you provide Chartered Engineer certificates for EPCG?',
+      'Yes, we provide Chartered Engineer Certificates for EPCG schemes, import/export, customs valuation, insurance, and government compliance requirements.',
+    ],
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: AppColors.surfaceSoft,
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
+        vertical: AppSpacing.sectionLg,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 800),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.tealLight,
+                  borderRadius: AppRadius.brFull,
+                  border: Border.all(color: AppColors.deepTeal.withOpacity(0.2)),
+                ),
+                child: Text('FAQ',
+                    style: AppTypography.microUppercase(color: AppColors.deepTeal)),
+              ),
+              const SizedBox(height: AppSpacing.lg),
+              Text('Frequently Asked Questions',
+                  style: AppTypography.sectionHeading(color: AppColors.ink),
+                  textAlign: TextAlign.center),
+              const SizedBox(height: AppSpacing.sectionSm),
+              ..._faqs.map((faq) => _FaqItem(
+                    question: faq[0],
+                    answer: faq[1],
+                  )),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FaqItem extends StatefulWidget {
+  final String question, answer;
+  const _FaqItem({required this.question, required this.answer});
+
+  @override
+  State<_FaqItem> createState() => _FaqItemState();
+}
+
+class _FaqItemState extends State<_FaqItem> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
+      decoration: BoxDecoration(
+        color: AppColors.canvas,
+        borderRadius: AppRadius.brXl,
+        border: Border.all(color: AppColors.hairline),
+      ),
+      child: InkWell(
+        onTap: () => setState(() => _expanded = !_expanded),
+        borderRadius: AppRadius.brXl,
+        child: Padding(
+          padding: const EdgeInsets.all(AppSpacing.xxl),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(widget.question,
+                        style:
+                            AppTypography.bodyMdMedium(color: AppColors.ink)),
+                  ),
+                  AnimatedRotation(
+                    turns: _expanded ? 0.25 : 0,
+                    duration: const Duration(milliseconds: 200),
+                    child: Icon(
+                      Icons.arrow_forward_ios,
+                      size: 14,
+                      color: AppColors.deepTeal,
+                    ),
+                  ),
+                ],
+              ),
+              AnimatedCrossFade(
+                firstChild: const SizedBox.shrink(),
+                secondChild: Padding(
+                  padding: const EdgeInsets.only(top: AppSpacing.md),
+                  child: Text(widget.answer,
+                      style: AppTypography.bodyMd(color: AppColors.textMuted)),
+                ),
+                crossFadeState: _expanded
+                    ? CrossFadeState.showSecond
+                    : CrossFadeState.showFirst,
+                duration: const Duration(milliseconds: 250),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
 // CTA BANNER
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/// Dark CTA band — "Ready to get started?" with white-on-dark pill button.
 class CtaBanner extends StatelessWidget {
   final Future<void> Function(String) launchWhatsApp;
   const CtaBanner({super.key, required this.launchWhatsApp});
@@ -984,30 +1670,59 @@ class CtaBanner extends StatelessWidget {
         color: AppColors.canvas,
         padding: const EdgeInsets.all(AppSpacing.xxl),
         child: Container(
-          padding: const EdgeInsets.all(AppSpacing.section),
+          padding: const EdgeInsets.all(AppSpacing.sectionSm),
           decoration: BoxDecoration(
-            color: AppColors.primary,
-            borderRadius: AppRadius.brFeature,
+            color: AppColors.deepTeal,
+            borderRadius: AppRadius.brXxl,
           ),
           child: Column(
             children: [
-              Text('Ready to get started?',
-                  style: AppTypography.heading2(color: AppColors.onDark),
+              Text('Ready to Get Started?',
+                  style: AppTypography.sectionHeading(color: AppColors.onDark),
                   textAlign: TextAlign.center),
               const SizedBox(height: AppSpacing.md),
               Text(
-                'Connect with our expert valuation team today.',
-                style: AppTypography.subtitle(color: AppColors.onDarkMuted),
+                'Connect with our expert valuation team today.\nFast turnaround. Banking-grade accuracy.',
+                style: AppTypography.bodyMd(color: AppColors.onDarkMuted),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: AppSpacing.xxl),
-              ElevatedButton(
-                onPressed: () => launchWhatsApp(
-                    'Hello Provaluer, I would like to get started with a consultation.'),
-                style: AppComponents.onDarkButtonStyle(),
-                child: Text('Get Started Free',
-                    style:
-                        AppTypography.buttonMd(color: AppColors.primary)),
+              Wrap(
+                spacing: AppSpacing.md,
+                runSpacing: AppSpacing.md,
+                alignment: WrapAlignment.center,
+                children: [
+                  GestureDetector(
+                    onTap: () => launchWhatsApp(
+                        'Hello Provaluer, I would like to get started with a consultation.'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 28, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: AppColors.onDark,
+                        borderRadius: AppRadius.brMd,
+                      ),
+                      child: Text('Request Consultation',
+                          style: AppTypography.buttonMd(
+                              color: AppColors.deepTeal)),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => context.go('/login'),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 28, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: Colors.transparent,
+                        borderRadius: AppRadius.brMd,
+                        border: Border.all(
+                            color: AppColors.onDark.withOpacity(0.3)),
+                      ),
+                      child: Text('Client Login',
+                          style: AppTypography.buttonMd(color: AppColors.onDark)),
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -1019,7 +1734,6 @@ class CtaBanner extends StatelessWidget {
 // FOOTER
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/// Dark footer with company info, IBBI credentials, and copyright.
 class LandingFooter extends StatelessWidget {
   final bool isDesktop;
   const LandingFooter({super.key, required this.isDesktop});
@@ -1028,8 +1742,8 @@ class LandingFooter extends StatelessWidget {
   Widget build(BuildContext context) => Container(
         color: AppColors.footerBg,
         padding: EdgeInsets.symmetric(
-          horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.md,
-          vertical: AppSpacing.section,
+          horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
+          vertical: AppSpacing.sectionSm,
         ),
         width: double.infinity,
         child: Column(
@@ -1041,24 +1755,39 @@ class LandingFooter extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   _companyInfo(),
-                  _credentials(),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _footerCol('Services', [
+                        'Land & Building Valuation',
+                        'Plant & Machinery',
+                        'Net Worth Certificates',
+                        'Chartered Engineer',
+                        'LIE Reports',
+                      ]),
+                      const SizedBox(width: AppSpacing.sectionSm),
+                      _footerCol('Company', [
+                        'About Us',
+                        'Empanelment',
+                        'Who We Serve',
+                        'Contact',
+                        'Client Login',
+                      ]),
+                    ],
+                  ),
                 ],
               )
             else ...[
               _companyInfo(),
               const SizedBox(height: AppSpacing.xxl),
-              _credentials(),
             ],
             const SizedBox(height: AppSpacing.xxxl),
-            Container(height: 1, color: const Color(0xFF2C2C2C)),
+            Container(height: 1, color: const Color(0xFF1E1E1E)),
             const SizedBox(height: AppSpacing.xl),
             if (isDesktop)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  _copyright(),
-                  _tagline(),
-                ],
+                children: [_copyright(), _tagline()],
               )
             else ...[
               _copyright(),
@@ -1073,43 +1802,76 @@ class LandingFooter extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           AppComponents.logo(fontSize: 18, darkMode: true),
-          const SizedBox(height: AppSpacing.sm),
-          Text('Provaluer OPC Private Limited',
-              style: AppTypography.bodySmMedium(color: AppColors.onDark)),
-          const SizedBox(height: AppSpacing.xxs),
-          Text(
-              'Accurate Valuations. Professional Insights. Trusted Decisions.',
-              style: AppTypography.micro(color: AppColors.onDarkMuted)),
+          const SizedBox(height: AppSpacing.md),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 260),
+            child: Text(
+              'Provaluer OPC Private Limited\nAccurate Valuations. Professional Insights.\nTrusted Decisions.',
+              style: AppTypography.caption(color: AppColors.onDarkMuted),
+            ),
+          ),
+          const SizedBox(height: AppSpacing.lg),
+          _credentialChip('IBBI Registered Valuers'),
+          const SizedBox(height: 6),
+          _credentialChip('Hyderabad & Secunderabad'),
         ],
       );
 
-  Widget _credentials() => Column(
-        crossAxisAlignment:
-            isDesktop ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+  Widget _credentialChip(String text) => Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Text('IBBI Registered Valuers',
-              style: AppTypography.micro(color: AppColors.onDarkMuted)),
-          const SizedBox(height: AppSpacing.xs),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.location_on_outlined,
-                  color: AppColors.onDarkMuted, size: 13),
-              const SizedBox(width: AppSpacing.xxs),
-              Text('Hyderabad & Secunderabad',
-                  style: AppTypography.micro(color: AppColors.onDarkMuted)),
-            ],
+          Container(
+            width: 5, height: 5,
+            decoration: const BoxDecoration(
+              color: AppColors.onDarkMuted, shape: BoxShape.circle),
           ),
+          const SizedBox(width: 6),
+          Text(text, style: AppTypography.micro(color: AppColors.onDarkMuted)),
+        ],
+      );
+
+  Widget _footerCol(String heading, List<String> items) => Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(heading,
+              style: AppTypography.captionBold(color: AppColors.onDark)),
+          const SizedBox(height: AppSpacing.lg),
+          ...items.map((item) => Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Text(item,
+                    style: AppTypography.caption(color: AppColors.onDarkMuted)),
+              )),
         ],
       );
 
   Widget _copyright() => Text(
         '© 2026 Provaluer OPC Private Limited. All rights reserved.',
-        style: AppTypography.micro(color: const Color(0xFF666666)),
+        style: AppTypography.micro(color: const Color(0xFF555555)),
       );
 
   Widget _tagline() => Text(
         'Advisory Engineers & Registered Valuers',
-        style: AppTypography.micro(color: const Color(0xFF666666)),
+        style: AppTypography.micro(color: const Color(0xFF555555)),
+      );
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// LEGACY COMPAT — HeroOverlayContent alias
+// ═══════════════════════════════════════════════════════════════════════════════
+
+/// Kept for backward compatibility — redirects to HeroSection
+class HeroOverlayContent extends StatelessWidget {
+  final bool isDesktop;
+  final Future<void> Function(String) launchWhatsApp;
+  const HeroOverlayContent({
+    super.key,
+    required this.isDesktop,
+    required this.launchWhatsApp,
+  });
+
+  @override
+  Widget build(BuildContext context) => HeroSection(
+        isDesktop: isDesktop,
+        launchWhatsApp: launchWhatsApp,
       );
 }

@@ -306,7 +306,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
       body: Row(
         children: [
           _buildSidebar(),
-          Container(width: 1, color: AppColors.hairlineSoft),
+          Container(width: 1, color: AppColors.hairline),
           Expanded(child: _buildCanvas()),
         ],
       ),
@@ -316,7 +316,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
   Widget _buildSidebar() {
     return Container(
       width: 240,
-      color: AppColors.sidebarBg, // Slate-800 #1E293B
+      color: AppColors.sidebarBg, // warm cream sidebar
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -326,7 +326,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                AppComponents.logo(fontSize: 17, darkMode: true),
+                AppComponents.logo(fontSize: 17),
                 const SizedBox(height: 3),
                 Text(
                   'Admin Console',
@@ -342,7 +342,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
           ),
           const SizedBox(height: 8),
           // Divider
-          Container(height: 1, color: Colors.white.withOpacity(0.06), margin: const EdgeInsets.symmetric(horizontal: 20)),
+          Container(height: 1, color: AppColors.hairline, margin: const EdgeInsets.symmetric(horizontal: 20)),
           const SizedBox(height: 12),
           // Nav items
           Expanded(
@@ -360,9 +360,9 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
             margin: const EdgeInsets.all(12),
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.05),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.white.withOpacity(0.08)),
+              color: AppColors.surfaceSoft,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: AppColors.hairline),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -373,14 +373,15 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                       width: 32,
                       height: 32,
                       decoration: BoxDecoration(
-                        color: AppColors.primary.withOpacity(0.25),
+                        color: AppColors.tealLight,
                         borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: AppColors.deepTeal.withOpacity(0.2)),
                       ),
                       child: Center(
                         child: Text(
                           widget.fullName.isNotEmpty ? widget.fullName[0].toUpperCase() : 'A',
                           style: AppTypography.bodySm().copyWith(
-                            color: AppColors.sidebarAccent,
+                            color: AppColors.deepTeal,
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
                           ),
@@ -425,28 +426,31 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                 ),
                 Container(
                   height: 1,
-                  color: Colors.white.withOpacity(0.08),
+                  color: AppColors.hairline,
                   margin: const EdgeInsets.symmetric(vertical: 10),
                 ),
-                GestureDetector(
-                  onTap: widget.onLogout,
-                  child: Row(
-                    children: [
-                      Icon(
-                        Icons.logout_rounded,
-                        color: AppColors.brandRedDark.withOpacity(0.8),
-                        size: 14,
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Sign Out',
-                        style: AppTypography.bodySm().copyWith(
-                          color: AppColors.brandRedDark.withOpacity(0.8),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w500,
+                MouseRegion(
+                  cursor: SystemMouseCursors.click,
+                  child: GestureDetector(
+                    onTap: widget.onLogout,
+                    child: Row(
+                      children: [
+                        Icon(
+                          Icons.logout_rounded,
+                          color: AppColors.brandRedDark,
+                          size: 14,
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 6),
+                        Text(
+                          'Sign Out',
+                          style: AppTypography.bodySm().copyWith(
+                            color: AppColors.brandRedDark,
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],

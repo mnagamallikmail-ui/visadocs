@@ -4,38 +4,38 @@ import 'app_typography.dart';
 import 'app_spacing.dart';
 import 'app_components.dart';
 
-/// AppTheme — MaterialApp ThemeData built entirely from Design.md tokens.
+/// AppTheme — Clay Enterprise PropTech MaterialApp ThemeData
 class AppTheme {
   AppTheme._();
 
   static ThemeData get light => ThemeData(
         useMaterial3: true,
-        primaryColor: AppColors.primary,
+        primaryColor: AppColors.deepTeal,
         scaffoldBackgroundColor: AppColors.canvas,
         colorScheme: const ColorScheme(
           brightness: Brightness.light,
-          primary: AppColors.primary,
-          onPrimary: AppColors.onPrimary,
-          secondary: AppColors.brandBlue,
-          onSecondary: AppColors.onPrimary,
+          primary: AppColors.deepTeal,
+          onPrimary: AppColors.onDark,
+          secondary: AppColors.deepTeal,
+          onSecondary: AppColors.onDark,
           surface: AppColors.canvas,
           onSurface: AppColors.ink,
           error: AppColors.brandRedDark,
-          onError: AppColors.onPrimary,
+          onError: AppColors.onDark,
           surfaceContainerHighest: AppColors.surface,
           outline: AppColors.hairline,
         ),
-        // Typography — Noto Sans as Roobert PRO fallback
+        // Typography — Inter via google_fonts
         textTheme: TextTheme(
-          displayLarge:  AppTypography.heroDisplay(),
-          displayMedium: AppTypography.displayLg(),
-          displaySmall:  AppTypography.heading1(),
-          headlineLarge: AppTypography.heading2(),
-          headlineMedium: AppTypography.heading3(),
-          headlineSmall: AppTypography.heading4(),
-          titleLarge:    AppTypography.heading5(),
-          titleMedium:   AppTypography.subtitle(),
-          titleSmall:    AppTypography.bodyMdMedium(),
+          displayLarge:  AppTypography.displayHero(),
+          displayMedium: AppTypography.sectionHeading(),
+          displaySmall:  AppTypography.pageTitle(),
+          headlineLarge: AppTypography.sectionTitle(),
+          headlineMedium: AppTypography.cardTitle(),
+          headlineSmall: AppTypography.cardTitle(),
+          titleLarge:    AppTypography.bodyMdMedium(),
+          titleMedium:   AppTypography.bodyMd(),
+          titleSmall:    AppTypography.bodySmMedium(),
           bodyLarge:     AppTypography.bodyMd(),
           bodyMedium:    AppTypography.bodySm(),
           bodySmall:     AppTypography.caption(),
@@ -43,13 +43,13 @@ class AppTheme {
           labelMedium:   AppTypography.captionBold(),
           labelSmall:    AppTypography.micro(),
         ),
-        // Input theme — text-input spec from Design.md
+        // Input fields — cream fill, deep teal focus, 12px radius
         inputDecorationTheme: InputDecorationTheme(
           filled: true,
-          fillColor: AppColors.canvas,
+          fillColor: AppColors.surface,
           contentPadding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.md,
-            vertical: AppSpacing.sm,
+            horizontal: AppSpacing.lg,
+            vertical: 14,
           ),
           border: OutlineInputBorder(
             borderRadius: AppRadius.brMd,
@@ -61,7 +61,7 @@ class AppTheme {
           ),
           focusedBorder: OutlineInputBorder(
             borderRadius: AppRadius.brMd,
-            borderSide: const BorderSide(color: AppColors.brandBlue, width: 2),
+            borderSide: const BorderSide(color: AppColors.deepTeal, width: 2),
           ),
           errorBorder: OutlineInputBorder(
             borderRadius: AppRadius.brMd,
@@ -72,36 +72,34 @@ class AppTheme {
             borderSide: const BorderSide(color: AppColors.brandRedDark, width: 2),
           ),
           labelStyle: AppTypography.bodySm(color: AppColors.slate),
-          hintStyle: AppTypography.bodySm(color: AppColors.muted),
-          floatingLabelStyle: AppTypography.caption(color: AppColors.brandBlue),
+          hintStyle: AppTypography.bodySm(color: AppColors.stone),
+          floatingLabelStyle: AppTypography.caption(color: AppColors.deepTeal),
           isDense: true,
         ),
-        // ElevatedButton — pill-primary
+        // Buttons
         elevatedButtonTheme: ElevatedButtonThemeData(
           style: AppComponents.primaryButtonStyle(),
         ),
-        // OutlinedButton — pill-secondary
         outlinedButtonTheme: OutlinedButtonThemeData(
           style: AppComponents.secondaryButtonStyle(),
         ),
-        // TextButton — ghost / link
         textButtonTheme: TextButtonThemeData(
           style: AppComponents.ghostButtonStyle(),
         ),
-        // Dialog — modal elevation level 4
+        // Dialog — warm cream
         dialogTheme: DialogThemeData(
           backgroundColor: AppColors.canvas,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(
-            borderRadius: AppRadius.brXl,
+            borderRadius: AppRadius.brXxl,
             side: const BorderSide(color: AppColors.hairlineSoft),
           ),
         ),
-        // Card — card-base spec
+        // Card — warm cream
         cardTheme: CardThemeData(
-          color: AppColors.canvas,
+          color: AppColors.cardBg,
           surfaceTintColor: Colors.transparent,
           elevation: 0,
           margin: EdgeInsets.zero,
@@ -110,34 +108,35 @@ class AppTheme {
             side: const BorderSide(color: AppColors.hairlineSoft),
           ),
         ),
-        // AppBar — clean white, flat
+        // AppBar — cream, no elevation
         appBarTheme: AppBarTheme(
           backgroundColor: AppColors.canvas,
           foregroundColor: AppColors.ink,
           elevation: 0,
           surfaceTintColor: Colors.transparent,
           shadowColor: Colors.transparent,
-          titleTextStyle: AppTypography.heading5(color: AppColors.ink),
+          titleTextStyle: AppTypography.cardTitle(color: AppColors.ink),
           iconTheme: const IconThemeData(color: AppColors.ink),
         ),
-        // Divider — hairline
+        // Divider
         dividerTheme: const DividerThemeData(
           color: AppColors.hairline,
           thickness: 1,
           space: 1,
         ),
-        // Chip — pill-shaped
+        // Chip
         chipTheme: ChipThemeData(
-          backgroundColor: AppColors.surface,
+          backgroundColor: AppColors.cardBg,
           labelStyle: AppTypography.captionBold(),
           side: BorderSide.none,
           shape: RoundedRectangleBorder(borderRadius: AppRadius.brFull),
         ),
-        // Snackbar — floating
+        // Snackbar
         snackBarTheme: SnackBarThemeData(
           behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: AppRadius.brLg),
-          contentTextStyle: AppTypography.bodySmMedium(color: AppColors.onPrimary),
+          shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
+          contentTextStyle:
+              AppTypography.bodySmMedium(color: AppColors.onDark),
         ),
       );
 }

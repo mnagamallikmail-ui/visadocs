@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import '../providers/auth_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
@@ -15,15 +16,18 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
+  // ── Controllers (unchanged business logic) ────────────────────────────────
   final _emailCtrl    = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _mobileCtrl   = TextEditingController();
   final _nameCtrl     = TextEditingController();
 
-  bool _isLogin     = true;
-  bool _isLoading   = false;
+  bool _isLogin   = true;
+  bool _isLoading = false;
+  bool _obscurePassword = true;
   String? _error;
 
+  // ── Submit Handler — PRESERVED EXACTLY ────────────────────────────────────
   Future<void> _handleSubmit() async {
     setState(() { _isLoading = true; _error = null; });
 
@@ -51,10 +55,15 @@ class _LoginScreenState extends State<LoginScreen> {
     if (success && _isLogin) {
       final role = auth.role;
       if (!mounted) return;
-      if (role == 'CLIENT')                              context.go('/client');
-      else if (role == 'PA')                             context.go('/pa');
-      else if (role == 'SPA')                            context.go('/spa');
-      else if (role == 'SUPER_ADMIN' || role == 'ADMIN') context.go('/admin');
+      if (role == 'CLIENT') {
+        context.go('/client');
+      } else if (role == 'PA') {
+        context.go('/pa');
+      } else if (role == 'SPA') {
+        context.go('/spa');
+      } else if (role == 'SUPER_ADMIN' || role == 'ADMIN') {
+        context.go('/admin');
+      }
     } else if (!success) {
       setState(() => _error = 'Action failed. Please verify credentials.');
     }
@@ -75,57 +84,11 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: AppColors.canvas,
       body: Row(
         children: [
-          // ── Left dark editorial panel (desktop only) ──────────────────
+          // ── Left editorial panel (desktop only) ───────────────────────
           if (isDesktop)
             Expanded(
               flex: 11,
-              child: Container(
-                color: AppColors.primary,
-                padding: const EdgeInsets.all(72),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    AppComponents.logo(fontSize: 18, darkMode: true),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Yellow promo-style badge
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: AppColors.brandYellow,
-                            borderRadius: AppRadius.brFull,
-                          ),
-                          child: Text('ENTERPRISE PLATFORM',
-                              style: AppTypography.captionBold(color: AppColors.primary)),
-                        ),
-                        const SizedBox(height: AppSpacing.xxl),
-                        Text(
-                          'Enterprise\nValuation &\nProperty\nIntelligence',
-                          style: AppTypography.heading1(color: AppColors.onDark)
-                              .copyWith(fontSize: 52, letterSpacing: -2.5, height: 1.05),
-                        ),
-                        const SizedBox(height: AppSpacing.xxl),
-                        Text(
-                          'Automated SLA monitoring, value-based balance gates, DOCX template token normalization, and Class 3 HSM digital signatures for regulatory compliance.',
-                          style: AppTypography.bodyMd(color: AppColors.onDarkMuted),
-                        ),
-                      ],
-                    ),
-                    // Trust marks
-                    Wrap(
-                      spacing: AppSpacing.xl,
-                      runSpacing: AppSpacing.sm,
-                      children: [
-                        _trustMark('IBBI Registered Valuers'),
-                        _trustMark('Empanelled Banks'),
-                        _trustMark('Hyderabad & Secunderabad'),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
+              child: _LeftPanel(),
             ),
 
           // ── Right form panel ─────────────────────────────────────────
@@ -137,7 +100,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
                   child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 380),
+                    constraints: const BoxConstraints(maxWidth: 400),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -145,24 +108,34 @@ class _LoginScreenState extends State<LoginScreen> {
                           AppComponents.logo(fontSize: 18),
                           const SizedBox(height: AppSpacing.xxxl),
                         ],
+
+                        // Heading
                         Text(
-                          _isLogin ? 'Sign In' : 'Create Account',
-                          style: AppTypography.heading3(color: AppColors.ink),
-                        ),
+                          _isLogin ? 'Welcome Back' : 'Create Account',
+                          style: AppTypography.sectionHeading(color: AppColors.ink),
+                        ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
                           _isLogin
-                              ? 'Access your commercial valuation portal.'
+                              ? 'Access your valuation and engineering workspace.'
                               : 'Register for valuation services.',
-                          style: AppTypography.bodySm(color: AppColors.slate),
-                        ),
+                          style: AppTypography.bodyMd(color: AppColors.textMuted),
+                        ).animate(delay: 100.ms).fadeIn(duration: 400.ms),
+
                         const SizedBox(height: AppSpacing.xxl),
+
+                        // Role context tabs (visual only — actual role assigned by backend)
+                        if (_isLogin) ...[
+                          _RoleHintTabs(),
+                          const SizedBox(height: AppSpacing.xxl),
+                        ],
 
                         // Error message
                         if (_error != null) ...[
-                          Container(
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 300),
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 14, vertical: AppSpacing.sm),
+                                horizontal: 16, vertical: 12),
                             margin: const EdgeInsets.only(bottom: AppSpacing.xl),
                             decoration: BoxDecoration(
                               color: AppColors.brandRed,
@@ -174,7 +147,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               children: [
                                 const Icon(Icons.error_outline,
                                     color: AppColors.brandRedDark, size: 16),
-                                const SizedBox(width: AppSpacing.xs),
+                                const SizedBox(width: AppSpacing.sm),
                                 Expanded(
                                   child: Text(_error!,
                                       style: AppTypography.caption(
@@ -185,19 +158,16 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ],
 
+                        // Form fields
                         _formField(
                           controller: _emailCtrl,
                           label: 'Email Address',
-                          icon: Icons.mail_outline,
+                          icon: Icons.mail_outline_rounded,
                           keyboardType: TextInputType.emailAddress,
                         ),
                         const SizedBox(height: AppSpacing.md),
-                        _formField(
-                          controller: _passwordCtrl,
-                          label: 'Password',
-                          icon: Icons.lock_outline,
-                          obscureText: true,
-                        ),
+                        _passwordField(),
+
                         if (!_isLogin) ...[
                           const SizedBox(height: AppSpacing.md),
                           _formField(
@@ -210,16 +180,16 @@ class _LoginScreenState extends State<LoginScreen> {
                           _formField(
                             controller: _nameCtrl,
                             label: 'Full Name',
-                            icon: Icons.person_outline,
+                            icon: Icons.person_outline_rounded,
                             keyboardType: TextInputType.name,
                           ),
                         ],
                         const SizedBox(height: AppSpacing.xxl),
 
-                        // Submit — full-width pill button
+                        // Submit button
                         SizedBox(
                           width: double.infinity,
-                          height: 48,
+                          height: 50,
                           child: ElevatedButton(
                             onPressed: _isLoading ? null : _handleSubmit,
                             style: AppComponents.primaryButtonStyle(),
@@ -228,30 +198,33 @@ class _LoginScreenState extends State<LoginScreen> {
                                     width: 18,
                                     height: 18,
                                     child: CircularProgressIndicator(
-                                        color: AppColors.onPrimary, strokeWidth: 2),
+                                        color: AppColors.onDark, strokeWidth: 2),
                                   )
                                 : Text(
                                     _isLogin ? 'Sign In' : 'Create Account',
                                     style: AppTypography.buttonMd(
-                                        color: AppColors.onPrimary),
+                                        color: AppColors.onDark),
                                   ),
                           ),
                         ),
-                        const SizedBox(height: AppSpacing.lg),
+                        const SizedBox(height: AppSpacing.xl),
 
                         // Toggle
                         Center(
                           child: GestureDetector(
                             onTap: () => setState(() {
                               _isLogin = !_isLogin;
-                              _error   = null;
+                              _error = null;
                             }),
-                            child: Text(
-                              _isLogin
-                                  ? "Don't have an account?  Sign Up"
-                                  : 'Already have an account?  Sign In',
-                              style: AppTypography.bodySmMedium(
-                                  color: AppColors.brandBlue),
+                            child: MouseRegion(
+                              cursor: SystemMouseCursors.click,
+                              child: Text(
+                                _isLogin
+                                    ? "Don't have an account?  Sign Up"
+                                    : 'Already have an account?  Sign In',
+                                style: AppTypography.bodySmMedium(
+                                    color: AppColors.deepTeal),
+                              ),
                             ),
                           ),
                         ),
@@ -267,18 +240,25 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _trustMark(String text) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 5,
-            height: 5,
-            decoration: const BoxDecoration(
-                color: AppColors.onDarkMuted, shape: BoxShape.circle),
+  Widget _passwordField() => TextField(
+        controller: _passwordCtrl,
+        obscureText: _obscurePassword,
+        style: AppTypography.bodyMd(color: AppColors.ink),
+        decoration: AppComponents.textInput(
+          label: 'Password',
+          prefixIcon: const Icon(Icons.lock_outline_rounded,
+              size: 16, color: AppColors.stone),
+          suffixIcon: GestureDetector(
+            onTap: () => setState(() => _obscurePassword = !_obscurePassword),
+            child: Icon(
+              _obscurePassword
+                  ? Icons.visibility_off_outlined
+                  : Icons.visibility_outlined,
+              size: 16,
+              color: AppColors.stone,
+            ),
           ),
-          const SizedBox(width: AppSpacing.xs),
-          Text(text, style: AppTypography.micro(color: AppColors.onDarkMuted)),
-        ],
+        ),
       );
 
   Widget _formField({
@@ -295,7 +275,144 @@ class _LoginScreenState extends State<LoginScreen> {
         style: AppTypography.bodyMd(color: AppColors.ink),
         decoration: AppComponents.textInput(
           label: label,
-          prefixIcon: Icon(icon, size: 16, color: AppColors.steel),
+          prefixIcon: Icon(icon, size: 16, color: AppColors.stone),
         ),
       );
+}
+
+// ── Left Editorial Panel ───────────────────────────────────────────────────────
+
+class _LeftPanel extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.deepTeal,
+      padding: const EdgeInsets.all(72),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Logo
+          AppComponents.logo(fontSize: 18, darkMode: true),
+
+          // Central editorial content
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+                decoration: BoxDecoration(
+                  color: AppColors.onDark.withOpacity(0.1),
+                  borderRadius: AppRadius.brFull,
+                  border: Border.all(color: AppColors.onDark.withOpacity(0.15)),
+                ),
+                child: Text('ENTERPRISE PLATFORM',
+                    style: AppTypography.microUppercase(
+                        color: AppColors.onDarkMuted)),
+              ),
+              const SizedBox(height: AppSpacing.xxl),
+              Text(
+                'Enterprise\nValuation &\nProperty\nIntelligence',
+                style: AppTypography.displayHeroMd(color: AppColors.onDark)
+                    .copyWith(height: 1.05),
+              ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.1, end: 0),
+              const SizedBox(height: AppSpacing.xxl),
+              Text(
+                'Automated SLA monitoring, value-based balance gates, '
+                'DOCX template token normalization, and Class 3 HSM digital '
+                'signatures for regulatory compliance.',
+                style: AppTypography.bodyMd(color: AppColors.onDarkMuted),
+              ).animate(delay: 200.ms).fadeIn(duration: 600.ms),
+
+              const SizedBox(height: AppSpacing.xxxl),
+
+              // Feature highlights
+              ...[
+                'IBBI Registered Valuers',
+                '20+ Empanelled Banks',
+                'Hyderabad & Secunderabad',
+                'Regulatory Grade Reports',
+              ].map((item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: AppColors.featureOchre,
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(item,
+                            style: AppTypography.bodySmMedium(
+                                color: AppColors.onDarkMuted)),
+                      ],
+                    ),
+                  )),
+            ],
+          ),
+
+          // Bottom tagline
+          Text(
+            'Accurate Valuations.\nProfessional Insights.\nTrusted Decisions.',
+            style: AppTypography.micro(color: AppColors.onDark.withOpacity(0.4)),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Role Hint Tabs (visual only — server assigns roles) ───────────────────────
+
+class _RoleHintTabs extends StatefulWidget {
+  @override
+  State<_RoleHintTabs> createState() => _RoleHintTabsState();
+}
+
+class _RoleHintTabsState extends State<_RoleHintTabs> {
+  int _selected = 0;
+  final _roles = ['Client', 'Analyst', 'Admin'];
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(4),
+      decoration: BoxDecoration(
+        color: AppColors.cardBg,
+        borderRadius: AppRadius.brFull,
+        border: Border.all(color: AppColors.hairline),
+      ),
+      child: Row(
+        children: List.generate(
+          _roles.length,
+          (i) => Expanded(
+            child: GestureDetector(
+              onTap: () => setState(() => _selected = i),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                decoration: BoxDecoration(
+                  color: _selected == i ? AppColors.deepTeal : Colors.transparent,
+                  borderRadius: AppRadius.brFull,
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  _roles[i],
+                  style: AppTypography.buttonMd(
+                    color: _selected == i
+                        ? AppColors.onDark
+                        : AppColors.textMuted,
+                  ).copyWith(fontSize: 13),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
