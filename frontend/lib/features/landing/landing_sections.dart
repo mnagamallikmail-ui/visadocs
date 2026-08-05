@@ -231,6 +231,11 @@ class HeroSection extends StatelessWidget {
   final bool isDesktop;
   final Future<void> Function(String) launchWhatsApp;
 
+  static const _videoAssets = [
+    'assets/videos/hero_animation.mp4',
+    'assets/videos/Create_a_premium_animated_hero.mp4',
+  ];
+
   const HeroSection({
     super.key,
     required this.isDesktop,
@@ -264,7 +269,10 @@ class HeroSection extends StatelessWidget {
                     const SizedBox(width: AppSpacing.xxl),
                     const Expanded(
                       flex: 45,
-                      child: HeroVideoWidget(height: 480),
+                      child: HeroVideoWidget(
+                        videoAssets: _videoAssets,
+                        height: 480,
+                      ),
                     ),
                   ],
                 )
@@ -276,6 +284,7 @@ class HeroSection extends StatelessWidget {
                     SizedBox(height: isTablet ? AppSpacing.xxl : AppSpacing.xl),
                     // Full-width video below hero text on tablet and mobile.
                     HeroVideoWidget(
+                      videoAssets: _videoAssets,
                       height: isTablet ? 360 : 260,
                     ),
                   ],

@@ -6,27 +6,21 @@ import '../../../theme/app_spacing.dart';
 
 /// HeroVideoWidget
 ///
-/// Autoplaying, muted, looping MP4 hero animation.
-/// Replaces the hand-coded valuation dashboard mockup in [HeroSection].
+/// Autoplaying, muted, sequentially cycling MP4 hero player.
 ///
-/// Behaviour:
-/// - Initialises [VideoPlayerController] from bundled asset once in [initState].
-/// - Sets volume to 0 (muted) and loops before calling [play].
-/// - Shows a styled placeholder while the controller is initialising.
-/// - Shows the same placeholder if an error occurs — no technical message
-///   is ever surfaced to the end user.
-/// - Disposes the controller cleanly in [dispose].
-/// - Carries the same flutter_animate entry animation as the old _rightVisual().
+/// Preloads the next video in sequence in the background, then performs
+/// a smooth 250ms cross-fade transition between controllers to eliminate
+/// flicker or blank screens.
 class HeroVideoWidget extends StatefulWidget {
-  /// Asset path of the MP4, relative to the project root (registered in pubspec).
-  final String assetPath;
+  /// Ordered list of video asset paths.
+  final List<String> videoAssets;
 
-  /// Fixed height for the video container. Matches the old dashboard height.
+  /// Height of the video player card.
   final double height;
 
   const HeroVideoWidget({
     super.key,
-    this.assetPath = 'assets/videos/hero_animation.mp4',
+    required this.videoAssets,
     this.height = 480,
   });
 
@@ -35,43 +29,161 @@ class HeroVideoWidget extends StatefulWidget {
 }
 
 class _HeroVideoWidgetState extends State<HeroVideoWidget> {
-  late final VideoPlayerController _controller;
+  int _currentIndex = 0;
+
+  // Double-controller setup to avoid web transition flicker
+  VideoPlayerController? _controllerA;
+  VideoPlayerController? _controllerB;
+
+  // Track active layer
+  bool _isAActive = true;
   bool _initialized = false;
   bool _hasError = false;
-
-  // ── Lifecycle ────────────────────────────────────────────────────────────
+  bool _transitioning = false;
 
   @override
   void initState() {
     super.initState();
-    _initController();
+    _initFirstVideo();
   }
 
-  Future<void> _initController() async {
-    _controller = VideoPlayerController.asset(widget.assetPath);
+  Future<void> _initFirstVideo() async {
+    if (widget.videoAssets.isEmpty) {
+      setState(() => _hasError = true);
+      return;
+    }
+
+    final firstAsset = widget.videoAssets[_currentIndex];
+    _controllerA = VideoPlayerController.asset(firstAsset);
 
     try {
-      await _controller.initialize();
+      await _controllerA!.initialize();
+      await _controllerA!.setVolume(0); // Muted
 
-      // Must mute before play — browsers block unmuted autoplay.
-      await _controller.setVolume(0);
-      await _controller.setLooping(true);
-      await _controller.play();
+      if (widget.videoAssets.length == 1) {
+        await _controllerA!.setLooping(true); // Loop if single
+      } else {
+        _controllerA!.addListener(_videoListener);
+      }
 
-      if (mounted) setState(() => _initialized = true);
+      await _controllerA!.play();
+
+      if (mounted) {
+        setState(() {
+          _initialized = true;
+        });
+      }
+
+      // Preload the next video in sequence
+      _preloadNextVideo();
     } catch (_) {
-      // Silently swallow the error; _hasError triggers the fallback UI.
       if (mounted) setState(() => _hasError = true);
     }
   }
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
+  void _videoListener() {
+    final activeController = _isAActive ? _controllerA : _controllerB;
+    if (activeController == null || _transitioning) return;
+
+    // Check if the current video reached its end
+    if (activeController.value.isInitialized &&
+        activeController.value.position >= activeController.value.duration) {
+      _transitionToNext();
+    }
   }
 
-  // ── Build ────────────────────────────────────────────────────────────────
+  Future<void> _preloadNextVideo() async {
+    if (widget.videoAssets.length <= 1) return;
+
+    final nextIndex = (_currentIndex + 1) % widget.videoAssets.length;
+    final nextAsset = widget.videoAssets[nextIndex];
+    final newController = VideoPlayerController.asset(nextAsset);
+
+    try {
+      await newController.initialize();
+      await newController.setVolume(0); // Muted
+
+      if (mounted) {
+        if (_isAActive) {
+          _controllerB?.dispose();
+          _controllerB = newController;
+        } else {
+          _controllerA?.dispose();
+          _controllerA = newController;
+        }
+      }
+    } catch (_) {
+      // Silently catch preload failures; we will fallback/retry on swap if needed
+    }
+  }
+
+  Future<void> _transitionToNext() async {
+    if (_transitioning || widget.videoAssets.length <= 1) return;
+    _transitioning = true;
+
+    final nextController = _isAActive ? _controllerB : _controllerA;
+    final currentController = _isAActive ? _controllerA : _controllerB;
+
+    // Safety fallback: if background preloading hasn't completed or failed
+    if (nextController == null || !nextController.value.isInitialized) {
+      final nextIndex = (_currentIndex + 1) % widget.videoAssets.length;
+      final nextAsset = widget.videoAssets[nextIndex];
+      final fallbackController = VideoPlayerController.asset(nextAsset);
+
+      try {
+        await fallbackController.initialize();
+        await fallbackController.setVolume(0);
+        if (mounted) {
+          if (_isAActive) {
+            _controllerB = fallbackController;
+          } else {
+            _controllerA = fallbackController;
+          }
+        }
+      } catch (_) {
+        _transitioning = false;
+        return; // Skip swap on error
+      }
+    }
+
+    final readyNextController = _isAActive ? _controllerB! : _controllerA!;
+
+    // Start playing the preloaded video immediately
+    await readyNextController.play();
+    readyNextController.addListener(_videoListener);
+
+    // Cross-fade layers by flipping the active index state
+    if (mounted) {
+      setState(() {
+        _isAActive = !_isAActive;
+        _currentIndex = (_currentIndex + 1) % widget.videoAssets.length;
+      });
+    }
+
+    // Wait for the 250ms cross-fade animation to complete
+    await Future.delayed(const Duration(milliseconds: 250));
+
+    // Pause and rewind the old video, and detach listener
+    if (currentController != null) {
+      currentController.removeListener(_videoListener);
+      await currentController.pause();
+      await currentController.seekTo(Duration.zero);
+    }
+
+    _transitioning = false;
+
+    // Warm up the new next video
+    _preloadNextVideo();
+  }
+
+  @override
+  void dispose() {
+    _controllerA?.removeListener(_videoListener);
+    _controllerB?.removeListener(_videoListener);
+    _controllerA?.dispose();
+    _controllerB?.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -80,8 +192,6 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
     );
   }
 
-  /// Wraps the video shell in the exact same flutter_animate entry animation
-  /// that the old _rightVisual() used — preserving identical hero timing.
   Widget _buildAnimatedShell({required Widget child}) {
     return child
         .animate(delay: 600.ms)
@@ -90,17 +200,10 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
   }
 
   Widget _buildContent() {
-    // Error state — styled fallback, no user-facing technical message.
     if (_hasError) return _buildPlaceholder();
-
-    // Loading state — placeholder matches container styling exactly.
     if (!_initialized) return _buildPlaceholder();
-
-    // Video ready.
     return _buildVideoContainer();
   }
-
-  // ── Video container ──────────────────────────────────────────────────────
 
   Widget _buildVideoContainer() {
     return Container(
@@ -114,24 +217,50 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppRadius.xxl - 1.5),
-        child: SizedBox.expand(
-          child: FittedBox(
-            fit: BoxFit.cover,
-            child: SizedBox(
-              width: _controller.value.size.width,
-              height: _controller.value.size.height,
-              child: VideoPlayer(_controller),
+        child: Stack(
+          children: [
+            // Layer A
+            Positioned.fill(
+              child: AnimatedOpacity(
+                opacity: _isAActive ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                child: _controllerA != null && _controllerA!.value.isInitialized
+                    ? FittedBox(
+                        fit: BoxFit.cover,
+                        child: SizedBox(
+                          width: _controllerA!.value.size.width,
+                          height: _controllerA!.value.size.height,
+                          child: VideoPlayer(_controllerA!),
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
             ),
-          ),
+            // Layer B
+            Positioned.fill(
+              child: AnimatedOpacity(
+                opacity: !_isAActive ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                child: _controllerB != null && _controllerB!.value.isInitialized
+                    ? FittedBox(
+                        fit: BoxFit.cover,
+                        child: SizedBox(
+                          width: _controllerB!.value.size.width,
+                          height: _controllerB!.value.size.height,
+                          child: VideoPlayer(_controllerB!),
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // ── Placeholder ──────────────────────────────────────────────────────────
-
-  /// Minimal placeholder — same card aesthetics as the old dashboard mockup.
-  /// No spinner, no text, no error message — just the branded container shape.
   Widget _buildPlaceholder() {
     return Container(
       height: widget.height,
