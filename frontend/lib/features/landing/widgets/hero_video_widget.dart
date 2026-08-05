@@ -59,6 +59,7 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
     try {
       await _controllerA!.initialize();
       await _controllerA!.setVolume(0); // Muted
+      await _controllerA!.setPlaybackSpeed(0.5);
 
       if (widget.videoAssets.length == 1) {
         await _controllerA!.setLooping(true); // Loop if single
@@ -102,6 +103,7 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
     try {
       await newController.initialize();
       await newController.setVolume(0); // Muted
+      await newController.setPlaybackSpeed(0.5);
 
       if (mounted) {
         if (_isAActive) {
@@ -133,6 +135,7 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
       try {
         await fallbackController.initialize();
         await fallbackController.setVolume(0);
+        await fallbackController.setPlaybackSpeed(0.5);
         if (mounted) {
           if (_isAActive) {
             _controllerB = fallbackController;
@@ -207,7 +210,6 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
 
   Widget _buildVideoContainer() {
     return Container(
-      height: widget.height,
       width: double.infinity,
       decoration: BoxDecoration(
         color: AppColors.cardBg,
@@ -217,59 +219,52 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
       ),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(AppRadius.xxl - 1.5),
-        child: Stack(
-          children: [
-            // Layer A
-            Positioned.fill(
-              child: AnimatedOpacity(
-                opacity: _isAActive ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeInOut,
-                child: _controllerA != null && _controllerA!.value.isInitialized
-                    ? FittedBox(
-                        fit: BoxFit.cover,
-                        child: SizedBox(
-                          width: _controllerA!.value.size.width,
-                          height: _controllerA!.value.size.height,
-                          child: VideoPlayer(_controllerA!),
-                        ),
-                      )
-                    : const SizedBox.shrink(),
+        child: AspectRatio(
+          aspectRatio: (_controllerA != null && _controllerA!.value.isInitialized)
+              ? _controllerA!.value.aspectRatio
+              : 16 / 9,
+          child: Stack(
+            children: [
+              // Layer A
+              Positioned.fill(
+                child: AnimatedOpacity(
+                  opacity: _isAActive ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                  child: _controllerA != null && _controllerA!.value.isInitialized
+                      ? VideoPlayer(_controllerA!)
+                      : const SizedBox.shrink(),
+                ),
               ),
-            ),
-            // Layer B
-            Positioned.fill(
-              child: AnimatedOpacity(
-                opacity: !_isAActive ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 250),
-                curve: Curves.easeInOut,
-                child: _controllerB != null && _controllerB!.value.isInitialized
-                    ? FittedBox(
-                        fit: BoxFit.cover,
-                        child: SizedBox(
-                          width: _controllerB!.value.size.width,
-                          height: _controllerB!.value.size.height,
-                          child: VideoPlayer(_controllerB!),
-                        ),
-                      )
-                    : const SizedBox.shrink(),
+              // Layer B
+              Positioned.fill(
+                child: AnimatedOpacity(
+                  opacity: !_isAActive ? 1.0 : 0.0,
+                  duration: const Duration(milliseconds: 250),
+                  curve: Curves.easeInOut,
+                  child: _controllerB != null && _controllerB!.value.isInitialized
+                      ? VideoPlayer(_controllerB!)
+                      : const SizedBox.shrink(),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildPlaceholder() {
-    return Container(
-      height: widget.height,
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: AppColors.cardBg,
-        borderRadius: BorderRadius.circular(AppRadius.xxl),
-        border: Border.all(color: AppColors.stone.withValues(alpha: 0.6), width: 1.5),
-        boxShadow: AppShadows.subtle,
+    return AspectRatio(
+      aspectRatio: 16 / 9,
+      child: Container(
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: AppColors.cardBg,
+          borderRadius: BorderRadius.circular(AppRadius.xxl),
+          border: Border.all(color: AppColors.stone.withValues(alpha: 0.6), width: 1.5),
+          boxShadow: AppShadows.subtle,
+        ),
       ),
     );
   }

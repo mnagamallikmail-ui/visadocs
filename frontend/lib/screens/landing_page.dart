@@ -48,8 +48,8 @@ class _LandingPageState extends State<LandingPage> {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
-    final isDesktop = w >= 1024;
-    final isTablet = w >= 768 && w < 1024;
+    final isDesktop = w >= 1200;
+    final isTablet = w >= 768 && w < 1200;
 
     return Scaffold(
       key: _scaffoldKey,

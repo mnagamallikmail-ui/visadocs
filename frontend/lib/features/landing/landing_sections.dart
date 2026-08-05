@@ -326,9 +326,9 @@ class HeroSection extends StatelessWidget {
         // Animated rotating words
         AnimatedHeroWords(
           textSize: w >= 1280
-              ? 72
+              ? 64
               : w >= 1024
-                  ? 56
+                  ? 52
                   : w >= 768
                       ? 44
                       : w >= 480
