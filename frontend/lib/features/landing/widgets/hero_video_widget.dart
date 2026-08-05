@@ -103,20 +103,26 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
   // ── Video container ──────────────────────────────────────────────────────
 
   Widget _buildVideoContainer() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(AppRadius.xxl), // 24px
-      child: Container(
-        height: widget.height,
-        width: double.infinity,
-        decoration: BoxDecoration(
-          color: AppColors.cardBg,
-          borderRadius: BorderRadius.circular(AppRadius.xxl),
-          border: Border.all(color: AppColors.hairline),
-          boxShadow: AppShadows.subtle,
-        ),
-        child: AspectRatio(
-          aspectRatio: _controller.value.aspectRatio,
-          child: VideoPlayer(_controller),
+    return Container(
+      height: widget.height,
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: AppColors.cardBg,
+        borderRadius: BorderRadius.circular(AppRadius.xxl),
+        border: Border.all(color: AppColors.stone.withValues(alpha: 0.6), width: 1.5),
+        boxShadow: AppShadows.subtle,
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(AppRadius.xxl - 1.5),
+        child: SizedBox.expand(
+          child: FittedBox(
+            fit: BoxFit.cover,
+            child: SizedBox(
+              width: _controller.value.size.width,
+              height: _controller.value.size.height,
+              child: VideoPlayer(_controller),
+            ),
+          ),
         ),
       ),
     );
@@ -133,7 +139,7 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
       decoration: BoxDecoration(
         color: AppColors.cardBg,
         borderRadius: BorderRadius.circular(AppRadius.xxl),
-        border: Border.all(color: AppColors.hairline),
+        border: Border.all(color: AppColors.stone.withValues(alpha: 0.6), width: 1.5),
         boxShadow: AppShadows.subtle,
       ),
     );
