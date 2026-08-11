@@ -1153,8 +1153,8 @@ class StatsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final stats = [
-      _AnimatedStat(target: 500, suffix: '+', label: 'Reports\nDelivered'),
-      _AnimatedStat(target: 20, suffix: '+', label: 'Bank\nEmpanelments'),
+      _AnimatedStat(customValue: 'Several Thousands of', label: 'Reports'),
+      _AnimatedStat(customValue: 'Empanelled with', label: 'Reputed Banks'),
       _AnimatedStat(target: 10, suffix: '+', label: 'Years of\nExperience'),
       _AnimatedStat(target: 100, suffix: '%', label: 'Client\nSatisfaction'),
     ];
@@ -1209,32 +1209,45 @@ class StatsSection extends StatelessWidget {
 }
 
 class _AnimatedStat extends StatelessWidget {
-  final int target;
-  final String suffix;
+  final int? target;
+  final String? suffix;
+  final String? customValue;
   final String label;
 
   const _AnimatedStat({
-    required this.target,
-    required this.suffix,
+    this.target,
+    this.suffix,
+    this.customValue,
     required this.label,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isCustom = customValue != null;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          '0$suffix',
-          style: AppTypography.statDisplay(color: AppColors.onDark),
-        ).animate(delay: 800.ms).custom(
-              duration: 2000.ms,
-              curve: Curves.easeOutCubic,
-              builder: (_, value, __) => Text(
-                '${(target * value).round()}$suffix',
-                style: AppTypography.statDisplay(color: AppColors.onDark),
-              ),
+        if (isCustom)
+          Text(
+            customValue!,
+            style: AppTypography.statDisplay(color: AppColors.onDark).copyWith(
+              fontSize: customValue!.length > 12 ? 24 : 48,
+              letterSpacing: customValue!.length > 12 ? 0.0 : -1.0,
             ),
+            textAlign: TextAlign.center,
+          ).animate(delay: 800.ms).fadeIn(duration: 600.ms)
+        else
+          Text(
+            '0${suffix ?? ""}',
+            style: AppTypography.statDisplay(color: AppColors.onDark),
+          ).animate(delay: 800.ms).custom(
+                duration: 2000.ms,
+                curve: Curves.easeOutCubic,
+                builder: (_, value, __) => Text(
+                  '${((target ?? 0) * value).round()}${suffix ?? ""}',
+                  style: AppTypography.statDisplay(color: AppColors.onDark),
+                ),
+              ),
         const SizedBox(height: AppSpacing.xs),
         Text(
           label,
