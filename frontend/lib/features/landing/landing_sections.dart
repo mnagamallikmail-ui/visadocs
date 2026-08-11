@@ -317,26 +317,34 @@ class HeroSection extends StatelessWidget {
 
         // Headline line 1
         Text(
-          'Property Valuation\nfor',
+          'Property Valuation',
           style: AppTypography.heroDisplayResponsive(w, color: AppColors.ink),
         ).animate(delay: 150.ms).fadeIn(duration: 600.ms).slideY(begin: 0.1, end: 0, duration: 600.ms),
 
-        const SizedBox(height: 12),
-
-        // Animated rotating words
-        AnimatedHeroWords(
-          textSize: w >= 1280
-              ? 64
-              : w >= 1024
-                  ? 52
-                  : w >= 768
-                      ? 44
-                      : w >= 480
-                          ? 36
-                          : 30,
-          pillColor: AppColors.deepTeal,
-          pillTextColor: AppColors.onDark,
-        ).animate(delay: 400.ms).fadeIn(duration: 600.ms),
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 16,
+          children: [
+            Text(
+              'for',
+              style: AppTypography.heroDisplayResponsive(w, color: AppColors.ink),
+            ).animate(delay: 150.ms).fadeIn(duration: 600.ms).slideY(begin: 0.1, end: 0, duration: 600.ms),
+            // Animated rotating words
+            AnimatedHeroWords(
+              textSize: w >= 1280
+                  ? 64
+                  : w >= 1024
+                      ? 52
+                      : w >= 768
+                          ? 44
+                          : w >= 480
+                              ? 36
+                              : 30,
+              pillColor: AppColors.deepTeal,
+              pillTextColor: AppColors.onDark,
+            ).animate(delay: 400.ms).fadeIn(duration: 600.ms),
+          ],
+        ),
 
         const SizedBox(height: AppSpacing.xxl),
 
