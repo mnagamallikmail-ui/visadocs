@@ -330,7 +330,7 @@ class _LeftPanel extends StatelessWidget {
               // Feature highlights
               ...[
                 'IBBI Registered Valuers',
-                '20+ Empanelled Banks',
+                'Empanelled Banks',
                 'Hyderabad & Secunderabad',
                 'Regulatory Grade Reports',
               ].map((item) => Padding(

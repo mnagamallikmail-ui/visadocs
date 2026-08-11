@@ -416,8 +416,8 @@ class HeroSection extends StatelessWidget {
           runSpacing: AppSpacing.xs,
           children: [
             _trustMark('IBBI Registered Valuers'),
-            _trustMark('20+ Bank Empanelments'),
-            _trustMark('500+ Reports'),
+            _trustMark('Empanelled with Reputed Banks'),
+            _trustMark('Several Thousands of Reports'),
           ],
         ).animate(delay: 1000.ms).fadeIn(duration: 600.ms),
       ],
@@ -786,7 +786,7 @@ class WhyChooseUsSection extends StatelessWidget {
 
   static const _reasons = [
     [Icons.verified_outlined, 'IBBI Registered', 'Our valuers are registered under the Insolvency and Bankruptcy Board of India for all asset classes.'],
-    [Icons.account_balance_outlined, 'Bank Empanelled', 'Empanelled with 20+ leading banks and NBFCs for mortgage and collateral valuations.'],
+    [Icons.account_balance_outlined, 'Bank Empanelled', 'Empanelled with leading banks and NBFCs for mortgage and collateral valuations.'],
     [Icons.speed_outlined, 'Fast Turnaround', '24-48 hour turnaround for standard reports. Expedited service available.'],
     [Icons.gavel_outlined, 'Legally Compliant', 'All reports comply with SEBI, RBI, IBBI, and Customs regulations.'],
     [Icons.support_agent_outlined, 'Expert Team', 'Chartered Engineers and Registered Valuers with 10+ years domain expertise.'],
@@ -1400,7 +1400,7 @@ class FaqSection extends StatelessWidget {
     ],
     [
       'Which banks accept your valuation reports?',
-      'We are empanelled with 20+ banks including State Bank of India, Union Bank, Punjab National Bank, Axis Bank, Central Bank of India, and many more leading lenders.',
+      'We are empanelled with banks including State Bank of India, Union Bank, Punjab National Bank, Axis Bank, Central Bank of India, and many more leading lenders.',
     ],
     [
       'Can you provide valuation for properties outside Hyderabad?',
