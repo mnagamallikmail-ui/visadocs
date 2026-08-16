@@ -1,0 +1,328 @@
+/// Root model representing the parsed OpenXML document structure.
+class StudioDocumentModel {
+  final List<StudioSection> sections;
+  final List<PlaceholderSummaryItem> placeholdersSummary;
+
+  const StudioDocumentModel({
+    this.sections = const [],
+    this.placeholdersSummary = const [],
+  });
+
+  factory StudioDocumentModel.fromJson(Map<String, dynamic> json) {
+    return StudioDocumentModel(
+      sections: (json['sections'] as List<dynamic>?)
+              ?.map((s) => StudioSection.fromJson(s as Map<String, dynamic>))
+              .toList() ??
+          const [],
+      placeholdersSummary: (json['placeholdersSummary'] as List<dynamic>?)
+              ?.map((p) => PlaceholderSummaryItem.fromJson(p as Map<String, dynamic>))
+              .toList() ??
+          const [],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'sections': sections.map((s) => s.toJson()).toList(),
+        'placeholdersSummary': placeholdersSummary.map((p) => p.toJson()).toList(),
+      };
+
+  /// Returns a set of all unique placeholder keys found across the document summary.
+  Set<String> getAllPlaceholderKeys() {
+    return placeholdersSummary.map((p) => p.key).toSet();
+  }
+
+  /// Returns the total occurrence count for a specific placeholder key.
+  int getPlaceholderCount(String key) {
+    for (final item in placeholdersSummary) {
+      if (item.key.toUpperCase() == key.toUpperCase()) {
+        return item.occurrences;
+      }
+    }
+    return 0;
+  }
+}
+
+/// A logical section or chapter in the document.
+class StudioSection {
+  final int sectionIndex;
+  final String title;
+  final List<StudioElement> elements;
+
+  const StudioSection({
+    required this.sectionIndex,
+    required this.title,
+    this.elements = const [],
+  });
+
+  factory StudioSection.fromJson(Map<String, dynamic> json) {
+    final rawElements = json['elements'] as List<dynamic>? ?? const [];
+    final parsedElements = <StudioElement>[];
+
+    for (final elem in rawElements) {
+      if (elem is Map<String, dynamic>) {
+        final type = elem['type']?.toString().toUpperCase() ?? 'PARAGRAPH';
+        if (type == 'TABLE') {
+          parsedElements.add(StudioTable.fromJson(elem));
+        } else {
+          parsedElements.add(StudioParagraph.fromJson(elem));
+        }
+      }
+    }
+
+    return StudioSection(
+      sectionIndex: json['sectionIndex'] as int? ?? 0,
+      title: json['title'] as String? ?? 'General Section',
+      elements: parsedElements,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'sectionIndex': sectionIndex,
+        'title': title,
+        'elements': elements.map((e) => e.toJson()).toList(),
+      };
+}
+
+/// Base class for document body elements (Paragraphs, Tables).
+abstract class StudioElement {
+  final String id;
+  final String type;
+
+  const StudioElement({
+    required this.id,
+    required this.type,
+  });
+
+  Map<String, dynamic> toJson();
+}
+
+/// Represents a formatted paragraph element containing text runs or inline drawings.
+class StudioParagraph extends StudioElement {
+  final String alignment;
+  final List<StudioRun> runs;
+
+  const StudioParagraph({
+    required super.id,
+    this.alignment = 'LEFT',
+    this.runs = const [],
+  }) : super(type: 'PARAGRAPH');
+
+  factory StudioParagraph.fromJson(Map<String, dynamic> json) {
+    return StudioParagraph(
+      id: json['id'] as String? ?? '',
+      alignment: json['alignment'] as String? ?? 'LEFT',
+      runs: (json['runs'] as List<dynamic>?)
+              ?.map((r) => StudioRun.fromJson(r as Map<String, dynamic>))
+              .toList() ??
+          const [],
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'type': 'PARAGRAPH',
+        'id': id,
+        'alignment': alignment,
+        'runs': runs.map((r) => r.toJson()).toList(),
+      };
+
+  /// Returns the concatenated plain text of this paragraph.
+  String get plainText => runs.map((r) => r.text).join();
+}
+
+/// Represents a single styled text fragment or inline image slot within a paragraph.
+class StudioRun {
+  final String text;
+  final bool isPlaceholder;
+  final String? placeholderKey;
+  final bool isBold;
+  final bool isItalic;
+  final double fontSizePt;
+  final String? fontColor;
+  final bool isImage;
+  final bool isImagePresent;
+
+  const StudioRun({
+    this.text = '',
+    this.isPlaceholder = false,
+    this.placeholderKey,
+    this.isBold = false,
+    this.isItalic = false,
+    this.fontSizePt = 11.0,
+    this.fontColor,
+    this.isImage = false,
+    this.isImagePresent = false,
+  });
+
+  factory StudioRun.fromJson(Map<String, dynamic> json) {
+    final type = json['type']?.toString().toUpperCase();
+    if (type == 'IMAGE') {
+      return StudioRun(
+        isImage: true,
+        isImagePresent: json['present'] as bool? ?? true,
+      );
+    }
+
+    return StudioRun(
+      text: json['text'] as String? ?? '',
+      isPlaceholder: json['isPlaceholder'] as bool? ?? false,
+      placeholderKey: json['placeholderKey'] as String?,
+      isBold: json['isBold'] as bool? ?? false,
+      isItalic: json['isItalic'] as bool? ?? false,
+      fontSizePt: (json['fontSizePt'] as num?)?.toDouble() ?? 11.0,
+      fontColor: json['fontColor'] as String?,
+      isImage: false,
+      isImagePresent: false,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    if (isImage) {
+      return {
+        'type': 'IMAGE',
+        'present': isImagePresent,
+      };
+    }
+    return {
+      'text': text,
+      'isPlaceholder': isPlaceholder,
+      if (placeholderKey != null) 'placeholderKey': placeholderKey,
+      'isBold': isBold,
+      'isItalic': isItalic,
+      'fontSizePt': fontSizePt,
+      if (fontColor != null) 'fontColor': fontColor,
+    };
+  }
+}
+
+/// Represents a structured table with rows and cells.
+class StudioTable extends StudioElement {
+  final int rowCount;
+  final int columnCount;
+  final List<StudioTableRow> rows;
+
+  const StudioTable({
+    required super.id,
+    this.rowCount = 0,
+    this.columnCount = 0,
+    this.rows = const [],
+  }) : super(type: 'TABLE');
+
+  factory StudioTable.fromJson(Map<String, dynamic> json) {
+    return StudioTable(
+      id: json['id'] as String? ?? '',
+      rowCount: json['rowCount'] as int? ?? 0,
+      columnCount: json['columnCount'] as int? ?? 0,
+      rows: (json['rows'] as List<dynamic>?)
+              ?.map((r) => StudioTableRow.fromJson(r as Map<String, dynamic>))
+              .toList() ??
+          const [],
+    );
+  }
+
+  @override
+  Map<String, dynamic> toJson() => {
+        'type': 'TABLE',
+        'id': id,
+        'rowCount': rowCount,
+        'columnCount': columnCount,
+        'rows': rows.map((r) => r.toJson()).toList(),
+      };
+}
+
+/// Represents a single row in a table.
+class StudioTableRow {
+  final int rowIndex;
+  final List<StudioTableCell> cells;
+
+  const StudioTableRow({
+    required this.rowIndex,
+    this.cells = const [],
+  });
+
+  factory StudioTableRow.fromJson(Map<String, dynamic> json) {
+    return StudioTableRow(
+      rowIndex: json['rowIndex'] as int? ?? 0,
+      cells: (json['cells'] as List<dynamic>?)
+              ?.map((c) => StudioTableCell.fromJson(c as Map<String, dynamic>))
+              .toList() ??
+          const [],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'rowIndex': rowIndex,
+        'cells': cells.map((c) => c.toJson()).toList(),
+      };
+}
+
+/// Represents a cell inside a table row with column span and vertical merge status.
+class StudioTableCell {
+  final String cellId;
+  final int colSpan;
+  final String vMerge; // "restart", "continue", or "none"
+  final List<StudioParagraph> paragraphs;
+
+  const StudioTableCell({
+    required this.cellId,
+    this.colSpan = 1,
+    this.vMerge = 'none',
+    this.paragraphs = const [],
+  });
+
+  factory StudioTableCell.fromJson(Map<String, dynamic> json) {
+    return StudioTableCell(
+      cellId: json['cellId'] as String? ?? '',
+      colSpan: json['colSpan'] as int? ?? 1,
+      vMerge: json['vMerge'] as String? ?? 'none',
+      paragraphs: (json['paragraphs'] as List<dynamic>?)
+              ?.map((p) => StudioParagraph.fromJson(p as Map<String, dynamic>))
+              .toList() ??
+          const [],
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'cellId': cellId,
+        'colSpan': colSpan,
+        'vMerge': vMerge,
+        'paragraphs': paragraphs.map((p) => p.toJson()).toList(),
+      };
+
+  /// Whether this cell is the top master of a vertically merged set.
+  bool get isVerticalMergeMaster => vMerge.toLowerCase() == 'restart';
+
+  /// Whether this cell is an occluded continuation of a vertical merge from above.
+  bool get isVerticalMergeContinuation => vMerge.toLowerCase() == 'continue';
+}
+
+/// Metadata item describing an extracted placeholder, occurrence count, and field type.
+class PlaceholderSummaryItem {
+  final String key;
+  final String label;
+  final int occurrences;
+  final String type; // TEXT, NUMBER, DATE, IMAGE
+
+  const PlaceholderSummaryItem({
+    required this.key,
+    required this.label,
+    this.occurrences = 1,
+    this.type = 'TEXT',
+  });
+
+  factory PlaceholderSummaryItem.fromJson(Map<String, dynamic> json) {
+    return PlaceholderSummaryItem(
+      key: json['key'] as String? ?? '',
+      label: json['label'] as String? ?? '',
+      occurrences: json['occurrences'] as int? ?? 1,
+      type: json['type'] as String? ?? 'TEXT',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'key': key,
+        'label': label,
+        'occurrences': occurrences,
+        'type': type,
+      };
+}

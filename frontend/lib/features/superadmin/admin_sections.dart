@@ -10,6 +10,7 @@ import '../../theme/app_typography.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_components.dart';
 import '../../services/api_service.dart';
+import '../document_studio/document_studio_screen.dart';
 
 // ─── Shared helpers ───────────────────────────────────────────
 
@@ -1492,6 +1493,29 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                       const SizedBox(width: 16),
                       Row(
                         children: [
+                          ElevatedButton.icon(
+                            icon: const Icon(Icons.auto_stories_outlined, size: 16),
+                            label: const Text('Open in Studio'),
+                            onPressed: () {
+                              final rawId = t['id'];
+                              final int parsedId = rawId is int ? rawId : int.parse(rawId.toString());
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder: (_) => DocumentStudioScreen(
+                                    templateId: parsedId,
+                                    templateName: t['name']?.toString(),
+                                  ),
+                                ),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: AppColors.tealLight,
+                              foregroundColor: AppColors.deepTeal,
+                              elevation: 0,
+                              side: BorderSide(color: AppColors.deepTeal.withValues(alpha: 0.3)),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
                           if (!isActive) ...[
                             ElevatedButton(
                               onPressed: () => _showTemplatePreviewDialog(t),

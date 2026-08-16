@@ -6,6 +6,7 @@ import com.provaluer.model.DocumentStudioConfig;
 import com.provaluer.security.UserDetailsImpl;
 import com.provaluer.service.DocumentStudioService;
 import com.provaluer.service.FeatureFlagService;
+import com.provaluer.service.TemplateQuestionSyncService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,6 +26,9 @@ public class DocumentStudioController {
 
     @Autowired
     private FeatureFlagService featureFlagService;
+
+    @Autowired
+    private TemplateQuestionSyncService syncService;
 
     private UserDetailsImpl getCurrentPrincipal() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -123,6 +127,35 @@ public class DocumentStudioController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to save studio configuration: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/v1/studio/templates/{id}/publish-intake
+     * Synchronizes customized Document Studio placeholder questions into the central
+     * template questions dictionary and refreshes Template.fieldMapping schema.
+     */
+    @PostMapping("/templates/{id}/publish-intake")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> publishToIntake(@PathVariable Long id) {
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null || !featureFlagService.isStudioEnabled(principal)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Document Studio is currently disabled or restricted for your role."));
+        }
+
+        try {
+            TemplateQuestionSyncService.SyncResult result = syncService.syncTemplateQuestions(id, principal.getId());
+            return ResponseEntity.ok(result);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to publish template questions to intake: " + e.getMessage()));
         }
     }
 }
