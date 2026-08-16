@@ -2,20 +2,32 @@ package com.provaluer.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.provaluer.dto.SaveStudioConfigRequest;
+import com.provaluer.dto.VisualPreviewResponse;
 import com.provaluer.model.DocumentStudioConfig;
+import com.provaluer.model.Template;
+import com.provaluer.repository.TemplateRepository;
 import com.provaluer.security.UserDetailsImpl;
+import com.provaluer.service.DocxCoordinateExtractor;
+import com.provaluer.service.DocxPreviewGenerator;
 import com.provaluer.service.DocumentStudioService;
 import com.provaluer.service.FeatureFlagService;
 import com.provaluer.service.TemplateQuestionSyncService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.CacheControl;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
+import java.util.concurrent.TimeUnit;
 
 @RestController
 @RequestMapping("/api/v1/studio")
@@ -29,6 +41,15 @@ public class DocumentStudioController {
 
     @Autowired
     private TemplateQuestionSyncService syncService;
+
+    @Autowired
+    private DocxPreviewGenerator previewGenerator;
+
+    @Autowired
+    private DocxCoordinateExtractor coordinateExtractor;
+
+    @Autowired
+    private TemplateRepository templateRepository;
 
     private UserDetailsImpl getCurrentPrincipal() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -156,6 +177,99 @@ public class DocumentStudioController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(Map.of("error", "Failed to publish template questions to intake: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * GET /api/v1/studio/templates/{id}/visual-preview
+     * Generates or retrieves the pixel-perfect visual preview page assets and normalized placeholder coordinates.
+     */
+    @GetMapping("/templates/{id}/visual-preview")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SPA', 'PA')")
+    public ResponseEntity<?> getVisualPreview(@PathVariable Long id, @RequestParam(defaultValue = "false") boolean force) {
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null || !featureFlagService.isStudioEnabled(principal)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Document Studio is currently disabled or restricted for your role."));
+        }
+
+        Template template = templateRepository.findById(id).orElse(null);
+        if (template == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "Template not found with ID: " + id));
+        }
+
+        byte[] docxBytes = template.getTemplateContent();
+        if (docxBytes == null || docxBytes.length == 0) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body(Map.of("error", "Template has no binary document content"));
+        }
+
+        try {
+            // 1. Generate/load 200 DPI preview page images
+            DocxPreviewGenerator.PreviewMetadata metadata = previewGenerator.generatePreview(id, docxBytes, force);
+
+            // 2. Generate PDF bytes to extract normalized coordinates
+            byte[] pdfBytes = previewGenerator.convertDocxToPdf(id, docxBytes);
+            Map<Integer, List<VisualPreviewResponse.VisualPlaceholder>> coordinatesMap =
+                    coordinateExtractor.extractCoordinates(pdfBytes);
+
+            // 3. Assemble VisualPreviewResponse DTO
+            VisualPreviewResponse.PageDimensions dims = new VisualPreviewResponse.PageDimensions(
+                    metadata.getWidthPt(),
+                    metadata.getHeightPt(),
+                    metadata.getAspectRatio()
+            );
+
+            List<VisualPreviewResponse.VisualPage> pages = new ArrayList<>();
+            for (DocxPreviewGenerator.PageAsset pageAsset : metadata.getPages()) {
+                int pIdx = pageAsset.getPageIndex();
+                List<VisualPreviewResponse.VisualPlaceholder> placeholders =
+                        coordinatesMap.getOrDefault(pIdx, Collections.emptyList());
+
+                pages.add(new VisualPreviewResponse.VisualPage(
+                        pIdx,
+                        pageAsset.getImageUrl(),
+                        placeholders
+                ));
+            }
+
+            VisualPreviewResponse response = new VisualPreviewResponse(
+                    id,
+                    metadata.getTotalPages(),
+                    dims,
+                    pages
+            );
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to generate visual preview: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * GET /api/v1/studio/templates/{id}/pages/{pageIndex}.png
+     * Streams a high-DPI rendered page image tile from the preview cache.
+     */
+    @GetMapping(value = "/templates/{id}/pages/{pageIndex}.png", produces = MediaType.IMAGE_PNG_VALUE)
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SPA', 'PA')")
+    public ResponseEntity<byte[]> getPageImage(@PathVariable Long id, @PathVariable int pageIndex) {
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null || !featureFlagService.isStudioEnabled(principal)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        try {
+            byte[] imageBytes = previewGenerator.getPageImage(id, pageIndex);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"page_" + pageIndex + ".png\"")
+                    .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS).cachePublic())
+                    .body(imageBytes);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }

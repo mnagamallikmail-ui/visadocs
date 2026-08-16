@@ -2,12 +2,13 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
-import '../../theme/app_components.dart';
 import 'models/studio_document_model.dart';
 import 'models/calculation_table_model.dart';
 import 'providers/document_studio_provider.dart';
+import 'providers/visual_preview_provider.dart';
 import 'widgets/placeholder_editor_widget.dart';
 import 'widgets/table_calculation_editor_widget.dart';
+import 'widgets/studio_page_canvas_widget.dart';
 
 class DocumentStudioScreen extends StatefulWidget {
   final int templateId;
@@ -24,25 +25,31 @@ class DocumentStudioScreen extends StatefulWidget {
 }
 
 class _DocumentStudioScreenState extends State<DocumentStudioScreen> {
-  late final DocumentStudioProvider _provider;
+  late final DocumentStudioProvider _studioProvider;
+  late final VisualPreviewProvider _previewProvider;
   String _activeTypeFilter = 'ALL';
   bool _isRecentlyPublished = false;
 
   @override
   void initState() {
     super.initState();
-    _provider = DocumentStudioProvider();
-    _provider.loadTemplateStructure(widget.templateId);
+    _studioProvider = DocumentStudioProvider();
+    _previewProvider = VisualPreviewProvider();
+
+    // Concurrently load document structure and pixel-perfect visual preview
+    _studioProvider.loadTemplateStructure(widget.templateId);
+    _previewProvider.loadVisualPreview(widget.templateId);
   }
 
   @override
   void dispose() {
-    _provider.dispose();
+    _studioProvider.dispose();
+    _previewProvider.dispose();
     super.dispose();
   }
 
   Future<void> _handleSave() async {
-    final success = await _provider.saveConfig(widget.templateId);
+    final success = await _studioProvider.saveConfig(widget.templateId);
     if (!mounted) return;
 
     if (success) {
@@ -56,7 +63,7 @@ class _DocumentStudioScreenState extends State<DocumentStudioScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_provider.errorMessage ?? 'Failed to save configuration'),
+          content: Text(_studioProvider.errorMessage ?? 'Failed to save configuration'),
           backgroundColor: AppColors.brandRedDark,
           duration: const Duration(seconds: 3),
         ),
@@ -105,7 +112,7 @@ class _DocumentStudioScreenState extends State<DocumentStudioScreen> {
 
     if (shouldPublish != true) return;
 
-    final success = await _provider.publishToIntake(widget.templateId);
+    final success = await _studioProvider.publishToIntake(widget.templateId);
     if (!mounted) return;
 
     if (success) {
@@ -120,7 +127,7 @@ class _DocumentStudioScreenState extends State<DocumentStudioScreen> {
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_provider.errorMessage ?? 'Failed to publish questionnaire'),
+          content: Text(_studioProvider.errorMessage ?? 'Failed to publish questionnaire'),
           backgroundColor: AppColors.brandRedDark,
           duration: const Duration(seconds: 3),
         ),
@@ -130,46 +137,33 @@ class _DocumentStudioScreenState extends State<DocumentStudioScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return ChangeNotifierProvider.value(
-      value: _provider,
+    return MultiProvider(
+      providers: [
+        ChangeNotifierProvider.value(value: _studioProvider),
+        ChangeNotifierProvider.value(value: _previewProvider),
+      ],
       child: Consumer<DocumentStudioProvider>(
         builder: (context, provider, _) {
           return Scaffold(
             backgroundColor: AppColors.canvas,
             appBar: _buildAppBar(context, provider),
-            body: Builder(
-              builder: (context) {
-                if (provider.isLoading) {
-                  return _buildLoadingState();
-                }
+            body: Row(
+              children: [
+                // ─── Left Pixel-Perfect Document Canvas Viewport ──────
+                Expanded(
+                  flex: 7,
+                  child: StudioPageCanvasWidget(templateId: widget.templateId),
+                ),
 
-                if (provider.errorMessage != null) {
-                  return _buildErrorState(provider);
-                }
+                // Vertical Divider
+                Container(width: 1, color: AppColors.hairline),
 
-                if (!provider.hasDocument) {
-                  return _buildEmptyState();
-                }
-
-                return Row(
-                  children: [
-                    // Main Document Canvas Viewport
-                    Expanded(
-                      flex: 7,
-                      child: _buildDocumentCanvas(provider),
-                    ),
-
-                    // Vertical Divider
-                    Container(width: 1, color: AppColors.hairline),
-
-                    // Right Tri-Mode Inspector Panel
-                    SizedBox(
-                      width: 380,
-                      child: _buildInspectorPanel(provider),
-                    ),
-                  ],
-                );
-              },
+                // ─── Right Tri-Mode Inspector & Catalog ───────────────
+                SizedBox(
+                  width: 380,
+                  child: _buildInspectorPanel(provider),
+                ),
+              ],
             ),
           );
         },
@@ -318,440 +312,14 @@ class _DocumentStudioScreenState extends State<DocumentStudioScreen> {
         const SizedBox(width: 8),
         IconButton(
           icon: const Icon(Icons.refresh_rounded, color: AppColors.slate),
-          tooltip: 'Reload Structure',
-          onPressed: () => provider.loadTemplateStructure(widget.templateId),
+          tooltip: 'Reload Structure & Preview',
+          onPressed: () {
+            provider.loadTemplateStructure(widget.templateId);
+            _previewProvider.loadVisualPreview(widget.templateId, force: true);
+          },
         ),
         const SizedBox(width: 16),
       ],
-    );
-  }
-
-  Widget _buildLoadingState() {
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const CircularProgressIndicator(color: AppColors.deepTeal),
-          const SizedBox(height: 16),
-          Text(
-            'Parsing OpenXML Document Structure...',
-            style: AppTypography.bodyMdMedium(color: AppColors.ink),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Extracting sections, tables, typography, and placeholder tokens',
-            style: AppTypography.bodySm().copyWith(color: AppColors.slate),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildErrorState(DocumentStudioProvider provider) {
-    return Center(
-      child: Container(
-        constraints: const BoxConstraints(maxWidth: 500),
-        padding: const EdgeInsets.all(32),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.hairline),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 16,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: const BoxDecoration(
-                color: AppColors.errorBg,
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(Icons.error_outline_rounded, color: AppColors.brandRedDark, size: 36),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'Failed to Load Document Studio',
-              style: AppTypography.heading4().copyWith(color: AppColors.ink),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              provider.errorMessage ?? 'An unknown error occurred.',
-              textAlign: TextAlign.center,
-              style: AppTypography.bodySm().copyWith(color: AppColors.slate, height: 1.5),
-            ),
-            const SizedBox(height: 24),
-            ElevatedButton.icon(
-              icon: const Icon(Icons.refresh_rounded, size: 18),
-              label: const Text('Try Again'),
-              onPressed: () => provider.loadTemplateStructure(widget.templateId),
-              style: AppComponents.primaryButton,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEmptyState() {
-    return Center(
-      child: AppComponents.emptyState(
-        icon: Icons.description_outlined,
-        title: 'Empty Document Structure',
-        description: 'The template contains no sections or text elements to display.',
-        primaryButtonText: 'Reload',
-        onPrimaryAction: () => _provider.loadTemplateStructure(widget.templateId),
-      ),
-    );
-  }
-
-  Widget _buildDocumentCanvas(DocumentStudioProvider provider) {
-    final model = provider.documentModel!;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(32),
-      child: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 820),
-          padding: const EdgeInsets.fromLTRB(48, 56, 48, 56),
-          decoration: BoxDecoration(
-            color: AppColors.surface,
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: AppColors.hairline),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 20,
-                offset: const Offset(0, 8),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Document Canvas Header Info
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'DOCUMENT PREVIEW',
-                    style: AppTypography.caption(color: AppColors.slate).copyWith(
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.2,
-                    ),
-                  ),
-                  Text(
-                    '${model.sections.length} Sections • ${model.placeholdersSummary.length} Placeholders',
-                    style: AppTypography.caption(color: AppColors.steel),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Container(height: 1, color: AppColors.hairlineSoft),
-              const SizedBox(height: 32),
-
-              // Render Sections
-              for (int i = 0; i < model.sections.length; i++) ...[
-                _buildSectionItem(i, model.sections[i], provider),
-                if (i < model.sections.length - 1) ...[
-                  const SizedBox(height: 32),
-                  Container(height: 1, color: AppColors.hairlineSoft),
-                  const SizedBox(height: 32),
-                ],
-              ],
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSectionItem(int sectionIndex, StudioSection section, DocumentStudioProvider provider) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Section Title
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceSoft,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: AppColors.hairlineSoft),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.bookmark_outline_rounded, size: 16, color: AppColors.deepTeal),
-              const SizedBox(width: 8),
-              Text(
-                section.title,
-                style: AppTypography.bodyMdMedium(color: AppColors.ink).copyWith(fontWeight: FontWeight.w700),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 16),
-
-        // Section Elements
-        for (int eIdx = 0; eIdx < section.elements.length; eIdx++) ...[
-          if (section.elements[eIdx] is StudioParagraph)
-            _buildParagraph(section.elements[eIdx] as StudioParagraph, provider)
-          else if (section.elements[eIdx] is StudioTable)
-            _buildTable('tbl_${sectionIndex}_$eIdx', section.elements[eIdx] as StudioTable, provider),
-          const SizedBox(height: 12),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildParagraph(StudioParagraph paragraph, DocumentStudioProvider provider) {
-    TextAlign align = TextAlign.left;
-    if (paragraph.alignment == 'CENTER') align = TextAlign.center;
-    if (paragraph.alignment == 'RIGHT') align = TextAlign.right;
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Text.rich(
-        TextSpan(
-          children: paragraph.runs.map((run) => _buildRunSpan(run, provider)).toList(),
-        ),
-        textAlign: align,
-      ),
-    );
-  }
-
-  InlineSpan _buildRunSpan(StudioRun run, DocumentStudioProvider provider) {
-    if (run.isImage) {
-      return WidgetSpan(
-        alignment: PlaceholderAlignment.middle,
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceSoft,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: AppColors.hairline),
-          ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(Icons.image_outlined, size: 16, color: AppColors.slate),
-              const SizedBox(width: 6),
-              Text('Image Slot', style: AppTypography.caption(color: AppColors.slate)),
-            ],
-          ),
-        ),
-      );
-    }
-
-    if (run.isPlaceholder && run.placeholderKey != null) {
-      final isSelected = provider.selectedPlaceholderKey?.toUpperCase() == run.placeholderKey!.toUpperCase();
-
-      return WidgetSpan(
-        alignment: PlaceholderAlignment.middle,
-        child: GestureDetector(
-          onTap: () {
-            if (isSelected) {
-              provider.clearSelection();
-            } else {
-              provider.selectPlaceholder(run.placeholderKey!);
-            }
-          },
-          child: MouseRegion(
-            cursor: SystemMouseCursors.click,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 150),
-              margin: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: isSelected ? AppColors.deepTeal : AppColors.tealLight,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: isSelected ? AppColors.deepTealPressed : AppColors.deepTeal.withValues(alpha: 0.3),
-                  width: isSelected ? 1.5 : 1.0,
-                ),
-                boxShadow: isSelected
-                    ? [
-                        BoxShadow(
-                          color: AppColors.deepTeal.withValues(alpha: 0.3),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
-                        ),
-                      ]
-                    : null,
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.tag_rounded,
-                    size: 13,
-                    color: isSelected ? Colors.white : AppColors.deepTeal,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    run.text,
-                    style: TextStyle(
-                      fontFamily: 'monospace',
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: isSelected ? Colors.white : AppColors.deepTeal,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      );
-    }
-
-    Color textColor = AppColors.ink;
-    if (run.fontColor != null && run.fontColor!.startsWith('#') && run.fontColor!.length == 7) {
-      try {
-        textColor = Color(int.parse(run.fontColor!.replaceFirst('#', '0xFF')));
-      } catch (_) {}
-    }
-
-    return TextSpan(
-      text: run.text,
-      style: TextStyle(
-        fontSize: run.fontSizePt > 0 ? run.fontSizePt : 11.0,
-        fontWeight: run.isBold ? FontWeight.w700 : FontWeight.w400,
-        fontStyle: run.isItalic ? FontStyle.italic : FontStyle.normal,
-        color: textColor,
-        height: 1.6,
-      ),
-    );
-  }
-
-  Widget _buildTable(String tableId, StudioTable table, DocumentStudioProvider provider) {
-    if (table.rows.isEmpty) return const SizedBox.shrink();
-
-    final isSelected = provider.selectedTableId == tableId;
-    final tableConfig = provider.getTableConfig(tableId);
-    final hasDynamicRules = tableConfig?.hasActiveRules ?? false;
-
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      child: GestureDetector(
-        onTap: () {
-          if (isSelected) {
-            provider.clearSelection();
-          } else {
-            provider.selectTable(tableId);
-          }
-        },
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          margin: const EdgeInsets.symmetric(vertical: 10),
-          padding: const EdgeInsets.all(4),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.tealLight.withValues(alpha: 0.3) : AppColors.surface,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: isSelected ? AppColors.deepTeal : (hasDynamicRules ? AppColors.deepTeal.withValues(alpha: 0.4) : AppColors.hairline),
-              width: isSelected ? 2.0 : 1.0,
-            ),
-            boxShadow: isSelected
-                ? [
-                    BoxShadow(
-                      color: AppColors.deepTeal.withValues(alpha: 0.18),
-                      blurRadius: 12,
-                      offset: const Offset(0, 4),
-                    ),
-                  ]
-                : null,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Dynamic Table Header Badge if formulas are configured
-              if (hasDynamicRules || isSelected)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(6, 4, 6, 6),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: AppColors.tealLight,
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.3)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.functions_rounded, size: 12, color: AppColors.deepTeal),
-                            const SizedBox(width: 4),
-                            Text(
-                              'fx Dynamic Table',
-                              style: AppTypography.caption(color: AppColors.deepTeal).copyWith(
-                                fontWeight: FontWeight.w700,
-                                fontSize: 10,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      Text(
-                        tableId,
-                        style: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: AppColors.slate),
-                      ),
-                    ],
-                  ),
-                ),
-
-              // OpenXML Rendered Table Structure
-              Table(
-                border: TableBorder.all(color: AppColors.hairline, width: 1),
-                defaultVerticalAlignment: TableCellVerticalAlignment.middle,
-                children: table.rows.map((row) {
-                  return TableRow(
-                    decoration: BoxDecoration(
-                      color: row.rowIndex == 0 ? AppColors.surfaceSoft : Colors.transparent,
-                    ),
-                    children: row.cells.map((cell) {
-                      if (cell.isVerticalMergeContinuation) {
-                        return Container(
-                          padding: const EdgeInsets.all(8),
-                          color: AppColors.surfaceSoft.withValues(alpha: 0.5),
-                          child: Center(
-                            child: Text('↑ Merged', style: AppTypography.caption(color: AppColors.stone)),
-                          ),
-                        );
-                      }
-
-                      return Container(
-                        padding: const EdgeInsets.all(10),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            if (cell.colSpan > 1) ...[
-                              Text('Span: ${cell.colSpan} cols', style: AppTypography.caption(color: AppColors.steel)),
-                              const SizedBox(height: 4),
-                            ],
-                            for (final cp in cell.paragraphs)
-                              _buildParagraph(cp, provider),
-                          ],
-                        ),
-                      );
-                    }).toList(),
-                  );
-                }).toList(),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 
@@ -766,7 +334,6 @@ class _DocumentStudioScreenState extends State<DocumentStudioScreen> {
             hasSummaryRow: false,
           );
 
-      // Compute max columns from table
       int totalColumns = 4;
       if (provider.documentModel != null) {
         for (final section in provider.documentModel!.sections) {
@@ -782,7 +349,6 @@ class _DocumentStudioScreenState extends State<DocumentStudioScreen> {
 
       return Column(
         children: [
-          // Sub-header to go back to catalog
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: const BoxDecoration(
@@ -808,8 +374,6 @@ class _DocumentStudioScreenState extends State<DocumentStudioScreen> {
               ],
             ),
           ),
-
-          // Table Calculation Form
           Expanded(
             child: TableCalculationEditorWidget(
               config: currentConfig,
@@ -830,7 +394,6 @@ class _DocumentStudioScreenState extends State<DocumentStudioScreen> {
 
       return Column(
         children: [
-          // Sub-header to go back to catalog
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: const BoxDecoration(
@@ -856,8 +419,6 @@ class _DocumentStudioScreenState extends State<DocumentStudioScreen> {
               ],
             ),
           ),
-
-          // Editor Form Widget
           Expanded(
             child: PlaceholderEditorWidget(
               placeholderKey: selectedKey,
@@ -875,7 +436,7 @@ class _DocumentStudioScreenState extends State<DocumentStudioScreen> {
     }
 
     // Mode A: Default Catalog List View
-    final summary = provider.documentModel!.placeholdersSummary;
+    final summary = provider.documentModel?.placeholdersSummary ?? [];
     final filtered = _activeTypeFilter == 'ALL'
         ? summary
         : summary.where((p) => p.type.toUpperCase() == _activeTypeFilter).toList();
@@ -885,7 +446,6 @@ class _DocumentStudioScreenState extends State<DocumentStudioScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
           Padding(
             padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
             child: Column(
