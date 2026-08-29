@@ -35,14 +35,9 @@ public class DocxPreviewGenerator {
     private String previewCacheBaseDir;
 
     /**
-     * Generates or retrieves cached preview assets for a given template byte array.
-     *
-     * @param templateId       Unique template identifier.
-     * @param docxBytes        Raw binary byte array of the DOCX template.
-     * @param forceRegenerate  Whether to invalidate existing cache and recreate page images.
-     * @return PreviewMetadata containing page count, dimensions, and image paths.
+     * Generates or retrieves cached preview assets for a given template byte array and version.
      */
-    public PreviewMetadata generatePreview(Long templateId, byte[] docxBytes, boolean forceRegenerate) {
+    public PreviewMetadata generatePreview(Long templateId, Integer version, byte[] docxBytes, boolean forceRegenerate) {
         if (templateId == null) {
             throw new IllegalArgumentException("Template ID must not be null");
         }
@@ -50,7 +45,8 @@ public class DocxPreviewGenerator {
             throw new IllegalArgumentException("DOCX template byte array must not be empty");
         }
 
-        Path templateCacheDir = Paths.get(previewCacheBaseDir, String.valueOf(templateId));
+        String cacheKey = (version != null && version > 0) ? (templateId + "_v" + version) : String.valueOf(templateId);
+        Path templateCacheDir = Paths.get(previewCacheBaseDir, cacheKey);
 
         try {
             Files.createDirectories(templateCacheDir);
@@ -61,12 +57,12 @@ public class DocxPreviewGenerator {
 
         // Check if cached pages already exist
         if (!forceRegenerate && isCacheValid(templateCacheDir)) {
-            log.debug("Serving cached preview assets for template #{}", templateId);
+            log.debug("Serving cached preview assets for template #{} (version: {})", templateId, version);
             return loadMetadataFromCache(templateId, templateCacheDir);
         }
 
-        log.info("Generating pixel-perfect visual preview for template #{} ({} bytes, DPI: {})",
-                templateId, docxBytes.length, DEFAULT_DPI);
+        log.info("Generating pixel-perfect visual preview for template #{} v{} ({} bytes, DPI: {})",
+                templateId, version, docxBytes.length, DEFAULT_DPI);
 
         // 1. Convert DOCX to PDF bytes
         byte[] pdfBytes = convertDocxToPdf(templateId, docxBytes);
@@ -75,17 +71,24 @@ public class DocxPreviewGenerator {
         return renderPdfToImages(templateId, pdfBytes, templateCacheDir);
     }
 
+    public PreviewMetadata generatePreview(Long templateId, byte[] docxBytes, boolean forceRegenerate) {
+        return generatePreview(templateId, 1, docxBytes, forceRegenerate);
+    }
+
     /**
-     * Retrieves the raw PNG image bytes for a specific template page.
-     *
-     * @param templateId Unique template identifier.
-     * @param pageIndex  0-indexed page number.
-     * @return Raw PNG byte array.
+     * Retrieves the raw PNG image bytes for a specific template page and version.
      */
-    public byte[] getPageImage(Long templateId, int pageIndex) {
-        Path imagePath = Paths.get(previewCacheBaseDir, String.valueOf(templateId), "page_" + pageIndex + ".png");
+    public byte[] getPageImage(Long templateId, Integer version, int pageIndex) {
+        String cacheKey = (version != null && version > 0) ? (templateId + "_v" + version) : String.valueOf(templateId);
+        Path imagePath = Paths.get(previewCacheBaseDir, cacheKey, "page_" + pageIndex + ".png");
+        
+        // Fallback to non-versioned directory if versioned file not found
+        if (!Files.exists(imagePath) && version != null && version > 1) {
+            imagePath = Paths.get(previewCacheBaseDir, String.valueOf(templateId), "page_" + pageIndex + ".png");
+        }
+
         if (!Files.exists(imagePath)) {
-            throw new NoSuchElementException("Preview image not found for template #" + templateId + " page " + pageIndex);
+            throw new NoSuchElementException("Preview image not found for template #" + templateId + " v" + version + " page " + pageIndex);
         }
         try {
             return Files.readAllBytes(imagePath);
@@ -93,6 +96,10 @@ public class DocxPreviewGenerator {
             log.error("Failed to read preview image at {}: {}", imagePath, e.getMessage());
             throw new IllegalStateException("Failed to read page image: " + e.getMessage(), e);
         }
+    }
+
+    public byte[] getPageImage(Long templateId, int pageIndex) {
+        return getPageImage(templateId, null, pageIndex);
     }
 
     /**
@@ -194,9 +201,9 @@ public class DocxPreviewGenerator {
     }
 
     /**
-     * Renders a PDF document into 200 DPI PNG images and stores them in the cache directory.
+     * Renders loaded PDF document pages into high-DPI (200 DPI) PNG image files.
      */
-    private PreviewMetadata renderPdfToImages(Long templateId, byte[] pdfBytes, Path cacheDir) {
+    public PreviewMetadata renderPdfToImages(Long templateId, byte[] pdfBytes, Path cacheDir) {
         try (PDDocument document = Loader.loadPDF(pdfBytes)) {
             PDFRenderer renderer = new PDFRenderer(document);
             int totalPages = document.getNumberOfPages();

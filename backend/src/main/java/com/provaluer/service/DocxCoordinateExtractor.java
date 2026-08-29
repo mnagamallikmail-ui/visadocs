@@ -26,6 +26,54 @@ public class DocxCoordinateExtractor {
 
     private static final Logger log = LoggerFactory.getLogger(DocxCoordinateExtractor.class);
 
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+
+    /**
+     * Retrieves coordinates from storage/preview-cache/{templateId}_v{version}/coordinates.json if present;
+     * otherwise extracts from PDF bytes, caches to disk, and returns.
+     */
+    public Map<Integer, List<VisualPreviewResponse.VisualPlaceholder>> getOrExtractCoordinates(
+            Long templateId, Integer version, byte[] pdfBytes) {
+        int v = (version != null && version > 0) ? version : 1;
+        java.nio.file.Path cacheDir = java.nio.file.Paths.get("storage/preview-cache", templateId + "_v" + v);
+        if (!java.nio.file.Files.exists(cacheDir)) {
+            // Fallback check for unversioned legacy directory
+            java.nio.file.Path legacyDir = java.nio.file.Paths.get("storage/preview-cache", String.valueOf(templateId));
+            if (java.nio.file.Files.exists(legacyDir)) {
+                cacheDir = legacyDir;
+            } else {
+                try {
+                    java.nio.file.Files.createDirectories(cacheDir);
+                } catch (Exception ignored) {}
+            }
+        }
+
+        java.nio.file.Path coordsFile = cacheDir.resolve("coordinates.json");
+        if (java.nio.file.Files.exists(coordsFile)) {
+            try {
+                Map<Integer, List<VisualPreviewResponse.VisualPlaceholder>> cached =
+                        objectMapper.readValue(coordsFile.toFile(),
+                                new com.fasterxml.jackson.core.type.TypeReference<Map<Integer, List<VisualPreviewResponse.VisualPlaceholder>>>() {});
+                log.info("Loaded coordinates from disk cache for template #{} (version {})", templateId, v);
+                return cached;
+            } catch (Exception e) {
+                log.warn("Failed to read cached coordinates.json for template #{}: {}. Re-extracting.", templateId, e.getMessage());
+            }
+        }
+
+        Map<Integer, List<VisualPreviewResponse.VisualPlaceholder>> extracted = extractCoordinates(pdfBytes);
+        try {
+            if (java.nio.file.Files.exists(cacheDir)) {
+                objectMapper.writeValue(coordsFile.toFile(), extracted);
+                log.info("Saved coordinates.json to disk cache for template #{} (version {})", templateId, v);
+            }
+        } catch (Exception e) {
+            log.warn("Failed to persist coordinates.json for template #{}: {}", templateId, e.getMessage());
+        }
+
+        return extracted;
+    }
+
     /**
      * Extracts normalized placeholder coordinates for all pages of a PDF document.
      *

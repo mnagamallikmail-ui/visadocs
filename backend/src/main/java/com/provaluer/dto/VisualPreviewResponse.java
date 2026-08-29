@@ -11,6 +11,7 @@ public class VisualPreviewResponse implements Serializable {
     private static final long serialVersionUID = 1L;
 
     private Long templateId;
+    private String previewSessionId;
     private int totalPages;
     private PageDimensions pageDimensions;
     private List<VisualPage> pages;
@@ -24,8 +25,19 @@ public class VisualPreviewResponse implements Serializable {
         this.pages = pages;
     }
 
+    public VisualPreviewResponse(Long templateId, String previewSessionId, int totalPages, PageDimensions pageDimensions, List<VisualPage> pages) {
+        this.templateId = templateId;
+        this.previewSessionId = previewSessionId;
+        this.totalPages = totalPages;
+        this.pageDimensions = pageDimensions;
+        this.pages = pages;
+    }
+
     public Long getTemplateId() { return templateId; }
     public void setTemplateId(Long templateId) { this.templateId = templateId; }
+
+    public String getPreviewSessionId() { return previewSessionId; }
+    public void setPreviewSessionId(String previewSessionId) { this.previewSessionId = previewSessionId; }
 
     public int getTotalPages() { return totalPages; }
     public void setTotalPages(int totalPages) { this.totalPages = totalPages; }

@@ -24,6 +24,17 @@ public class Template {
     @Column(name = "status", nullable = false)
     private String status = "PENDING";
 
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "document_dom", columnDefinition = "JSONB")
+    private String documentDom;
+
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "placeholder_registry", columnDefinition = "JSONB")
+    private String placeholderRegistry;
+
+    @Column(name = "version", nullable = false)
+    private int version = 1;
+
     public Template() {}
 
     public Long getId() { return id; }
@@ -43,4 +54,13 @@ public class Template {
 
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
+
+    public String getDocumentDom() { return documentDom; }
+    public void setDocumentDom(String documentDom) { this.documentDom = documentDom; }
+
+    public String getPlaceholderRegistry() { return placeholderRegistry; }
+    public void setPlaceholderRegistry(String placeholderRegistry) { this.placeholderRegistry = placeholderRegistry; }
+
+    public int getVersion() { return version; }
+    public void setVersion(int version) { this.version = version; }
 }

@@ -65,6 +65,17 @@ public class Order {
     @Column(name = "field_mapping_snapshot", columnDefinition = "TEXT")
     private String fieldMappingSnapshot;
 
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "document_dom_snapshot", columnDefinition = "JSONB")
+    private String documentDomSnapshot;
+
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "input_values", columnDefinition = "JSONB")
+    private String inputValues;
+
+    @Column(name = "template_version")
+    private Integer templateVersion = 1;
+
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -117,6 +128,15 @@ public class Order {
 
     public String getFieldMappingSnapshot() { return fieldMappingSnapshot; }
     public void setFieldMappingSnapshot(String fieldMappingSnapshot) { this.fieldMappingSnapshot = fieldMappingSnapshot; }
+
+    public String getDocumentDomSnapshot() { return documentDomSnapshot; }
+    public void setDocumentDomSnapshot(String documentDomSnapshot) { this.documentDomSnapshot = documentDomSnapshot; }
+
+    public String getInputValues() { return inputValues; }
+    public void setInputValues(String inputValues) { this.inputValues = inputValues; }
+
+    public Integer getTemplateVersion() { return templateVersion; }
+    public void setTemplateVersion(Integer templateVersion) { this.templateVersion = templateVersion; }
 
     @Column(name = "report_number")
     private String reportNumber;

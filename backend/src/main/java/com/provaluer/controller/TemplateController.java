@@ -31,6 +31,9 @@ public class TemplateController {
     private DocxTemplateEngine templateEngine;
 
     @Autowired
+    private com.provaluer.util.DocxStructureParser docxStructureParser;
+
+    @Autowired
     private com.provaluer.repository.TemplateQuestionRepository templateQuestionRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -47,7 +50,7 @@ public class TemplateController {
 
     /**
      * POST /api/v1/templates/upload
-     * Ingests a new .docx template, sets status to PENDING, and processes parsing asynchronously in background.
+     * Ingests a new .docx template, normalizes runs, parses document DOM & placeholder registry, and saves template.
      */
     @PostMapping("/upload")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
@@ -56,11 +59,20 @@ public class TemplateController {
             byte[] rawBytes = file.getBytes();
 
             byte[] normalizedBytes = templateEngine.normalizeTemplate(rawBytes);
+            
+            // Generate canonical Document DOM and Placeholder Registry
+            JsonNode domNode = docxStructureParser.parseDocumentStructure(normalizedBytes);
+            String documentDomJson = domNode.toString();
+            String placeholderRegistryJson = docxStructureParser.generatePlaceholderRegistry(domNode);
+
+            // Backward compatibility legacy mapping
             String fieldMappingJson = templateEngine.parseTemplate(normalizedBytes);
 
             Template template = new Template();
             template.setName(name);
             template.setTemplateContent(normalizedBytes);
+            template.setDocumentDom(documentDomJson);
+            template.setPlaceholderRegistry(placeholderRegistryJson);
             template.setFieldMapping(fieldMappingJson);
             template.setIsActive("N");
             template.setStatus("PARSED");
@@ -165,9 +177,14 @@ public class TemplateController {
                 try {
                     Thread.sleep(2000);
                     byte[] normalizedBytes = templateEngine.normalizeTemplate(docxBytes);
+                    JsonNode domNode = docxStructureParser.parseDocumentStructure(normalizedBytes);
+                    String documentDomJson = domNode.toString();
+                    String placeholderRegistryJson = docxStructureParser.generatePlaceholderRegistry(domNode);
                     String fieldMappingJson = templateEngine.parseTemplate(normalizedBytes);
 
                     saved.setTemplateContent(normalizedBytes);
+                    saved.setDocumentDom(documentDomJson);
+                    saved.setPlaceholderRegistry(placeholderRegistryJson);
                     saved.setFieldMapping(fieldMappingJson);
                     saved.setStatus("PARSED");
                     templateRepository.save(saved);
@@ -292,10 +309,17 @@ public class TemplateController {
             templateRepository.save(oldTemplate);
 
             // Create new inherited active template
+            JsonNode domNode = docxStructureParser.parseDocumentStructure(normalizedBytes);
+            String documentDomJson = domNode.toString();
+            String placeholderRegistryJson = docxStructureParser.generatePlaceholderRegistry(domNode);
+
             Template newTemplate = new Template();
-            newTemplate.setName(oldTemplate.getName() + " (v2)");
+            newTemplate.setName(oldTemplate.getName() + " (v" + (oldTemplate.getVersion() + 1) + ")");
             newTemplate.setTemplateContent(normalizedBytes);
+            newTemplate.setDocumentDom(documentDomJson);
+            newTemplate.setPlaceholderRegistry(placeholderRegistryJson);
             newTemplate.setFieldMapping(objectMapper.writeValueAsString(newSchema));
+            newTemplate.setVersion(oldTemplate.getVersion() + 1);
             newTemplate.setIsActive("Y");
             newTemplate.setStatus("CONFIRMED");
 

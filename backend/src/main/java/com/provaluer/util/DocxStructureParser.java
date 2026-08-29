@@ -430,6 +430,20 @@ public class DocxStructureParser {
         return sb.toString().trim();
     }
 
+    public String generatePlaceholderRegistry(JsonNode domRoot) {
+        ObjectNode registry = objectMapper.createObjectNode();
+        if (domRoot != null && domRoot.has("placeholdersSummary")) {
+            for (JsonNode summary : domRoot.get("placeholdersSummary")) {
+                String key = summary.get("key").asText().toUpperCase();
+                String type = summary.has("type") ? summary.get("type").asText().toUpperCase() : "TEXT";
+                ObjectNode item = registry.putObject(key);
+                item.put("type", type);
+                item.put("source", "EXPLICIT");
+            }
+        }
+        return registry.toString();
+    }
+
     private static class PlaceholderTracker {
         final String key;
         final String type;

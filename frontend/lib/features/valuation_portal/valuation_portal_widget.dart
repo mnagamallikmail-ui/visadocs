@@ -17,6 +17,7 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/app_components.dart';
 import '../../theme/app_spacing.dart';
+import '../document_workspace/document_workspace_screen.dart';
 
 class ValuationPortalWidget extends StatefulWidget {
   final String role;
@@ -2745,20 +2746,53 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
             ),
           ] else ...[
             Text(
-              "COMPILE REPORT DATA PLACEHOLDERS",
+              "REPORT DOCUMENT WORKSPACE",
               style: GoogleFonts.montserrat(color: DesignSystem.secondary, fontSize: 10, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
-              height: 38,
+              height: 40,
               child: ElevatedButton.icon(
-                icon: const Icon(Icons.edit_note, size: 16, color: Colors.white),
-                onPressed: () => _openPopulateReportFullScreen(order, provider),
-                style: DesignSystem.primaryButton,
+                icon: const Icon(Icons.description_outlined, size: 16, color: Colors.white),
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => DocumentWorkspaceScreen(
+                        orderId: order['id'],
+                        reportNumber: reportNum,
+                        role: widget.role,
+                      ),
+                    ),
+                  );
+                  _refreshData();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.deepTeal,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                ),
                 label: const Text(
-                  "POPULATE REPORT (FULL PAGE)",
+                  "OPEN DOCUMENT WORKSPACE",
                   style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              height: 34,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.edit_note, size: 16, color: DesignSystem.secondary),
+                onPressed: () => _openPopulateReportFullScreen(order, provider),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: DesignSystem.border),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                ),
+                label: const Text(
+                  "Legacy Form View",
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: DesignSystem.textSecondary),
                 ),
               ),
             ),
@@ -2771,24 +2805,57 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
             (status == 'SPA_GATE' || status == 'SPA_CONFIRMED' || (status == 'FINAL_DELIVERY' && (widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN')))) ...[
           if (status == 'SPA_GATE') ...[
             Text(
-              "REVIEW DRAFT DATA FIELDS",
+              "DOCUMENT WORKSPACE & VERIFICATION",
               style: GoogleFonts.montserrat(color: DesignSystem.secondary, fontSize: 10, fontWeight: FontWeight.bold),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             SizedBox(
               width: double.infinity,
-              height: 38,
+              height: 40,
               child: ElevatedButton.icon(
-                icon: const Icon(Icons.zoom_in, size: 16, color: Colors.white),
-                onPressed: () => _openPopulateReportFullScreen(order, provider),
-                style: DesignSystem.primaryButton,
+                icon: const Icon(Icons.verified_user_outlined, size: 16, color: Colors.white),
+                onPressed: () async {
+                  await Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => DocumentWorkspaceScreen(
+                        orderId: order['id'],
+                        reportNumber: reportNum,
+                        role: widget.role,
+                      ),
+                    ),
+                  );
+                  _refreshData();
+                },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.deepTeal,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                ),
                 label: const Text(
-                  "VIEW / EDIT DATA (FULL PAGE)",
+                  "OPEN DOCUMENT WORKSPACE (REVIEW)",
                   style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
                 ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 8),
+            SizedBox(
+              width: double.infinity,
+              height: 34,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.zoom_in, size: 16, color: DesignSystem.secondary),
+                onPressed: () => _openPopulateReportFullScreen(order, provider),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: DesignSystem.border),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                ),
+                label: const Text(
+                  "Legacy Form View",
+                  style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: DesignSystem.textSecondary),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
             const Divider(),
             const SizedBox(height: 10),
             Text(

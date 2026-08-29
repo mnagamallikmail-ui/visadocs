@@ -254,14 +254,16 @@ public class DocumentStudioController {
      */
     @GetMapping(value = "/templates/{id}/pages/{pageIndex}.png", produces = MediaType.IMAGE_PNG_VALUE)
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'SPA', 'PA')")
-    public ResponseEntity<byte[]> getPageImage(@PathVariable Long id, @PathVariable int pageIndex) {
+    public ResponseEntity<byte[]> getPageImage(@PathVariable Long id,
+                                               @PathVariable int pageIndex,
+                                               @RequestParam(value = "v", required = false) Integer version) {
         UserDetailsImpl principal = getCurrentPrincipal();
         if (principal == null || !featureFlagService.isStudioEnabled(principal)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
 
         try {
-            byte[] imageBytes = previewGenerator.getPageImage(id, pageIndex);
+            byte[] imageBytes = previewGenerator.getPageImage(id, version, pageIndex);
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"page_" + pageIndex + ".png\"")
                     .cacheControl(CacheControl.maxAge(1, TimeUnit.HOURS).cachePublic())

@@ -727,10 +727,159 @@ public class OrderController {
             } catch (Exception e) {
                 field.setFieldValue(value);
             }
-        } else {
-            field.setFieldValue(value);
-            field.setImageValue(null);
         }
         orderInputRepository.save(field);
+    }
+
+    @Autowired
+    private com.provaluer.service.DocumentWorkspaceService documentWorkspaceService;
+
+    private UserDetailsImpl getCurrentPrincipal() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal instanceof UserDetailsImpl) {
+            return (UserDetailsImpl) principal;
+        }
+        return null;
+    }
+
+    /**
+     * GET /api/v1/orders/{id}/document-workspace
+     * Document Workspace API returning authentic visual preview and active values.
+     */
+    @GetMapping("/{id}/document-workspace")
+    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN', 'CLIENT')")
+    public ResponseEntity<?> getDocumentWorkspace(@PathVariable Long id) {
+        try {
+            UserDetailsImpl principal = getCurrentPrincipal();
+            var response = documentWorkspaceService.getDocumentWorkspace(id, principal);
+            return ResponseEntity.ok(response);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/v1/orders/{id}/save-document-values
+     * Delta persistence of in-document input values without synthetic questions.
+     */
+    @PostMapping("/{id}/save-document-values")
+    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN', 'CLIENT')")
+    public ResponseEntity<?> saveDocumentValues(@PathVariable Long id, @RequestBody com.provaluer.dto.SaveDocumentValuesRequest request) {
+        try {
+            UserDetailsImpl principal = getCurrentPrincipal();
+            var response = documentWorkspaceService.saveDocumentValues(id, request, principal);
+            return ResponseEntity.ok(response);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/v1/orders/{id}/submit-to-spa
+     * Advances order status from ASSIGNED to SPA_GATE directly from document canvas.
+     */
+    @PostMapping("/{id}/submit-to-spa")
+    @PreAuthorize("hasAnyRole('PA', 'SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> submitToSpa(@PathVariable Long id) {
+        try {
+            UserDetailsImpl principal = getCurrentPrincipal();
+            var response = documentWorkspaceService.submitToSpa(id, principal);
+            return ResponseEntity.ok(response);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/v1/orders/{id}/spa-approve
+     * Approves report, computes fees, and triggers binary DOCX/PDF report compilation.
+     */
+    @PostMapping("/{id}/spa-approve")
+    @PreAuthorize("hasAnyRole('SPA', 'SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> spaApproveDocument(@PathVariable Long id, @RequestBody com.provaluer.dto.SpaApproveDocumentRequest request) {
+        try {
+            UserDetailsImpl principal = getCurrentPrincipal();
+            var response = documentWorkspaceService.spaApprove(id, request, principal);
+            return ResponseEntity.ok(response);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/v1/orders/{id}/compile-live-preview
+     * Compiles true final hydrated PDF preview with unique session nonce.
+     */
+    @PostMapping("/{id}/compile-live-preview")
+    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> compileLivePreview(@PathVariable Long id) {
+        try {
+            UserDetailsImpl principal = getCurrentPrincipal();
+            var response = documentWorkspaceService.compileLivePreview(id, principal);
+            return ResponseEntity.ok(response);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * GET /api/v1/orders/{id}/live-preview/{previewSessionId}/pages/{pageIndex}.png
+     * TASK 3: Streams session-nonced live hydrated preview page tiles.
+     */
+    @GetMapping(value = "/{id}/live-preview/{previewSessionId}/pages/{pageIndex}.png", produces = MediaType.IMAGE_PNG_VALUE)
+    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN', 'CLIENT')")
+    public ResponseEntity<byte[]> getLivePreviewSessionPageImage(
+            @PathVariable Long id,
+            @PathVariable String previewSessionId,
+            @PathVariable int pageIndex) {
+        try {
+            byte[] imageBytes = documentWorkspaceService.getLivePreviewSessionPageImage(id, previewSessionId, pageIndex);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"live_" + previewSessionId + "_p" + pageIndex + ".png\"")
+                    .body(imageBytes);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * GET /api/v1/orders/{id}/live-pages/{pageIndex}.png
+     * Legacy streaming fallback for unversioned live page tiles.
+     */
+    @GetMapping(value = "/{id}/live-pages/{pageIndex}.png", produces = MediaType.IMAGE_PNG_VALUE)
+    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN', 'CLIENT')")
+    public ResponseEntity<byte[]> getLivePageImage(@PathVariable Long id, @PathVariable int pageIndex) {
+        try {
+            byte[] imageBytes = documentWorkspaceService.getLivePageImage(id, pageIndex);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"live_page_" + pageIndex + ".png\"")
+                    .body(imageBytes);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
 }
