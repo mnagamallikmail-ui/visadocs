@@ -195,21 +195,30 @@ public class DocumentWorkspaceService {
             throw new IllegalStateException("Template has no binary document content");
         }
 
-        // 1. Legacy / Migration Support: Ensure documentDomSnapshot and templateVersion are populated
+        // 1. Dom Snapshot Management:
+        //    If the template has been updated (version changed), invalidate the stale cached snapshot
+        //    and force a re-parse from the live DOCX binary. This ensures new placeholders (e.g.
+        //    image placeholders like IMG_FRONT_PAGE, IMG_PIC3) are always reflected in the workspace.
+        boolean templateVersionChanged = order.getTemplateVersion() != null
+                && !order.getTemplateVersion().equals(template.getVersion());
+        if (templateVersionChanged) {
+            log.info("Template version changed for order #{}: v{} -> v{}. Invalidating stale documentDomSnapshot.",
+                    orderId, order.getTemplateVersion(), template.getVersion());
+            order.setDocumentDomSnapshot(null);
+            order.setTemplateVersion(template.getVersion());
+        }
         if (order.getTemplateVersion() == null) {
             order.setTemplateVersion(template.getVersion());
         }
         if (order.getDocumentDomSnapshot() == null) {
             try {
-                if (template.getDocumentDom() != null && !template.getDocumentDom().trim().isEmpty()) {
-                    order.setDocumentDomSnapshot(template.getDocumentDom());
-                } else {
-                    JsonNode domNode = docxStructureParser.parseDocumentStructure(docxBytes);
-                    order.setDocumentDomSnapshot(domNode.toString());
-                    template.setDocumentDom(domNode.toString());
-                    template.setPlaceholderRegistry(docxStructureParser.generatePlaceholderRegistry(domNode));
-                    templateRepository.save(template);
-                }
+                // Always re-parse from live DOCX binary (not the stale template.documentDom column)
+                // so that any new placeholders added to the DOCX are captured.
+                JsonNode domNode = docxStructureParser.parseDocumentStructure(docxBytes);
+                order.setDocumentDomSnapshot(domNode.toString());
+                template.setDocumentDom(domNode.toString());
+                template.setPlaceholderRegistry(docxStructureParser.generatePlaceholderRegistry(domNode));
+                templateRepository.save(template);
                 orderRepository.save(order);
             } catch (Exception e) {
                 log.warn("Failed to generate document DOM snapshot on the fly: {}", e.getMessage());
