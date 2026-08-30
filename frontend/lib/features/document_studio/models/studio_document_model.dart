@@ -233,16 +233,19 @@ class StudioTable extends StudioElement {
 /// Represents a single row in a table.
 class StudioTableRow {
   final int rowIndex;
+  final String rowType; // QUESTION_ANSWER, TABLE_HEADER, SECTION_SUBHEADER, STATIC_ROW
   final List<StudioTableCell> cells;
 
   const StudioTableRow({
     required this.rowIndex,
+    this.rowType = 'STATIC_ROW',
     this.cells = const [],
   });
 
   factory StudioTableRow.fromJson(Map<String, dynamic> json) {
     return StudioTableRow(
       rowIndex: json['rowIndex'] as int? ?? 0,
+      rowType: json['rowType'] as String? ?? 'STATIC_ROW',
       cells: (json['cells'] as List<dynamic>?)
               ?.map((c) => StudioTableCell.fromJson(c as Map<String, dynamic>))
               .toList() ??
@@ -252,21 +255,67 @@ class StudioTableRow {
 
   Map<String, dynamic> toJson() => {
         'rowIndex': rowIndex,
+        'rowType': rowType,
         'cells': cells.map((c) => c.toJson()).toList(),
       };
 }
 
-/// Represents a cell inside a table row with column span and vertical merge status.
+/// Represents a placeholder binding within an answer cell.
+class PlaceholderBinding {
+  final String key;
+  final String? serialNo;
+  final String questionText;
+  final String fieldType;
+
+  const PlaceholderBinding({
+    required this.key,
+    this.serialNo,
+    this.questionText = '',
+    this.fieldType = 'TEXT',
+  });
+
+  factory PlaceholderBinding.fromJson(Map<String, dynamic> json) {
+    return PlaceholderBinding(
+      key: json['key'] as String? ?? '',
+      serialNo: json['serialNo'] as String?,
+      questionText: json['questionText'] as String? ?? '',
+      fieldType: json['fieldType'] as String? ?? 'TEXT',
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+        'key': key,
+        if (serialNo != null) 'serialNo': serialNo,
+        'questionText': questionText,
+        'fieldType': fieldType,
+      };
+}
+
+/// Represents a cell inside a table row with column span, vertical merge status, and semantic role.
 class StudioTableCell {
   final String cellId;
   final int colSpan;
   final String vMerge; // "restart", "continue", or "none"
+  final String cellRole; // "HEADER", "INDEX", "QUESTION", "ANSWER", "STATIC_TEXT"
+  final String plainText;
+  final bool isHeader;
+  final bool isSubHeader;
+  final String? targetAnswerCellId;
+  final String? sourceQuestionCellId;
+  final List<PlaceholderBinding> placeholderBindings;
   final List<StudioParagraph> paragraphs;
 
   const StudioTableCell({
     required this.cellId,
     this.colSpan = 1,
     this.vMerge = 'none',
+    this.cellRole = 'STATIC_TEXT',
+    this.plainText = '',
+    this.isHeader = false,
+    this.isSubHeader = false,
+    this.targetAnswerCellId,
+    this.sourceQuestionCellId,
+    this.placeholderBindings = const [],
     this.paragraphs = const [],
   });
 
@@ -275,6 +324,16 @@ class StudioTableCell {
       cellId: json['cellId'] as String? ?? '',
       colSpan: json['colSpan'] as int? ?? 1,
       vMerge: json['vMerge'] as String? ?? 'none',
+      cellRole: json['cellRole'] as String? ?? 'STATIC_TEXT',
+      plainText: json['plainText'] as String? ?? '',
+      isHeader: json['isHeader'] as bool? ?? false,
+      isSubHeader: json['isSubHeader'] as bool? ?? false,
+      targetAnswerCellId: json['targetAnswerCellId'] as String?,
+      sourceQuestionCellId: json['sourceQuestionCellId'] as String?,
+      placeholderBindings: (json['placeholderBindings'] as List<dynamic>?)
+              ?.map((b) => PlaceholderBinding.fromJson(b as Map<String, dynamic>))
+              .toList() ??
+          const [],
       paragraphs: (json['paragraphs'] as List<dynamic>?)
               ?.map((p) => StudioParagraph.fromJson(p as Map<String, dynamic>))
               .toList() ??
@@ -286,6 +345,13 @@ class StudioTableCell {
         'cellId': cellId,
         'colSpan': colSpan,
         'vMerge': vMerge,
+        'cellRole': cellRole,
+        'plainText': plainText,
+        'isHeader': isHeader,
+        'isSubHeader': isSubHeader,
+        if (targetAnswerCellId != null) 'targetAnswerCellId': targetAnswerCellId,
+        if (sourceQuestionCellId != null) 'sourceQuestionCellId': sourceQuestionCellId,
+        'placeholderBindings': placeholderBindings.map((b) => b.toJson()).toList(),
         'paragraphs': paragraphs.map((p) => p.toJson()).toList(),
       };
 
@@ -300,29 +366,45 @@ class StudioTableCell {
 class PlaceholderSummaryItem {
   final String key;
   final String label;
+  final String? questionText;
+  final String? serialNo;
   final int occurrences;
   final String type; // TEXT, NUMBER, DATE, IMAGE
+  final String source; // TABLE_ROW, PARAGRAPH
+  final Map<String, dynamic>? tableContext;
 
   const PlaceholderSummaryItem({
     required this.key,
     required this.label,
+    this.questionText,
+    this.serialNo,
     this.occurrences = 1,
     this.type = 'TEXT',
+    this.source = 'PARAGRAPH',
+    this.tableContext,
   });
 
   factory PlaceholderSummaryItem.fromJson(Map<String, dynamic> json) {
     return PlaceholderSummaryItem(
       key: json['key'] as String? ?? '',
       label: json['label'] as String? ?? '',
+      questionText: json['questionText'] as String?,
+      serialNo: json['serialNo'] as String?,
       occurrences: json['occurrences'] as int? ?? 1,
       type: json['type'] as String? ?? 'TEXT',
+      source: json['source'] as String? ?? 'PARAGRAPH',
+      tableContext: json['tableContext'] as Map<String, dynamic>?,
     );
   }
 
   Map<String, dynamic> toJson() => {
         'key': key,
         'label': label,
+        if (questionText != null) 'questionText': questionText,
+        if (serialNo != null) 'serialNo': serialNo,
         'occurrences': occurrences,
         'type': type,
+        'source': source,
+        if (tableContext != null) 'tableContext': tableContext,
       };
 }

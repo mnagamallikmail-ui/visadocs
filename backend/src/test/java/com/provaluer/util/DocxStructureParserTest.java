@@ -275,4 +275,174 @@ public class DocxStructureParserTest {
         assertThrows(IllegalArgumentException.class, () -> parser.parseDocumentStructure((byte[]) null));
         assertThrows(IllegalArgumentException.class, () -> parser.parseDocumentStructure(new byte[0]));
     }
+
+    @Test
+    @DisplayName("11. Semantic Analysis: 3-Column Table Row Classification")
+    public void testThreeColumnTableSemanticClassification() throws Exception {
+        WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.createPackage();
+        Tbl table = factory.createTbl();
+
+        // Row 0: Table Header
+        Tr headerRow = factory.createTr();
+        headerRow.getContent().add(createCellWithText("S.No"));
+        headerRow.getContent().add(createCellWithText("Particulars"));
+        headerRow.getContent().add(createCellWithText("Observed Details"));
+        table.getContent().add(headerRow);
+
+        // Row 1: 3-column Q&A row
+        Tr qaRow = factory.createTr();
+        qaRow.getContent().add(createCellWithText("1"));
+        qaRow.getContent().add(createCellWithText("Name of owner(s) and address"));
+        qaRow.getContent().add(createCellWithText("<<CLIENT_NAME>>"));
+        table.getContent().add(qaRow);
+
+        wordMLPackage.getMainDocumentPart().getContent().add(table);
+
+        byte[] bytes = packageToBytes(wordMLPackage);
+        JsonNode root = parser.parseDocumentStructure(bytes);
+
+        JsonNode tableNode = root.get("sections").get(0).get("elements").get(0);
+        assertEquals("TABLE", tableNode.get("type").asText());
+
+        // Verify Row 0 (Header)
+        JsonNode row0 = tableNode.get("rows").get(0);
+        assertEquals("TABLE_HEADER", row0.get("rowType").asText());
+        assertEquals("HEADER", row0.get("cells").get(0).get("cellRole").asText());
+        assertEquals("HEADER", row0.get("cells").get(1).get("cellRole").asText());
+        assertEquals("HEADER", row0.get("cells").get(2).get("cellRole").asText());
+
+        // Verify Row 1 (Q&A)
+        JsonNode row1 = tableNode.get("rows").get(1);
+        assertEquals("QUESTION_ANSWER", row1.get("rowType").asText());
+
+        JsonNode cell0 = row1.get("cells").get(0);
+        assertEquals("INDEX", cell0.get("cellRole").asText());
+        assertEquals("1", cell0.get("plainText").asText());
+
+        JsonNode cell1 = row1.get("cells").get(1);
+        assertEquals("QUESTION", cell1.get("cellRole").asText());
+        assertEquals("Name of owner(s) and address", cell1.get("plainText").asText());
+        assertTrue(cell1.has("targetAnswerCellId"));
+
+        JsonNode cell2 = row1.get("cells").get(2);
+        assertEquals("ANSWER", cell2.get("cellRole").asText());
+        assertEquals(cell1.get("cellId").asText(), cell2.get("sourceQuestionCellId").asText());
+
+        JsonNode bindings = cell2.get("placeholderBindings");
+        assertNotNull(bindings);
+        assertEquals(1, bindings.size());
+        assertEquals("CLIENT_NAME", bindings.get(0).get("key").asText());
+        assertEquals("1", bindings.get(0).get("serialNo").asText());
+        assertEquals("Name of owner(s) and address", bindings.get(0).get("questionText").asText());
+
+        // Verify placeholdersSummary enrichment
+        JsonNode summary = root.get("placeholdersSummary");
+        assertEquals(1, summary.size());
+        assertEquals("CLIENT_NAME", summary.get(0).get("key").asText());
+        assertEquals("Name of owner(s) and address", summary.get(0).get("questionText").asText());
+        assertEquals("1", summary.get(0).get("serialNo").asText());
+        assertEquals("TABLE_ROW", summary.get(0).get("source").asText());
+        assertTrue(summary.get(0).has("tableContext"));
+    }
+
+    @Test
+    @DisplayName("12. Semantic Analysis: 2-Column Table Row Classification")
+    public void testTwoColumnTableSemanticClassification() throws Exception {
+        WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.createPackage();
+        Tbl table = factory.createTbl();
+
+        // Row 0: 2-column Q&A row
+        Tr qaRow = factory.createTr();
+        qaRow.getContent().add(createCellWithText("Purpose of Valuation"));
+        qaRow.getContent().add(createCellWithText("<<VALUATION_PURPOSE>>"));
+        table.getContent().add(qaRow);
+
+        wordMLPackage.getMainDocumentPart().getContent().add(table);
+
+        byte[] bytes = packageToBytes(wordMLPackage);
+        JsonNode root = parser.parseDocumentStructure(bytes);
+
+        JsonNode tableNode = root.get("sections").get(0).get("elements").get(0);
+        JsonNode row0 = tableNode.get("rows").get(0);
+        assertEquals("QUESTION_ANSWER", row0.get("rowType").asText());
+
+        JsonNode cell0 = row0.get("cells").get(0);
+        assertEquals("QUESTION", cell0.get("cellRole").asText());
+        assertEquals("Purpose of Valuation", cell0.get("plainText").asText());
+
+        JsonNode cell1 = row0.get("cells").get(1);
+        assertEquals("ANSWER", cell1.get("cellRole").asText());
+
+        JsonNode summary = root.get("placeholdersSummary");
+        assertEquals(1, summary.size());
+        assertEquals("VALUATION_PURPOSE", summary.get(0).get("key").asText());
+        assertEquals("Purpose of Valuation", summary.get(0).get("questionText").asText());
+    }
+
+    @Test
+    @DisplayName("13. Semantic Analysis: Merged Section Sub-header Row")
+    public void testMergedSubheaderClassification() throws Exception {
+        WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.createPackage();
+        Tbl table = factory.createTbl();
+
+        // Merged Subheader Row (colSpan = 3)
+        Tr subheaderRow = factory.createTr();
+        Tc cell = createCellWithText("SECTION A: BOUNDARIES AND EXTENT");
+        TcPr tcPr = factory.createTcPr();
+        TcPrInner.GridSpan gridSpan = factory.createTcPrInnerGridSpan();
+        gridSpan.setVal(BigInteger.valueOf(3));
+        tcPr.setGridSpan(gridSpan);
+        cell.setTcPr(tcPr);
+        subheaderRow.getContent().add(cell);
+        table.getContent().add(subheaderRow);
+
+        wordMLPackage.getMainDocumentPart().getContent().add(table);
+
+        byte[] bytes = packageToBytes(wordMLPackage);
+        JsonNode root = parser.parseDocumentStructure(bytes);
+
+        JsonNode tableNode = root.get("sections").get(0).get("elements").get(0);
+        JsonNode row0 = tableNode.get("rows").get(0);
+        assertEquals("SECTION_SUBHEADER", row0.get("rowType").asText());
+        assertEquals("HEADER", row0.get("cells").get(0).get("cellRole").asText());
+        assertTrue(row0.get("cells").get(0).get("isSubHeader").asBoolean());
+    }
+
+    @Test
+    @DisplayName("14. Semantic Analysis: Multi-Placeholder Answer Cell")
+    public void testMultiPlaceholderAnswerCell() throws Exception {
+        WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.createPackage();
+        Tbl table = factory.createTbl();
+
+        Tr row = factory.createTr();
+        row.getContent().add(createCellWithText("Plot Dimensions (Length x Width)"));
+        row.getContent().add(createCellWithText("<<PLOT_LENGTH>> ft x <<PLOT_WIDTH>> ft"));
+        table.getContent().add(row);
+
+        wordMLPackage.getMainDocumentPart().getContent().add(table);
+
+        byte[] bytes = packageToBytes(wordMLPackage);
+        JsonNode root = parser.parseDocumentStructure(bytes);
+
+        JsonNode summary = root.get("placeholdersSummary");
+        assertEquals(2, summary.size());
+
+        assertEquals("PLOT_LENGTH", summary.get(0).get("key").asText());
+        assertEquals("Plot Dimensions (Length x Width)", summary.get(0).get("questionText").asText());
+
+        assertEquals("PLOT_WIDTH", summary.get(1).get("key").asText());
+        assertEquals("Plot Dimensions (Length x Width)", summary.get(1).get("questionText").asText());
+    }
+
+    private Tc createCellWithText(String text) {
+        Tc cell = factory.createTc();
+        P p = factory.createP();
+        R r = factory.createR();
+        Text t = factory.createText();
+        t.setValue(text);
+        r.getContent().add(t);
+        p.getContent().add(r);
+        cell.getContent().add(p);
+        return cell;
+    }
 }

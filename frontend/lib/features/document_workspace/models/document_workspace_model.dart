@@ -1,7 +1,8 @@
+import '../../document_studio/models/studio_document_model.dart';
 import '../../document_studio/models/visual_preview_model.dart';
 
 enum WorkspaceViewMode {
-  overlayEdit,
+  tableEdit,
   compiledPreview,
 }
 
@@ -12,6 +13,7 @@ class DocumentWorkspaceModel {
   final String reportNumber;
   final VisualPreviewModel visualPreview;
   final Map<String, String> values;
+  final StudioDocumentModel? documentDom;
   final bool readOnly;
 
   const DocumentWorkspaceModel({
@@ -20,6 +22,7 @@ class DocumentWorkspaceModel {
     required this.reportNumber,
     required this.visualPreview,
     required this.values,
+    this.documentDom,
     this.readOnly = false,
   });
 
@@ -31,6 +34,13 @@ class DocumentWorkspaceModel {
         stringValues[key.toUpperCase()] = val.toString();
       }
     });
+
+    StudioDocumentModel? parsedDom;
+    if (json['documentDom'] != null && json['documentDom'] is Map<String, dynamic>) {
+      try {
+        parsedDom = StudioDocumentModel.fromJson(json['documentDom'] as Map<String, dynamic>);
+      } catch (_) {}
+    }
 
     return DocumentWorkspaceModel(
       orderId: json['orderId'] as int? ?? 0,
@@ -45,6 +55,7 @@ class DocumentWorkspaceModel {
               pages: [],
             ),
       values: stringValues,
+      documentDom: parsedDom,
       readOnly: json['readOnly'] as bool? ?? false,
     );
   }
@@ -55,6 +66,7 @@ class DocumentWorkspaceModel {
         'reportNumber': reportNumber,
         'visualPreview': visualPreview.toJson(),
         'values': values,
+        if (documentDom != null) 'documentDom': documentDom!.toJson(),
         'readOnly': readOnly,
       };
 
@@ -64,6 +76,7 @@ class DocumentWorkspaceModel {
     String? reportNumber,
     VisualPreviewModel? visualPreview,
     Map<String, String>? values,
+    StudioDocumentModel? documentDom,
     bool? readOnly,
   }) {
     return DocumentWorkspaceModel(
@@ -72,6 +85,7 @@ class DocumentWorkspaceModel {
       reportNumber: reportNumber ?? this.reportNumber,
       visualPreview: visualPreview ?? this.visualPreview,
       values: values ?? this.values,
+      documentDom: documentDom ?? this.documentDom,
       readOnly: readOnly ?? this.readOnly,
     );
   }

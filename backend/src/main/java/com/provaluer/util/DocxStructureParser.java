@@ -79,13 +79,27 @@ public class DocxStructureParser {
             }
         }
 
-        // Build placeholdersSummary
+        // Build placeholdersSummary with 4-tier priority hierarchy
         for (Map.Entry<String, PlaceholderTracker> entry : trackerMap.entrySet()) {
+            PlaceholderTracker tracker = entry.getValue();
             ObjectNode pSum = placeholdersSummary.addObject();
-            pSum.put("key", entry.getKey());
-            pSum.put("label", toReadableLabel(entry.getKey()));
-            pSum.put("occurrences", entry.getValue().occurrences);
-            pSum.put("type", entry.getValue().type);
+            String key = entry.getKey();
+            String humanizedLabel = toHumanizedLabel(key);
+            pSum.put("key", key);
+            pSum.put("label", humanizedLabel);
+
+            String resolvedQuestion = resolveQuestionText(tracker, key);
+            pSum.put("questionText", resolvedQuestion);
+
+            if (tracker.serialNo != null && !tracker.serialNo.trim().isEmpty()) {
+                pSum.put("serialNo", tracker.serialNo.trim());
+            }
+            pSum.put("occurrences", tracker.occurrences);
+            pSum.put("type", tracker.type);
+            pSum.put("source", tracker.source != null ? tracker.source : "PARAGRAPH");
+            if (tracker.tableContext != null) {
+                pSum.set("tableContext", tracker.tableContext);
+            }
         }
 
         return root;
@@ -237,6 +251,15 @@ public class DocxStructureParser {
             PlaceholderTracker tracker = trackerMap.computeIfAbsent(key, k -> new PlaceholderTracker(k, inferFieldType(k)));
             tracker.occurrences++;
 
+            // Priority 2 paragraph context: capture meaningful label before the placeholder in paragraph
+            if (matcher.start() > lastIndex) {
+                String plainBefore = text.substring(lastIndex, matcher.start()).trim();
+                String cleanedContext = cleanContextText(plainBefore);
+                if (cleanedContext != null && !cleanedContext.isEmpty() && tracker.paragraphContextText == null) {
+                    tracker.paragraphContextText = cleanedContext;
+                }
+            }
+
             lastIndex = matcher.end();
         }
 
@@ -301,7 +324,249 @@ public class DocxStructureParser {
         tblNode.put("rowCount", rowIndex);
         tblNode.put("columnCount", maxColumns);
 
+        // Analyze and enrich semantic roles for tables (2-col, 3-col, headers, subheaders, static text)
+        analyzeSemanticTable(tblNode, rowsArray, maxColumns, trackerMap);
+
         return tblNode;
+    }
+
+    /**
+     * Semantic Analyzer: Enriches table rows and cells with semantic roles and Q&A bindings.
+     */
+    private void analyzeSemanticTable(ObjectNode tblNode, ArrayNode rowsArray, int maxColumns, Map<String, PlaceholderTracker> trackerMap) {
+        String tableId = tblNode.path("id").asText("tbl");
+
+        for (int r = 0; r < rowsArray.size(); r++) {
+            ObjectNode rowNode = (ObjectNode) rowsArray.get(r);
+            int rowIndex = rowNode.path("rowIndex").asInt(r);
+            ArrayNode cellsArray = (ArrayNode) rowNode.path("cells");
+            int numCells = cellsArray.size();
+
+            if (numCells == 0) continue;
+
+            // Extract plain text and placeholders for each cell in this row
+            List<String> cellTexts = new ArrayList<>(numCells);
+            List<List<String>> cellPlaceholdersList = new ArrayList<>(numCells);
+            boolean rowHasPlaceholders = false;
+
+            for (int c = 0; c < numCells; c++) {
+                ObjectNode cellNode = (ObjectNode) cellsArray.get(c);
+                String plainText = extractCellPlainText(cellNode).trim();
+                cellNode.put("plainText", plainText);
+                cellTexts.add(plainText);
+
+                List<String> cellPlaceholders = extractCellPlaceholderKeys(cellNode);
+                cellPlaceholdersList.add(cellPlaceholders);
+                if (!cellPlaceholders.isEmpty()) {
+                    rowHasPlaceholders = true;
+                }
+            }
+
+            // Case 1: Merged Section Sub-header (single cell spanning entire table or colSpan > 1, no placeholders)
+            if (numCells == 1 && !rowHasPlaceholders) {
+                ObjectNode cellNode = (ObjectNode) cellsArray.get(0);
+                int colSpan = cellNode.path("colSpan").asInt(1);
+                if (colSpan >= maxColumns || maxColumns <= 1 || colSpan > 1) {
+                    rowNode.put("rowType", "SECTION_SUBHEADER");
+                    cellNode.put("cellRole", "HEADER");
+                    cellNode.put("isSubHeader", true);
+                    continue;
+                }
+            }
+
+            // Case 2: Multi-Column Table Header Row (rowIndex == 0, numCells > 1, and no placeholders)
+            if (rowIndex == 0 && !rowHasPlaceholders) {
+                rowNode.put("rowType", "TABLE_HEADER");
+                for (int c = 0; c < numCells; c++) {
+                    ObjectNode cellNode = (ObjectNode) cellsArray.get(c);
+                    cellNode.put("cellRole", "HEADER");
+                    cellNode.put("isHeader", true);
+                }
+                continue;
+            }
+
+            // Case 3: 3-Column Table Pattern (Rule A: Col 0 = INDEX, Col 1 = QUESTION, Col 2 = ANSWER)
+            if (numCells == 3 && !cellPlaceholdersList.get(2).isEmpty()
+                    && cellPlaceholdersList.get(0).isEmpty() && cellPlaceholdersList.get(1).isEmpty()) {
+                rowNode.put("rowType", "QUESTION_ANSWER");
+
+                ObjectNode c0 = (ObjectNode) cellsArray.get(0);
+                ObjectNode c1 = (ObjectNode) cellsArray.get(1);
+                ObjectNode c2 = (ObjectNode) cellsArray.get(2);
+
+                c0.put("cellRole", "INDEX");
+                c1.put("cellRole", "QUESTION");
+                c1.put("targetAnswerCellId", c2.path("cellId").asText());
+
+                c2.put("cellRole", "ANSWER");
+                c2.put("sourceQuestionCellId", c1.path("cellId").asText());
+
+                String serialNo = cellTexts.get(0);
+                String questionText = cellTexts.get(1);
+                List<String> keys = cellPlaceholdersList.get(2);
+
+                ArrayNode bindings = c2.putArray("placeholderBindings");
+                for (String key : keys) {
+                    ObjectNode binding = bindings.addObject();
+                    binding.put("key", key);
+                    if (!serialNo.isEmpty()) binding.put("serialNo", serialNo);
+                    binding.put("questionText", questionText);
+                    binding.put("fieldType", inferFieldType(key));
+
+                    // Enrich trackerMap with authentic table question & context
+                    PlaceholderTracker tracker = trackerMap.get(key);
+                    if (tracker != null) {
+                        tracker.questionText = questionText;
+                        if (!serialNo.isEmpty()) tracker.serialNo = serialNo;
+                        tracker.source = "TABLE_ROW";
+                        ObjectNode ctx = objectMapper.createObjectNode();
+                        ctx.put("tableId", tableId);
+                        ctx.put("rowIndex", rowIndex);
+                        ctx.put("questionCellId", c1.path("cellId").asText());
+                        ctx.put("answerCellId", c2.path("cellId").asText());
+                        tracker.tableContext = ctx;
+                    }
+                }
+                continue;
+            }
+
+            // Case 4: 2-Column Table Pattern (Rule B: Col 0 = QUESTION, Col 1 = ANSWER)
+            if (numCells == 2 && !cellPlaceholdersList.get(1).isEmpty() && cellPlaceholdersList.get(0).isEmpty()) {
+                rowNode.put("rowType", "QUESTION_ANSWER");
+
+                ObjectNode c0 = (ObjectNode) cellsArray.get(0);
+                ObjectNode c1 = (ObjectNode) cellsArray.get(1);
+
+                c0.put("cellRole", "QUESTION");
+                c0.put("targetAnswerCellId", c1.path("cellId").asText());
+
+                c1.put("cellRole", "ANSWER");
+                c1.put("sourceQuestionCellId", c0.path("cellId").asText());
+
+                String questionText = cellTexts.get(0);
+                List<String> keys = cellPlaceholdersList.get(1);
+
+                ArrayNode bindings = c1.putArray("placeholderBindings");
+                for (String key : keys) {
+                    ObjectNode binding = bindings.addObject();
+                    binding.put("key", key);
+                    binding.put("questionText", questionText);
+                    binding.put("fieldType", inferFieldType(key));
+
+                    PlaceholderTracker tracker = trackerMap.get(key);
+                    if (tracker != null) {
+                        tracker.questionText = questionText;
+                        tracker.serialNo = null;
+                        tracker.source = "TABLE_ROW";
+                        ObjectNode ctx = objectMapper.createObjectNode();
+                        ctx.put("tableId", tableId);
+                        ctx.put("rowIndex", rowIndex);
+                        ctx.put("questionCellId", c0.path("cellId").asText());
+                        ctx.put("answerCellId", c1.path("cellId").asText());
+                        tracker.tableContext = ctx;
+                    }
+                }
+                continue;
+            }
+
+            // Case 5: Generic Multi-Column or irregular table with placeholders
+            if (rowHasPlaceholders) {
+                rowNode.put("rowType", "QUESTION_ANSWER");
+                for (int c = 0; c < numCells; c++) {
+                    ObjectNode cellNode = (ObjectNode) cellsArray.get(c);
+                    List<String> keys = cellPlaceholdersList.get(c);
+
+                    if (!keys.isEmpty()) {
+                        cellNode.put("cellRole", "ANSWER");
+                        ArrayNode bindings = cellNode.putArray("placeholderBindings");
+
+                        String questionText = "";
+                        String questionCellId = null;
+                        if (c > 0 && cellPlaceholdersList.get(c - 1).isEmpty()) {
+                            ObjectNode prevCell = (ObjectNode) cellsArray.get(c - 1);
+                            prevCell.put("cellRole", "QUESTION");
+                            prevCell.put("targetAnswerCellId", cellNode.path("cellId").asText());
+                            questionText = cellTexts.get(c - 1);
+                            questionCellId = prevCell.path("cellId").asText();
+                            cellNode.put("sourceQuestionCellId", questionCellId);
+                        }
+
+                        for (String key : keys) {
+                            ObjectNode binding = bindings.addObject();
+                            binding.put("key", key);
+                            if (!questionText.isEmpty()) binding.put("questionText", questionText);
+                            binding.put("fieldType", inferFieldType(key));
+
+                            PlaceholderTracker tracker = trackerMap.get(key);
+                            if (tracker != null && !questionText.isEmpty() && (tracker.questionText == null || tracker.questionText.isEmpty())) {
+                                tracker.questionText = questionText;
+                                tracker.source = "TABLE_ROW";
+                                ObjectNode ctx = objectMapper.createObjectNode();
+                                ctx.put("tableId", tableId);
+                                ctx.put("rowIndex", rowIndex);
+                                if (questionCellId != null) ctx.put("questionCellId", questionCellId);
+                                ctx.put("answerCellId", cellNode.path("cellId").asText());
+                                tracker.tableContext = ctx;
+                            }
+                        }
+                    } else if (!cellNode.has("cellRole")) {
+                        cellNode.put("cellRole", "STATIC_TEXT");
+                    }
+                }
+                continue;
+            }
+
+            // Case 6: Default Static Content Row
+            rowNode.put("rowType", "STATIC_ROW");
+            for (int c = 0; c < numCells; c++) {
+                ObjectNode cellNode = (ObjectNode) cellsArray.get(c);
+                if (!cellNode.has("cellRole")) {
+                    cellNode.put("cellRole", "STATIC_TEXT");
+                }
+            }
+        }
+    }
+
+    /**
+     * Extracts concatenated plain text from all paragraphs within a cell.
+     */
+    private String extractCellPlainText(ObjectNode cellNode) {
+        StringBuilder sb = new StringBuilder();
+        JsonNode paragraphs = cellNode.path("paragraphs");
+        if (paragraphs.isArray()) {
+            for (JsonNode p : paragraphs) {
+                JsonNode runs = p.path("runs");
+                if (runs.isArray()) {
+                    for (JsonNode r : runs) {
+                        if (!r.path("isPlaceholder").asBoolean(false) && r.has("text")) {
+                            sb.append(r.path("text").asText()).append(" ");
+                        }
+                    }
+                }
+            }
+        }
+        return sb.toString().trim();
+    }
+
+    /**
+     * Collects all placeholder keys present in a cell.
+     */
+    private List<String> extractCellPlaceholderKeys(ObjectNode cellNode) {
+        List<String> keys = new ArrayList<>();
+        JsonNode paragraphs = cellNode.path("paragraphs");
+        if (paragraphs.isArray()) {
+            for (JsonNode p : paragraphs) {
+                JsonNode runs = p.path("runs");
+                if (runs.isArray()) {
+                    for (JsonNode r : runs) {
+                        if (r.path("isPlaceholder").asBoolean(false) && r.has("placeholderKey")) {
+                            keys.add(r.path("placeholderKey").asText());
+                        }
+                    }
+                }
+            }
+        }
+        return keys;
     }
 
     /**
@@ -417,17 +682,160 @@ public class DocxStructureParser {
         return "TEXT";
     }
 
-    private String toReadableLabel(String key) {
-        String[] parts = key.replace("IMG_", "").replace("_IMAGE", "").split("_");
-        StringBuilder sb = new StringBuilder();
-        for (String part : parts) {
-            if (!part.isEmpty()) {
-                sb.append(Character.toUpperCase(part.charAt(0)))
-                  .append(part.substring(1).toLowerCase())
-                  .append(" ");
+    private static final Map<String, String> KNOWN_HUMANIZED_LABELS = new HashMap<>();
+    static {
+        KNOWN_HUMANIZED_LABELS.put("VRIN", "Valuer Registration Identification Number");
+        KNOWN_HUMANIZED_LABELS.put("REPORT_REF_NO", "Report Reference Number");
+        KNOWN_HUMANIZED_LABELS.put("REF_NO", "Reference Number");
+        KNOWN_HUMANIZED_LABELS.put("PROP_LOCATION", "Postal Address of the Property");
+        KNOWN_HUMANIZED_LABELS.put("PROP_ELE_BILLS_PAID", "Property Tax and Electricity Bills Paid Status");
+        KNOWN_HUMANIZED_LABELS.put("MUNI_CORP_VP", "Municipality / Corporation / Village Panchayat Limit");
+        KNOWN_HUMANIZED_LABELS.put("ENACTMENTS_COVER", "Covered Under State / Central Government Enactments");
+        KNOWN_HUMANIZED_LABELS.put("BELONG_HOSP_SCH", "Belongs to Social Infrastructure (Hospital / School / etc.)");
+        KNOWN_HUMANIZED_LABELS.put("CONSTRUCTED_APPROVED_PLAN", "Constructed as per Approved Municipal Plan");
+        KNOWN_HUMANIZED_LABELS.put("MASTERPLAN_PROVI", "Master Plan Provisions and Land Use");
+        KNOWN_HUMANIZED_LABELS.put("FREEHOLD_LEASEHOLD", "Freehold or Leasehold Status");
+        KNOWN_HUMANIZED_LABELS.put("EXIST_MORTGAGE", "Existing Mortgages / Charges / Encumbrances");
+        KNOWN_HUMANIZED_LABELS.put("PERSONAL_GUARANTEE", "Personal or Corporate Guarantee Issued");
+        KNOWN_HUMANIZED_LABELS.put("WATER_AVAI", "Water Supply Availability");
+        KNOWN_HUMANIZED_LABELS.put("SANITARY_AVAI", "Sewerage / Sanitation System Underground or Open");
+        KNOWN_HUMANIZED_LABELS.put("ELECTRICITY_AVAI", "Electricity Availability");
+        KNOWN_HUMANIZED_LABELS.put("BUS_DIST", "Distance to Nearest Bus Station");
+        KNOWN_HUMANIZED_LABELS.put("RAIL_DIST", "Distance to Nearest Railway Station");
+        KNOWN_HUMANIZED_LABELS.put("AIRPORT_DIST", "Distance to Nearest Airport");
+        KNOWN_HUMANIZED_LABELS.put("OBSERVATION_1", "Observation 1");
+        KNOWN_HUMANIZED_LABELS.put("OBSERVATION_2", "Observation 2");
+        KNOWN_HUMANIZED_LABELS.put("OBSERVATON_3", "Observation 3");
+        KNOWN_HUMANIZED_LABELS.put("TO_ADDRESSEE", "Report Addressee");
+        KNOWN_HUMANIZED_LABELS.put("DATE_OF_REPORT", "Date of Report");
+        KNOWN_HUMANIZED_LABELS.put("DATE_OF_INSPECTION", "Date of Inspection");
+        KNOWN_HUMANIZED_LABELS.put("NAME_OF_THE_OWNER", "Name of the Owner");
+        KNOWN_HUMANIZED_LABELS.put("NAME OF THE CLIENT", "Name of the Client");
+        KNOWN_HUMANIZED_LABELS.put("PROPERTY_DESCRIPTION", "Property Description");
+        KNOWN_HUMANIZED_LABELS.put("PROPERTY_ADDRESS", "Property Address");
+        KNOWN_HUMANIZED_LABELS.put("SCOPE_OF_WORK", "Scope of Work");
+        KNOWN_HUMANIZED_LABELS.put("PURPOSE", "Purpose of Valuation");
+        KNOWN_HUMANIZED_LABELS.put("APPROACH", "Valuation Approach Adopted");
+        KNOWN_HUMANIZED_LABELS.put("PERSON_COORDINATED_FOR_INSPECTION", "Person Coordinated for Inspection");
+    }
+
+    private static final Map<String, String> ABBREVIATION_MAP = Map.ofEntries(
+        Map.entry("REF", "Reference"),
+        Map.entry("NO", "Number"),
+        Map.entry("NUM", "Number"),
+        Map.entry("DESC", "Description"),
+        Map.entry("ADDR", "Address"),
+        Map.entry("VAL", "Value"),
+        Map.entry("PROP", "Property"),
+        Map.entry("ELE", "Electricity"),
+        Map.entry("COMM", "Commercial"),
+        Map.entry("RES", "Residential"),
+        Map.entry("DOC", "Document"),
+        Map.entry("DOCS", "Documents"),
+        Map.entry("AUTH", "Authority"),
+        Map.entry("MGR", "Manager"),
+        Map.entry("QTY", "Quantity"),
+        Map.entry("AMT", "Amount"),
+        Map.entry("OBSERVATON", "Observation"),
+        Map.entry("DIST", "Distance"),
+        Map.entry("AVAI", "Availability"),
+        Map.entry("PROVI", "Provisions")
+    );
+
+    /**
+     * Cleans prefix text from a paragraph to use as contextual question text (Priority 2).
+     */
+    private String cleanContextText(String raw) {
+        if (raw == null) return null;
+        String clean = raw.replaceAll("(?i)^[\\s\\-\\:\\;\\.\\,\\(\\)\\[\\]]+", "")
+                          .replaceAll("[\\s\\-\\:\\;\\.\\,\\(\\)\\[\\]]+$", "")
+                          .replaceAll("(?i)\\b(Dt\\.?|at|of)\\b$", "")
+                          .replaceAll("[\\s\\-\\:\\;]+$", "")
+                          .trim();
+        if (clean.length() >= 2 && clean.length() <= 80 && !clean.contains("\n")) {
+            return clean;
+        }
+        return null;
+    }
+
+    /**
+     * Resolves question text adhering to the 4-tier hierarchy:
+     * Priority 1: Table question text
+     * Priority 2: Paragraph contextual text / Domain Dictionary Expansion
+     * Priority 3: Humanized placeholder label
+     * Priority 4: Raw placeholder key
+     */
+    public String resolveQuestionText(PlaceholderTracker tracker, String key) {
+        // Priority 1: Table question text
+        if (tracker.tableQuestionText != null && !tracker.tableQuestionText.trim().isEmpty()) {
+            return tracker.tableQuestionText.trim();
+        }
+        if (tracker.questionText != null && !tracker.questionText.trim().isEmpty() && !tracker.questionText.equalsIgnoreCase(key)) {
+            return tracker.questionText.trim();
+        }
+
+        // Domain dictionary expansions (e.g. VRIN -> Valuer Registration Identification Number)
+        String upperKey = key.trim().toUpperCase();
+        if (KNOWN_HUMANIZED_LABELS.containsKey(upperKey)) {
+            return KNOWN_HUMANIZED_LABELS.get(upperKey);
+        }
+
+        // Priority 2: Paragraph contextual text
+        if (tracker.paragraphContextText != null && !tracker.paragraphContextText.trim().isEmpty()
+                && !tracker.paragraphContextText.equalsIgnoreCase(key)
+                && !tracker.paragraphContextText.equalsIgnoreCase(toHumanizedLabel(key))) {
+            return tracker.paragraphContextText.trim();
+        }
+
+        // Priority 3: Humanized placeholder label
+        String humanized = toHumanizedLabel(key);
+        if (humanized != null && !humanized.trim().isEmpty() && !humanized.equalsIgnoreCase(key)) {
+            return humanized.trim();
+        }
+
+        // Priority 4: Raw placeholder key
+        return key;
+    }
+
+    /**
+     * Converts raw placeholder keys into human-readable prompts.
+     */
+    public String toHumanizedLabel(String rawKey) {
+        if (rawKey == null || rawKey.trim().isEmpty()) {
+            return "";
+        }
+        String cleanKey = rawKey.trim();
+        String upperKey = cleanKey.toUpperCase();
+        if (KNOWN_HUMANIZED_LABELS.containsKey(upperKey)) {
+            return KNOWN_HUMANIZED_LABELS.get(upperKey);
+        }
+
+        // Clean common prefixes and suffixes
+        String cleaned = cleanKey.replaceAll("(?i)^(IMG_|PHOTO_|IMAGE_)", "")
+                                 .replaceAll("(?i)(_IMG|_PHOTO|_IMAGE)$", "");
+
+        // Split by underscores, hyphens, spaces, or camelCase transitions
+        String[] rawTokens = cleaned.split("[_\\-\\s]+");
+        List<String> words = new ArrayList<>();
+
+        for (String token : rawTokens) {
+            if (token.isEmpty()) continue;
+            // Split camelCase if present
+            String[] camelParts = token.split("(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])");
+            for (String part : camelParts) {
+                if (part.isEmpty()) continue;
+                String partUpper = part.toUpperCase();
+                if (ABBREVIATION_MAP.containsKey(partUpper)) {
+                    words.add(ABBREVIATION_MAP.get(partUpper));
+                } else if (part.length() == 1) {
+                    words.add(part.toUpperCase());
+                } else {
+                    words.add(Character.toUpperCase(part.charAt(0)) + part.substring(1).toLowerCase());
+                }
             }
         }
-        return sb.toString().trim();
+
+        return words.isEmpty() ? cleanKey : String.join(" ", words);
     }
 
     public String generatePlaceholderRegistry(JsonNode domRoot) {
@@ -436,9 +844,19 @@ public class DocxStructureParser {
             for (JsonNode summary : domRoot.get("placeholdersSummary")) {
                 String key = summary.get("key").asText().toUpperCase();
                 String type = summary.has("type") ? summary.get("type").asText().toUpperCase() : "TEXT";
+                String source = summary.has("source") ? summary.get("source").asText() : "EXPLICIT";
                 ObjectNode item = registry.putObject(key);
                 item.put("type", type);
-                item.put("source", "EXPLICIT");
+                item.put("source", source);
+                if (summary.has("questionText")) {
+                    item.put("questionText", summary.get("questionText").asText());
+                }
+                if (summary.has("serialNo")) {
+                    item.put("serialNo", summary.get("serialNo").asText());
+                }
+                if (summary.has("tableContext")) {
+                    item.set("tableContext", summary.get("tableContext"));
+                }
             }
         }
         return registry.toString();
@@ -448,6 +866,12 @@ public class DocxStructureParser {
         final String key;
         final String type;
         int occurrences = 0;
+        String tableQuestionText;
+        String paragraphContextText;
+        String questionText;
+        String serialNo;
+        String source = "PARAGRAPH";
+        JsonNode tableContext;
 
         PlaceholderTracker(String key, String type) {
             this.key = key;

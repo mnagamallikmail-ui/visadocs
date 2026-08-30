@@ -1,17 +1,17 @@
-import 'dart:html' as html;
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 
 class ApiService {
   static String _determineBaseUrl() {
-    try {
-      final String origin = html.window.location.origin;
-      if (origin.contains('localhost') || origin.contains('127.0.0.1')) {
-        return 'https://visadocs.online';
-      }
-      return origin;
-    } catch (_) {
-      return 'https://visadocs.online';
+    if (kIsWeb) {
+      try {
+        final origin = Uri.base.origin;
+        if (origin.isNotEmpty && !origin.contains('localhost') && !origin.contains('127.0.0.1')) {
+          return origin;
+        }
+      } catch (_) {}
     }
+    return 'https://visadocs.online';
   }
 
   final Dio dio = Dio(

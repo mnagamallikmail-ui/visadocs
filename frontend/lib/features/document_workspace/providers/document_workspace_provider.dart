@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../../document_studio/models/visual_preview_model.dart';
 import '../models/document_workspace_model.dart';
+import '../models/workspace_view_model.dart';
 import '../services/document_workspace_api_service.dart';
 
 class DocumentWorkspaceProvider extends ChangeNotifier {
@@ -17,9 +18,12 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   String? _errorMessage;
   DateTime? _lastSavedAt;
 
-  WorkspaceViewMode _viewMode = WorkspaceViewMode.overlayEdit;
+  WorkspaceViewMode _viewMode = WorkspaceViewMode.tableEdit;
   DocumentWorkspaceModel? _workspaceModel;
+  DocumentWorkspaceVm? _workspaceVm;
   VisualPreviewModel? _livePreviewModel;
+
+  int _activeSectionIndex = 0;
 
   Map<String, String> _activeValues = {};
   final Map<String, String> _deltaValues = {};
@@ -45,7 +49,9 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
 
   WorkspaceViewMode get viewMode => _viewMode;
   DocumentWorkspaceModel? get workspaceModel => _workspaceModel;
+  DocumentWorkspaceVm? get workspaceVm => _workspaceVm;
   VisualPreviewModel? get livePreviewModel => _livePreviewModel;
+  int get activeSectionIndex => _activeSectionIndex;
   Map<String, String> get activeValues => _activeValues;
   Map<String, String> get deltaValues => _deltaValues;
 
@@ -58,6 +64,13 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   String? get focusedKey => _focusedKey;
   bool get hasWorkspace => _workspaceModel != null;
   bool get isReadOnly => _workspaceModel?.readOnly ?? false;
+
+  void setActiveSectionIndex(int index) {
+    if (_activeSectionIndex != index) {
+      _activeSectionIndex = index;
+      notifyListeners();
+    }
+  }
 
   void initAutoSave() {
     _autoSaveTimer?.cancel();
@@ -75,7 +88,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     super.dispose();
   }
 
-  /// Loads the Document Workspace payload
+  /// Loads the Document Workspace payload and constructs the ViewModel hierarchy
   Future<void> loadWorkspace(int orderId) async {
     _isLoading = true;
     _errorMessage = null;
@@ -86,6 +99,13 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       _workspaceModel = model;
       _activeValues = Map<String, String>.from(model.values);
       _deltaValues.clear();
+
+      if (model.documentDom != null) {
+        _workspaceVm = DocumentWorkspaceVm.fromDocumentDom(model.documentDom!, _activeValues);
+      } else {
+        _workspaceVm = null;
+      }
+
       _isDirty = false;
       _lastSavedAt = DateTime.now();
       initAutoSave();
@@ -105,7 +125,19 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     }
   }
 
-  /// Switches between [Overlay Edit] and [Compiled Preview]
+  /// Test helper to hydrate workspace model directly
+  void setWorkspaceModelForTest(DocumentWorkspaceModel model) {
+    _workspaceModel = model;
+    _activeValues = Map<String, String>.from(model.values);
+    _deltaValues.clear();
+    if (model.documentDom != null) {
+      _workspaceVm = DocumentWorkspaceVm.fromDocumentDom(model.documentDom!, _activeValues);
+    }
+    _isDirty = false;
+    notifyListeners();
+  }
+
+  /// Switches between [Table Edit] and [Compiled Preview]
   Future<void> setViewMode(WorkspaceViewMode mode) async {
     if (_viewMode == mode) return;
 

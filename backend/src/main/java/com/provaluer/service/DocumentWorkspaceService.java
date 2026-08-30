@@ -229,13 +229,31 @@ public class DocumentWorkspaceService {
             readOnly = true;
         }
 
+        // 5. Hydrate semantic Document DOM for Table-Driven Workspace
+        JsonNode domNode = null;
+        if (order.getDocumentDomSnapshot() != null && !order.getDocumentDomSnapshot().trim().isEmpty()) {
+            try {
+                domNode = objectMapper.readTree(order.getDocumentDomSnapshot());
+            } catch (Exception e) {
+                log.warn("Failed to parse documentDomSnapshot JSON for order {}: {}", orderId, e.getMessage());
+            }
+        }
+        if (domNode == null && template.getDocumentDom() != null && !template.getDocumentDom().trim().isEmpty()) {
+            try {
+                domNode = objectMapper.readTree(template.getDocumentDom());
+            } catch (Exception e) {
+                log.warn("Failed to parse template documentDom JSON for template {}: {}", templateId, e.getMessage());
+            }
+        }
+
         return new DocumentWorkspaceResponse(
                 order.getId(),
                 order.getStatus(),
                 order.getReportNumber(),
                 visualPreview,
                 valuesMap,
-                readOnly
+                readOnly,
+                domNode
         );
     }
 

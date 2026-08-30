@@ -5,8 +5,9 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import 'models/document_workspace_model.dart';
 import 'providers/document_workspace_provider.dart';
-import 'widgets/document_overlay_canvas_widget.dart';
+import 'widgets/document_table_workspace_widget.dart';
 import 'widgets/live_preview_viewer_widget.dart';
+import 'widgets/section_navigation_tree_widget.dart';
 
 class DocumentWorkspaceScreen extends StatefulWidget {
   final int orderId;
@@ -154,9 +155,9 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         title: Row(
           children: [
-            const Icon(Icons.verified_rounded, color: AppColors.successAccent, size: 22),
+            const Icon(Icons.verified_rounded, color: AppColors.successAccent, size: 20),
             const SizedBox(width: 8),
-            Text('Approve & Compile Report', style: AppTypography.heading4().copyWith(color: AppColors.ink)),
+            Text('Approve Valuation Report', style: AppTypography.heading4().copyWith(color: AppColors.ink)),
           ],
         ),
         content: Column(
@@ -164,20 +165,18 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Enter the final certified property valuation value. Approving will hydrate the original Word template and compile the official final signed PDF report.',
+              'Enter the final confirmed property valuation value to lock and compile the final document report.',
               style: AppTypography.bodySm().copyWith(color: AppColors.slate),
             ),
             const SizedBox(height: 16),
             TextField(
               controller: finalValueController,
               keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              style: GoogleFonts.robotoMono(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.ink),
+              autofocus: true,
               decoration: InputDecoration(
-                labelText: 'Certified Valuation Amount (INR)',
-                hintText: 'e.g. 45000000',
-                labelStyle: AppTypography.bodySm().copyWith(color: AppColors.deepTeal),
+                labelText: 'Final Valuation Amount (INR)',
+                prefixText: 'INR ',
                 border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                prefixText: '₹ ',
               ),
             ),
           ],
@@ -189,13 +188,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              final val = double.tryParse(finalValueController.text.trim());
-              if (val == null || val <= 0) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Please enter a valid positive valuation amount')),
-                );
-                return;
-              }
+              if (finalValueController.text.trim().isEmpty) return;
               Navigator.of(ctx).pop(true);
             },
             style: ElevatedButton.styleFrom(
@@ -251,12 +244,25 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
             child: Scaffold(
               backgroundColor: AppColors.canvas,
               appBar: _buildAppBar(context, provider),
-              body: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 250),
-                child: provider.viewMode == WorkspaceViewMode.overlayEdit
-                    ? const DocumentOverlayCanvasWidget(key: ValueKey('OVERLAY_EDIT'))
-                    : const LivePreviewViewerWidget(key: ValueKey('COMPILED_PREVIEW')),
-              ),
+              body: provider.isLoading
+                  ? const Center(
+                      child: CircularProgressIndicator(color: AppColors.deepTeal),
+                    )
+                  : AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 250),
+                      child: provider.viewMode == WorkspaceViewMode.tableEdit
+                          ? Row(
+                              key: const ValueKey('TABLE_EDIT_LAYOUT'),
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: const [
+                                SectionNavigationTreeWidget(),
+                                Expanded(
+                                  child: DocumentTableWorkspaceWidget(),
+                                ),
+                              ],
+                            )
+                          : const LivePreviewViewerWidget(key: ValueKey('COMPILED_PREVIEW')),
+                    ),
             ),
           );
         },
@@ -375,13 +381,13 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 _buildSegmentButton(
-                  title: 'Overlay Edit',
-                  icon: Icons.edit_note_rounded,
-                  isActive: provider.viewMode == WorkspaceViewMode.overlayEdit,
-                  onTap: () => provider.setViewMode(WorkspaceViewMode.overlayEdit),
+                  title: 'Table Workspace',
+                  icon: Icons.table_chart_outlined,
+                  isActive: provider.viewMode == WorkspaceViewMode.tableEdit,
+                  onTap: () => provider.setViewMode(WorkspaceViewMode.tableEdit),
                 ),
                 _buildSegmentButton(
-                  title: 'Compiled Preview',
+                  title: 'Compiled PDF Preview',
                   icon: Icons.picture_as_pdf_outlined,
                   isActive: provider.viewMode == WorkspaceViewMode.compiledPreview,
                   onTap: () => provider.setViewMode(WorkspaceViewMode.compiledPreview),

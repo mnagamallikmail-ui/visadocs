@@ -1,5 +1,6 @@
 package com.provaluer.dto;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import java.io.Serializable;
 import java.util.Map;
 
@@ -12,17 +13,25 @@ public class DocumentWorkspaceResponse implements Serializable {
     private VisualPreviewResponse visualPreview;
     private Map<String, String> values;
     private boolean readOnly;
+    private JsonNode documentDom;
 
     public DocumentWorkspaceResponse() {}
 
     public DocumentWorkspaceResponse(Long orderId, String status, String reportNumber,
                                      VisualPreviewResponse visualPreview, Map<String, String> values, boolean readOnly) {
+        this(orderId, status, reportNumber, visualPreview, values, readOnly, null);
+    }
+
+    public DocumentWorkspaceResponse(Long orderId, String status, String reportNumber,
+                                     VisualPreviewResponse visualPreview, Map<String, String> values, boolean readOnly,
+                                     JsonNode documentDom) {
         this.orderId = orderId;
         this.status = status;
         this.reportNumber = reportNumber;
         this.visualPreview = visualPreview;
         this.values = values;
         this.readOnly = readOnly;
+        this.documentDom = documentDom;
     }
 
     public Long getOrderId() { return orderId; }
@@ -42,4 +51,7 @@ public class DocumentWorkspaceResponse implements Serializable {
 
     public boolean isReadOnly() { return readOnly; }
     public void setReadOnly(boolean readOnly) { this.readOnly = readOnly; }
+
+    public JsonNode getDocumentDom() { return documentDom; }
+    public void setDocumentDom(JsonNode documentDom) { this.documentDom = documentDom; }
 }
