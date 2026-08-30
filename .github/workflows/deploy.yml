@@ -35,3 +35,20 @@ jobs:
 
             # Reload host nginx to pick up any config changes
             nginx -t && systemctl reload nginx || true
+
+            echo "=== VPS DIAGNOSTICS ==="
+            echo "--- DOCKER CONTAINERS STATUS ---"
+            docker compose ps
+
+            echo "--- BACKEND LOGS ---"
+            docker logs PVCBackend --tail 200
+
+            echo "--- POSTGRES LOGS ---"
+            docker logs PVCPostgres --tail 50
+
+            echo "--- NGINX STATUS & ERROR LOGS ---"
+            systemctl status nginx --no-pager || true
+            tail -n 50 /var/log/nginx/error.log || true
+
+            echo "--- VPS LOCAL LOGIN CURL TEST ---"
+            curl -i -X POST http://127.0.0.1:8082/api/v1/auth/login -H "Content-Type: application/json" -d '{"email":"superadmin@provaluer.com","password":"password"}' || true
