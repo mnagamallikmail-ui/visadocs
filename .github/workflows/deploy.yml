@@ -26,6 +26,9 @@ jobs:
             git fetch origin
             git reset --hard origin/master
 
+            # Clean any failed V11 migration record from flyway schema history if present
+            docker exec -i PVCPostgres psql -U provaluer -d provaluer -c "DELETE FROM flyway_schema_history WHERE version = '11' AND success = false;" || true
+
             # Deploy with production-grade incremental build using Docker cache
             # This rebuilds only changed services and keeps database volumes intact
             docker compose up -d --build
@@ -36,19 +39,18 @@ jobs:
             # Reload host nginx to pick up any config changes
             nginx -t && systemctl reload nginx || true
 
+            echo "=== WAITING FOR BACKEND STARTUP ==="
+            sleep 15
+
             echo "=== VPS DIAGNOSTICS ==="
             echo "--- DOCKER CONTAINERS STATUS ---"
             docker compose ps
 
             echo "--- BACKEND LOGS ---"
-            docker logs PVCBackend --tail 200
+            docker logs PVCBackend --tail 100
 
-            echo "--- POSTGRES LOGS ---"
-            docker logs PVCPostgres --tail 50
-
-            echo "--- NGINX STATUS & ERROR LOGS ---"
-            systemctl status nginx --no-pager || true
-            tail -n 50 /var/log/nginx/error.log || true
-
-            echo "--- VPS LOCAL LOGIN CURL TEST ---"
+            echo "--- DIRECT CONTAINER / HOST LOGIN CURL TEST (port 8082) ---"
             curl -i -X POST http://127.0.0.1:8082/api/v1/auth/login -H "Content-Type: application/json" -d '{"email":"superadmin@provaluer.com","password":"password"}' || true
+
+            echo "--- PUBLIC HTTPS LOGIN CURL TEST (visadocs.online) ---"
+            curl -i -X POST https://visadocs.online/api/v1/auth/login -H "Content-Type: application/json" -d '{"email":"superadmin@provaluer.com","password":"password"}' || true

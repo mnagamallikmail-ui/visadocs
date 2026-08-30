@@ -659,6 +659,9 @@ public class SuperAdminController {
         long ledgerDeleted = performanceLedgerRepository.count();
         performanceLedgerRepository.deleteAll();
 
+        long transactionsDeleted = transactionRepository.count();
+        transactionRepository.deleteAll();
+
         long ordersDeleted = orderRepository.count();
         orderRepository.deleteAll();
 
