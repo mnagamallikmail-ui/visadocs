@@ -46,6 +46,8 @@ class DocumentWorkspaceVm {
     for (final s in dom.sections) {
       final List<TableVm> tables = [];
       final List<StudioParagraph> paragraphs = [];
+      final List<ParagraphBlockVm> paragraphBlocks = [];
+      final List<SectionBlockVm> orderedBlocks = [];
       final Set<String> sectionKeys = {};
 
       for (final el in s.elements) {
@@ -60,17 +62,83 @@ class DocumentWorkspaceVm {
             }
           }
 
-          tables.add(TableVm(
+          final tableVm = TableVm(
             tableId: el.id,
             rowCount: el.rowCount,
             columnCount: el.columnCount,
             rows: rows,
-          ));
+          );
+          tables.add(tableVm);
+          orderedBlocks.add(TableBlockVm(tableVm));
         } else if (el is StudioParagraph) {
           paragraphs.add(el);
+
+          // Extract placeholders in this paragraph
+          final List<String> pKeys = [];
           for (final run in el.runs) {
             if (run.isPlaceholder && run.placeholderKey != null) {
-              sectionKeys.add(run.placeholderKey!.toUpperCase());
+              pKeys.add(run.placeholderKey!.trim());
+            }
+          }
+
+          // Regex fallback on plain text
+          final text = el.plainText;
+          final matches = RegExp(r'<<([^>]+)>>').allMatches(text);
+          for (final m in matches) {
+            final k = m.group(1)?.trim();
+            if (k != null && k.isNotEmpty && !pKeys.contains(k)) {
+              pKeys.add(k);
+            }
+          }
+
+          if (pKeys.isNotEmpty) {
+            final List<InputFieldVm> fields = [];
+            for (final rawKey in pKeys) {
+              final keyUpper = rawKey.toUpperCase();
+              sectionKeys.add(keyUpper);
+              final occ = counts[keyUpper] ?? 1;
+              final prompt = summaries[keyUpper]?.questionText ?? _toHumanizedLabel(keyUpper);
+
+              String fieldType = 'TEXT';
+              if (keyUpper.contains('DATE') || keyUpper.contains('DT')) {
+                fieldType = 'DATE';
+              } else if (keyUpper.contains('OBSERVATION') ||
+                  keyUpper.contains('ADVANTAGE') ||
+                  keyUpper.contains('DISADVANTAGE') ||
+                  keyUpper.contains('DOCUMENT') ||
+                  keyUpper.contains('DESCRIPTION') ||
+                  keyUpper.contains('ADDRESS')) {
+                fieldType = 'MULTILINE';
+              } else if (keyUpper.startsWith('IMG_') || keyUpper.contains('IMAGE') || keyUpper.contains('PHOTO')) {
+                fieldType = 'IMAGE';
+              }
+
+              fields.add(InputFieldVm(
+                key: keyUpper,
+                questionText: prompt,
+                fieldType: fieldType,
+                occurrences: occ,
+                currentValue: values[keyUpper] ?? '',
+              ));
+            }
+
+            final block = ParagraphBlockVm(
+              id: el.id,
+              inputFields: fields,
+              rawText: text,
+            );
+            paragraphBlocks.add(block);
+            orderedBlocks.add(ParagraphBlockWrapperVm(block));
+          } else {
+            final cleanText = text.trim();
+            if (cleanText.isNotEmpty) {
+              final block = ParagraphBlockVm(
+                id: el.id,
+                staticText: cleanText,
+                rawText: text,
+              );
+              paragraphBlocks.add(block);
+              orderedBlocks.add(ParagraphBlockWrapperVm(block));
             }
           }
         }
@@ -81,6 +149,8 @@ class DocumentWorkspaceVm {
         title: s.title,
         tables: tables,
         standaloneParagraphs: paragraphs,
+        paragraphBlocks: paragraphBlocks,
+        orderedBlocks: orderedBlocks,
         boundKeys: sectionKeys,
       ));
     }
@@ -91,14 +161,70 @@ class DocumentWorkspaceVm {
       placeholderSummaries: summaries,
     );
   }
+
+  static String _toHumanizedLabel(String key) {
+    final clean = key.replaceAll(RegExp(r'[<>\s]+'), '');
+    final upper = clean.toUpperCase();
+    if (upper == 'VRIN') return 'Valuer Registration Identification Number';
+    if (upper == 'REPORT_REF_NO') return 'Report Reference Number';
+    if (upper == 'PROPERTY_DESCRIPTION') return 'Property Description';
+    if (upper == 'PROPERTY_ADDRESS') return 'Property Address';
+    if (upper == 'NAME_OF_THE_OWNER' || upper == 'OWNER_NAME') return 'Name of the Owner';
+    if (upper == 'TO_ADDRESSEE') return 'To / Addressee';
+    if (upper == 'DATE_OF_REPORT') return 'Date of Report';
+    if (upper == 'OBSERVATION_1') return 'Observation 1';
+    if (upper == 'OBSERVATION_2') return 'Observation 2';
+    if (upper == 'OBSERVATON_3' || upper == 'OBSERVATION_3') return 'Observation 3';
+    if (upper == 'ADVANTAGES') return 'Advantages of Property';
+    if (upper == 'DISADVANTAGES') return 'Disadvantages of Property';
+    if (upper == 'DOCUMENTS_PERUSED') return 'Documents Perused';
+
+    final words = clean.split(RegExp(r'[_\s]+'));
+    return words.map((w) {
+      if (w.isEmpty) return '';
+      return w[0].toUpperCase() + w.substring(1).toLowerCase();
+    }).join(' ');
+  }
 }
 
-/// ViewModel for a logical document section (Cover, Summary, Property Details, etc.).
+/// Base class for all renderable blocks within a section.
+abstract class SectionBlockVm {}
+
+class TableBlockVm extends SectionBlockVm {
+  final TableVm table;
+  TableBlockVm(this.table);
+}
+
+class ParagraphBlockWrapperVm extends SectionBlockVm {
+  final ParagraphBlockVm block;
+  ParagraphBlockWrapperVm(this.block);
+}
+
+/// ViewModel for a paragraph block containing static text or interactive input fields.
+class ParagraphBlockVm {
+  final String id;
+  final String? staticText;
+  final String? rawText;
+  final List<InputFieldVm> inputFields;
+
+  const ParagraphBlockVm({
+    required this.id,
+    this.staticText,
+    this.rawText,
+    this.inputFields = const [],
+  });
+
+  bool get hasInputs => inputFields.isNotEmpty;
+}
+
+/// ViewModel for a logical document section.
 class SectionVm {
   final int sectionIndex;
   final String title;
   final List<TableVm> tables;
   final List<StudioParagraph> standaloneParagraphs;
+  final List<ParagraphBlockVm> paragraphBlocks;
+  final List<SectionBlockVm> orderedBlocks;
   final Set<String> boundKeys;
 
   const SectionVm({
@@ -106,6 +232,8 @@ class SectionVm {
     required this.title,
     this.tables = const [],
     this.standaloneParagraphs = const [],
+    this.paragraphBlocks = const [],
+    this.orderedBlocks = const [],
     this.boundKeys = const {},
   });
 
@@ -204,7 +332,7 @@ class TableRowVm {
           final occ = counts[keyUpper] ?? 1;
           final prompt = b.questionText.isNotEmpty
               ? b.questionText
-              : (qText != null && qText.isNotEmpty ? qText : summaries[keyUpper]?.questionText ?? keyUpper);
+              : (qText != null && qText.isNotEmpty ? qText : summaries[keyUpper]?.questionText ?? DocumentWorkspaceVm._toHumanizedLabel(keyUpper));
 
           fields.add(InputFieldVm(
             key: keyUpper,
@@ -232,12 +360,12 @@ class TableRowVm {
   }
 }
 
-/// ViewModel for an interactive input field slot within an answer cell.
+/// ViewModel for an interactive input field slot within an answer cell or paragraph form.
 class InputFieldVm {
   final String key;
   final String? serialNo;
   final String questionText;
-  final String fieldType; // TEXT, NUMBER, DATE, SELECT, IMAGE
+  final String fieldType; // TEXT, MULTILINE, NUMBER, DATE, SELECT, IMAGE
   final int occurrences;
   final String currentValue;
 
@@ -251,7 +379,46 @@ class InputFieldVm {
   });
 
   bool get isRepeated => occurrences > 1;
-  bool get isImage => fieldType.toUpperCase() == 'IMAGE';
-  bool get isDate => fieldType.toUpperCase() == 'DATE';
-  bool get isNumber => fieldType.toUpperCase() == 'NUMBER';
+  
+  bool get isImage =>
+      fieldType.toUpperCase() == 'IMAGE' ||
+      key.toUpperCase().startsWith('IMG_') ||
+      key.toUpperCase().contains('IMAGE') ||
+      key.toUpperCase().contains('PHOTO');
+
+  bool get isDate =>
+      fieldType.toUpperCase() == 'DATE' ||
+      key.toUpperCase().contains('DATE') ||
+      key.toUpperCase().startsWith('DT_') ||
+      key.toUpperCase().endsWith('_DT');
+
+  bool get isMultiline {
+    if (fieldType.toUpperCase() == 'MULTILINE') return true;
+    final k = key.toUpperCase();
+    return k.contains('OBSERVATION') ||
+        k.contains('ADVANTAGE') ||
+        k.contains('DISADVANTAGE') ||
+        k.contains('DOCUMENT') ||
+        k.contains('DESCRIPTION') ||
+        k.contains('REMARK') ||
+        k.contains('NOTE') ||
+        k.contains('ADDRESS') ||
+        k.contains('SPECIFICATION') ||
+        k.contains('BOUNDARY') ||
+        k.contains('BOUNDARIES');
+  }
+
+  bool get isNumber =>
+      !isDate &&
+      !isMultiline &&
+      !isImage &&
+      (fieldType.toUpperCase() == 'NUMBER' ||
+          key.toUpperCase().contains('AMOUNT') ||
+          key.toUpperCase().contains('VALUE') ||
+          key.toUpperCase().contains('RATE') ||
+          key.toUpperCase().contains('AREA') ||
+          key.toUpperCase().contains('SFT') ||
+          key.toUpperCase().contains('SQFT') ||
+          key.toUpperCase().contains('SQYD'));
 }
+

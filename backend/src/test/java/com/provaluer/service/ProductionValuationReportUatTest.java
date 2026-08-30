@@ -187,6 +187,12 @@ public class ProductionValuationReportUatTest {
         }
         assertEquals(0, unresolvedTokens.size(), "Generated DOCX must have 0 unresolved placeholders");
 
+        // DEFECT 5 & 7 VERIFICATION: Line breaks & Date format in DOCX OpenXML
+        String mainDocXml = org.docx4j.XmlUtils.marshaltoString(resultPackage.getMainDocumentPart().getJaxbElement());
+        assertTrue(mainDocXml.contains("<w:br") || mainDocXml.contains("<w:br/>"), "Generated DOCX must contain <w:br/> elements for multi-line observation inputs");
+        assertTrue(mainDocXml.contains("30-Aug-2026"), "Generated DOCX must contain strict dd-MMM-yyyy formatted date (30-Aug-2026)");
+        System.out.println("DEFECT 5 & 7 Verified: Line breaks (<w:br/>) and Date Format (30-Aug-2026) verified in OpenXML.");
+
         // SCENARIO 5: PDF Generation
         System.out.println("\n--- SCENARIO 5: PDF GENERATION & FIDELITY AUDIT ---");
         long startPdf = System.currentTimeMillis();

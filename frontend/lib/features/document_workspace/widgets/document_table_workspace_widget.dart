@@ -105,29 +105,22 @@ class DocumentTableWorkspaceWidget extends StatelessWidget {
             ),
           ),
 
-          // Standalone Paragraphs before tables
-          if (activeSection.standaloneParagraphs.isNotEmpty)
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 28),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: activeSection.standaloneParagraphs.map((p) => _buildParagraph(p)).toList(),
-                ),
-              ),
-            ),
-
-          // Render Tables
-          if (activeSection.tables.isNotEmpty)
+          // Render Section Blocks (Tables and Form Cards in visual document order)
+          if (activeSection.orderedBlocks.isNotEmpty)
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(28, 8, 28, 36),
               sliver: SliverList(
                 delegate: SliverChildBuilderDelegate(
                   (context, index) {
-                    final tableVm = activeSection.tables[index];
-                    return _buildTableCard(context, tableVm, provider.isReadOnly);
+                    final block = activeSection.orderedBlocks[index];
+                    if (block is TableBlockVm) {
+                      return _buildTableCard(context, block.table, provider.isReadOnly);
+                    } else if (block is ParagraphBlockWrapperVm) {
+                      return _buildParagraphBlock(context, block.block, provider.isReadOnly);
+                    }
+                    return const SizedBox.shrink();
                   },
-                  childCount: activeSection.tables.length,
+                  childCount: activeSection.orderedBlocks.length,
                 ),
               ),
             )
@@ -137,12 +130,95 @@ class DocumentTableWorkspaceWidget extends StatelessWidget {
                 padding: const EdgeInsets.all(28),
                 child: Center(
                   child: Text(
-                    'No tables in this section',
+                    'No editable elements in this section',
                     style: AppTypography.bodySm().copyWith(color: AppColors.slate),
                   ),
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildParagraphBlock(BuildContext context, ParagraphBlockVm block, bool readOnly) {
+    // If paragraph has NO inputs, render styled static paragraph text
+    if (!block.hasInputs) {
+      final text = block.staticText ?? '';
+      if (text.isEmpty) return const SizedBox.shrink();
+
+      return Padding(
+        padding: const EdgeInsets.only(bottom: 16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: AppColors.hairline),
+          ),
+          child: Text(
+            text,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              color: AppColors.slate,
+              height: 1.45,
+            ),
+          ),
+        ),
+      );
+    }
+
+    // Paragraph WITH inputs (DEFECT 1 & 2: Rendered as clean editable fields with humanized labels)
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.hairline),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          for (int i = 0; i < block.inputFields.length; i++) ...[
+            if (i > 0) const SizedBox(height: 16),
+            Row(
+              children: [
+                Container(
+                  width: 3,
+                  height: 14,
+                  decoration: BoxDecoration(
+                    color: AppColors.deepTeal,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    block.inputFields[i].questionText,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.ink,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            DocumentInputSlotWidget(
+              fieldVm: block.inputFields[i],
+              readOnly: readOnly,
+            ),
+          ],
         ],
       ),
     );
@@ -401,23 +477,6 @@ class DocumentTableWorkspaceWidget extends StatelessWidget {
               ),
             ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildParagraph(StudioParagraph p) {
-    final text = p.plainText.trim();
-    if (text.isEmpty) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 12),
-      child: Text(
-        text,
-        style: GoogleFonts.inter(
-          fontSize: 13,
-          color: AppColors.slate,
-          height: 1.45,
-        ),
       ),
     );
   }

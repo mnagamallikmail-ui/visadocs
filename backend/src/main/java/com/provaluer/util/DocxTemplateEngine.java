@@ -739,18 +739,57 @@ public class DocxTemplateEngine {
                         
                         while (matcher.find()) {
                             String key = matcher.group(1).trim().toUpperCase();
-                            String replacement = inputs.getOrDefault(key, "<<" + key + ">>");
+                            String rawVal = inputs.getOrDefault(key, "<<" + key + ">>");
+                            String replacement = formatIfDate(key, rawVal);
                             matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
                             substituted = true;
                         }
                         if (substituted) {
                             matcher.appendTail(sb);
-                            text.setValue(sb.toString());
+                            String resultText = sb.toString();
+                            if (resultText.contains("\n")) {
+                                String[] lines = resultText.split("\r?\n", -1);
+                                ObjectFactory factory = new ObjectFactory();
+                                runContent.remove(i);
+                                int insertPos = i;
+                                for (int lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+                                    if (lineIdx > 0) {
+                                        runContent.add(insertPos++, factory.createBr());
+                                    }
+                                    Text lineText = factory.createText();
+                                    lineText.setValue(lines[lineIdx]);
+                                    lineText.setSpace("preserve");
+                                    runContent.add(insertPos++, lineText);
+                                }
+                                i = insertPos - 1;
+                            } else {
+                                text.setValue(resultText);
+                            }
                         }
                     }
                 }
             }
         }
+    }
+
+    private static final Pattern ISO_DATE_PATTERN = Pattern.compile("^(\\d{4})-(\\d{1,2})-(\\d{1,2})$");
+    private static final String[] MONTH_NAMES = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+
+    private String formatIfDate(String key, String value) {
+        if (value == null || value.trim().isEmpty()) return value;
+        String trimmed = value.trim();
+        if (key.contains("DATE") || key.contains("DT") || trimmed.matches("^\\d{4}-\\d{1,2}-\\d{1,2}$")) {
+            Matcher m = ISO_DATE_PATTERN.matcher(trimmed);
+            if (m.matches()) {
+                int year = Integer.parseInt(m.group(1));
+                int month = Integer.parseInt(m.group(2));
+                int day = Integer.parseInt(m.group(3));
+                if (month >= 1 && month <= 12) {
+                    return String.format("%02d-%s-%04d", day, MONTH_NAMES[month - 1], year);
+                }
+            }
+        }
+        return value;
     }
 
     private void replaceDrawingInParagraph(P p, Object originalDrawingPart, Inline newInline) {

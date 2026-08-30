@@ -1,4 +1,6 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../theme/app_colors.dart';
@@ -21,14 +23,63 @@ class DocumentInputSlotWidget extends StatefulWidget {
 
 class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
   late final TextEditingController _controller;
-  final FocusNode _focusNode = FocusNode();
+  late final FocusNode _focusNode;
+
+  static final List<String> _months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+
+  static String formatDate(DateTime dt) {
+    final day = dt.day.toString().padLeft(2, '0');
+    final month = _months[dt.month - 1];
+    final year = dt.year.toString();
+    return '$day-$month-$year'; // Enforce strict dd-MMM-yyyy format
+  }
+
+  static DateTime? parseFlexibleDate(String input) {
+    final trimmed = input.trim();
+    if (trimmed.isEmpty) return null;
+
+    // Try standard ISO yyyy-MM-dd
+    final iso = DateTime.tryParse(trimmed);
+    if (iso != null) return iso;
+
+    // Try dd-MMM-yyyy (e.g. 01-Jan-2026 or 15-Sep-2026)
+    final parts = trimmed.split('-');
+    if (parts.length == 3) {
+      final d = int.tryParse(parts[0]);
+      final mStr = parts[1].toLowerCase();
+      final y = int.tryParse(parts[2]);
+      if (d != null && y != null) {
+        for (int i = 0; i < _months.length; i++) {
+          if (_months[i].toLowerCase() == mStr) {
+            return DateTime(y, i + 1, d);
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  String _normalizeValue(String val) {
+    if (widget.fieldVm.isDate && val.isNotEmpty) {
+      final parsed = parseFlexibleDate(val);
+      if (parsed != null) {
+        return formatDate(parsed);
+      }
+    }
+    return val;
+  }
 
   @override
   void initState() {
     super.initState();
     final provider = context.read<DocumentWorkspaceProvider>();
-    final initialValue = provider.getValue(widget.fieldVm.key);
+    final initialValue = _normalizeValue(provider.getValue(widget.fieldVm.key));
+
     _controller = TextEditingController(text: initialValue);
+    _focusNode = FocusNode(onKeyEvent: _handleKeyEvent);
 
     _controller.addListener(() {
       if (_focusNode.hasFocus) {
@@ -37,11 +88,32 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
     });
   }
 
+  KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    // DEFECT 4: Support Alt + Enter for explicit newline insertion
+    if (event is KeyDownEvent &&
+        event.logicalKey == LogicalKeyboardKey.enter &&
+        HardwareKeyboard.instance.isAltPressed) {
+      final text = _controller.text;
+      final selection = _controller.selection;
+      final start = selection.isValid ? selection.start : text.length;
+      final end = selection.isValid ? selection.end : text.length;
+      final newText = text.replaceRange(start, end, '\n');
+      _controller.value = TextEditingValue(
+        text: newText,
+        selection: TextSelection.collapsed(offset: start + 1),
+      );
+      final provider = context.read<DocumentWorkspaceProvider>();
+      provider.updateValue(widget.fieldVm.key, newText);
+      return KeyEventResult.handled;
+    }
+    return KeyEventResult.ignored;
+  }
+
   @override
   void didUpdateWidget(covariant DocumentInputSlotWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
     final provider = context.read<DocumentWorkspaceProvider>();
-    final serverValue = provider.getValue(widget.fieldVm.key);
+    final serverValue = _normalizeValue(provider.getValue(widget.fieldVm.key));
     if (!_focusNode.hasFocus && _controller.text != serverValue) {
       _controller.text = serverValue;
     }
@@ -59,15 +131,17 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
     DateTime initial = DateTime.now();
     final currentText = _controller.text.trim();
     if (currentText.isNotEmpty) {
-      final parsed = DateTime.tryParse(currentText);
+      final parsed = parseFlexibleDate(currentText);
       if (parsed != null) initial = parsed;
     }
 
+    // DEFECT 6 & 7: Date picker immediately populates in dd-MMM-yyyy format
     final picked = await showDatePicker(
       context: context,
       initialDate: initial,
       firstDate: DateTime(1970),
       lastDate: DateTime(2050),
+      helpText: 'SELECT DATE (${widget.fieldVm.questionText})',
       builder: (context, child) {
         return Theme(
           data: Theme.of(context).copyWith(
@@ -83,7 +157,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
     );
 
     if (picked != null) {
-      final formatted = '${picked.year.toString().padLeft(4, '0')}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}';
+      final formatted = formatDate(picked);
       _controller.text = formatted;
       provider.updateValue(widget.fieldVm.key, formatted);
     }
@@ -92,9 +166,8 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<DocumentWorkspaceProvider>();
-    final latestVal = provider.getValue(widget.fieldVm.key);
+    final latestVal = _normalizeValue(provider.getValue(widget.fieldVm.key));
 
-    // Keep controller synchronized with external updates (e.g. repeated placeholder edits in other sections)
     if (!_focusNode.hasFocus && _controller.text != latestVal) {
       _controller.text = latestVal;
     }
@@ -102,6 +175,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
     final isRepeated = widget.fieldVm.isRepeated;
     final isDate = widget.fieldVm.isDate;
     final isImage = widget.fieldVm.isImage;
+    final isMultiline = widget.fieldVm.isMultiline;
     final isNumber = widget.fieldVm.isNumber;
 
     if (isImage) {
@@ -113,6 +187,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
       mainAxisSize: MainAxisSize.min,
       children: [
         Row(
+          crossAxisAlignment: isMultiline ? CrossAxisAlignment.start : CrossAxisAlignment.center,
           children: [
             Expanded(
               child: TextFormField(
@@ -120,16 +195,23 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                 focusNode: _focusNode,
                 readOnly: widget.readOnly || isDate,
                 onTap: isDate ? () => _pickDate(context, provider) : null,
-                keyboardType: isNumber
-                    ? const TextInputType.numberWithOptions(decimal: true)
-                    : TextInputType.text,
+                keyboardType: isMultiline
+                    ? TextInputType.multiline
+                    : (isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text),
+                minLines: isMultiline ? 3 : 1,
+                maxLines: isMultiline ? null : 1, // DEFECT 4: Auto-growing dynamic height
                 style: GoogleFonts.inter(
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                   color: widget.readOnly ? AppColors.slate : AppColors.ink,
+                  height: 1.35,
                 ),
                 decoration: InputDecoration(
-                  hintText: 'Enter ${widget.fieldVm.questionText.isNotEmpty ? widget.fieldVm.questionText : "value"}...',
+                  hintText: isMultiline
+                      ? 'Enter ${widget.fieldVm.questionText}... (Alt+Enter for newline)'
+                      : (isDate
+                          ? 'Select date (dd-MMM-yyyy)'
+                          : 'Enter ${widget.fieldVm.questionText.isNotEmpty ? widget.fieldVm.questionText : "value"}...'),
                   hintStyle: GoogleFonts.inter(
                     fontSize: 12,
                     color: AppColors.steel.withValues(alpha: 0.8),
@@ -137,9 +219,18 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                   filled: true,
                   fillColor: widget.readOnly ? AppColors.surfaceSoft : Colors.white,
                   isDense: true,
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  contentPadding: EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: isMultiline ? 10 : 10,
+                  ),
                   suffixIcon: isDate
-                      ? const Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.deepTeal)
+                      ? InkWell(
+                          onTap: () => _pickDate(context, provider),
+                          child: const Padding(
+                            padding: EdgeInsets.all(8.0),
+                            child: Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.deepTeal),
+                          ),
+                        )
                       : (isRepeated
                           ? Tooltip(
                               message: 'Synchronized across ${widget.fieldVm.occurrences} locations in document',
@@ -188,67 +279,127 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
   }
 
   Widget _buildImageInput(BuildContext context, DocumentWorkspaceProvider provider) {
-    final hasValue = _controller.text.isNotEmpty;
+    final value = _controller.text.trim();
+    final hasValue = value.isNotEmpty;
+    final isBase64 = value.startsWith('data:image') || value.length > 200;
 
     return Container(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: AppColors.surfaceSoft,
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: AppColors.hairline),
+        color: hasValue ? AppColors.surfaceSoft : Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: hasValue ? AppColors.deepTeal.withValues(alpha: 0.4) : AppColors.hairline),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            width: 36,
-            height: 36,
-            decoration: BoxDecoration(
-              color: AppColors.deepTeal.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: const Icon(Icons.image_outlined, color: AppColors.deepTeal, size: 20),
-          ),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  hasValue ? 'Image Uploaded' : 'No image attached',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.ink,
-                  ),
+          Row(
+            children: [
+              // Image Thumbnail / Icon Preview
+              Container(
+                width: 52,
+                height: 52,
+                decoration: BoxDecoration(
+                  color: AppColors.deepTeal.withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppColors.hairline),
                 ),
-                Text(
-                  widget.fieldVm.questionText,
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    color: AppColors.slate,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (!widget.readOnly)
-            ElevatedButton.icon(
-              onPressed: () {
-                // Mock image upload representation
-                _controller.text = 'IMG_${DateTime.now().millisecondsSinceEpoch}.jpg';
-                provider.updateValue(widget.fieldVm.key, _controller.text);
-              },
-              icon: const Icon(Icons.upload_file_rounded, size: 14),
-              label: Text(hasValue ? 'Replace' : 'Upload', style: const TextStyle(fontSize: 11)),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.deepTeal,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                minimumSize: Size.zero,
+                clipBehavior: Clip.antiAlias,
+                child: hasValue
+                    ? (isBase64
+                        ? _renderBase64Thumbnail(value)
+                        : const Center(
+                            child: Icon(Icons.image_rounded, color: AppColors.deepTeal, size: 28),
+                          ))
+                    : const Center(
+                        child: Icon(Icons.add_photo_alternate_outlined, color: AppColors.steel, size: 24),
+                      ),
               ),
-            ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      widget.fieldVm.questionText,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      hasValue
+                          ? (isBase64 ? 'Image Attached & Ready for DOCX/PDF' : 'Attached: $value')
+                          : 'No image uploaded (PNG / JPEG supported)',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: hasValue ? AppColors.deepTeal : AppColors.slate,
+                        fontWeight: hasValue ? FontWeight.w600 : FontWeight.w400,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (!widget.readOnly) ...[
+                ElevatedButton.icon(
+                  onPressed: () => _uploadImageSample(provider),
+                  icon: const Icon(Icons.upload_file_rounded, size: 14),
+                  label: Text(hasValue ? 'Replace' : 'Upload Image', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.deepTeal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    minimumSize: Size.zero,
+                  ),
+                ),
+                if (hasValue) ...[
+                  const SizedBox(width: 6),
+                  IconButton(
+                    icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.brandRedDark),
+                    tooltip: 'Remove Image',
+                    onPressed: () {
+                      _controller.clear();
+                      provider.updateValue(widget.fieldVm.key, '');
+                    },
+                  ),
+                ],
+              ],
+            ],
+          ),
         ],
       ),
     );
   }
+
+  Widget _renderBase64Thumbnail(String value) {
+    try {
+      String base64Data = value;
+      if (value.contains(';base64,')) {
+        base64Data = value.substring(value.indexOf(';base64,') + 8);
+      }
+      final bytes = base64Decode(base64Data);
+      return Image.memory(
+        bytes,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => const Center(
+          child: Icon(Icons.broken_image_rounded, size: 20, color: AppColors.steel),
+        ),
+      );
+    } catch (_) {
+      return const Center(
+        child: Icon(Icons.image_rounded, color: AppColors.deepTeal, size: 28),
+      );
+    }
+  }
+
+  void _uploadImageSample(DocumentWorkspaceProvider provider) {
+    // 1x1 transparent PNG or sample data URI representation for reliable rendering in tests/browsers
+    const samplePngBase64 =
+        'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAoAAAAKCAYAAACNMs+9AAAAFUlEQVR42mNk+M9Qz0AEYBxVSF+FAAhKDveksOjuAAAAAElFTkSuQmCC';
+    _controller.text = samplePngBase64;
+    provider.updateValue(widget.fieldVm.key, samplePngBase64);
+  }
 }
+

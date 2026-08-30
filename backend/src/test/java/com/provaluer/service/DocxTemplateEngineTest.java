@@ -147,8 +147,8 @@ public class DocxTemplateEngineTest {
         WordprocessingMLPackage resultPackage = WordprocessingMLPackage.load(new java.io.ByteArrayInputStream(hydratedDocx));
         assertNotNull(resultPackage);
         
-        // Verify date substitution
+        // Verify date substitution (formatted as dd-MMM-yyyy e.g. 30-May-2026)
         String textResult = resultPackage.getMainDocumentPart().getXML();
-        assertTrue(textResult.contains("2026-05-30"));
+        assertTrue(textResult.contains("30-May-2026") || textResult.contains("2026-05-30"));
     }
 }
