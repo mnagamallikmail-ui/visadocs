@@ -268,6 +268,7 @@ void main() {
       final provider = DocumentWorkspaceProvider();
       provider.setWorkspaceModelForTest(workspaceModel);
       provider.setActiveSectionIndex(2); // Details of Property
+      provider.setScrollMode(DocumentScrollMode.sectionBySection);
 
       await tester.pumpWidget(
         ChangeNotifierProvider.value(

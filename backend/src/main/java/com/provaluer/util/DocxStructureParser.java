@@ -441,11 +441,22 @@ public class DocxStructureParser {
     private void appendRunNode(ArrayNode runsArray, String text, boolean isPlaceholder,
                                String placeholderKey, boolean isBold, boolean isItalic,
                                double fontSizePt, String fontColor) {
+        if (!isPlaceholder) {
+            if (text == null || text.isEmpty()) {
+                return;
+            }
+            String trimmed = text.trim();
+            // Orphan text cleanup: remove stray parser noise like standalone 'n', 'r', '_', or empty whitespace runs
+            if (trimmed.length() == 1 && (trimmed.equals("n") || trimmed.equals("r") || trimmed.equals("_") || trimmed.equals("`"))) {
+                return;
+            }
+        }
         ObjectNode runNode = runsArray.addObject();
-        runNode.put("text", text);
+        runNode.put("text", text != null ? text : "");
         runNode.put("isPlaceholder", isPlaceholder);
         if (isPlaceholder && placeholderKey != null) {
             runNode.put("placeholderKey", placeholderKey);
+            runNode.put("fieldType", inferFieldType(placeholderKey));
         }
         runNode.put("isBold", isBold);
         runNode.put("isItalic", isItalic);
@@ -884,6 +895,16 @@ public class DocxStructureParser {
         KNOWN_HUMANIZED_LABELS.put("SCOPE_OF_WORK", "Scope of Work");
         KNOWN_HUMANIZED_LABELS.put("PURPOSE", "Purpose of Valuation");
         KNOWN_HUMANIZED_LABELS.put("APPROACH", "Valuation Approach Adopted");
+        KNOWN_HUMANIZED_LABELS.put("IMG_FRONT_PAGE", "Front Page Photograph");
+        KNOWN_HUMANIZED_LABELS.put("IMG_SECOND_PAGE", "Second Page Photograph");
+        KNOWN_HUMANIZED_LABELS.put("IMG_PIC1", "Property Photograph 1");
+        KNOWN_HUMANIZED_LABELS.put("IMG_PIC2", "Property Photograph 2");
+        KNOWN_HUMANIZED_LABELS.put("IMG_PIC3", "Property Photograph 3");
+        KNOWN_HUMANIZED_LABELS.put("IMG_PIC4", "Property Photograph 4");
+        KNOWN_HUMANIZED_LABELS.put("IMG_PIC5", "Property Photograph 5");
+        KNOWN_HUMANIZED_LABELS.put("IMG_PIC6", "Property Photograph 6");
+        KNOWN_HUMANIZED_LABELS.put("IMG_PIC7", "Property Photograph 7");
+        KNOWN_HUMANIZED_LABELS.put("IMG_PIC8", "Property Photograph 8");
         KNOWN_HUMANIZED_LABELS.put("PERSON_COORDINATED_FOR_INSPECTION", "Person Coordinated for Inspection");
     }
 
@@ -934,6 +955,22 @@ public class DocxStructureParser {
      * Priority 4: Raw placeholder key
      */
     public String resolveQuestionText(PlaceholderTracker tracker, String key) {
+        String upperKey = key.trim().toUpperCase();
+
+        // Check if drawing shape name is parser noise (e.g. "Rectangle 1", "n", "r", "_")
+        if (tracker.paragraphContextText != null) {
+            String pClean = tracker.paragraphContextText.trim();
+            if (pClean.matches("(?i)^(Rectangle|TextBox|Picture|Image|Shape)\\s*\\d*$") || pClean.length() <= 1 || pClean.matches("^[_\\-\\.]+$")) {
+                tracker.paragraphContextText = null;
+            }
+        }
+        if (tracker.questionText != null) {
+            String qClean = tracker.questionText.trim();
+            if (qClean.matches("(?i)^(Rectangle|TextBox|Picture|Image|Shape)\\s*\\d*$") || qClean.length() <= 1 || qClean.matches("^[_\\-\\.]+$")) {
+                tracker.questionText = null;
+            }
+        }
+
         // Priority 1: Table question text
         if (tracker.tableQuestionText != null && !tracker.tableQuestionText.trim().isEmpty()) {
             return tracker.tableQuestionText.trim();
@@ -942,8 +979,7 @@ public class DocxStructureParser {
             return tracker.questionText.trim();
         }
 
-        // Domain dictionary expansions (e.g. VRIN -> Valuer Registration Identification Number)
-        String upperKey = key.trim().toUpperCase();
+        // Domain dictionary expansions (e.g. VRIN, IMG_PIC1 -> Property Photograph 1)
         if (KNOWN_HUMANIZED_LABELS.containsKey(upperKey)) {
             return KNOWN_HUMANIZED_LABELS.get(upperKey);
         }

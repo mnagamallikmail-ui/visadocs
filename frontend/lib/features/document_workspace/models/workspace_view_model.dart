@@ -97,10 +97,25 @@ class DocumentWorkspaceVm {
               final keyUpper = rawKey.toUpperCase();
               sectionKeys.add(keyUpper);
               final occ = counts[keyUpper] ?? 1;
-              final prompt = summaries[keyUpper]?.questionText ?? _toHumanizedLabel(keyUpper);
+              final summaryItem = summaries[keyUpper];
+              String prompt = summaryItem?.questionText ?? '';
+              if (prompt.isEmpty ||
+                  prompt.trim().length <= 1 ||
+                  prompt.toLowerCase().startsWith('rectangle') ||
+                  prompt.toLowerCase().startsWith('picture') ||
+                  prompt.toLowerCase().startsWith('textbox') ||
+                  prompt.trim() == '_') {
+                prompt = _toHumanizedLabel(keyUpper);
+              }
 
-              String fieldType = 'TEXT';
-              if (keyUpper.contains('DATE') || keyUpper.contains('DT')) {
+              String fieldType = summaryItem?.type ?? 'TEXT';
+              if (fieldType.toUpperCase() == 'IMAGE' ||
+                  keyUpper.startsWith('IMG_') ||
+                  keyUpper.contains('IMAGE') ||
+                  keyUpper.contains('PHOTO') ||
+                  keyUpper.contains('PIC')) {
+                fieldType = 'IMAGE';
+              } else if (keyUpper.contains('DATE') || keyUpper.contains('DT')) {
                 fieldType = 'DATE';
               } else if (keyUpper.contains('OBSERVATION') ||
                   keyUpper.contains('ADVANTAGE') ||
@@ -109,8 +124,6 @@ class DocumentWorkspaceVm {
                   keyUpper.contains('DESCRIPTION') ||
                   keyUpper.contains('ADDRESS')) {
                 fieldType = 'MULTILINE';
-              } else if (keyUpper.startsWith('IMG_') || keyUpper.contains('IMAGE') || keyUpper.contains('PHOTO')) {
-                fieldType = 'IMAGE';
               }
 
               fields.add(InputFieldVm(
@@ -131,7 +144,12 @@ class DocumentWorkspaceVm {
             orderedBlocks.add(ParagraphBlockWrapperVm(block));
           } else {
             final cleanText = text.trim();
-            if (cleanText.isNotEmpty) {
+            // Orphan text cleanup: do not create paragraph blocks for single-character parser artifacts or whitespace noise
+            if (cleanText.isNotEmpty &&
+                cleanText.length > 1 &&
+                cleanText != '_' &&
+                cleanText != 'n' &&
+                cleanText != 'r') {
               final block = ParagraphBlockVm(
                 id: el.id,
                 staticText: cleanText,
@@ -178,6 +196,16 @@ class DocumentWorkspaceVm {
     if (upper == 'ADVANTAGES') return 'Advantages of Property';
     if (upper == 'DISADVANTAGES') return 'Disadvantages of Property';
     if (upper == 'DOCUMENTS_PERUSED') return 'Documents Perused';
+    if (upper == 'IMG_FRONT_PAGE') return 'Front Page Photograph';
+    if (upper == 'IMG_SECOND_PAGE') return 'Second Page Photograph';
+    if (upper == 'IMG_PIC1' || upper == 'PIC1') return 'Property Photograph 1';
+    if (upper == 'IMG_PIC2' || upper == 'PIC2') return 'Property Photograph 2';
+    if (upper == 'IMG_PIC3' || upper == 'PIC3') return 'Property Photograph 3';
+    if (upper == 'IMG_PIC4' || upper == 'PIC4') return 'Property Photograph 4';
+    if (upper == 'IMG_PIC5' || upper == 'PIC5') return 'Property Photograph 5';
+    if (upper == 'IMG_PIC6' || upper == 'PIC6') return 'Property Photograph 6';
+    if (upper == 'IMG_PIC7' || upper == 'PIC7') return 'Property Photograph 7';
+    if (upper == 'IMG_PIC8' || upper == 'PIC8') return 'Property Photograph 8';
 
     final words = clean.split(RegExp(r'[_\s]+'));
     return words.map((w) {
@@ -330,9 +358,15 @@ class TableRowVm {
         for (final b in cell.placeholderBindings) {
           final keyUpper = b.key.toUpperCase();
           final occ = counts[keyUpper] ?? 1;
-          final prompt = b.questionText.isNotEmpty
+          String prompt = b.questionText.isNotEmpty
               ? b.questionText
               : (qText != null && qText.isNotEmpty ? qText : summaries[keyUpper]?.questionText ?? DocumentWorkspaceVm._toHumanizedLabel(keyUpper));
+          if (prompt.trim().length <= 1 ||
+              prompt.toLowerCase().startsWith('rectangle') ||
+              prompt.toLowerCase().startsWith('picture') ||
+              prompt.trim() == '_') {
+            prompt = DocumentWorkspaceVm._toHumanizedLabel(keyUpper);
+          }
 
           fields.add(InputFieldVm(
             key: keyUpper,

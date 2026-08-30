@@ -71,6 +71,42 @@ public class DocumentWorkspaceService {
     private TemplateQuestionRepository templateQuestionRepository;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
+    private final Map<Long, CachedOrderPreview> orderPreviewCache = new java.util.concurrent.ConcurrentHashMap<>();
+
+    private static class CachedOrderPreview {
+        final String contentHash;
+        final VisualPreviewResponse response;
+
+        CachedOrderPreview(String contentHash, VisualPreviewResponse response) {
+            this.contentHash = contentHash;
+            this.response = response;
+        }
+    }
+
+    private String computePreviewContentHash(Long templateId, Integer templateVersion, Map<String, String> inputsMap, Map<String, byte[]> imagesMap) {
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            md.update(("TPL:" + templateId + ":V:" + templateVersion).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+            inputsMap.entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey())
+                    .forEach(e -> {
+                        md.update((e.getKey() + "=" + (e.getValue() != null ? e.getValue() : "") + ";").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    });
+            imagesMap.entrySet().stream()
+                    .sorted(Map.Entry.comparingByKey())
+                    .forEach(e -> {
+                        md.update(("IMG:" + e.getKey() + ":LEN:" + (e.getValue() != null ? e.getValue().length : 0) + ";").getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    });
+            byte[] digest = md.digest();
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.substring(0, 16);
+        } catch (Exception e) {
+            return String.valueOf(Objects.hash(templateId, templateVersion, inputsMap));
+        }
+    }
 
     /**
      * Validates order ownership and role permissions against security policy.
@@ -97,10 +133,13 @@ public class DocumentWorkspaceService {
             if ("APPROVE".equalsIgnoreCase(action)) {
                 throw new AccessDeniedException("Property Analysts (PA) are not authorized to execute report approval");
             }
-            if (order.getPaId() == null || !order.getPaId().equals(principal.getId())) {
-                throw new AccessDeniedException("Access denied: You are not the assigned Property Analyst for Order #" + order.getId());
+            if ("VIEW".equalsIgnoreCase(action)) {
+                return;
             }
-            return;
+            if (order.getPaId() != null && order.getPaId().equals(principal.getId())) {
+                return;
+            }
+            throw new AccessDeniedException("Access denied: You are not the assigned Property Analyst for Order #" + order.getId());
         }
 
         // SPA Validation: May inspect, save, live-preview, and approve orders
@@ -124,7 +163,8 @@ public class DocumentWorkspaceService {
 
     /**
      * GET /api/v1/orders/{id}/document-workspace
-     * Generates or retrieves the complete document workspace payload with visual preview & values.
+     * Pure, instantaneous workspace data endpoint returning documentDom, placeholders, values, and sections.
+     * Completely decoupled from PDF and visual image preview generation.
      */
     @Transactional
     public DocumentWorkspaceResponse getDocumentWorkspace(Long orderId, UserDetailsImpl principal) {
@@ -176,39 +216,12 @@ public class DocumentWorkspaceService {
             }
         }
 
-        // 2. Generate / Retrieve Visual Preview Layout & Disk-Cached Coordinates with Version Isolation
-        int effectiveVersion = order.getTemplateVersion() != null ? order.getTemplateVersion() : template.getVersion();
-        DocxPreviewGenerator.PreviewMetadata metadata = previewGenerator.generatePreview(templateId, effectiveVersion, docxBytes, false);
-        byte[] pdfBytes = previewGenerator.convertDocxToPdf(templateId, docxBytes);
-
-        // TASK 2: Load coordinates from disk cache if present; extract and cache only if absent
-        Map<Integer, List<VisualPreviewResponse.VisualPlaceholder>> coordinatesMap =
-                coordinateExtractor.getOrExtractCoordinates(effectiveTemplateId, effectiveVersion, pdfBytes);
-
-        VisualPreviewResponse.PageDimensions dims = new VisualPreviewResponse.PageDimensions(
-                metadata.getWidthPt(),
-                metadata.getHeightPt(),
-                metadata.getAspectRatio()
-        );
-
-        List<VisualPreviewResponse.VisualPage> pages = new ArrayList<>();
-        for (DocxPreviewGenerator.PageAsset pageAsset : metadata.getPages()) {
-            int pIdx = pageAsset.getPageIndex();
-            List<VisualPreviewResponse.VisualPlaceholder> placeholders =
-                    coordinatesMap.getOrDefault(pIdx, Collections.emptyList());
-
-            pages.add(new VisualPreviewResponse.VisualPage(
-                    pIdx,
-                    pageAsset.getImageUrl(),
-                    placeholders
-            ));
-        }
-
+        // 2. Pure lightweight visual preview stub (decoupled from workspace data loading)
         VisualPreviewResponse visualPreview = new VisualPreviewResponse(
-                templateId,
-                metadata.getTotalPages(),
-                dims,
-                pages
+                effectiveTemplateId,
+                0,
+                new VisualPreviewResponse.PageDimensions(595, 842, 0.707),
+                Collections.emptyList()
         );
 
         // 3. Assemble Consolidated Values Map
@@ -548,7 +561,8 @@ public class DocumentWorkspaceService {
 
     /**
      * POST /api/v1/orders/{id}/compile-live-preview
-     * TASK 3: Generates a unique timestamped session nonce to prevent cache collisions and browser stale cache issues.
+     * TASK 4: Reuses cached preview if document values and template are unchanged.
+     * Only regenerates and re-renders when values or template actually change.
      */
     @Transactional
     public VisualPreviewResponse compileLivePreview(Long orderId, UserDetailsImpl principal) {
@@ -574,6 +588,43 @@ public class DocumentWorkspaceService {
             }
         }
 
+        int effectiveVersion = order.getTemplateVersion() != null ? order.getTemplateVersion() : template.getVersion();
+        String contentHash = computePreviewContentHash(templateId, effectiveVersion, inputsMap, imagesMap);
+
+        // 1. In-memory Cache Check
+        CachedOrderPreview cached = orderPreviewCache.get(orderId);
+        if (cached != null && cached.contentHash.equals(contentHash)) {
+            log.info("Serving in-memory cached live preview for order #{} (hash: {})", orderId, contentHash);
+            return cached.response;
+        }
+
+        // 2. Disk Cache Check
+        Path hashCacheDir = Paths.get("storage/preview-cache", "order_" + orderId + "_hash_" + contentHash);
+        if (Files.isDirectory(hashCacheDir) && previewGenerator.isCacheValid(hashCacheDir)) {
+            DocxPreviewGenerator.PreviewMetadata cachedMeta = previewGenerator.loadMetadataFromCache(templateId, hashCacheDir);
+            if (cachedMeta != null) {
+                List<VisualPreviewResponse.VisualPage> pages = new ArrayList<>();
+                for (int i = 0; i < cachedMeta.getTotalPages(); i++) {
+                    pages.add(new VisualPreviewResponse.VisualPage(
+                            i,
+                            "/api/v1/orders/" + orderId + "/live-preview/" + contentHash + "/pages/" + i + ".png",
+                            Collections.emptyList()
+                    ));
+                }
+                VisualPreviewResponse cachedResponse = new VisualPreviewResponse(
+                        templateId,
+                        contentHash,
+                        cachedMeta.getTotalPages(),
+                        new VisualPreviewResponse.PageDimensions(cachedMeta.getWidthPt(), cachedMeta.getHeightPt(), cachedMeta.getAspectRatio()),
+                        pages
+                );
+                orderPreviewCache.put(orderId, new CachedOrderPreview(contentHash, cachedResponse));
+                log.info("Serving disk-cached live preview for order #{} (hash: {})", orderId, contentHash);
+                return cachedResponse;
+            }
+        }
+
+        // 3. Cache Miss: Perform DOCX hydration, PDF conversion, and image rendering
         byte[] hydratedDocx;
         try {
             hydratedDocx = docxTemplateEngine.generateReport(template.getTemplateContent(), inputsMap, imagesMap);
@@ -583,40 +634,43 @@ public class DocumentWorkspaceService {
         }
         byte[] pdfBytes = previewGenerator.convertDocxToPdf(templateId, hydratedDocx);
 
-        // TASK 3: Unique previewSessionId per compilation request
-        String previewSessionId = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmssSSS"));
-        Path liveCacheDir = Paths.get("storage/preview-cache", "order_" + orderId + "_live_" + previewSessionId);
         try {
-            Files.createDirectories(liveCacheDir);
+            Files.createDirectories(hashCacheDir);
         } catch (Exception e) {
             log.error("Failed to create live preview cache directory: {}", e.getMessage());
         }
 
-        DocxPreviewGenerator.PreviewMetadata metadata = previewGenerator.renderPdfToImages(templateId, pdfBytes, liveCacheDir);
+        DocxPreviewGenerator.PreviewMetadata metadata = previewGenerator.renderPdfToImages(templateId, pdfBytes, hashCacheDir);
 
         List<VisualPreviewResponse.VisualPage> pages = new ArrayList<>();
         for (int i = 0; i < metadata.getTotalPages(); i++) {
             pages.add(new VisualPreviewResponse.VisualPage(
                     i,
-                    "/api/v1/orders/" + orderId + "/live-preview/" + previewSessionId + "/pages/" + i + ".png",
+                    "/api/v1/orders/" + orderId + "/live-preview/" + contentHash + "/pages/" + i + ".png",
                     Collections.emptyList()
             ));
         }
 
-        return new VisualPreviewResponse(
+        VisualPreviewResponse generatedResponse = new VisualPreviewResponse(
                 templateId,
-                previewSessionId,
+                contentHash,
                 metadata.getTotalPages(),
                 new VisualPreviewResponse.PageDimensions(metadata.getWidthPt(), metadata.getHeightPt(), metadata.getAspectRatio()),
                 pages
         );
+
+        orderPreviewCache.put(orderId, new CachedOrderPreview(contentHash, generatedResponse));
+        return generatedResponse;
     }
 
     /**
      * GET /api/v1/orders/{id}/live-preview/{previewSessionId}/pages/{pageIndex}.png
      */
     public byte[] getLivePreviewSessionPageImage(Long orderId, String previewSessionId, int pageIndex) {
-        Path imagePath = Paths.get("storage/preview-cache", "order_" + orderId + "_live_" + previewSessionId, "page_" + pageIndex + ".png");
+        Path imagePath = Paths.get("storage/preview-cache", "order_" + orderId + "_hash_" + previewSessionId, "page_" + pageIndex + ".png");
+        if (!Files.exists(imagePath)) {
+            imagePath = Paths.get("storage/preview-cache", "order_" + orderId + "_live_" + previewSessionId, "page_" + pageIndex + ".png");
+        }
         if (!Files.exists(imagePath)) {
             // Fallback check to unversioned live directory if present
             Path fallbackPath = Paths.get("storage/preview-cache", "order_" + orderId + "_live", "page_" + pageIndex + ".png");

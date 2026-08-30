@@ -156,37 +156,36 @@ class StudioRun {
 
   factory StudioRun.fromJson(Map<String, dynamic> json) {
     final type = json['type']?.toString().toUpperCase();
-    if (type == 'IMAGE') {
-      return StudioRun(
-        isImage: true,
-        isImagePresent: json['present'] as bool? ?? true,
-      );
-    }
+    final fieldType = json['fieldType']?.toString().toUpperCase();
+    final isPlaceholder = json['isPlaceholder'] as bool? ?? false;
+    final placeholderKey = json['placeholderKey'] as String?;
+    final isImage = type == 'IMAGE' ||
+        fieldType == 'IMAGE' ||
+        (placeholderKey != null &&
+            (placeholderKey.toUpperCase().startsWith('IMG_') ||
+                placeholderKey.toUpperCase().contains('PHOTO') ||
+                placeholderKey.toUpperCase().contains('IMAGE')));
 
     return StudioRun(
-      text: json['text'] as String? ?? '',
-      isPlaceholder: json['isPlaceholder'] as bool? ?? false,
-      placeholderKey: json['placeholderKey'] as String?,
+      text: json['text'] as String? ?? (placeholderKey != null ? '<<$placeholderKey>>' : ''),
+      isPlaceholder: isPlaceholder || placeholderKey != null,
+      placeholderKey: placeholderKey,
       isBold: json['isBold'] as bool? ?? false,
       isItalic: json['isItalic'] as bool? ?? false,
       fontSizePt: (json['fontSizePt'] as num?)?.toDouble() ?? 11.0,
       fontColor: json['fontColor'] as String?,
-      isImage: false,
-      isImagePresent: false,
+      isImage: isImage,
+      isImagePresent: json['present'] as bool? ?? true,
     );
   }
 
   Map<String, dynamic> toJson() {
-    if (isImage) {
-      return {
-        'type': 'IMAGE',
-        'present': isImagePresent,
-      };
-    }
     return {
       'text': text,
       'isPlaceholder': isPlaceholder,
       if (placeholderKey != null) 'placeholderKey': placeholderKey,
+      if (isImage) 'fieldType': 'IMAGE',
+      if (isImage) 'present': isImagePresent,
       'isBold': isBold,
       'isItalic': isItalic,
       'fontSizePt': fontSizePt,

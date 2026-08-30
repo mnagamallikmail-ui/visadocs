@@ -3,13 +3,112 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_typography.dart';
-import '../../document_studio/models/studio_document_model.dart';
 import '../models/workspace_view_model.dart';
 import '../providers/document_workspace_provider.dart';
 import 'document_input_slot_widget.dart';
 
-class DocumentTableWorkspaceWidget extends StatelessWidget {
+class DocumentTableWorkspaceWidget extends StatefulWidget {
   const DocumentTableWorkspaceWidget({super.key});
+
+  @override
+  State<DocumentTableWorkspaceWidget> createState() => _DocumentTableWorkspaceWidgetState();
+}
+
+class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWidget> {
+  final ScrollController _scrollController = ScrollController();
+  final List<GlobalKey> _sectionKeys = [];
+  bool _isProgrammaticScroll = false;
+  int _lastDispatchedIndex = -1;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_handleScrollSpy);
+
+    // Listen for sidebar click-to-scroll requests
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final provider = context.read<DocumentWorkspaceProvider>();
+      provider.scrollToSectionRequested.addListener(_onScrollRequested);
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_handleScrollSpy);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScrollRequested() {
+    final provider = context.read<DocumentWorkspaceProvider>();
+    final targetIndex = provider.scrollToSectionRequested.value;
+    if (targetIndex == null) return;
+
+    if (provider.scrollMode == DocumentScrollMode.continuous) {
+      _scrollToSectionIndex(targetIndex);
+    }
+  }
+
+  void _scrollToSectionIndex(int index) {
+    if (index < 0 || index >= _sectionKeys.length) return;
+    final key = _sectionKeys[index];
+    final context = key.currentContext;
+    if (context != null) {
+      _isProgrammaticScroll = true;
+      Scrollable.ensureVisible(
+        context,
+        duration: const Duration(milliseconds: 380),
+        curve: Curves.easeInOutCubic,
+        alignment: 0.02, // Align near top of viewport with comfortable margin
+      ).then((_) {
+        // Allow user scrolling spy to resume after animation finishes
+        Future.delayed(const Duration(milliseconds: 100), () {
+          if (mounted) {
+            _isProgrammaticScroll = false;
+          }
+        });
+      });
+    }
+  }
+
+  void _handleScrollSpy() {
+    if (_isProgrammaticScroll) return;
+    final provider = context.read<DocumentWorkspaceProvider>();
+    if (provider.scrollMode != DocumentScrollMode.continuous) return;
+    if (_sectionKeys.isEmpty) return;
+
+    int activeIdx = 0;
+    const double viewportOffsetTolerance = 140.0;
+
+    for (int i = 0; i < _sectionKeys.length; i++) {
+      final key = _sectionKeys[i];
+      final keyContext = key.currentContext;
+      if (keyContext != null) {
+        final renderBox = keyContext.findRenderObject() as RenderBox?;
+        if (renderBox != null && renderBox.hasSize) {
+          final position = renderBox.localToGlobal(Offset.zero);
+          // If the section top is above or near the top of the viewport
+          if (position.dy <= viewportOffsetTolerance) {
+            activeIdx = i;
+          }
+        }
+      }
+    }
+
+    if (activeIdx != _lastDispatchedIndex && activeIdx != provider.activeSectionIndex) {
+      _lastDispatchedIndex = activeIdx;
+      provider.setActiveSectionIndex(activeIdx);
+    }
+  }
+
+  void _ensureKeysSize(int sectionCount) {
+    while (_sectionKeys.length < sectionCount) {
+      _sectionKeys.add(GlobalKey());
+    }
+    while (_sectionKeys.length > sectionCount) {
+      _sectionKeys.removeLast();
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -32,111 +131,199 @@ class DocumentTableWorkspaceWidget extends StatelessWidget {
       );
     }
 
-    final activeIndex = provider.activeSectionIndex.clamp(0, vm.sections.length - 1);
-    final activeSection = vm.sections[activeIndex];
+    _ensureKeysSize(vm.sections.length);
 
+    if (provider.scrollMode == DocumentScrollMode.sectionBySection) {
+      // ─── Single Section Mode ──────────────────────────────────────────
+      final activeIndex = provider.activeSectionIndex.clamp(0, vm.sections.length - 1);
+      final activeSection = vm.sections[activeIndex];
+
+      return Container(
+        color: AppColors.canvas,
+        child: CustomScrollView(
+          key: PageStorageKey<String>('single_section_${activeSection.sectionIndex}'),
+          slivers: [
+            SliverToBoxAdapter(
+              child: _buildSectionHeaderCard(activeSection, provider.isReadOnly, isContinuous: false),
+            ),
+            if (activeSection.orderedBlocks.isNotEmpty)
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(28, 8, 28, 36),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate(
+                    (context, index) {
+                      final block = activeSection.orderedBlocks[index];
+                      if (block is TableBlockVm) {
+                        return _buildTableCard(context, block.table, provider.isReadOnly);
+                      } else if (block is ParagraphBlockWrapperVm) {
+                        return _buildParagraphBlock(context, block.block, provider.isReadOnly);
+                      }
+                      return const SizedBox.shrink();
+                    },
+                    childCount: activeSection.orderedBlocks.length,
+                  ),
+                ),
+              )
+            else
+              _buildEmptySectionMessage(),
+          ],
+        ),
+      );
+    }
+
+    // ─── Continuous Document Mode (All Sections in Single Scroll Viewport) ──
     return Container(
       color: AppColors.canvas,
-      child: CustomScrollView(
-        key: PageStorageKey<String>('section_${activeSection.sectionIndex}'),
-        slivers: [
-          // Section Title Header
-          SliverToBoxAdapter(
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(28, 24, 28, 16),
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.hairline),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.02),
-                      blurRadius: 6,
-                      offset: const Offset(0, 2),
+      child: SingleChildScrollView(
+        controller: _scrollController,
+        padding: const EdgeInsets.fromLTRB(28, 20, 28, 60),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1040),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                for (int sIdx = 0; sIdx < vm.sections.length; sIdx++) ...[
+                  // Section Anchor & Header
+                  Container(
+                    key: _sectionKeys[sIdx],
+                    child: _buildSectionHeaderCard(
+                      vm.sections[sIdx],
+                      provider.isReadOnly,
+                      isContinuous: true,
                     ),
-                  ],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: AppColors.deepTeal.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        'SECTION ${activeSection.sectionIndex + 1}',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.deepTeal,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Text(
-                        activeSection.title,
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.ink,
-                        ),
-                      ),
-                    ),
-                    if (provider.isReadOnly)
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceSoft,
-                          borderRadius: BorderRadius.circular(4),
-                        ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Render Section Blocks
+                  if (vm.sections[sIdx].orderedBlocks.isNotEmpty)
+                    for (final block in vm.sections[sIdx].orderedBlocks) ...[
+                      if (block is TableBlockVm)
+                        _buildTableCard(context, block.table, provider.isReadOnly)
+                      else if (block is ParagraphBlockWrapperVm)
+                        _buildParagraphBlock(context, block.block, provider.isReadOnly),
+                    ]
+                  else
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 24),
+                      child: Center(
                         child: Text(
-                          'READ-ONLY',
-                          style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.slate),
+                          'No editable items in this section',
+                          style: AppTypography.bodySm().copyWith(color: AppColors.slate),
                         ),
                       ),
+                    ),
+
+                  if (sIdx < vm.sections.length - 1) ...[
+                    const SizedBox(height: 16),
+                    // Visual Page/Section Break Divider
+                    Row(
+                      children: [
+                        Expanded(child: Container(height: 1, color: AppColors.hairline)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.keyboard_arrow_down_rounded, size: 16, color: AppColors.steel),
+                              const SizedBox(width: 4),
+                              Text(
+                                'CONTINUE TO SECTION ${sIdx + 2}',
+                                style: GoogleFonts.inter(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.steel,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Expanded(child: Container(height: 1, color: AppColors.hairline)),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
                   ],
-                ),
+                ],
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSectionHeaderCard(SectionVm section, bool isReadOnly, {required bool isContinuous}) {
+    return Container(
+      margin: EdgeInsets.only(bottom: isContinuous ? 8 : 16, top: isContinuous ? 8 : 24),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.2)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.deepTeal.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              'SECTION ${section.sectionIndex + 1}',
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: AppColors.deepTeal,
+                letterSpacing: 0.5,
               ),
             ),
           ),
-
-          // Render Section Blocks (Tables and Form Cards in visual document order)
-          if (activeSection.orderedBlocks.isNotEmpty)
-            SliverPadding(
-              padding: const EdgeInsets.fromLTRB(28, 8, 28, 36),
-              sliver: SliverList(
-                delegate: SliverChildBuilderDelegate(
-                  (context, index) {
-                    final block = activeSection.orderedBlocks[index];
-                    if (block is TableBlockVm) {
-                      return _buildTableCard(context, block.table, provider.isReadOnly);
-                    } else if (block is ParagraphBlockWrapperVm) {
-                      return _buildParagraphBlock(context, block.block, provider.isReadOnly);
-                    }
-                    return const SizedBox.shrink();
-                  },
-                  childCount: activeSection.orderedBlocks.length,
-                ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Text(
+              section.title,
+              style: GoogleFonts.inter(
+                fontSize: 17,
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink,
               ),
-            )
-          else
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.all(28),
-                child: Center(
-                  child: Text(
-                    'No editable elements in this section',
-                    style: AppTypography.bodySm().copyWith(color: AppColors.slate),
-                  ),
-                ),
+            ),
+          ),
+          if (isReadOnly)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceSoft,
+                borderRadius: BorderRadius.circular(4),
+              ),
+              child: Text(
+                'READ-ONLY',
+                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.slate),
               ),
             ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildEmptySectionMessage() {
+    return SliverToBoxAdapter(
+      child: Padding(
+        padding: const EdgeInsets.all(28),
+        child: Center(
+          child: Text(
+            'No editable elements in this section',
+            style: AppTypography.bodySm().copyWith(color: AppColors.slate),
+          ),
+        ),
       ),
     );
   }
@@ -145,7 +332,9 @@ class DocumentTableWorkspaceWidget extends StatelessWidget {
     // If paragraph has NO inputs, render styled static paragraph text
     if (!block.hasInputs) {
       final text = block.staticText ?? '';
-      if (text.isEmpty) return const SizedBox.shrink();
+      if (text.isEmpty || text.length <= 1 || text == '_' || text == 'n' || text == 'r') {
+        return const SizedBox.shrink();
+      }
 
       return Padding(
         padding: const EdgeInsets.only(bottom: 16),
@@ -169,7 +358,7 @@ class DocumentTableWorkspaceWidget extends StatelessWidget {
       );
     }
 
-    // Paragraph WITH inputs (DEFECT 1 & 2: Rendered as clean editable fields with humanized labels)
+    // Paragraph WITH inputs (Rendered as clean editable fields with humanized labels)
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(18),
@@ -190,30 +379,32 @@ class DocumentTableWorkspaceWidget extends StatelessWidget {
         children: [
           for (int i = 0; i < block.inputFields.length; i++) ...[
             if (i > 0) const SizedBox(height: 16),
-            Row(
-              children: [
-                Container(
-                  width: 3,
-                  height: 14,
-                  decoration: BoxDecoration(
-                    color: AppColors.deepTeal,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    block.inputFields[i].questionText,
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.ink,
+            if (block.inputFields[i].fieldType != 'IMAGE') ...[
+              Row(
+                children: [
+                  Container(
+                    width: 3,
+                    height: 14,
+                    decoration: BoxDecoration(
+                      color: AppColors.deepTeal,
+                      borderRadius: BorderRadius.circular(2),
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      block.inputFields[i].questionText,
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.ink,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+            ],
             DocumentInputSlotWidget(
               fieldVm: block.inputFields[i],
               readOnly: readOnly,

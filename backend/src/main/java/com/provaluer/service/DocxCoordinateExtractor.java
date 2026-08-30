@@ -75,6 +75,28 @@ public class DocxCoordinateExtractor {
     }
 
     /**
+     * Retrieves cached coordinates from disk if present, without triggering PDF parsing.
+     */
+    public Map<Integer, List<VisualPreviewResponse.VisualPlaceholder>> getCachedCoordinatesOnly(Long templateId, Integer version) {
+        int v = (version != null && version > 0) ? version : 1;
+        java.nio.file.Path cacheDir = java.nio.file.Paths.get("storage/preview-cache", templateId + "_v" + v);
+        if (!java.nio.file.Files.exists(cacheDir)) {
+            java.nio.file.Path legacyDir = java.nio.file.Paths.get("storage/preview-cache", String.valueOf(templateId));
+            if (java.nio.file.Files.exists(legacyDir)) {
+                cacheDir = legacyDir;
+            }
+        }
+        java.nio.file.Path coordsFile = cacheDir.resolve("coordinates.json");
+        if (java.nio.file.Files.exists(coordsFile)) {
+            try {
+                return objectMapper.readValue(coordsFile.toFile(),
+                        new com.fasterxml.jackson.core.type.TypeReference<Map<Integer, List<VisualPreviewResponse.VisualPlaceholder>>>() {});
+            } catch (Exception ignored) {}
+        }
+        return Collections.emptyMap();
+    }
+
+    /**
      * Extracts normalized placeholder coordinates for all pages of a PDF document.
      *
      * @param pdfBytes Raw binary byte array of the PDF.

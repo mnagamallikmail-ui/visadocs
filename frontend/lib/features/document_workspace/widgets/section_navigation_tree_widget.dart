@@ -48,24 +48,154 @@ class SectionNavigationTreeWidget extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Header
+          // Header & Dual Mode Switcher
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
             decoration: const BoxDecoration(
               color: AppColors.surface,
               border: Border(bottom: BorderSide(color: AppColors.hairline)),
             ),
-            child: Row(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                const Icon(Icons.account_tree_outlined, size: 18, color: AppColors.deepTeal),
-                const SizedBox(width: 8),
-                Text(
-                  'DOCUMENT SECTIONS',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: 0.8,
-                    color: AppColors.ink,
+                Row(
+                  children: [
+                    const Icon(Icons.account_tree_outlined, size: 16, color: AppColors.deepTeal),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'DOCUMENT SECTIONS',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.8,
+                          color: AppColors.ink,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // Dual Workspace Mode Segment Control
+                Container(
+                  padding: const EdgeInsets.all(2),
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceSoft,
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: AppColors.hairline),
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => provider.setScrollMode(DocumentScrollMode.continuous),
+                          borderRadius: BorderRadius.circular(4),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                            decoration: BoxDecoration(
+                              color: provider.scrollMode == DocumentScrollMode.continuous
+                                  ? Colors.white
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(4),
+                              boxShadow: provider.scrollMode == DocumentScrollMode.continuous
+                                  ? [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.05),
+                                        blurRadius: 2,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.menu_book_rounded,
+                                  size: 12,
+                                  color: provider.scrollMode == DocumentScrollMode.continuous
+                                      ? AppColors.deepTeal
+                                      : AppColors.slate,
+                                ),
+                                const SizedBox(width: 3),
+                                Flexible(
+                                  child: Text(
+                                    'Continuous',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 10,
+                                      fontWeight: provider.scrollMode == DocumentScrollMode.continuous
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                      color: provider.scrollMode == DocumentScrollMode.continuous
+                                          ? AppColors.deepTeal
+                                          : AppColors.slate,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      Expanded(
+                        child: InkWell(
+                          onTap: () => provider.setScrollMode(DocumentScrollMode.sectionBySection),
+                          borderRadius: BorderRadius.circular(4),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                            decoration: BoxDecoration(
+                              color: provider.scrollMode == DocumentScrollMode.sectionBySection
+                                  ? Colors.white
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(4),
+                              boxShadow: provider.scrollMode == DocumentScrollMode.sectionBySection
+                                  ? [
+                                      BoxShadow(
+                                        color: Colors.black.withValues(alpha: 0.05),
+                                        blurRadius: 2,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  Icons.tab_rounded,
+                                  size: 12,
+                                  color: provider.scrollMode == DocumentScrollMode.sectionBySection
+                                      ? AppColors.deepTeal
+                                      : AppColors.slate,
+                                ),
+                                const SizedBox(width: 3),
+                                Flexible(
+                                  child: Text(
+                                    'Sections',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 10,
+                                      fontWeight: provider.scrollMode == DocumentScrollMode.sectionBySection
+                                          ? FontWeight.w700
+                                          : FontWeight.w500,
+                                      color: provider.scrollMode == DocumentScrollMode.sectionBySection
+                                          ? AppColors.deepTeal
+                                          : AppColors.slate,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -87,7 +217,7 @@ class SectionNavigationTreeWidget extends StatelessWidget {
 
                 return InkWell(
                   onTap: () {
-                    provider.setActiveSectionIndex(index);
+                    provider.requestScrollToSection(index);
                     onSectionSelected?.call();
                   },
                   child: Container(

@@ -6,6 +6,11 @@ import '../models/document_workspace_model.dart';
 import '../models/workspace_view_model.dart';
 import '../services/document_workspace_api_service.dart';
 
+enum DocumentScrollMode {
+  continuous,
+  sectionBySection,
+}
+
 class DocumentWorkspaceProvider extends ChangeNotifier {
   final DocumentWorkspaceApiService _apiService = DocumentWorkspaceApiService();
 
@@ -19,11 +24,13 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   DateTime? _lastSavedAt;
 
   WorkspaceViewMode _viewMode = WorkspaceViewMode.tableEdit;
+  DocumentScrollMode _scrollMode = DocumentScrollMode.continuous;
   DocumentWorkspaceModel? _workspaceModel;
   DocumentWorkspaceVm? _workspaceVm;
   VisualPreviewModel? _livePreviewModel;
 
   int _activeSectionIndex = 0;
+  final ValueNotifier<int?> scrollToSectionRequested = ValueNotifier<int?>(null);
 
   Map<String, String> _activeValues = {};
   final Map<String, String> _deltaValues = {};
@@ -64,6 +71,21 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   String? get focusedKey => _focusedKey;
   bool get hasWorkspace => _workspaceModel != null;
   bool get isReadOnly => _workspaceModel?.readOnly ?? false;
+
+  DocumentScrollMode get scrollMode => _scrollMode;
+
+  void setScrollMode(DocumentScrollMode mode) {
+    if (_scrollMode != mode) {
+      _scrollMode = mode;
+      notifyListeners();
+    }
+  }
+
+  void requestScrollToSection(int index) {
+    _activeSectionIndex = index;
+    scrollToSectionRequested.value = index;
+    notifyListeners();
+  }
 
   void setActiveSectionIndex(int index) {
     if (_activeSectionIndex != index) {
@@ -109,6 +131,9 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       _isDirty = false;
       _lastSavedAt = DateTime.now();
       initAutoSave();
+
+      // Lazy background preview pre-compilation (non-blocking for immediate data entry)
+      _initBackgroundPreview(orderId);
     } on DioException catch (dioErr) {
       if (dioErr.response?.statusCode == 403) {
         _errorMessage = 'Access to this order document workspace is restricted.';
@@ -125,6 +150,24 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     }
   }
 
+  /// Asynchronously compiles preview in background without blocking workspace data entry
+  void _initBackgroundPreview(int orderId) {
+    if (_livePreviewModel != null && _livePreviewModel!.pages.isNotEmpty) return;
+    _isCompilingPreview = true;
+
+    Future.microtask(() async {
+      try {
+        final preview = await _apiService.compileLivePreview(orderId);
+        _livePreviewModel = preview;
+      } catch (_) {
+        // Non-blocking background preview compilation
+      } finally {
+        _isCompilingPreview = false;
+        notifyListeners();
+      }
+    });
+  }
+
   /// Test helper to hydrate workspace model directly
   void setWorkspaceModelForTest(DocumentWorkspaceModel model) {
     _workspaceModel = model;
@@ -137,6 +180,12 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void markCleanForTest() {
+    _deltaValues.clear();
+    _isDirty = false;
+    notifyListeners();
+  }
+
   /// Switches between [Table Edit] and [Compiled Preview]
   Future<void> setViewMode(WorkspaceViewMode mode) async {
     if (_viewMode == mode) return;
@@ -145,7 +194,9 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     notifyListeners();
 
     if (mode == WorkspaceViewMode.compiledPreview) {
-      await refreshLivePreview();
+      if (_deltaValues.isNotEmpty || (_livePreviewModel == null && !_isCompilingPreview)) {
+        await refreshLivePreview();
+      }
     }
   }
 

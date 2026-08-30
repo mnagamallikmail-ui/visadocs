@@ -297,129 +297,157 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
           }
         },
       ),
-      title: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-            decoration: BoxDecoration(
-              color: AppColors.tealLight,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.2)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.description_outlined, color: AppColors.deepTeal, size: 16),
-                const SizedBox(width: 6),
-                Text(
-                  'Document Workspace',
-                  style: AppTypography.caption(color: AppColors.deepTeal).copyWith(fontWeight: FontWeight.w700),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            reportNum,
-            style: AppTypography.heading4().copyWith(color: AppColors.ink),
-          ),
-          const SizedBox(width: 12),
-
-          // Status Badge
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: _getStatusColor(status).withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _getStatusColor(status).withValues(alpha: 0.3)),
-            ),
-            child: Text(
-              status,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
-                color: _getStatusColor(status),
+      title: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(
+                color: AppColors.tealLight,
+                borderRadius: BorderRadius.circular(6),
+                border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.2)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.description_outlined, color: AppColors.deepTeal, size: 16),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Document Workspace',
+                    style: AppTypography.caption(color: AppColors.deepTeal).copyWith(fontWeight: FontWeight.w700),
+                  ),
+                ],
               ),
             ),
-          ),
-
-          // Auto-save Status Indicator
-          const SizedBox(width: 16),
-          if (provider.isAutoSaving) ...[
-            const SizedBox(
-              width: 12,
-              height: 12,
-              child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.deepTeal),
+            const SizedBox(width: 12),
+            Text(
+              reportNum,
+              style: AppTypography.heading4().copyWith(color: AppColors.ink),
             ),
-            const SizedBox(width: 6),
-            Text('Auto-saving...', style: AppTypography.caption(color: AppColors.slate)),
-          ] else if (provider.isDirty) ...[
+            const SizedBox(width: 12),
+
+            // Status Badge
             Container(
-              width: 6,
-              height: 6,
-              decoration: const BoxDecoration(color: AppColors.warning, shape: BoxShape.circle),
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: _getStatusColor(status).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _getStatusColor(status).withValues(alpha: 0.3)),
+              ),
+              child: Text(
+                status,
+                style: TextStyle(
+                  fontSize: 10,
+                  fontWeight: FontWeight.bold,
+                  color: _getStatusColor(status),
+                ),
+              ),
             ),
-            const SizedBox(width: 6),
-            Text('Unsaved changes', style: AppTypography.caption(color: AppColors.warning)),
-          ] else if (provider.lastSavedAt != null) ...[
-            const Icon(Icons.check_circle_outline_rounded, size: 12, color: AppColors.successAccent),
-            const SizedBox(width: 4),
-            Text('All changes saved', style: AppTypography.caption(color: AppColors.slate)),
+
+            // Auto-save Status Indicator
+            const SizedBox(width: 16),
+            if (provider.isAutoSaving) ...[
+              const SizedBox(
+                width: 12,
+                height: 12,
+                child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.deepTeal),
+              ),
+              const SizedBox(width: 6),
+              Text('Auto-saving...', style: AppTypography.caption(color: AppColors.slate)),
+            ] else if (provider.isDirty) ...[
+              Container(
+                width: 6,
+                height: 6,
+                decoration: const BoxDecoration(color: AppColors.warning, shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 6),
+              Text('Unsaved changes', style: AppTypography.caption(color: AppColors.warning)),
+            ] else if (provider.lastSavedAt != null) ...[
+              const Icon(Icons.check_circle_outline_rounded, size: 12, color: AppColors.successAccent),
+              const SizedBox(width: 4),
+              Text('All changes saved', style: AppTypography.caption(color: AppColors.slate)),
+            ],
+
+            const SizedBox(width: 20),
+
+            // ─── Segmented View Mode Toggle ────────────────────────────
+            Container(
+              padding: const EdgeInsets.all(2),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceSoft,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.hairline),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _buildSegmentButton(
+                    title: 'Table Workspace',
+                    icon: Icons.table_chart_outlined,
+                    isActive: provider.viewMode == WorkspaceViewMode.tableEdit,
+                    onTap: () => provider.setViewMode(WorkspaceViewMode.tableEdit),
+                  ),
+                  _buildSegmentButton(
+                    title: 'Compiled PDF Preview',
+                    icon: Icons.picture_as_pdf_outlined,
+                    isActive: provider.viewMode == WorkspaceViewMode.compiledPreview,
+                    onTap: () => provider.setViewMode(WorkspaceViewMode.compiledPreview),
+                  ),
+                ],
+              ),
+            ),
           ],
-
-          const SizedBox(width: 20),
-
-          // ─── Segmented View Mode Toggle ────────────────────────────
-          Container(
-            padding: const EdgeInsets.all(2),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceSoft,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.hairline),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildSegmentButton(
-                  title: 'Table Workspace',
-                  icon: Icons.table_chart_outlined,
-                  isActive: provider.viewMode == WorkspaceViewMode.tableEdit,
-                  onTap: () => provider.setViewMode(WorkspaceViewMode.tableEdit),
-                ),
-                _buildSegmentButton(
-                  title: 'Compiled PDF Preview',
-                  icon: Icons.picture_as_pdf_outlined,
-                  isActive: provider.viewMode == WorkspaceViewMode.compiledPreview,
-                  onTap: () => provider.setViewMode(WorkspaceViewMode.compiledPreview),
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
       actions: [
-        // Save Button
-        if (provider.isDirty && !provider.isReadOnly) ...[
-          ElevatedButton.icon(
-            icon: provider.isSaving
-                ? const SizedBox(
-                    width: 12,
-                    height: 12,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                  )
-                : const Icon(Icons.save_rounded, size: 15),
-            label: Text(provider.isSaving ? 'Saving...' : 'Save Draft'),
-            onPressed: provider.isSaving ? null : () => provider.saveChanges(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.deepTeal,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+        // Save Draft Button - ALWAYS VISIBLE in toolbar across all dirty/saving/saved states
+        ElevatedButton.icon(
+          icon: provider.isSaving
+              ? const SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : Icon(
+                  provider.isDirty ? Icons.save_rounded : Icons.check_circle_rounded,
+                  size: 15,
+                  color: provider.isDirty
+                      ? Colors.white
+                      : (provider.isReadOnly ? AppColors.slate : AppColors.successAccent),
+                ),
+          label: Text(
+            provider.isSaving
+                ? 'Saving...'
+                : (provider.isDirty ? 'Save Draft' : 'Saved'),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: provider.isDirty
+                  ? Colors.white
+                  : (provider.isReadOnly ? AppColors.slate : AppColors.ink),
             ),
           ),
-          const SizedBox(width: 8),
-        ],
+          onPressed: (provider.isDirty && !provider.isSaving && !provider.isReadOnly)
+              ? () => provider.saveChanges()
+              : null,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: provider.isDirty ? AppColors.deepTeal : AppColors.surfaceSoft,
+            foregroundColor: provider.isDirty ? Colors.white : AppColors.ink,
+            disabledBackgroundColor: provider.isSaving
+                ? AppColors.deepTeal
+                : AppColors.surfaceSoft,
+            disabledForegroundColor: provider.isSaving ? Colors.white : AppColors.slate,
+            elevation: 0,
+            side: BorderSide(
+              color: provider.isDirty ? AppColors.deepTeal : AppColors.hairline,
+              width: 1,
+            ),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+          ),
+        ),
+        const SizedBox(width: 8),
 
         // PA Action: Submit to SPA
         if ((isPa || isAdmin) && (status == 'ASSIGNED' || status == 'ACTION_NEEDED')) ...[

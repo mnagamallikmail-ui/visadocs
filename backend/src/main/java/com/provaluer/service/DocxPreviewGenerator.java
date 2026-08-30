@@ -244,7 +244,7 @@ public class DocxPreviewGenerator {
     /**
      * Checks whether valid cached page images exist in the target directory.
      */
-    private boolean isCacheValid(Path cacheDir) {
+    public boolean isCacheValid(Path cacheDir) {
         if (!Files.isDirectory(cacheDir)) {
             return false;
         }
@@ -258,7 +258,7 @@ public class DocxPreviewGenerator {
     /**
      * Reconstructs metadata from an existing valid cache directory.
      */
-    private PreviewMetadata loadMetadataFromCache(Long templateId, Path cacheDir) {
+    public PreviewMetadata loadMetadataFromCache(Long templateId, Path cacheDir) {
         try {
             List<Path> pageFiles = new ArrayList<>();
             try (var stream = Files.list(cacheDir)) {
