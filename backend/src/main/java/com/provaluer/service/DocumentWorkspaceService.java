@@ -762,4 +762,139 @@ public class DocumentWorkspaceService {
         }
         orderInputRepository.save(field);
     }
+
+    /**
+     * POST /api/v1/admin/dom-snapshot-audit
+     *
+     * Audits every order's documentDomSnapshot against its template version.
+     * Stale or missing snapshots are rebuilt from the live DOCX binary.
+     * Returns per-order audit rows with version information and image placeholder verification.
+     */
+    @Transactional
+    public Map<String, Object> auditAndRebuildDomSnapshots() {
+        List<Order> allOrders = orderRepository.findAll();
+        List<Map<String, Object>> rows = new ArrayList<>();
+
+        // Image keys to verify
+        List<String> IMAGE_KEYS = List.of(
+                "IMG_FRONT_PAGE",
+                "IMG_PIC1", "IMG_PIC2", "IMG_PIC3", "IMG_PIC4",
+                "IMG_PIC5", "IMG_PIC6", "IMG_PIC7", "IMG_PIC8"
+        );
+
+        int rebuiltCount = 0;
+
+        // Cache templates fetched during this run
+        Map<Long, Template> templateCache = new LinkedHashMap<>();
+
+        for (Order order : allOrders) {
+            Map<String, Object> row = new LinkedHashMap<>();
+            row.put("orderId", order.getId());
+            row.put("reportNumber", order.getReportNumber());
+            row.put("status", order.getStatus());
+
+            Long tplId = order.getTemplateId();
+            if (tplId == null) {
+                // Fall back to any active template
+                List<Template> active = templateRepository.findAllByIsActive("Y");
+                if (!active.isEmpty()) {
+                    tplId = active.get(0).getId();
+                    order.setTemplateId(tplId);
+                }
+            }
+
+            if (tplId == null) {
+                row.put("templateId", null);
+                row.put("templateVersion", null);
+                row.put("snapshotVersion", order.getTemplateVersion());
+                row.put("action", "SKIPPED – no template assigned");
+                rows.add(row);
+                continue;
+            }
+
+            Template template = templateCache.computeIfAbsent(tplId, id ->
+                    templateRepository.findById(id).orElse(null));
+
+            if (template == null || template.getTemplateContent() == null || template.getTemplateContent().length == 0) {
+                row.put("templateId", tplId);
+                row.put("templateVersion", null);
+                row.put("snapshotVersion", order.getTemplateVersion());
+                row.put("action", "SKIPPED – template has no binary content");
+                rows.add(row);
+                continue;
+            }
+
+            int currentTemplateVersion = template.getVersion();
+            Integer snapshotVersion = order.getTemplateVersion();
+
+            row.put("templateId", tplId);
+            row.put("templateVersion", currentTemplateVersion);
+            row.put("snapshotVersion", snapshotVersion);
+
+            boolean snapshotMissing = order.getDocumentDomSnapshot() == null
+                    || order.getDocumentDomSnapshot().trim().isEmpty();
+            boolean versionMismatch = snapshotVersion == null || !snapshotVersion.equals(currentTemplateVersion);
+            boolean needsRebuild = snapshotMissing || versionMismatch;
+
+            row.put("snapshotMissing", snapshotMissing);
+            row.put("versionMismatch", versionMismatch);
+
+            if (needsRebuild) {
+                try {
+                    JsonNode domNode = docxStructureParser.parseDocumentStructure(template.getTemplateContent());
+                    String domJson = domNode.toString();
+
+                    order.setDocumentDomSnapshot(domJson);
+                    order.setTemplateVersion(currentTemplateVersion);
+                    orderRepository.save(order);
+
+                    // Also update template-level cached DOM
+                    template.setDocumentDom(domJson);
+                    template.setPlaceholderRegistry(docxStructureParser.generatePlaceholderRegistry(domNode));
+                    templateCache.put(tplId, template); // keep in-memory cache updated
+
+                    // Verify image placeholders
+                    Map<String, Boolean> imgPresence = new LinkedHashMap<>();
+                    for (String key : IMAGE_KEYS) {
+                        imgPresence.put(key, domJson.contains("\"" + key + "\""));
+                    }
+                    long foundCount = imgPresence.values().stream().filter(v -> v).count();
+
+                    row.put("action", "REBUILT");
+                    row.put("imagePlaceholders", imgPresence);
+                    row.put("imageKeysFound", foundCount + "/" + IMAGE_KEYS.size());
+                    rebuiltCount++;
+                } catch (Exception e) {
+                    row.put("action", "ERROR – " + e.getMessage());
+                    row.put("imagePlaceholders", Collections.emptyMap());
+                }
+            } else {
+                // Already up to date – just verify what's in the existing snapshot
+                String domJson = order.getDocumentDomSnapshot();
+                Map<String, Boolean> imgPresence = new LinkedHashMap<>();
+                for (String key : IMAGE_KEYS) {
+                    imgPresence.put(key, domJson.contains("\"" + key + "\""));
+                }
+                long foundCount = imgPresence.values().stream().filter(v -> v).count();
+
+                row.put("action", "OK – snapshot current");
+                row.put("imagePlaceholders", imgPresence);
+                row.put("imageKeysFound", foundCount + "/" + IMAGE_KEYS.size());
+            }
+
+            rows.add(row);
+        }
+
+        // Flush updated templates to DB in one pass
+        templateCache.values().forEach(t -> {
+            if (t.getDocumentDom() != null) templateRepository.save(t);
+        });
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("totalOrders", allOrders.size());
+        result.put("rebuiltCount", rebuiltCount);
+        result.put("orders", rows);
+        return result;
+    }
 }
+

@@ -4,6 +4,7 @@ import com.provaluer.model.*;
 import com.provaluer.repository.*;
 import com.provaluer.security.UserDetailsImpl;
 import com.provaluer.service.AuditLogService;
+import com.provaluer.service.DocumentWorkspaceService;
 import com.provaluer.service.PricingService;
 import com.provaluer.service.SlaService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +40,7 @@ public class SuperAdminController {
     @Autowired private AuditLogService auditLogService;
     @Autowired private SlaService slaService;
     @Autowired private PasswordEncoder passwordEncoder;
+    @Autowired private DocumentWorkspaceService documentWorkspaceService;
 
     // ─────────────────────────────────────────────
     // HELPERS
@@ -698,5 +700,24 @@ public class SuperAdminController {
         public void setClientId(Long clientId) { this.clientId = clientId; }
         public Map<String, String> getInputs() { return inputs; }
         public void setInputs(Map<String, String> inputs) { this.inputs = inputs; }
+    }
+
+    // ─────────────────────────────────────────────
+    // DOM SNAPSHOT AUDIT
+    // ─────────────────────────────────────────────
+
+    /**
+     * POST /api/v1/admin/dom-snapshot-audit
+     *
+     * Audits every order's documentDomSnapshot against its template version.
+     * Rebuilds stale or missing snapshots from the live DOCX binary.
+     * Returns per-order results including image placeholder verification for
+     * IMG_FRONT_PAGE and IMG_PIC1–IMG_PIC8.
+     */
+    @PostMapping("/dom-snapshot-audit")
+    public ResponseEntity<?> auditDomSnapshots() {
+        log.info("DOM snapshot audit triggered by SUPER_ADMIN: {}", actorEmail());
+        Map<String, Object> result = documentWorkspaceService.auditAndRebuildDomSnapshots();
+        return ResponseEntity.ok(result);
     }
 }
