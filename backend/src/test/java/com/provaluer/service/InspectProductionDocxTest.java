@@ -23,45 +23,91 @@ public class InspectProductionDocxTest {
     public void inspectImagesAndPlaceholders() throws Exception {
         String path = "D:\\naga\\Valuation Report.docx";
         byte[] docxBytes = Files.readAllBytes(Paths.get(path));
-        JsonNode dom = parser.parseDocumentStructure(docxBytes);
-        String registry = parser.generatePlaceholderRegistry(dom);
+        
+        System.out.println("=====================================================================");
+        System.out.println("STEP 1 – DOCX PARSER TRACE (VALUATION REPORT.DOCX)");
+        System.out.println("=====================================================================");
+        
+        org.docx4j.openpackaging.packages.WordprocessingMLPackage wordMLPackage =
+                org.docx4j.openpackaging.packages.WordprocessingMLPackage.load(new java.io.ByteArrayInputStream(docxBytes));
+        org.docx4j.wml.Document wmlDocumentEl = wordMLPackage.getMainDocumentPart().getJaxbElement();
+        org.docx4j.wml.Body body = wmlDocumentEl.getBody();
+        
+        java.util.List<Object> allElements = new java.util.ArrayList<>();
+        new org.docx4j.TraversalUtil(body, new org.docx4j.TraversalUtil.CallbackImpl() {
+            @Override
+            public java.util.List<Object> apply(Object o) {
+                Object unwrapped = org.docx4j.XmlUtils.unwrap(o);
+                if (unwrapped instanceof org.docx4j.dml.CTNonVisualDrawingProps docPr) {
+                    allElements.add(docPr);
+                }
+                return null;
+            }
+        });
+        
+        System.out.println("Total docPr elements discovered in DOCX: " + allElements.size());
+        for (Object obj : allElements) {
+            org.docx4j.dml.CTNonVisualDrawingProps docPr = (org.docx4j.dml.CTNonVisualDrawingProps) obj;
+            System.out.printf("docPr [ID=%d] name=\"%s\" descr=\"%s\"%n",
+                    docPr.getId(), docPr.getName(), docPr.getDescr());
+        }
 
-        System.out.println("=== INSPECT PRODUCTION DOCX PLACEHOLDERS ===");
+        JsonNode dom = parser.parseDocumentStructure(docxBytes);
+        ObjectMapper mapper = new ObjectMapper().enable(com.fasterxml.jackson.databind.SerializationFeature.INDENT_OUTPUT);
+
+        System.out.println("\n=====================================================================");
+        System.out.println("STEP 2 – DOCUMENT DOM TRACE (SEARCH FOR IMG_FRONT_PAGE & IMG_PIC3)");
+        System.out.println("=====================================================================");
         JsonNode sections = dom.get("sections");
-        System.out.println("Total sections: " + sections.size());
+        boolean foundFront = false;
+        boolean foundPic3 = false;
 
         for (int i = 0; i < sections.size(); i++) {
             JsonNode sec = sections.get(i);
             String title = sec.get("title").asText();
             JsonNode elements = sec.get("elements");
             for (JsonNode el : elements) {
-                String type = el.get("type").asText();
-                if ("PARAGRAPH".equals(type)) {
-                    JsonNode runs = el.get("runs");
-                    for (JsonNode r : runs) {
-                        if (r.has("isPlaceholder") && r.get("isPlaceholder").asBoolean()) {
-                            System.out.printf("[SEC %d: %s] Paragraph Run Placeholder: key=%s, fieldType=%s, text=%s%n",
-                                    i, title,
-                                    r.get("placeholderKey").asText(),
-                                    r.has("fieldType") ? r.get("fieldType").asText() : "N/A",
-                                    r.get("text").asText());
+                if (el.has("runs")) {
+                    for (JsonNode r : el.get("runs")) {
+                        String key = r.has("placeholderKey") ? r.get("placeholderKey").asText() : "";
+                        if ("IMG_FRONT_PAGE".equalsIgnoreCase(key) || "IMG_PIC3".equalsIgnoreCase(key)) {
+                            System.out.printf("[Section %d: %s] Run Node: %s%n", i, title, mapper.writeValueAsString(r));
+                            if ("IMG_FRONT_PAGE".equalsIgnoreCase(key)) foundFront = true;
+                            if ("IMG_PIC3".equalsIgnoreCase(key)) foundPic3 = true;
                         }
                     }
-                } else if ("TABLE".equals(type)) {
-                    if (el.has("questionAnswerBindings")) {
-                        for (JsonNode b : el.get("questionAnswerBindings")) {
-                            System.out.printf("[SEC %d: %s] Table Binding Placeholder: key=%s, fieldType=%s, question=%s%n",
-                                    i, title,
-                                    b.get("placeholderKey").asText(),
-                                    b.has("fieldType") ? b.get("fieldType").asText() : "N/A",
-                                    b.get("questionText").asText());
+                }
+                if (el.has("rows")) {
+                    for (JsonNode row : el.get("rows")) {
+                        if (row.has("cells")) {
+                            for (JsonNode cell : row.get("cells")) {
+                                if (cell.has("placeholderBindings")) {
+                                    for (JsonNode b : cell.get("placeholderBindings")) {
+                                        String key = b.has("key") ? b.get("key").asText() : "";
+                                        if ("IMG_FRONT_PAGE".equalsIgnoreCase(key) || "IMG_PIC3".equalsIgnoreCase(key)) {
+                                            System.out.printf("[Section %d: %s] Cell Binding Node: %s%n", i, title, mapper.writeValueAsString(b));
+                                            if ("IMG_FRONT_PAGE".equalsIgnoreCase(key)) foundFront = true;
+                                            if ("IMG_PIC3".equalsIgnoreCase(key)) foundPic3 = true;
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
         }
-
-        System.out.println("\n=== PLACEHOLDER REGISTRY ===");
-        System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(dom.get("placeholdersSummary")));
+        
+        System.out.println("DOM Search Result: IMG_FRONT_PAGE found = " + foundFront + ", IMG_PIC3 found = " + foundPic3);
+        System.out.println("\nPlaceholders Summary Array Items for Images:");
+        JsonNode summary = dom.get("placeholdersSummary");
+        if (summary != null && summary.isArray()) {
+            for (JsonNode item : summary) {
+                String key = item.has("key") ? item.get("key").asText() : "";
+                if ("IMG_FRONT_PAGE".equalsIgnoreCase(key) || "IMG_PIC3".equalsIgnoreCase(key)) {
+                    System.out.println(mapper.writeValueAsString(item));
+                }
+            }
+        }
     }
 }
