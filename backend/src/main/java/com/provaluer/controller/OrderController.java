@@ -783,6 +783,26 @@ public class OrderController {
     }
 
     /**
+     * PUT /api/v1/orders/{id}/text-overrides
+     * SPA order-level question and label override persistence.
+     */
+    @PutMapping("/{id}/text-overrides")
+    @PreAuthorize("hasAnyRole('SPA', 'SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> saveOrderTextOverrides(@PathVariable Long id, @RequestBody Map<String, String> overrides) {
+        try {
+            UserDetailsImpl principal = getCurrentPrincipal();
+            var response = documentWorkspaceService.saveOrderTextOverrides(id, overrides, principal);
+            return ResponseEntity.ok(response);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
      * POST /api/v1/orders/{id}/submit-to-spa
      * Advances order status from ASSIGNED to SPA_GATE directly from document canvas.
      */

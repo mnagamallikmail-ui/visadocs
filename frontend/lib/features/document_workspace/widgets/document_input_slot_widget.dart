@@ -135,23 +135,60 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
       if (parsed != null) initial = parsed;
     }
 
-    // DEFECT 6 & 7: Date picker immediately populates in dd-MMM-yyyy format
-    final picked = await showDatePicker(
+    // BLOCKER 1: Date selection immediately populates field and closes dialog without OK confirmation button
+    final picked = await showDialog<DateTime>(
       context: context,
-      initialDate: initial,
-      firstDate: DateTime(1970),
-      lastDate: DateTime(2050),
-      helpText: 'SELECT DATE (${widget.fieldVm.questionText})',
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.deepTeal,
-              onPrimary: Colors.white,
-              onSurface: AppColors.ink,
+      builder: (ctx) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Container(
+            width: 320,
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.calendar_month_rounded, size: 18, color: AppColors.deepTeal),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        widget.fieldVm.questionText.isNotEmpty ? widget.fieldVm.questionText : 'Select Date',
+                        style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.slate),
+                      onPressed: () => Navigator.of(ctx).pop(null),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                  ],
+                ),
+                const Divider(height: 20, color: AppColors.hairline),
+                Theme(
+                  data: Theme.of(ctx).copyWith(
+                    colorScheme: const ColorScheme.light(
+                      primary: AppColors.deepTeal,
+                      onPrimary: Colors.white,
+                      onSurface: AppColors.ink,
+                    ),
+                  ),
+                  child: CalendarDatePicker(
+                    initialDate: initial,
+                    firstDate: DateTime(1970),
+                    lastDate: DateTime(2050),
+                    onDateChanged: (selectedDate) {
+                      // Instantly pop and return selected date upon day click! No OK or Apply button needed.
+                      Navigator.of(ctx).pop(selectedDate);
+                    },
+                  ),
+                ),
+              ],
             ),
           ),
-          child: child!,
         );
       },
     );

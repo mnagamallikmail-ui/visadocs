@@ -64,6 +64,12 @@ public class DocumentWorkspaceService {
     @Autowired
     private UserRepository userRepository;
 
+    @Autowired
+    private DocumentStudioConfigRepository studioConfigRepository;
+
+    @Autowired
+    private TemplateQuestionRepository templateQuestionRepository;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     /**
@@ -246,6 +252,12 @@ public class DocumentWorkspaceService {
             }
         }
 
+        // Apply Hierarchical Text Overrides: SPA Order Override > Super Admin Template Override > Dictionary Baseline
+        Map<String, String> effectiveOverrides = getEffectiveTextOverrides(order, effectiveTemplateId);
+        if (domNode != null && !effectiveOverrides.isEmpty()) {
+            domNode = applyTextOverridesToDom(domNode, effectiveOverrides);
+        }
+
         return new DocumentWorkspaceResponse(
                 order.getId(),
                 order.getStatus(),
@@ -255,6 +267,151 @@ public class DocumentWorkspaceService {
                 readOnly,
                 domNode
         );
+    }
+
+    /**
+     * SPA Order-level text override persistence.
+     */
+    @Transactional
+    public Map<String, Object> saveOrderTextOverrides(Long orderId, Map<String, String> overrides, UserDetailsImpl principal) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new NoSuchElementException("Order not found with ID: " + orderId));
+
+        validateOrderAccess(order, principal, "APPROVE");
+
+        try {
+            String json = objectMapper.writeValueAsString(overrides != null ? overrides : Collections.emptyMap());
+            order.setFieldMappingSnapshot(json);
+            order.setUpdatedAt(LocalDateTime.now());
+            orderRepository.save(order);
+            log.info("SPA user #{} saved {} order-level text overrides for order #{}", principal.getId(), overrides != null ? overrides.size() : 0, orderId);
+        } catch (Exception e) {
+            log.error("Failed to serialize order text overrides for order #{}: {}", orderId, e.getMessage());
+            throw new RuntimeException("Failed to save text overrides: " + e.getMessage());
+        }
+
+        return Map.of("orderId", orderId, "status", "SUCCESS", "overridesCount", overrides != null ? overrides.size() : 0);
+    }
+
+    public Map<String, String> getEffectiveTextOverrides(Order order, Long templateId) {
+        Map<String, String> result = new LinkedHashMap<>();
+
+        // 1. Template Question Dictionary baseline
+        try {
+            List<TemplateQuestion> questions = templateQuestionRepository.findAll();
+            for (TemplateQuestion tq : questions) {
+                if (tq.getQuestionText() != null && !tq.getQuestionText().trim().isEmpty()) {
+                    result.put(tq.getPlaceholderKey().toUpperCase(), tq.getQuestionText().trim());
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Could not query template_questions_dictionary: {}", e.getMessage());
+        }
+
+        // 2. Super Admin Template-level Override (DocumentStudioConfig.customLabels)
+        if (templateId != null) {
+            try {
+                Optional<DocumentStudioConfig> studioConfigOpt = studioConfigRepository.findByTemplateId(templateId);
+                if (studioConfigOpt.isPresent()) {
+                    String customLabelsJson = studioConfigOpt.get().getCustomLabels();
+                    if (customLabelsJson != null && !customLabelsJson.trim().isEmpty()) {
+                        JsonNode root = objectMapper.readTree(customLabelsJson);
+                        if (root.isObject()) {
+                            Iterator<Map.Entry<String, JsonNode>> fields = root.fields();
+                            while (fields.hasNext()) {
+                                Map.Entry<String, JsonNode> field = fields.next();
+                                String k = field.getKey().toUpperCase().trim();
+                                JsonNode v = field.getValue();
+                                String text = v.isObject() && v.has("label") ? v.get("label").asText() : v.asText();
+                                if (text != null && !text.trim().isEmpty()) {
+                                    result.put(k, text.trim());
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Could not read studio customLabels for template {}: {}", templateId, e.getMessage());
+            }
+        }
+
+        // 3. SPA Order-level Override (Order.fieldMappingSnapshot)
+        if (order != null && order.getFieldMappingSnapshot() != null && !order.getFieldMappingSnapshot().trim().isEmpty()) {
+            try {
+                JsonNode root = objectMapper.readTree(order.getFieldMappingSnapshot());
+                if (root.isObject()) {
+                    Iterator<Map.Entry<String, JsonNode>> fields = root.fields();
+                    while (fields.hasNext()) {
+                        Map.Entry<String, JsonNode> field = fields.next();
+                        String k = field.getKey().toUpperCase().trim();
+                        JsonNode v = field.getValue();
+                        String text = v.isObject() && v.has("label") ? v.get("label").asText() : v.asText();
+                        if (text != null && !text.trim().isEmpty()) {
+                            result.put(k, text.trim()); // SPA overrides template & dictionary!
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Could not parse SPA order text overrides for order {}: {}", order.getId(), e.getMessage());
+            }
+        }
+
+        return result;
+    }
+
+    public JsonNode applyTextOverridesToDom(JsonNode domNode, Map<String, String> overrides) {
+        if (domNode == null || overrides == null || overrides.isEmpty()) return domNode;
+        try {
+            com.fasterxml.jackson.databind.node.ObjectNode root = (com.fasterxml.jackson.databind.node.ObjectNode) domNode;
+
+            // 1. Update placeholdersSummary
+            if (root.has("placeholdersSummary")) {
+                com.fasterxml.jackson.databind.node.ArrayNode summaryArray = (com.fasterxml.jackson.databind.node.ArrayNode) root.get("placeholdersSummary");
+                for (JsonNode itemNode : summaryArray) {
+                    if (itemNode.isObject()) {
+                        com.fasterxml.jackson.databind.node.ObjectNode item = (com.fasterxml.jackson.databind.node.ObjectNode) itemNode;
+                        String key = item.path("key").asText().toUpperCase();
+                        if (overrides.containsKey(key)) {
+                            String newText = overrides.get(key);
+                            item.put("questionText", newText);
+                            item.put("label", newText);
+                        }
+                    }
+                }
+            }
+
+            // 2. Update Table Rows / Q&A placeholderBindings and Question Cells
+            if (root.has("sections")) {
+                for (JsonNode sectionNode : root.get("sections")) {
+                    if (sectionNode.has("elements")) {
+                        for (JsonNode elemNode : sectionNode.get("elements")) {
+                            if ("TABLE".equalsIgnoreCase(elemNode.path("type").asText()) && elemNode.has("rows")) {
+                                for (JsonNode rowNode : elemNode.get("rows")) {
+                                    if (rowNode.has("cells")) {
+                                        for (JsonNode cellNode : rowNode.get("cells")) {
+                                            if (cellNode.has("placeholderBindings")) {
+                                                for (JsonNode bindingNode : cellNode.get("placeholderBindings")) {
+                                                    if (bindingNode.isObject()) {
+                                                        com.fasterxml.jackson.databind.node.ObjectNode b = (com.fasterxml.jackson.databind.node.ObjectNode) bindingNode;
+                                                        String k = b.path("key").asText().toUpperCase();
+                                                        if (overrides.containsKey(k)) {
+                                                            b.put("questionText", overrides.get(k));
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to apply text overrides to DOM: {}", e.getMessage());
+        }
+        return domNode;
     }
 
     /**

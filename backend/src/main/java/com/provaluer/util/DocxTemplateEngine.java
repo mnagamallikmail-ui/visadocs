@@ -621,6 +621,25 @@ public class DocxTemplateEngine {
         }
     }
 
+    private String extractImageKey(org.docx4j.dml.CTNonVisualDrawingProps docPr) {
+        if (docPr == null) return null;
+        String[] candidates = new String[]{docPr.getDescr(), docPr.getName()};
+        for (String c : candidates) {
+            if (c == null) continue;
+            String trimmed = c.trim();
+            if (trimmed.isEmpty()) continue;
+            Matcher m = Pattern.compile("<<([^>]+)>>").matcher(trimmed);
+            if (m.find()) return m.group(1).trim().toUpperCase();
+            String upper = trimmed.toUpperCase();
+            if (upper.startsWith("IMG_") || upper.startsWith("PHOTO_") || upper.startsWith("IMAGE_") || upper.startsWith("LOGO_")
+                    || upper.endsWith("_IMAGE") || upper.endsWith("_IMG") || upper.endsWith("_PHOTO")
+                    || upper.contains("IMAGE_") || upper.contains("PHOTO_") || upper.contains("SITE_PHOTO")) {
+                return trimmed.replaceAll("[<>]", "").trim().toUpperCase();
+            }
+        }
+        return null;
+    }
+
     private void substituteInParagraph(WordprocessingMLPackage wordMLPackage, P p, Map<String, String> inputs, Map<String, byte[]> images) throws Exception {
         normalizeParagraph(p);
         // First, check if there are drawing elements inside the paragraph
@@ -629,11 +648,8 @@ public class DocxTemplateEngine {
         for (Object o : inlineFinder.results) {
             Inline inline = (Inline) o;
             if (inline.getDocPr() == null) continue;
-            String desc = inline.getDocPr().getDescr();
-            String name = inline.getDocPr().getName();
-            String matchedName = (desc != null && desc.startsWith("IMG_")) ? desc : name;
-            if (matchedName != null && (matchedName.toUpperCase().contains("IMG_") || matchedName.toUpperCase().contains("_IMAGE"))) {
-                String key = matchedName.toUpperCase();
+            String key = extractImageKey(inline.getDocPr());
+            if (key != null) {
                 byte[] imgBytes = getUploadedOrPlaceholderImage(key, images, inputs);
                 if (imgBytes != null) {
                     long originalCx = inline.getExtent() != null ? inline.getExtent().getCx() : 2743200L;
@@ -665,11 +681,8 @@ public class DocxTemplateEngine {
         for (Object o : anchorFinder.results) {
             Anchor anchor = (Anchor) o;
             if (anchor.getDocPr() == null) continue;
-            String desc = anchor.getDocPr().getDescr();
-            String name = anchor.getDocPr().getName();
-            String matchedName = (desc != null && desc.startsWith("IMG_")) ? desc : name;
-            if (matchedName != null && (matchedName.toUpperCase().contains("IMG_") || matchedName.toUpperCase().contains("_IMAGE"))) {
-                String key = matchedName.toUpperCase();
+            String key = extractImageKey(anchor.getDocPr());
+            if (key != null) {
                 byte[] imgBytes = getUploadedOrPlaceholderImage(key, images, inputs);
                 if (imgBytes != null) {
                     long originalCx = anchor.getExtent() != null ? anchor.getExtent().getCx() : 2743200L;
