@@ -23,9 +23,14 @@ import java.util.*;
 @PreAuthorize("hasRole('SUPER_ADMIN')")
 public class SuperAdminController {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SuperAdminController.class);
+
     @Autowired private UserRepository userRepository;
     @Autowired private OrderRepository orderRepository;
     @Autowired private OrderInputRepository orderInputRepository;
+    @Autowired private OrderDocumentRepository orderDocumentRepository;
+    @Autowired private RevisionRepository revisionRepository;
+    @Autowired private TransactionRepository transactionRepository;
     @Autowired private PerformanceLedgerRepository performanceLedgerRepository;
     @Autowired private SystemSettingRepository systemSettingRepository;
     @Autowired private TemplateRepository templateRepository;
@@ -630,6 +635,44 @@ public class SuperAdminController {
         auditLogService.log(actorId(), actorEmail(), "SUPER_ADMIN", "ORDER_CREATE", "ORDER",
                 String.valueOf(saved.getId()), null, null, "Created order directly by SUPER_ADMIN");
         return ResponseEntity.ok(saved);
+    }
+
+    /**
+     * DELETE /api/v1/admin/reports/purge-all
+     * Administrative purge of all orders, inputs, documents, revisions, and performance ledger
+     * allowing the team to start completely afresh with clean state.
+     */
+    @DeleteMapping("/reports/purge-all")
+    @Transactional
+    public ResponseEntity<?> purgeAllReports() {
+        log.warn("SUPER_ADMIN #{} initiated purge of ALL report and order data.", actorId());
+        
+        long docsDeleted = orderDocumentRepository.count();
+        orderDocumentRepository.deleteAll();
+
+        long inputsDeleted = orderInputRepository.count();
+        orderInputRepository.deleteAll();
+
+        long revisionsDeleted = revisionRepository.count();
+        revisionRepository.deleteAll();
+
+        long ledgerDeleted = performanceLedgerRepository.count();
+        performanceLedgerRepository.deleteAll();
+
+        long ordersDeleted = orderRepository.count();
+        orderRepository.deleteAll();
+
+        auditLogService.log(actorId(), actorEmail(), "SUPER_ADMIN", "PURGE_ALL_REPORTS", "ORDER",
+                null, null, null, String.format("Purged %d orders, %d inputs, %d documents, %d revisions", ordersDeleted, inputsDeleted, docsDeleted, revisionsDeleted));
+
+        return ResponseEntity.ok(Map.of(
+            "status", "SUCCESS",
+            "message", "All orders and reports successfully purged. System reset for fresh start.",
+            "purgedOrders", ordersDeleted,
+            "purgedDocuments", docsDeleted,
+            "purgedInputs", inputsDeleted,
+            "purgedRevisions", revisionsDeleted
+        ));
     }
 
     public static class SuperAdminCreateOrderRequest {
