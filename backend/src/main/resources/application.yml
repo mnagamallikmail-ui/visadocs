@@ -11,7 +11,7 @@ spring:
       max-request-size: -1
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/provaluer}
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/provaluer}
     username: ${SPRING_DATASOURCE_USERNAME:provaluer}
     password: ${SPRING_DATASOURCE_PASSWORD:K1ngcobr@}
     driver-class-name: org.postgresql.Driver
