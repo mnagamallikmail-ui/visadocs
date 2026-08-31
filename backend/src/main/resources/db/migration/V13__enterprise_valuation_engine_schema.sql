@@ -204,11 +204,11 @@ CREATE TABLE IF NOT EXISTS valuation_audit_logs (
 CREATE INDEX IF NOT EXISTS idx_valuation_audit_order ON valuation_audit_logs(order_id);
 
 -- 11. Seed default master settings in system_settings if present
-INSERT INTO system_settings (key, value) VALUES
+INSERT INTO system_settings (setting_key, setting_value) VALUES
 ('val_realizable_percentage', '85'),
 ('val_distress_percentage', '75'),
 ('val_salvage_percentage', '10')
-ON CONFLICT (key) DO NOTHING;
+ON CONFLICT (setting_key) DO NOTHING;
 
 -- 12. Backfill existing orders with default valuation_data records
 INSERT INTO valuation_data (order_id, total_land_value, total_building_value, total_replacement_cost, total_depreciation_amount, total_salvage_value, fair_value, realizable_percentage, realizable_value, distress_sale_percentage, distress_sale_value, default_salvage_percentage, valuation_status, current_version, created_at, updated_at)
