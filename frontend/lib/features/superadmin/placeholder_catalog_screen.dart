@@ -220,12 +220,12 @@ class _PlaceholderCatalogScreenState extends State<PlaceholderCatalogScreen> {
                                 Container(
                                   padding: const EdgeInsets.all(10),
                                   decoration: BoxDecoration(
-                                    color: isDynamicTable ? AppColors.accent.withValues(alpha: 0.1) : AppColors.tealLight,
+                                    color: isDynamicTable ? AppColors.featureOchre.withValues(alpha: 0.1) : AppColors.tealLight,
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Icon(
                                     isDynamicTable ? Icons.table_chart_rounded : Icons.code_rounded,
-                                    color: isDynamicTable ? AppColors.accent : AppColors.deepTeal,
+                                    color: isDynamicTable ? AppColors.featureOchre : AppColors.deepTeal,
                                     size: 24,
                                   ),
                                 ),

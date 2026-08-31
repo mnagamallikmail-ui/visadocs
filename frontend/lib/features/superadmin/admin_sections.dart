@@ -1789,6 +1789,7 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
           'Template Manager',
           'Manage document generation templates, placeholder schemas, and version rollback history',
           action: Row(
+            children: [
               OutlinedButton.icon(
                 label: const Text('Placeholder Catalog'),
                 icon: const Icon(Icons.menu_book_rounded),
