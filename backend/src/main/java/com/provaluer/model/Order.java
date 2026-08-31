@@ -161,5 +161,29 @@ public class Order {
 
     public String getBranchName() { return branchName; }
     public void setBranchName(String branchName) { this.branchName = branchName; }
+
+    @Column(name = "valuation_status", nullable = false)
+    private String valuationStatus = "DRAFT"; // DRAFT, FINALIZED, LOCKED, ARCHIVED
+
+    @Column(name = "is_deleted", nullable = false)
+    private boolean isDeleted = false;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Column(name = "deleted_by")
+    private Long deletedBy;
+
+    public String getValuationStatus() { return valuationStatus; }
+    public void setValuationStatus(String valuationStatus) { this.valuationStatus = valuationStatus; }
+
+    public boolean isDeleted() { return isDeleted; }
+    public void setDeleted(boolean deleted) { isDeleted = deleted; }
+
+    public LocalDateTime getDeletedAt() { return deletedAt; }
+    public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
+
+    public Long getDeletedBy() { return deletedBy; }
+    public void setDeletedBy(Long deletedBy) { this.deletedBy = deletedBy; }
 }
 

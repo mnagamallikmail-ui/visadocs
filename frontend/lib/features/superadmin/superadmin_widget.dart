@@ -273,7 +273,10 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
     {'key': 'pricing', 'label': 'Pricing Control', 'icon': Icons.price_change_outlined},
     {'key': 'tc', 'label': 'T&C Management', 'icon': Icons.gavel_outlined},
     {'key': 'templates', 'label': 'Template Manager', 'icon': Icons.description_outlined},
+    {'key': 'building_types', 'label': 'Building Types', 'icon': Icons.apartment_rounded},
+    {'key': 'val_settings', 'label': 'Valuation Settings', 'icon': Icons.tune_rounded},
     {'key': 'reports', 'label': 'Report Control', 'icon': Icons.summarize_outlined},
+    {'key': 'trash', 'label': 'Trash Bin', 'icon': Icons.delete_outline_rounded},
     {'key': 'signing', 'label': 'Signing Monitor', 'icon': Icons.draw_outlined},
   ];
 
@@ -503,8 +506,14 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
         return const AdminTcSection();
       case 'templates':
         return const AdminTemplateSection();
+      case 'building_types':
+        return const AdminBuildingTypesSection();
+      case 'val_settings':
+        return const AdminValuationSettingsSection();
       case 'reports':
         return const AdminReportSection();
+      case 'trash':
+        return const AdminTrashBinSection();
       case 'signing':
         return const AdminSigningSection();
       default:

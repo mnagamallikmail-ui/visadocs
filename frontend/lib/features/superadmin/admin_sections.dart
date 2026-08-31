@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'dart:convert';
+import 'dart:async';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:google_fonts/google_fonts.dart';
@@ -11,6 +12,8 @@ import '../../theme/app_spacing.dart';
 import '../../theme/app_components.dart';
 import '../../services/api_service.dart';
 import '../document_studio/document_studio_screen.dart';
+import 'placeholder_catalog_screen.dart';
+import '../../utils/indian_number_formatter.dart';
 
 // ─── Shared helpers ───────────────────────────────────────────
 
@@ -124,6 +127,7 @@ class AdminOverviewSection extends StatefulWidget {
 class _AdminOverviewSectionState extends State<AdminOverviewSection> {
   final _api = ApiService();
   Map<String, dynamic>? _data;
+  Map<String, dynamic>? _diag;
   bool _loading = true;
 
   @override
@@ -135,9 +139,18 @@ class _AdminOverviewSectionState extends State<AdminOverviewSection> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final r = await _api.dio.get('/api/v1/admin/overview');
+      final r1 = await _api.dio.get('/api/v1/admin/overview');
+      Map<String, dynamic>? diagData;
+      try {
+        final r2 = await _api.dio.get('/api/v1/admin/diagnostics');
+        if (r2.data is Map<String, dynamic>) {
+          diagData = r2.data as Map<String, dynamic>;
+        }
+      } catch (_) {}
+
       setState(() {
-        _data = r.data as Map<String, dynamic>;
+        _data = r1.data is Map<String, dynamic> ? (r1.data as Map<String, dynamic>) : null;
+        _diag = diagData;
         _loading = false;
       });
     } catch (_) {
@@ -147,11 +160,19 @@ class _AdminOverviewSectionState extends State<AdminOverviewSection> {
 
   @override
   Widget build(BuildContext context) {
+    final double cpu = (_diag?['cpuUsagePercent'] as num?)?.toDouble() ?? 0.0;
+    final int memFree = (_diag?['freeMemoryMb'] as num?)?.toInt() ?? 0;
+    final int memTotal = (_diag?['totalMemoryMb'] as num?)?.toInt() ?? 0;
+    final int diskFree = (_diag?['freeDiskGb'] as num?)?.toInt() ?? 0;
+    final int diskTotal = (_diag?['totalDiskGb'] as num?)?.toInt() ?? 0;
+    final bool dbOk = _diag?['databaseConnected'] == true;
+    final int activeJobs = (_diag?['activeTemplateProcessingJobs'] as num?)?.toInt() ?? 0;
+
     return Column(
       children: [
         _sectionHeader(
           'Overview',
-          'System health and key performance metrics',
+          'System health, key performance metrics, and VPS infrastructure diagnostics',
           action: ElevatedButton.icon(
             onPressed: _load,
             icon: const Icon(Icons.refresh, size: 16),
@@ -168,6 +189,7 @@ class _AdminOverviewSectionState extends State<AdminOverviewSection> {
             child: SingleChildScrollView(
               padding: const EdgeInsets.all(24),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   GridView.count(
                     crossAxisCount: MediaQuery.of(context).size.width > 1400 ? 4 : (MediaQuery.of(context).size.width > 900 ? 3 : 2),
@@ -185,11 +207,95 @@ class _AdminOverviewSectionState extends State<AdminOverviewSection> {
                       _statCard('Active Templates', '${_data?['activeTemplates'] ?? '0'}', Icons.description_outlined, AppColors.successAccent),
                     ],
                   ),
+                  const SizedBox(height: 28),
+                  
+                  // 0.14: VPS Diagnostics & Health Monitoring Card
+                  Text('VPS INFRASTRUCTURE & BACKEND DIAGNOSTICS', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: AppRadius.brXl,
+                      border: Border.all(color: AppColors.hairlineSoft),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 10,
+                              height: 10,
+                              decoration: BoxDecoration(
+                                color: dbOk ? AppColors.success : AppColors.brandRedDark,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Text(
+                              'Database Connectivity: ${dbOk ? "ONLINE (PostgreSQL)" : "OFFLINE"}',
+                              style: AppTypography.bodySm().copyWith(fontWeight: FontWeight.bold, color: dbOk ? AppColors.success : AppColors.brandRedDark),
+                            ),
+                            const Spacer(),
+                            if (activeJobs > 0)
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(color: AppColors.tealLight, borderRadius: BorderRadius.circular(12)),
+                                child: Row(
+                                  children: [
+                                    const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2)),
+                                    const SizedBox(width: 6),
+                                    Text('$activeJobs DOCX processing job${activeJobs > 1 ? "s" : ""} active', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.deepTeal)),
+                                  ],
+                                ),
+                              )
+                            else
+                              Text('Processing Queue: Idle', style: AppTypography.caption(color: AppColors.slate)),
+                          ],
+                        ),
+                        const SizedBox(height: 16),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: _diagMetric('CPU Load', '${cpu.toStringAsFixed(1)}%', cpu > 80 ? AppColors.brandRedDark : (cpu > 50 ? AppColors.yellowDark : AppColors.brandBlue)),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _diagMetric('JVM Memory', '${memTotal - memFree} MB / $memTotal MB', AppColors.primary),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: _diagMetric('Disk Storage', '$diskFree GB Free / $diskTotal GB', diskFree < 5 ? AppColors.brandRedDark : AppColors.success),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
           ),
       ],
+    );
+  }
+
+  Widget _diagMetric(String label, String value, Color color) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.hairlineSoft),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: AppTypography.caption(color: AppColors.slate)),
+          const SizedBox(height: 4),
+          Text(value, style: AppTypography.bodySm().copyWith(fontWeight: FontWeight.bold, color: color, fontSize: 13)),
+        ],
+      ),
     );
   }
 }
@@ -986,6 +1092,8 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
   final _api = ApiService();
   List<dynamic> _templates = [];
   bool _loading = true;
+  Timer? _pollingTimer;
+  dynamic _lastUploadedTemplateId;
 
   @override
   void initState() {
@@ -993,20 +1101,127 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
     _load();
   }
 
+  @override
+  void dispose() {
+    _pollingTimer?.cancel();
+    super.dispose();
+  }
+
+  // 0.2 Safe template list loading with defensive error handling
   Future<void> _load() async {
-    setState(() => _loading = true);
+    if (mounted) setState(() => _loading = true);
     try {
       final r = await _api.dio.get('/api/v1/templates');
-      setState(() {
-        _templates = r.data as List<dynamic>;
-        _loading = false;
-      });
-    } catch (_) {
-      setState(() => _loading = false);
+      if (mounted) {
+        setState(() {
+          if (r.data is List) {
+            _templates = r.data as List<dynamic>;
+          } else {
+            _templates = [];
+          }
+        });
+        _checkAndStartPolling();
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.brandRedDark,
+          content: Text(ApiService.getErrorMessage(e)),
+        ));
+      }
+    } finally {
+      // 0.1 Defensive loading state reset
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
+  // 0.8 Background silent polling every 3 seconds for async jobs
+  void _checkAndStartPolling() {
+    final hasActiveJobs = _templates.any((t) => t['status'] == 'PENDING' || t['status'] == 'PARSING');
+    if (hasActiveJobs) {
+      _startPolling();
+    } else {
+      _stopPolling();
+    }
+  }
+
+  void _startPolling() {
+    if (_pollingTimer != null && _pollingTimer!.isActive) return;
+    _pollingTimer = Timer.periodic(const Duration(seconds: 3), (_) async {
+      try {
+        final r = await _api.dio.get('/api/v1/templates');
+        if (!mounted) return;
+        if (r.data is List) {
+          final List<dynamic> updatedList = r.data as List<dynamic>;
+          
+          // Check if previously uploaded template finished parsing
+          if (_lastUploadedTemplateId != null) {
+            final match = updatedList.firstWhere(
+              (t) => t['id'] == _lastUploadedTemplateId,
+              orElse: () => null,
+            );
+            if (match != null && match['status'] == 'PARSED') {
+              final id = _lastUploadedTemplateId;
+              _lastUploadedTemplateId = null;
+              ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                backgroundColor: AppColors.success,
+                content: Text('Template "${match['name']}" parsed successfully! Ready for finalization.'),
+              ));
+              // Fetch detail and prompt finalization preview
+              _fetchAndOpenPreview(id);
+            }
+          }
+
+          setState(() {
+            _templates = updatedList;
+          });
+
+          final stillActive = updatedList.any((t) => t['status'] == 'PENDING' || t['status'] == 'PARSING');
+          if (!stillActive) {
+            _stopPolling();
+          }
+        }
+      } catch (_) {}
+    });
+  }
+
+  void _stopPolling() {
+    _pollingTimer?.cancel();
+    _pollingTimer = null;
+  }
+
+  Future<void> _fetchAndOpenPreview(dynamic templateId) async {
+    try {
+      final r = await _api.dio.get('/api/v1/templates/$templateId');
+      if (mounted && r.data is Map<String, dynamic>) {
+        _showTemplatePreviewDialog(r.data);
+      }
+    } catch (_) {}
+  }
+
   Future<void> _deleteTemplate(dynamic t) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        title: const Text('Delete Template'),
+        content: Text('Are you sure you want to delete "${t['name']}"? All versions will be removed.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: AppComponents.dangerButton,
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
     try {
       await _api.dio.delete('/api/v1/templates/${t['id']}');
       if (mounted) {
@@ -1016,9 +1231,17 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
         ));
       }
       _load();
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.brandRedDark,
+          content: Text(ApiService.getErrorMessage(e)),
+        ));
+      }
+    }
   }
 
+  // 0.6 Async DOCX Upload
   Future<void> _uploadTemplate() async {
     try {
       final List<int>? fileBytes;
@@ -1064,6 +1287,7 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
             style: AppTypography.bodySm().copyWith(fontSize: 13),
             decoration: const InputDecoration(
               labelText: 'Template Name',
+              hintText: 'e.g. Standard Commercial Valuation',
             ),
           ),
           actions: [
@@ -1081,18 +1305,31 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                     'name': nameCtrl.text.trim().isEmpty ? fileName : nameCtrl.text.trim(),
                   });
 
+                  // 0.6: Upload returns 202 Accepted immediately
                   final r = await _api.dio.post('/api/v1/templates/upload', data: formData);
 
                   if (mounted) {
-                    _showTemplatePreviewDialog(r.data);
-                  }
-                } catch (e) {
-                  setState(() => _loading = false);
-                  if (mounted) {
+                    final newTemplateId = r.data is Map ? r.data['id'] : null;
+                    if (newTemplateId != null) {
+                      _lastUploadedTemplateId = newTemplateId;
+                    }
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      backgroundColor: AppColors.brandRedDark,
-                      content: Text('Failed to upload template.'),
+                      backgroundColor: AppColors.tealDark,
+                      content: Text('DOCX uploaded! Parsing document structure and DOM in background...'),
                     ));
+                  }
+                  _load();
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      backgroundColor: AppColors.brandRedDark,
+                      content: Text(ApiService.getErrorMessage(e)),
+                    ));
+                  }
+                } finally {
+                  // 0.1 Defensive loading reset
+                  if (mounted) {
+                    setState(() => _loading = false);
                   }
                 }
               },
@@ -1104,6 +1341,7 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
       );
     } catch (_) {
       if (mounted) {
+        setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           backgroundColor: AppColors.brandRedDark,
           content: Text('File selection failed.'),
@@ -1289,14 +1527,14 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
             return AlertDialog(
               backgroundColor: Colors.white,
               surfaceTintColor: Colors.transparent,
-              title: Text('Template Parsing Preview: ${template['name']}', style: AppTypography.heading4().copyWith(color: AppColors.ink)),
+              title: Text('Template Finalization Preview: ${template['name']}', style: AppTypography.heading4().copyWith(color: AppColors.ink)),
               content: SizedBox(
                 width: 600,
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Verify and customize the prompt text for each extracted placeholder:', style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13)),
+                    Text('Verify and customize prompt text for extracted placeholders before activation:', style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13)),
                     const SizedBox(height: 12),
                     Expanded(
                       child: ListView(
@@ -1313,10 +1551,11 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                     Navigator.pop(ctx);
                     _load();
                   },
-                  child: Text('Cancel', style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13, fontWeight: FontWeight.w600)),
+                  child: Text('Close (Keep Draft)', style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13, fontWeight: FontWeight.w600)),
                 ),
                 ElevatedButton(
                   onPressed: () async {
+                    final messenger = ScaffoldMessenger.of(context);
                     for (int i = 0; i < fields.length; i++) {
                       fields[i]['question'] = questionControllers[i].text.trim();
                     }
@@ -1325,24 +1564,21 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                     try {
                       final updatedFieldMapping = jsonEncode(parsedSchema);
                       await _api.dio.post('/api/v1/templates/${template['id']}/confirm', data: updatedFieldMapping);
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                          backgroundColor: AppColors.success,
-                          content: Text('Template finalized and activated successfully!'),
-                        ));
-                      }
-                    } catch (_) {
-                      if (mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                          backgroundColor: AppColors.brandRedDark,
-                          content: Text('Failed to finalize template.'),
-                        ));
-                      }
+                      messenger.showSnackBar(const SnackBar(
+                        backgroundColor: AppColors.success,
+                        content: Text('Template finalized, activated, and versioned successfully!'),
+                      ));
+                    } catch (e) {
+                      messenger.showSnackBar(SnackBar(
+                        backgroundColor: AppColors.brandRedDark,
+                        content: Text('Failed to finalize: ${ApiService.getErrorMessage(e)}'),
+                      ));
+                    } finally {
+                      _load();
                     }
-                    _load();
                   },
                   style: AppComponents.primaryButtonStyle(),
-                  child: Text('Confirm & Finalize', style: AppTypography.bodySm().copyWith(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
+                  child: Text('Confirm & Activate', style: AppTypography.bodySm().copyWith(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold)),
                 ),
               ],
             );
@@ -1350,6 +1586,196 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
         );
       },
     );
+  }
+
+  // 0.9 Processing Error Inspector
+  void _showErrorDialog(dynamic template) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        title: Row(
+          children: [
+            const Icon(Icons.error_outline, color: AppColors.brandRedDark),
+            const SizedBox(width: 8),
+            Text('Processing Error: ${template['name']}', style: AppTypography.heading4().copyWith(color: AppColors.brandRedDark)),
+          ],
+        ),
+        content: SizedBox(
+          width: 550,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('The background DOCX parser encountered an issue:', style: AppTypography.bodySm().copyWith(color: AppColors.slate)),
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(color: AppColors.surfaceSoft, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.hairlineSoft)),
+                child: SelectableText(
+                  template['processingError'] ?? 'Unknown parsing exception.',
+                  style: GoogleFonts.firaCode(fontSize: 12, color: AppColors.ink),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Text('Troubleshooting Tips:', style: AppTypography.bodySm().copyWith(fontWeight: FontWeight.bold)),
+              const SizedBox(height: 6),
+              Text('• Verify the DOCX is not password-protected or corrupted.\n• Ensure placeholders use <<PLACEHOLDER_NAME>> syntax.\n• Re-saving the file in Microsoft Word or LibreOffice can resolve XML run fragmentation.', style: AppTypography.caption(color: AppColors.slate)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Dismiss')),
+        ],
+      ),
+    );
+  }
+
+  // 0.15 Version History & Rollback Modal
+  Future<void> _showVersionHistoryDialog(dynamic template) async {
+    final templateId = template['id'];
+    List<dynamic> versions = [];
+    bool loadingVersions = true;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          if (loadingVersions) {
+            _api.dio.get('/api/v1/templates/$templateId/versions').then((r) {
+              if (r.data is List) {
+                setDialogState(() {
+                  versions = r.data as List<dynamic>;
+                  loadingVersions = false;
+                });
+              } else {
+                setDialogState(() => loadingVersions = false);
+              }
+            }).catchError((_) {
+              setDialogState(() => loadingVersions = false);
+            });
+          }
+
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+            title: Row(
+              children: [
+                const Icon(Icons.history_rounded, color: AppColors.primary),
+                const SizedBox(width: 8),
+                Text('Version History: ${template['name']}', style: AppTypography.heading4().copyWith(color: AppColors.ink)),
+              ],
+            ),
+            content: SizedBox(
+              width: 550,
+              height: 380,
+              child: loadingVersions
+                  ? const Center(child: CircularProgressIndicator())
+                  : versions.isEmpty
+                      ? const Center(child: Text('No previous versions recorded.'))
+                      : ListView.separated(
+                          itemCount: versions.length,
+                          separatorBuilder: (_, __) => const Divider(height: 1),
+                          itemBuilder: (context, idx) {
+                            final v = versions[idx];
+                            final isCurrent = v['version'] == template['version'];
+                            return ListTile(
+                              leading: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isCurrent ? AppColors.tealLight : AppColors.surfaceSoft,
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text('v${v['version']}', style: TextStyle(fontWeight: FontWeight.bold, color: isCurrent ? AppColors.deepTeal : AppColors.slate)),
+                              ),
+                              title: Text(v['changeSummary'] ?? 'Version Snapshot', style: AppTypography.bodySm().copyWith(fontWeight: FontWeight.w600)),
+                              subtitle: Text('Created: ${v['createdAt'] ?? '—'}', style: AppTypography.caption(color: AppColors.slate)),
+                              trailing: isCurrent
+                                  ? Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                      decoration: BoxDecoration(color: AppColors.successBg, borderRadius: BorderRadius.circular(4)),
+                                      child: const Text('CURRENT', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.success)),
+                                    )
+                                  : OutlinedButton(
+                                      onPressed: () async {
+                                        final messenger = ScaffoldMessenger.of(context);
+                                        Navigator.pop(ctx);
+                                        setState(() => _loading = true);
+                                        try {
+                                          await _api.dio.post('/api/v1/templates/$templateId/rollback/${v['version']}');
+                                          messenger.showSnackBar(SnackBar(
+                                            backgroundColor: AppColors.success,
+                                            content: Text('Rolled back to v${v['version']} successfully.'),
+                                          ));
+                                        } catch (e) {
+                                          messenger.showSnackBar(SnackBar(
+                                            backgroundColor: AppColors.brandRedDark,
+                                            content: Text('Rollback failed: ${ApiService.getErrorMessage(e)}'),
+                                          ));
+                                        } finally {
+                                          _load();
+                                        }
+                                      },
+                                      child: const Text('Rollback'),
+                                    ),
+                            );
+                          },
+                        ),
+            ),
+            actions: [
+              TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Close')),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  Widget _buildStatusBadge(dynamic t) {
+    final status = (t['status'] ?? 'PENDING').toString().toUpperCase();
+    final isActive = t['isActive'] == 'Y';
+
+    if (status == 'PENDING' || status == 'PARSING') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(color: AppColors.tealLight, borderRadius: BorderRadius.circular(12)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 2)),
+            const SizedBox(width: 6),
+            Text(status == 'PARSING' ? 'PARSING DOM...' : 'PENDING...', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.deepTeal)),
+          ],
+        ),
+      );
+    } else if (status == 'FAILED') {
+      return InkWell(
+        onTap: () => _showErrorDialog(t),
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(color: AppColors.errorBg, borderRadius: BorderRadius.circular(12)),
+          child: const Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.error_outline, size: 12, color: AppColors.brandRedDark),
+              SizedBox(width: 4),
+              Text('FAILED (VIEW)', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.brandRedDark)),
+            ],
+          ),
+        ),
+      );
+    } else if (status == 'PARSED') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        decoration: BoxDecoration(color: AppColors.yellowLight, borderRadius: BorderRadius.circular(12)),
+        child: const Text('PARSED (DRAFT)', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.yellowDark)),
+      );
+    } else {
+      return AppComponents.statusBadge(isActive ? 'Active' : 'Inactive');
+    }
   }
 
   @override
@@ -1361,9 +1787,15 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
       children: [
         _sectionHeader(
           'Template Manager',
-          'Manage document generation templates',
+          'Manage document generation templates, placeholder schemas, and version rollback history',
           action: Row(
-            children: [
+              OutlinedButton.icon(
+                label: const Text('Placeholder Catalog'),
+                icon: const Icon(Icons.menu_book_rounded),
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PlaceholderCatalogScreen())),
+                style: AppComponents.secondaryButton,
+              ),
+              const SizedBox(width: 8),
               OutlinedButton.icon(
                 label: const Text('Refresh'),
                 icon: const Icon(Icons.refresh),
@@ -1455,7 +1887,9 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
               itemCount: _templates.length,
               itemBuilder: (_, i) {
                 final t = _templates[i];
-                final isActive = t['isActive'] == 'Y';
+                final status = (t['status'] ?? 'PENDING').toString();
+                final version = t['version'] ?? 1;
+
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
                   padding: const EdgeInsets.all(20),
@@ -1468,21 +1902,35 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                           color: AppColors.surfaceSoft,
                           borderRadius: AppRadius.brMd,
                         ),
-                        child: Icon(Icons.file_present_rounded, color: AppColors.slate, size: 24),
+                        child: const Icon(Icons.file_present_rounded, color: AppColors.slate, size: 24),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('${t['name']}', style: AppTypography.bodyMdMedium(color: AppColors.ink)),
+                            Row(
+                              children: [
+                                Text('${t['name']}', style: AppTypography.bodyMdMedium(color: AppColors.ink)),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surfaceSoft,
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: AppColors.hairlineSoft),
+                                  ),
+                                  child: Text('v$version', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.slate)),
+                                ),
+                              ],
+                            ),
                             const SizedBox(height: 4),
                             Row(
                               children: [
-                                AppComponents.statusBadge(isActive ? 'Active' : 'Inactive'),
+                                _buildStatusBadge(t),
                                 const SizedBox(width: 12),
                                 Text(
-                                  'Status: ${t['status']}',
+                                  'Updated: ${t['updatedAt'] ?? t['createdAt'] ?? '—'}',
                                   style: AppTypography.caption(color: AppColors.slate),
                                 ),
                               ],
@@ -1493,37 +1941,45 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                       const SizedBox(width: 16),
                       Row(
                         children: [
-                          ElevatedButton.icon(
-                            icon: const Icon(Icons.auto_stories_outlined, size: 16),
-                            label: const Text('Open in Studio'),
-                            onPressed: () {
-                              final rawId = t['id'];
-                              final int parsedId = rawId is int ? rawId : int.parse(rawId.toString());
-                              Navigator.of(context).push(
-                                MaterialPageRoute(
-                                  builder: (_) => DocumentStudioScreen(
-                                    templateId: parsedId,
-                                    templateName: t['name']?.toString(),
+                          if (status == 'CONFIRMED' || status == 'PARSED')
+                            ElevatedButton.icon(
+                              icon: const Icon(Icons.auto_stories_outlined, size: 16),
+                              label: const Text('Open in Studio'),
+                              onPressed: () {
+                                final rawId = t['id'];
+                                final int parsedId = rawId is int ? rawId : int.parse(rawId.toString());
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => DocumentStudioScreen(
+                                      templateId: parsedId,
+                                      templateName: t['name']?.toString(),
+                                    ),
                                   ),
-                                ),
-                              );
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.tealLight,
-                              foregroundColor: AppColors.deepTeal,
-                              elevation: 0,
-                              side: BorderSide(color: AppColors.deepTeal.withValues(alpha: 0.3)),
+                                );
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.tealLight,
+                                foregroundColor: AppColors.deepTeal,
+                                elevation: 0,
+                                side: BorderSide(color: AppColors.deepTeal.withValues(alpha: 0.3)),
+                              ),
                             ),
-                          ),
                           const SizedBox(width: 8),
-                          if (!isActive) ...[
+                          if (status == 'PARSED') ...[
                             ElevatedButton(
-                              onPressed: () => _showTemplatePreviewDialog(t),
+                              onPressed: () => _fetchAndOpenPreview(t['id']),
                               style: AppComponents.primaryButton,
                               child: const Text('Finalize'),
                             ),
                             const SizedBox(width: 8),
                           ],
+                          OutlinedButton.icon(
+                            label: const Text('History'),
+                            icon: const Icon(Icons.history_rounded, size: 16),
+                            onPressed: () => _showVersionHistoryDialog(t),
+                            style: AppComponents.secondaryButton,
+                          ),
+                          const SizedBox(width: 8),
                           ElevatedButton.icon(
                             label: const Text('Delete'),
                             icon: const Icon(Icons.delete_outline),
@@ -2003,5 +2459,482 @@ class _DictionaryDialogWidgetState extends State<DictionaryDialogWidget> {
   }
 }
 
+// ─── 2. BUILDING TYPE MASTER ──────────────────────────────────
 
+class AdminBuildingTypesSection extends StatefulWidget {
+  const AdminBuildingTypesSection({super.key});
 
+  @override
+  State<AdminBuildingTypesSection> createState() => _AdminBuildingTypesSectionState();
+}
+
+class _AdminBuildingTypesSectionState extends State<AdminBuildingTypesSection> {
+  final _api = ApiService();
+  List<dynamic> _buildingTypes = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final res = await _api.dio.get('/api/v1/admin/building-types');
+      if (res.data is List) {
+        setState(() => _buildingTypes = res.data as List<dynamic>);
+      }
+    } catch (_) {
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  void _showAddEditDialog([dynamic existing]) {
+    final nameCtrl = TextEditingController(text: existing != null ? existing['name'] : '');
+    final lifeCtrl = TextEditingController(text: existing != null ? existing['defaultUsefulLife'].toString() : '60');
+    bool isActive = existing != null ? (existing['active'] ?? true) : true;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          title: Text(existing != null ? 'Edit Building Type' : 'Add Building Type', style: AppTypography.heading4()),
+          content: SizedBox(
+            width: 400,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: nameCtrl,
+                  decoration: const InputDecoration(labelText: 'Building Type Name', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 12),
+                TextField(
+                  controller: lifeCtrl,
+                  keyboardType: TextInputType.number,
+                  decoration: const InputDecoration(labelText: 'Default Useful Life (Years)', border: OutlineInputBorder()),
+                ),
+                const SizedBox(height: 12),
+                SwitchListTile(
+                  title: const Text('Active'),
+                  value: isActive,
+                  onChanged: (val) => setDialogState(() => isActive = val),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                final name = nameCtrl.text.trim();
+                final life = int.tryParse(lifeCtrl.text) ?? 60;
+                if (name.isEmpty) return;
+                Navigator.pop(ctx);
+                try {
+                  if (existing != null) {
+                    await _api.dio.put('/api/v1/admin/building-types/${existing['id']}', data: {
+                      'name': name,
+                      'defaultUsefulLife': life,
+                      'active': isActive,
+                    });
+                  } else {
+                    await _api.dio.post('/api/v1/admin/building-types', data: {
+                      'name': name,
+                      'defaultUsefulLife': life,
+                      'active': isActive,
+                    });
+                  }
+                  _load();
+                } catch (e) {
+                  ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                    backgroundColor: AppColors.brandRedDark,
+                    content: Text('Failed to save: ${ApiService.getErrorMessage(e)}'),
+                  ));
+                }
+              },
+              style: AppComponents.primaryButtonStyle(),
+              child: const Text('Save', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _sectionHeader(
+          'Building Type Master',
+          'Configure building classifications and default useful life for automatic depreciation calculations',
+          action: ElevatedButton.icon(
+            label: const Text('Add Building Type'),
+            icon: const Icon(Icons.add),
+            onPressed: () => _showAddEditDialog(),
+            style: AppComponents.primaryButton,
+          ),
+        ),
+        Expanded(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : ListView.builder(
+                  padding: const EdgeInsets.all(28),
+                  itemCount: _buildingTypes.length,
+                  itemBuilder: (context, idx) {
+                    final b = _buildingTypes[idx];
+                    final isActive = b['active'] == true;
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(16),
+                      decoration: AppComponents.cardBase(),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: AppColors.tealLight,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(Icons.apartment_rounded, color: AppColors.deepTeal, size: 24),
+                          ),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(b['name'] ?? '', style: AppTypography.bodySm().copyWith(fontWeight: FontWeight.bold, fontSize: 14)),
+                                const SizedBox(height: 4),
+                                Text('Default Useful Life: ${b['defaultUsefulLife']} Years', style: AppTypography.caption(color: AppColors.slate)),
+                              ],
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: isActive ? AppColors.successBg : AppColors.surfaceSoft,
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(isActive ? 'ACTIVE' : 'INACTIVE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: isActive ? AppColors.success : AppColors.slate)),
+                          ),
+                          const SizedBox(width: 12),
+                          IconButton(
+                            icon: const Icon(Icons.edit_outlined, color: AppColors.primary, size: 20),
+                            onPressed: () => _showAddEditDialog(b),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── 1. VALUATION SETTINGS MASTER ─────────────────────────────
+
+class AdminValuationSettingsSection extends StatefulWidget {
+  const AdminValuationSettingsSection({super.key});
+
+  @override
+  State<AdminValuationSettingsSection> createState() => _AdminValuationSettingsSectionState();
+}
+
+class _AdminValuationSettingsSectionState extends State<AdminValuationSettingsSection> {
+  final _api = ApiService();
+  bool _loading = true;
+  bool _saving = false;
+
+  final _realizableCtrl = TextEditingController(text: '85');
+  final _distressCtrl = TextEditingController(text: '75');
+  final _salvageCtrl = TextEditingController(text: '10');
+  final _rccLifeCtrl = TextEditingController(text: '60');
+  final _shedLifeCtrl = TextEditingController(text: '40');
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final res = await _api.dio.get('/api/v1/admin/valuation-settings');
+      if (res.data is Map) {
+        final d = res.data as Map<String, dynamic>;
+        _realizableCtrl.text = d['realizablePercentage']?.toString() ?? '85';
+        _distressCtrl.text = d['distressSalePercentage']?.toString() ?? '75';
+        _salvageCtrl.text = d['salvagePercentage']?.toString() ?? '10';
+        _rccLifeCtrl.text = d['rccUsefulLife']?.toString() ?? '60';
+        _shedLifeCtrl.text = d['shedUsefulLife']?.toString() ?? '40';
+      }
+    } catch (_) {
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _save() async {
+    setState(() => _saving = true);
+    try {
+      await _api.dio.put('/api/v1/admin/valuation-settings', data: {
+        'realizablePercentage': double.tryParse(_realizableCtrl.text) ?? 85.0,
+        'distressSalePercentage': double.tryParse(_distressCtrl.text) ?? 75.0,
+        'salvagePercentage': double.tryParse(_salvageCtrl.text) ?? 10.0,
+        'rccUsefulLife': int.tryParse(_rccLifeCtrl.text) ?? 60,
+        'shedUsefulLife': int.tryParse(_shedLifeCtrl.text) ?? 40,
+      });
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        backgroundColor: AppColors.success,
+        content: Text('Valuation Master Settings saved successfully!'),
+      ));
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: AppColors.brandRedDark,
+        content: Text('Save failed: ${ApiService.getErrorMessage(e)}'),
+      ));
+    } finally {
+      setState(() => _saving = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _sectionHeader(
+          'Valuation Settings Master',
+          'Configure global default percentages and parameters auto-injected into newly created valuation reports',
+          action: ElevatedButton.icon(
+            label: Text(_saving ? 'Saving...' : 'Save Settings'),
+            icon: const Icon(Icons.save_rounded),
+            onPressed: _saving ? null : _save,
+            style: AppComponents.primaryButton,
+          ),
+        ),
+        Expanded(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : SingleChildScrollView(
+                  padding: const EdgeInsets.all(28),
+                  child: Container(
+                    padding: const EdgeInsets.all(24),
+                    decoration: AppComponents.cardBase(),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Default Valuation Parameters', style: AppTypography.heading4()),
+                        const SizedBox(height: 8),
+                        Text('These values will automatically populate on report creation and remain editable per report.', style: AppTypography.bodySm(color: AppColors.slate)),
+                        const SizedBox(height: 24),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _realizableCtrl,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(labelText: 'Default Realizable %', suffixText: '%', border: OutlineInputBorder()),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: TextField(
+                                controller: _distressCtrl,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(labelText: 'Default Distress Sale %', suffixText: '%', border: OutlineInputBorder()),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: TextField(
+                                controller: _salvageCtrl,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(labelText: 'Default Salvage Value %', suffixText: '%', border: OutlineInputBorder()),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 20),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: TextField(
+                                controller: _rccLifeCtrl,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(labelText: 'RCC Useful Life (Years)', border: OutlineInputBorder()),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            Expanded(
+                              child: TextField(
+                                controller: _shedLifeCtrl,
+                                keyboardType: TextInputType.number,
+                                decoration: const InputDecoration(labelText: 'Shed Useful Life (Years)', border: OutlineInputBorder()),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            const Expanded(child: SizedBox.shrink()),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+        ),
+      ],
+    );
+  }
+}
+
+// ─── 17. TRASH BIN / DELETED REPORTS SECTION ──────────────────
+
+class AdminTrashBinSection extends StatefulWidget {
+  const AdminTrashBinSection({super.key});
+
+  @override
+  State<AdminTrashBinSection> createState() => _AdminTrashBinSectionState();
+}
+
+class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
+  final _api = ApiService();
+  List<dynamic> _deletedOrders = [];
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    setState(() => _loading = true);
+    try {
+      final res = await _api.dio.get('/api/v1/admin/orders/deleted');
+      if (res.data is List) {
+        setState(() => _deletedOrders = res.data as List<dynamic>);
+      }
+    } catch (_) {
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _restore(int id) async {
+    try {
+      await _api.dio.post('/api/v1/admin/orders/$id/restore');
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        backgroundColor: AppColors.success,
+        content: Text('Report restored to active status successfully!'),
+      ));
+      _load();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: AppColors.brandRedDark,
+        content: Text('Restore failed: ${ApiService.getErrorMessage(e)}'),
+      ));
+    }
+  }
+
+  Future<void> _purge(int id) async {
+    try {
+      await _api.dio.delete('/api/v1/admin/orders/$id/purge');
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        backgroundColor: AppColors.success,
+        content: Text('Report permanently purged from database.'),
+      ));
+      _load();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: AppColors.brandRedDark,
+        content: Text('Purge failed: ${ApiService.getErrorMessage(e)}'),
+      ));
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _sectionHeader(
+          'Deleted Reports & Trash Bin',
+          'Super Admin audit and recovery console for soft-deleted valuation orders',
+          action: OutlinedButton.icon(
+            label: const Text('Refresh'),
+            icon: const Icon(Icons.refresh),
+            onPressed: _load,
+            style: AppComponents.secondaryButton,
+          ),
+        ),
+        Expanded(
+          child: _loading
+              ? const Center(child: CircularProgressIndicator())
+              : _deletedOrders.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.delete_sweep_rounded, size: 48, color: AppColors.slate),
+                          const SizedBox(height: 12),
+                          Text('No deleted reports in trash bin.', style: AppTypography.bodySm(color: AppColors.slate)),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: const EdgeInsets.all(28),
+                      itemCount: _deletedOrders.length,
+                      itemBuilder: (context, idx) {
+                        final o = _deletedOrders[idx];
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(16),
+                          decoration: AppComponents.cardBase(),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.all(10),
+                                decoration: BoxDecoration(
+                                  color: AppColors.brandRedDark.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: const Icon(Icons.delete_outline_rounded, color: AppColors.brandRedDark, size: 24),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(o['reportNumber'] ?? 'Order #${o['id']}', style: AppTypography.bodySm().copyWith(fontWeight: FontWeight.bold, fontSize: 14)),
+                                    const SizedBox(height: 4),
+                                    Text('Client: ${o['clientName'] ?? '—'} | Bank: ${o['bankName'] ?? '—'} | Deleted: ${o['deletedAt'] ?? '—'}', style: AppTypography.caption(color: AppColors.slate)),
+                                  ],
+                                ),
+                              ),
+                              OutlinedButton.icon(
+                                icon: const Icon(Icons.restore_from_trash_rounded, size: 16, color: AppColors.success),
+                                label: const Text('Restore', style: TextStyle(color: AppColors.success)),
+                                onPressed: () => _restore(o['id'] as int),
+                              ),
+                              const SizedBox(width: 8),
+                              IconButton(
+                                icon: const Icon(Icons.delete_forever_rounded, color: AppColors.brandRedDark, size: 20),
+                                tooltip: 'Permanently Purge',
+                                onPressed: () => _purge(o['id'] as int),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+        ),
+      ],
+    );
+  }
+}

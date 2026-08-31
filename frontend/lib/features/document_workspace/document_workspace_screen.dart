@@ -8,6 +8,7 @@ import 'providers/document_workspace_provider.dart';
 import 'widgets/document_table_workspace_widget.dart';
 import 'widgets/live_preview_viewer_widget.dart';
 import 'widgets/section_navigation_tree_widget.dart';
+import 'widgets/valuation_workspace_editor_widget.dart';
 
 class DocumentWorkspaceScreen extends StatefulWidget {
   final int orderId;
@@ -250,18 +251,27 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
                     )
                   : AnimatedSwitcher(
                       duration: const Duration(milliseconds: 250),
-                      child: provider.viewMode == WorkspaceViewMode.tableEdit
-                          ? Row(
-                              key: const ValueKey('TABLE_EDIT_LAYOUT'),
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: const [
-                                SectionNavigationTreeWidget(),
-                                Expanded(
-                                  child: DocumentTableWorkspaceWidget(),
-                                ),
-                              ],
+                      child: provider.viewMode == WorkspaceViewMode.valuationEngine
+                          ? ValuationWorkspaceEditorWidget(
+                              key: const ValueKey('VALUATION_ENGINE_LAYOUT'),
+                              orderId: widget.orderId,
+                              readOnly: provider.isReadOnly,
+                              onValuationChanged: (newPlaceholders) {
+                                provider.updateValuesFromValuation(newPlaceholders);
+                              },
                             )
-                          : const LivePreviewViewerWidget(key: ValueKey('COMPILED_PREVIEW')),
+                          : provider.viewMode == WorkspaceViewMode.tableEdit
+                              ? Row(
+                                  key: const ValueKey('TABLE_EDIT_LAYOUT'),
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: const [
+                                    SectionNavigationTreeWidget(),
+                                    Expanded(
+                                      child: DocumentTableWorkspaceWidget(),
+                                    ),
+                                  ],
+                                )
+                              : const LivePreviewViewerWidget(key: ValueKey('COMPILED_PREVIEW')),
                     ),
             ),
           );
@@ -382,6 +392,12 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  _buildSegmentButton(
+                    title: 'Valuation Engine',
+                    icon: Icons.calculate_outlined,
+                    isActive: provider.viewMode == WorkspaceViewMode.valuationEngine,
+                    onTap: () => provider.setViewMode(WorkspaceViewMode.valuationEngine),
+                  ),
                   _buildSegmentButton(
                     title: 'Table Workspace',
                     icon: Icons.table_chart_outlined,

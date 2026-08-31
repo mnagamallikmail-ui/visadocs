@@ -19,6 +19,7 @@ import com.provaluer.model.TemplateQuestion;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.math.BigInteger;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -148,6 +149,11 @@ public class DocxTemplateEngine {
         }
 
         String textStr = fullText.toString();
+        // 0.12: Standardize placeholders — migrate legacy {{PLACEHOLDER}} syntax to canonical <<PLACEHOLDER>>
+        if (textStr.contains("{{") && textStr.contains("}}")) {
+            textStr = textStr.replaceAll("\\{\\{([A-Za-z0-9_]+)\\}\\}", "<<$1>>");
+        }
+
         // If it contains placeholders, merge text runs into a single clean stitched run
         if (textStr.contains("<<") && textStr.contains(">>")) {
             p.getContent().clear();
@@ -580,10 +586,40 @@ public class DocxTemplateEngine {
     }
 
     private void generateElements(WordprocessingMLPackage wordMLPackage, List<Object> elements, Map<String, String> inputs, Map<String, byte[]> images) throws Exception {
-        for (Object elem : elements) {
+        for (int i = 0; i < elements.size(); i++) {
+            Object elem = elements.get(i);
             Object unwrapped = unwrap(elem);
             if (unwrapped instanceof P) {
                 P p = (P) unwrapped;
+                String pText = getParagraphText(p).trim();
+                
+                // 30, 31, 32, 33: Dynamic Table Generation
+                if (pText.equalsIgnoreCase("<<LAND_TABLE>>") || pText.contains("<<LAND_TABLE>>")) {
+                    Tbl landTable = buildDynamicLandTable(inputs);
+                    if (landTable != null) {
+                        elements.set(i, landTable);
+                        continue;
+                    }
+                } else if (pText.equalsIgnoreCase("<<BUILDING_TABLE>>") || pText.contains("<<BUILDING_TABLE>>")) {
+                    Tbl buildingTable = buildDynamicBuildingTable(inputs);
+                    if (buildingTable != null) {
+                        elements.set(i, buildingTable);
+                        continue;
+                    }
+                } else if (pText.equalsIgnoreCase("<<VALUATION_SUMMARY_TABLE>>") || pText.contains("<<VALUATION_SUMMARY_TABLE>>")) {
+                    Tbl summaryTable = buildDynamicValuationSummaryTable(inputs);
+                    if (summaryTable != null) {
+                        elements.set(i, summaryTable);
+                        continue;
+                    }
+                } else if (pText.equalsIgnoreCase("<<COMPARABLES_TABLE>>") || pText.contains("<<COMPARABLES_TABLE>>")) {
+                    Tbl compTable = buildDynamicComparablesTable(inputs);
+                    if (compTable != null) {
+                        elements.set(i, compTable);
+                        continue;
+                    }
+                }
+                
                 substituteInParagraph(wordMLPackage, p, inputs, images);
             } else if (unwrapped instanceof Tbl) {
                 Tbl tbl = (Tbl) unwrapped;
@@ -619,6 +655,253 @@ public class DocxTemplateEngine {
                 }
             }
         }
+    }
+
+    private Tbl buildDynamicLandTable(Map<String, String> inputs) {
+        List<String> headers = List.of("Survey No", "Description", "Area", "Unit", "Area (Sq.Ft)", "Rate (INR)", "Value (INR)");
+        List<List<String>> rows = new ArrayList<>();
+        
+        // Parse land items from JSON if available in inputs
+        String landJson = inputs != null ? inputs.get("RAW_LAND_ITEMS_JSON") : null;
+        if (landJson != null && !landJson.trim().isEmpty()) {
+            try {
+                com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(landJson);
+                if (root.isArray()) {
+                    for (com.fasterxml.jackson.databind.JsonNode n : root) {
+                        rows.add(List.of(
+                                n.path("surveyNo").asText("-"),
+                                n.path("description").asText("Land Parcel"),
+                                n.path("enteredArea").asText("0"),
+                                n.path("enteredUnit").asText("Sq.Ft"),
+                                n.path("standardAreaSqft").asText("0"),
+                                n.path("rate").asText("0"),
+                                n.path("value").asText("0")
+                        ));
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+        
+        if (rows.isEmpty()) {
+            // Default single row from inputs
+            rows.add(List.of(
+                    inputs != null ? inputs.getOrDefault("SURVEY_NO", "-") : "-",
+                    "Primary Land Parcel",
+                    inputs != null ? inputs.getOrDefault("LAND_AREA", "0") : "0",
+                    "Sq.Ft",
+                    inputs != null ? inputs.getOrDefault("LAND_AREA", "0") : "0",
+                    inputs != null ? inputs.getOrDefault("LAND_RATE", "0") : "0",
+                    inputs != null ? inputs.getOrDefault("TOTAL_LAND_VALUE", inputs.getOrDefault("LAND_VALUE", "0")) : "0"
+            ));
+        }
+
+        List<String> footer = List.of("Total Land Value", "", "", "", "", "", inputs != null ? inputs.getOrDefault("TOTAL_LAND_VALUE", "0") : "0");
+        return createDocxTable(headers, rows, footer);
+    }
+
+    private Tbl buildDynamicBuildingTable(Map<String, String> inputs) {
+        List<String> headers = List.of("Structure", "Type", "Area", "Rate", "Cost (INR)", "Age", "Life", "Depr %", "Depr (INR)", "Value (INR)");
+        List<List<String>> rows = new ArrayList<>();
+
+        String bldgJson = inputs != null ? inputs.get("RAW_BUILDING_ITEMS_JSON") : null;
+        if (bldgJson != null && !bldgJson.trim().isEmpty()) {
+            try {
+                com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(bldgJson);
+                if (root.isArray()) {
+                    for (com.fasterxml.jackson.databind.JsonNode n : root) {
+                        rows.add(List.of(
+                                n.path("structureType").asText("Structure"),
+                                n.path("buildingType").asText("RCC"),
+                                n.path("enteredArea").asText("0") + " " + n.path("enteredUnit").asText("Sq.Ft"),
+                                n.path("replacementRate").asText("0"),
+                                n.path("replacementCost").asText("0"),
+                                n.path("buildingAge").asText("0") + " Yrs",
+                                n.path("buildingUsefulLife").asText("60") + " Yrs",
+                                n.path("depreciationPercentage").asText("0") + "%",
+                                n.path("depreciationAmount").asText("0"),
+                                n.path("buildingValue").asText("0")
+                        ));
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        if (rows.isEmpty()) {
+            rows.add(List.of(
+                    "Main Structure",
+                    inputs != null ? inputs.getOrDefault("BUILDING_TYPE", "RCC Residential") : "RCC Residential",
+                    inputs != null ? inputs.getOrDefault("BUILDING_AREA", "0") : "0",
+                    inputs != null ? inputs.getOrDefault("REPLACEMENT_RATE", "0") : "0",
+                    inputs != null ? inputs.getOrDefault("TOTAL_REPLACEMENT_COST", inputs.getOrDefault("REPLACEMENT_COST", "0")) : "0",
+                    inputs != null ? inputs.getOrDefault("BUILDING_AGE", "0") : "0",
+                    inputs != null ? inputs.getOrDefault("BUILDING_USEFUL_LIFE", "60") : "60",
+                    inputs != null ? inputs.getOrDefault("DEPRECIATION_PERCENT", "0%") : "0%",
+                    inputs != null ? inputs.getOrDefault("TOTAL_DEPRECIATION_AMOUNT", inputs.getOrDefault("DEPRECIATION_AMOUNT", "0")) : "0",
+                    inputs != null ? inputs.getOrDefault("TOTAL_BUILDING_VALUE", inputs.getOrDefault("BUILDING_VALUE", "0")) : "0"
+            ));
+        }
+
+        List<String> footer = List.of("Total Building Value", "", "", "", "", "", "", "", "", inputs != null ? inputs.getOrDefault("TOTAL_BUILDING_VALUE", "0") : "0");
+        return createDocxTable(headers, rows, footer);
+    }
+
+    private Tbl buildDynamicValuationSummaryTable(Map<String, String> inputs) {
+        List<String> headers = List.of("Valuation Parameter", "Assessed Value / Percentage");
+        List<List<String>> rows = new ArrayList<>();
+        if (inputs != null) {
+            rows.add(List.of("Total Land Value", "INR " + inputs.getOrDefault("TOTAL_LAND_VALUE", "0")));
+            rows.add(List.of("Total Replacement Cost", "INR " + inputs.getOrDefault("TOTAL_REPLACEMENT_COST", "0")));
+            rows.add(List.of("Total Depreciation Amount", "INR " + inputs.getOrDefault("TOTAL_DEPRECIATION_AMOUNT", "0")));
+            rows.add(List.of("Total Salvage Value Floor", "INR " + inputs.getOrDefault("TOTAL_SALVAGE_VALUE", "0")));
+            rows.add(List.of("Total Building Value", "INR " + inputs.getOrDefault("TOTAL_BUILDING_VALUE", "0")));
+            rows.add(List.of("Fair Market Value", "INR " + inputs.getOrDefault("FAIR_VALUE", "0")));
+            rows.add(List.of("Realizable Percentage", inputs.getOrDefault("REALIZABLE_PERCENTAGE", "85%")));
+            rows.add(List.of("Realizable Sale Value", "INR " + inputs.getOrDefault("REALIZABLE_VALUE", "0")));
+            rows.add(List.of("Distress Sale Percentage", inputs.getOrDefault("DISTRESS_SALE_PERCENTAGE", "75%")));
+            rows.add(List.of("Distress Sale Value", "INR " + inputs.getOrDefault("DISTRESS_SALE_VALUE", "0")));
+        }
+        return createDocxTable(headers, rows, null);
+    }
+
+    private Tbl buildDynamicComparablesTable(Map<String, String> inputs) {
+        List<String> headers = List.of("Location", "Survey No", "Area", "Rate (INR)", "Sale Value (INR)", "Date", "Source");
+        List<List<String>> rows = new ArrayList<>();
+
+        String compJson = inputs != null ? inputs.get("RAW_COMPARABLES_JSON") : null;
+        if (compJson != null && !compJson.trim().isEmpty()) {
+            try {
+                com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(compJson);
+                if (root.isArray()) {
+                    for (com.fasterxml.jackson.databind.JsonNode n : root) {
+                        rows.add(List.of(
+                                n.path("location").asText("-"),
+                                n.path("surveyNo").asText("-"),
+                                n.path("enteredArea").asText("0") + " " + n.path("enteredUnit").asText("Sq.Ft"),
+                                n.path("rate").asText("0"),
+                                n.path("saleValue").asText("0"),
+                                n.path("transactionDate").asText("-"),
+                                n.path("source").asText("-")
+                        ));
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        if (rows.isEmpty()) {
+            rows.add(List.of("Market Vicinity", "Primary Cluster", "Standard Unit", "Prevailing Rate", "Comparable Value", "Recent", "Registrar Office"));
+        }
+
+        return createDocxTable(headers, rows, null);
+    }
+
+    private Tbl createDocxTable(List<String> headers, List<List<String>> dataRows, List<String> footerRow) {
+        ObjectFactory factory = new ObjectFactory();
+        Tbl tbl = factory.createTbl();
+
+        // 1. Table Properties (Center, Full Width, Fixed Layout, Borders)
+        TblPr tblPr = factory.createTblPr();
+        CTTblLayoutType layout = factory.createCTTblLayoutType();
+        layout.setType(STTblLayoutType.FIXED);
+        tblPr.setTblLayout(layout);
+
+        TblBorders borders = factory.createTblBorders();
+        CTBorder border = factory.createCTBorder();
+        border.setVal(STBorder.SINGLE);
+        border.setSz(BigInteger.valueOf(4));
+        border.setColor("CCCCCC");
+        borders.setTop(border);
+        borders.setBottom(border);
+        borders.setLeft(border);
+        borders.setRight(border);
+        borders.setInsideH(border);
+        borders.setInsideV(border);
+        tblPr.setTblBorders(borders);
+        tbl.setTblPr(tblPr);
+
+        // 2. Header Row
+        if (headers != null && !headers.isEmpty()) {
+            Tr headerTr = factory.createTr();
+            for (String h : headers) {
+                Tc tc = factory.createTc();
+                P p = factory.createP();
+                R r = factory.createR();
+                RPr rpr = factory.createRPr();
+                BooleanDefaultTrue b = factory.createBooleanDefaultTrue();
+                rpr.setB(b);
+                Color color = factory.createColor();
+                color.setVal("000000");
+                rpr.setColor(color);
+                r.setRPr(rpr);
+
+                Text text = factory.createText();
+                text.setValue(h);
+                r.getContent().add(text);
+                p.getContent().add(r);
+                tc.getContent().add(p);
+
+                // Header cell background
+                TcPr tcPr = factory.createTcPr();
+                CTShd shd = factory.createCTShd();
+                shd.setVal(STShd.CLEAR);
+                shd.setColor("auto");
+                shd.setFill("EAEAEA");
+                tcPr.setShd(shd);
+                tc.setTcPr(tcPr);
+
+                headerTr.getContent().add(tc);
+            }
+            tbl.getContent().add(headerTr);
+        }
+
+        // 3. Data Rows
+        if (dataRows != null) {
+            for (List<String> rowData : dataRows) {
+                Tr tr = factory.createTr();
+                for (String val : rowData) {
+                    Tc tc = factory.createTc();
+                    P p = factory.createP();
+                    R r = factory.createR();
+                    Text text = factory.createText();
+                    text.setValue(val != null ? val : "");
+                    r.getContent().add(text);
+                    p.getContent().add(r);
+                    tc.getContent().add(p);
+                    tr.getContent().add(tc);
+                }
+                tbl.getContent().add(tr);
+            }
+        }
+
+        // 4. Footer Row (Bold)
+        if (footerRow != null && !footerRow.isEmpty()) {
+            Tr footerTr = factory.createTr();
+            for (String val : footerRow) {
+                Tc tc = factory.createTc();
+                P p = factory.createP();
+                R r = factory.createR();
+                RPr rpr = factory.createRPr();
+                rpr.setB(factory.createBooleanDefaultTrue());
+                r.setRPr(rpr);
+                Text text = factory.createText();
+                text.setValue(val != null ? val : "");
+                r.getContent().add(text);
+                p.getContent().add(r);
+                tc.getContent().add(p);
+
+                TcPr tcPr = factory.createTcPr();
+                CTShd shd = factory.createCTShd();
+                shd.setVal(STShd.CLEAR);
+                shd.setColor("auto");
+                shd.setFill("F5F5F5");
+                tcPr.setShd(shd);
+                tc.setTcPr(tcPr);
+
+                footerTr.getContent().add(tc);
+            }
+            tbl.getContent().add(footerTr);
+        }
+
+        return tbl;
     }
 
     private String extractImageKey(org.docx4j.dml.CTNonVisualDrawingProps docPr) {

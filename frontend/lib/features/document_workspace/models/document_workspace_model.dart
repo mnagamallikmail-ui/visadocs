@@ -3,6 +3,7 @@ import '../../document_studio/models/visual_preview_model.dart';
 
 enum WorkspaceViewMode {
   tableEdit,
+  valuationEngine,
   compiledPreview,
 }
 

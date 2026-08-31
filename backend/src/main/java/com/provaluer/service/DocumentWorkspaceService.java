@@ -70,6 +70,9 @@ public class DocumentWorkspaceService {
     @Autowired
     private TemplateQuestionRepository templateQuestionRepository;
 
+    @Autowired
+    private ValuationEngineService valuationEngineService;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<Long, CachedOrderPreview> orderPreviewCache = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -740,6 +743,36 @@ public class DocumentWorkspaceService {
                 map.put(input.getFieldKey(), input.getFieldValue());
             }
         }
+
+        // Merge Valuation Engine Placeholders as Single Source of Truth
+        try {
+            com.provaluer.dto.ValuationBundleResponse valBundle = valuationEngineService.getValuationBundle(orderId);
+            if (valBundle != null && valBundle.getPlaceholders() != null) {
+                for (Map.Entry<String, String> entry : valBundle.getPlaceholders().entrySet()) {
+                    String k = entry.getKey();
+                    String v = entry.getValue();
+                    if (v != null && !v.trim().isEmpty()) {
+                        map.put(k, v);
+                    } else if (!map.containsKey(k)) {
+                        map.put(k, "");
+                    }
+                }
+
+                // Serialized RAW items for Dynamic DOCX repeating tables
+                if (valBundle.getLandItems() != null) {
+                    map.put("RAW_LAND_ITEMS_JSON", objectMapper.writeValueAsString(valBundle.getLandItems()));
+                }
+                if (valBundle.getBuildingItems() != null) {
+                    map.put("RAW_BUILDING_ITEMS_JSON", objectMapper.writeValueAsString(valBundle.getBuildingItems()));
+                }
+                if (valBundle.getComparableSales() != null) {
+                    map.put("RAW_COMPARABLES_JSON", objectMapper.writeValueAsString(valBundle.getComparableSales()));
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Could not merge valuation bundle into consolidated values for order #{}: {}", orderId, e.getMessage());
+        }
+
         return map;
     }
 

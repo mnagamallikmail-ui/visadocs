@@ -14,12 +14,13 @@ class ApiService {
     return 'https://visadocs.online';
   }
 
+  // 0.3 Dio Timeouts: Connect = 30s, Receive = 120s, Send = 30s
   final Dio dio = Dio(
     BaseOptions(
       baseUrl: _determineBaseUrl(),
-      connectTimeout: const Duration(minutes: 5),
-      receiveTimeout: const Duration(minutes: 5),
-      sendTimeout: const Duration(minutes: 5),
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 120),
+      sendTimeout: const Duration(seconds: 30),
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -62,5 +63,30 @@ class ApiService {
         },
       ),
     );
+  }
+
+  /// User-friendly error message resolution for API exceptions
+  static String getErrorMessage(dynamic error) {
+    if (error is DioException) {
+      switch (error.type) {
+        case DioExceptionType.connectionTimeout:
+        case DioExceptionType.sendTimeout:
+          return 'Connection timed out. Please check your internet or server status.';
+        case DioExceptionType.receiveTimeout:
+          return 'The server took too long to respond. The document may still be processing in the background.';
+        case DioExceptionType.badResponse:
+          final data = error.response?.data;
+          if (data is String && data.isNotEmpty) return data;
+          if (data is Map && data.containsKey('message')) return data['message'].toString();
+          return 'Server returned error (${error.response?.statusCode ?? 'unknown'}).';
+        case DioExceptionType.connectionError:
+          return 'Unable to reach the server. Please verify your connection.';
+        case DioExceptionType.cancel:
+          return 'Request was cancelled.';
+        default:
+          return 'Network error: ${error.message ?? 'An unexpected network error occurred.'}';
+      }
+    }
+    return error?.toString() ?? 'An unexpected error occurred.';
   }
 }

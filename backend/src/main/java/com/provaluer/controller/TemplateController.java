@@ -4,21 +4,28 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.provaluer.dto.TemplateDetailDTO;
+import com.provaluer.dto.TemplateListDTO;
+import com.provaluer.dto.TemplateVersionDTO;
 import com.provaluer.model.Template;
 import com.provaluer.repository.TemplateRepository;
+import com.provaluer.repository.TemplateVersionRepository;
+import com.provaluer.security.UserDetailsImpl;
+import com.provaluer.service.TemplateProcessingService;
 import com.provaluer.util.DocxTemplateEngine;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayOutputStream;
 import java.util.*;
-import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/v1/templates")
@@ -26,6 +33,12 @@ public class TemplateController {
 
     @Autowired
     private TemplateRepository templateRepository;
+
+    @Autowired
+    private TemplateVersionRepository templateVersionRepository;
+
+    @Autowired
+    private TemplateProcessingService templateProcessingService;
 
     @Autowired
     private DocxTemplateEngine templateEngine;
@@ -38,56 +51,74 @@ public class TemplateController {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
+    private Long currentUserId() {
+        try {
+            Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            if (principal instanceof UserDetailsImpl) {
+                return ((UserDetailsImpl) principal).getId();
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
     /**
      * GET /api/v1/templates
-     * Retrieves all templates (active or inactive) for Admin management screen.
+     * Retrieves all templates (active or inactive) as lightweight DTOs for Admin management screen.
      */
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
-    public ResponseEntity<List<Template>> getAllTemplates() {
-        return ResponseEntity.ok(templateRepository.findAll());
+    public ResponseEntity<List<TemplateListDTO>> getAllTemplates() {
+        List<TemplateListDTO> dtos = templateRepository.findAll().stream()
+                .map(TemplateListDTO::new)
+                .toList();
+        return ResponseEntity.ok(dtos);
     }
 
     /**
      * POST /api/v1/templates/upload
-     * Ingests a new .docx template, normalizes runs, parses document DOM & placeholder registry, and saves template.
+     * Validates DOCX integrity, saves template in PENDING state immediately, and triggers async processing.
      */
     @PostMapping("/upload")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<?> uploadTemplate(@RequestParam("file") MultipartFile file, @RequestParam("name") String name) {
         try {
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest().body("File cannot be empty.");
+            }
+
             byte[] rawBytes = file.getBytes();
 
-            byte[] normalizedBytes = templateEngine.normalizeTemplate(rawBytes);
-            
-            // Generate canonical Document DOM and Placeholder Registry
-            JsonNode domNode = docxStructureParser.parseDocumentStructure(normalizedBytes);
-            String documentDomJson = domNode.toString();
-            String placeholderRegistryJson = docxStructureParser.generatePlaceholderRegistry(domNode);
+            // 0.13: Validate DOCX package structure before saving
+            templateProcessingService.validateDocxPackage(rawBytes, file.getOriginalFilename());
 
-            // Backward compatibility legacy mapping
-            String fieldMappingJson = templateEngine.parseTemplate(normalizedBytes);
-
+            // 0.6: Save immediately with status = PENDING
             Template template = new Template();
-            template.setName(name);
-            template.setTemplateContent(normalizedBytes);
-            template.setDocumentDom(documentDomJson);
-            template.setPlaceholderRegistry(placeholderRegistryJson);
-            template.setFieldMapping(fieldMappingJson);
+            template.setName((name != null && !name.trim().isEmpty()) ? name.trim() : file.getOriginalFilename());
+            template.setTemplateContent(rawBytes);
+            template.setFieldMapping("{}");
             template.setIsActive("N");
-            template.setStatus("PARSED");
+            template.setStatus("PENDING");
+            template.setProcessingError(null);
 
             Template saved = templateRepository.save(template);
-            return ResponseEntity.ok(saved);
+
+            // Trigger non-blocking async background processing
+            templateProcessingService.processTemplateAsync(saved.getId(), rawBytes, currentUserId());
+
+            // Return 202 Accepted immediately
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body(new TemplateDetailDTO(saved));
+
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body("Validation failed: " + e.getMessage());
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Upload failed: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Upload failed: " + e.getMessage());
         }
     }
 
     /**
      * POST /api/v1/templates/generate-mock
      * Programmatically constructs a valid Word Document (.docx) package with headings,
-     * tables, and drawing shapes matching keys, and runs it through the async parser.
+     * tables, and drawing shapes matching keys, and runs it through async parser.
      */
     @PostMapping("/generate-mock")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
@@ -138,8 +169,8 @@ public class TemplateController {
             
             org.docx4j.dml.wordprocessingDrawing.Inline inline = new org.docx4j.dml.wordprocessingDrawing.Inline();
             org.docx4j.dml.CTPositiveSize2D extent = new org.docx4j.dml.CTPositiveSize2D();
-            extent.setCx(2743200L); // 3 inches (3 * 914,400)
-            extent.setCy(1828800L); // 2 inches (2 * 914,400)
+            extent.setCx(2743200L); // 3 inches
+            extent.setCy(1828800L); // 2 inches
             inline.setExtent(extent);
 
             org.docx4j.dml.CTNonVisualDrawingProps docPr = new org.docx4j.dml.CTNonVisualDrawingProps();
@@ -151,7 +182,6 @@ public class TemplateController {
             org.docx4j.dml.Graphic graphic = new org.docx4j.dml.Graphic();
             inline.setGraphic(graphic);
 
-            // Wrap the Inline drawing in a Drawing object before adding to Run
             Drawing drawing = factory.createDrawing();
             drawing.getAnchorOrInline().add(inline);
 
@@ -172,29 +202,10 @@ public class TemplateController {
 
             Template saved = templateRepository.save(template);
 
-            // Async parsing execution
-            CompletableFuture.runAsync(() -> {
-                try {
-                    Thread.sleep(2000);
-                    byte[] normalizedBytes = templateEngine.normalizeTemplate(docxBytes);
-                    JsonNode domNode = docxStructureParser.parseDocumentStructure(normalizedBytes);
-                    String documentDomJson = domNode.toString();
-                    String placeholderRegistryJson = docxStructureParser.generatePlaceholderRegistry(domNode);
-                    String fieldMappingJson = templateEngine.parseTemplate(normalizedBytes);
+            // Run async processing pipeline
+            templateProcessingService.processTemplateAsync(saved.getId(), docxBytes, currentUserId());
 
-                    saved.setTemplateContent(normalizedBytes);
-                    saved.setDocumentDom(documentDomJson);
-                    saved.setPlaceholderRegistry(placeholderRegistryJson);
-                    saved.setFieldMapping(fieldMappingJson);
-                    saved.setStatus("PARSED");
-                    templateRepository.save(saved);
-                } catch (Exception e) {
-                    saved.setStatus("FAILED");
-                    templateRepository.save(saved);
-                }
-            });
-
-            return ResponseEntity.ok(saved);
+            return ResponseEntity.status(HttpStatus.ACCEPTED).body(new TemplateDetailDTO(saved));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Failed to generate mock template: " + e.getMessage());
         }
@@ -205,8 +216,11 @@ public class TemplateController {
      * Retrieves all templates confirmed and active for Client/PA usage.
      */
     @GetMapping("/active")
-    public ResponseEntity<List<Template>> getActiveTemplates() {
-        return ResponseEntity.ok(templateRepository.findAllByIsActive("Y"));
+    public ResponseEntity<List<TemplateListDTO>> getActiveTemplates() {
+        List<TemplateListDTO> dtos = templateRepository.findAllByIsActive("Y").stream()
+                .map(TemplateListDTO::new)
+                .toList();
+        return ResponseEntity.ok(dtos);
     }
 
     /**
@@ -215,7 +229,7 @@ public class TemplateController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getTemplateById(@PathVariable Long id) {
         return templateRepository.findById(id)
-                .map(ResponseEntity::ok)
+                .map(t -> ResponseEntity.ok(new TemplateDetailDTO(t)))
                 .orElse(ResponseEntity.notFound().build());
     }
 
@@ -235,10 +249,14 @@ public class TemplateController {
                 template.setFieldMapping(fieldMappingUpdates);
                 template.setIsActive("Y");
                 template.setStatus("CONFIRMED");
-                templateRepository.save(template);
-                return ResponseEntity.ok(template);
+                Template saved = templateRepository.save(template);
+
+                // Create version snapshot on confirmation
+                templateProcessingService.saveVersionSnapshot(saved, "Template confirmed and activated", currentUserId());
+
+                return ResponseEntity.ok(new TemplateDetailDTO(saved));
             } catch (Exception e) {
-                return ResponseEntity.badRequest().body("Invalid mapping configuration JSON.");
+                return ResponseEntity.badRequest().body("Invalid mapping configuration JSON: " + e.getMessage());
             }
         }
         return ResponseEntity.notFound().build();
@@ -260,6 +278,36 @@ public class TemplateController {
     }
 
     /**
+     * GET /api/v1/templates/{id}/versions
+     * Retrieves version history for a given template.
+     */
+    @GetMapping("/{id}/versions")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<List<TemplateVersionDTO>> getTemplateVersions(@PathVariable Long id) {
+        List<TemplateVersionDTO> list = templateVersionRepository.findAllByTemplateIdOrderByVersionDesc(id).stream()
+                .map(TemplateVersionDTO::new)
+                .toList();
+        return ResponseEntity.ok(list);
+    }
+
+    /**
+     * POST /api/v1/templates/{id}/rollback/{version}
+     * Restores template to a previously saved version state.
+     */
+    @PostMapping("/{id}/rollback/{version}")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> rollbackTemplateVersion(@PathVariable Long id, @PathVariable int version) {
+        try {
+            Template restored = templateProcessingService.rollbackTemplateVersion(id, version, currentUserId());
+            return ResponseEntity.ok(new TemplateDetailDTO(restored));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Rollback failed: " + e.getMessage());
+        }
+    }
+
+    /**
      * PATCH /api/v1/templates/{id}/archive
      * Stateless Deep-Copy Inheritance: archives the old template version and inherits configurations for matching keys.
      */
@@ -275,6 +323,8 @@ public class TemplateController {
 
         try {
             byte[] rawBytes = file.getBytes();
+            templateProcessingService.validateDocxPackage(rawBytes, file.getOriginalFilename());
+
             byte[] normalizedBytes = templateEngine.normalizeTemplate(rawBytes);
             String newFieldMappingJson = templateEngine.parseTemplate(normalizedBytes);
 
@@ -324,7 +374,9 @@ public class TemplateController {
             newTemplate.setStatus("CONFIRMED");
 
             Template saved = templateRepository.save(newTemplate);
-            return ResponseEntity.ok(saved);
+            templateProcessingService.saveVersionSnapshot(saved, "Inherited from v" + oldTemplate.getVersion(), currentUserId());
+
+            return ResponseEntity.ok(new TemplateDetailDTO(saved));
 
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Inheritance copy failed: " + e.getMessage());

@@ -1,5 +1,6 @@
 package com.provaluer.controller;
 
+import com.provaluer.dto.DiagnosticsResponse;
 import com.provaluer.model.*;
 import com.provaluer.repository.*;
 import com.provaluer.security.UserDetailsImpl;
@@ -7,6 +8,7 @@ import com.provaluer.service.AuditLogService;
 import com.provaluer.service.DocumentWorkspaceService;
 import com.provaluer.service.PricingService;
 import com.provaluer.service.SlaService;
+import com.provaluer.service.TemplateProcessingService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -15,6 +17,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import java.lang.management.ManagementFactory;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -41,6 +44,7 @@ public class SuperAdminController {
     @Autowired private SlaService slaService;
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private DocumentWorkspaceService documentWorkspaceService;
+    @Autowired private TemplateProcessingService templateProcessingService;
 
     // ─────────────────────────────────────────────
     // HELPERS
@@ -522,9 +526,162 @@ public class SuperAdminController {
         return ResponseEntity.ok(stats);
     }
 
+    /**
+     * GET /api/v1/admin/diagnostics
+     * 0.14: Real-time VPS health monitoring & resource diagnostics
+     */
+    @GetMapping("/diagnostics")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<DiagnosticsResponse> getDiagnostics() {
+        DiagnosticsResponse diag = new DiagnosticsResponse();
+        Runtime rt = Runtime.getRuntime();
+
+        long totalMem = rt.totalMemory() / (1024 * 1024);
+        long freeMem = rt.freeMemory() / (1024 * 1024);
+        long maxMem = rt.maxMemory() / (1024 * 1024);
+
+        diag.setTotalMemoryMb(totalMem);
+        diag.setFreeMemoryMb(freeMem);
+        diag.setMaxMemoryMb(maxMem);
+
+        // CPU load calculation
+        double cpuPercent = 0.0;
+        try {
+            java.lang.management.OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
+            if (osBean instanceof com.sun.management.OperatingSystemMXBean sunOsBean) {
+                double load = sunOsBean.getCpuLoad();
+                if (load >= 0) {
+                    cpuPercent = Math.round(load * 1000.0) / 10.0;
+                }
+            }
+        } catch (Throwable ignored) {}
+        diag.setCpuUsagePercent(cpuPercent);
+
+        // Disk space
+        try {
+            java.io.File root = new java.io.File(".");
+            diag.setTotalDiskGb(root.getTotalSpace() / (1024 * 1024 * 1024));
+            diag.setFreeDiskGb(root.getFreeSpace() / (1024 * 1024 * 1024));
+        } catch (Exception e) {
+            diag.setTotalDiskGb(0);
+            diag.setFreeDiskGb(0);
+        }
+
+        // DB Connectivity
+        boolean dbOk = false;
+        try {
+            userRepository.count();
+            dbOk = true;
+        } catch (Exception e) {
+            dbOk = false;
+        }
+        diag.setDatabaseConnected(dbOk);
+
+        // Template Processing Queue
+        diag.setActiveTemplateProcessingJobs(templateProcessingService.getActiveJobCount());
+        diag.setStatus(dbOk ? "HEALTHY" : "DEGRADED");
+
+        Map<String, Object> extra = new HashMap<>();
+        extra.put("availableProcessors", rt.availableProcessors());
+        extra.put("serverTime", LocalDateTime.now().toString());
+        extra.put("activeOrders", orderRepository.count());
+        extra.put("activeTemplates", templateRepository.findAllByIsActive("Y").size());
+        diag.setExtraInfo(extra);
+
+        return ResponseEntity.ok(diag);
+    }
+
     // ─────────────────────────────────────────────
-    // REQUEST DTOs
+    // 1. VALUATION SETTINGS MASTER & REPORT LIFECYCLE
     // ─────────────────────────────────────────────
+
+    @GetMapping("/valuation-settings")
+    public ResponseEntity<com.provaluer.dto.ValuationSettingsDTO> getValuationSettings() {
+        BigDecimal realizable = systemSettingRepository.findById("val_realizable_percentage")
+                .map(s -> new BigDecimal(s.getSettingValue())).orElse(new BigDecimal("85.00"));
+        BigDecimal distress = systemSettingRepository.findById("val_distress_percentage")
+                .map(s -> new BigDecimal(s.getSettingValue())).orElse(new BigDecimal("75.00"));
+        BigDecimal salvage = systemSettingRepository.findById("val_salvage_percentage")
+                .map(s -> new BigDecimal(s.getSettingValue())).orElse(new BigDecimal("10.00"));
+        Integer rccLife = systemSettingRepository.findById("val_rcc_useful_life")
+                .map(s -> Integer.parseInt(s.getSettingValue())).orElse(60);
+        Integer shedLife = systemSettingRepository.findById("val_shed_useful_life")
+                .map(s -> Integer.parseInt(s.getSettingValue())).orElse(40);
+
+        return ResponseEntity.ok(new com.provaluer.dto.ValuationSettingsDTO(realizable, distress, salvage, rccLife, shedLife));
+    }
+
+    @PutMapping("/valuation-settings")
+    @Transactional
+    public ResponseEntity<com.provaluer.dto.ValuationSettingsDTO> updateValuationSettings(@RequestBody com.provaluer.dto.ValuationSettingsDTO dto) {
+        if (dto.getRealizablePercentage() != null) {
+            systemSettingRepository.save(new SystemSetting("val_realizable_percentage", dto.getRealizablePercentage().toString()));
+        }
+        if (dto.getDistressSalePercentage() != null) {
+            systemSettingRepository.save(new SystemSetting("val_distress_percentage", dto.getDistressSalePercentage().toString()));
+        }
+        if (dto.getSalvagePercentage() != null) {
+            systemSettingRepository.save(new SystemSetting("val_salvage_percentage", dto.getSalvagePercentage().toString()));
+        }
+        if (dto.getRccUsefulLife() != null) {
+            systemSettingRepository.save(new SystemSetting("val_rcc_useful_life", dto.getRccUsefulLife().toString()));
+        }
+        if (dto.getShedUsefulLife() != null) {
+            systemSettingRepository.save(new SystemSetting("val_shed_useful_life", dto.getShedUsefulLife().toString()));
+        }
+        auditLogService.log(actorId(), actorEmail(), "SUPER_ADMIN", "VALUATION_SETTINGS_UPDATE", "SYSTEM",
+                null, null, null, "Updated default valuation parameters");
+        return getValuationSettings();
+    }
+
+    // ─────────────────────────────────────────────
+    // 17. REPORT DELETE & RESTORE (SUPER_ADMIN)
+    // ─────────────────────────────────────────────
+
+    @DeleteMapping("/orders/{id}")
+    @Transactional
+    public ResponseEntity<?> softDeleteOrder(@PathVariable Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found with id: " + id));
+        order.setDeleted(true);
+        order.setDeletedAt(LocalDateTime.now());
+        order.setDeletedBy(actorId());
+        orderRepository.save(order);
+        auditLogService.log(actorId(), actorEmail(), "SUPER_ADMIN", "ORDER_SOFT_DELETED", "ORDER",
+                String.valueOf(id), null, null, "Soft deleted order #" + id + " (" + order.getReportNumber() + ")");
+        return ResponseEntity.ok(Map.of("status", "SUCCESS", "message", "Report moved to trash"));
+    }
+
+    @PostMapping("/orders/{id}/restore")
+    @Transactional
+    public ResponseEntity<?> restoreOrder(@PathVariable Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found with id: " + id));
+        order.setDeleted(false);
+        order.setDeletedAt(null);
+        order.setDeletedBy(null);
+        orderRepository.save(order);
+        auditLogService.log(actorId(), actorEmail(), "SUPER_ADMIN", "ORDER_RESTORED", "ORDER",
+                String.valueOf(id), null, null, "Restored order #" + id + " from trash");
+        return ResponseEntity.ok(Map.of("status", "SUCCESS", "message", "Report restored to active state"));
+    }
+
+    @GetMapping("/orders/deleted")
+    public ResponseEntity<List<Order>> getDeletedOrders() {
+        return ResponseEntity.ok(orderRepository.findAllDeletedOrders());
+    }
+
+    @DeleteMapping("/orders/{id}/purge")
+    @Transactional
+    public ResponseEntity<?> purgeOrder(@PathVariable Long id) {
+        Order order = orderRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Order not found with id: " + id));
+        String reportNum = order.getReportNumber();
+        orderRepository.delete(order);
+        auditLogService.log(actorId(), actorEmail(), "SUPER_ADMIN", "ORDER_PURGED", "ORDER",
+                String.valueOf(id), null, null, "Permanently purged order #" + id + " (" + reportNum + ")");
+        return ResponseEntity.ok(Map.of("status", "SUCCESS", "message", "Report permanently deleted"));
+    }
 
     public static class CreateUserRequest {
         private String email, fullName, mobileNumber, password, role;

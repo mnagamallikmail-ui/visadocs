@@ -51,6 +51,7 @@ services:
       backup-postgres:
         condition: service_healthy
     environment:
+      JAVA_TOOL_OPTIONS: "-Xms256m -Xmx1024m -XX:+UseG1GC"
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/provaluer
       SPRING_DATASOURCE_USERNAME: provaluer

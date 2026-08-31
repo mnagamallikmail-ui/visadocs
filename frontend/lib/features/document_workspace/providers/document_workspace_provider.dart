@@ -241,6 +241,16 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     return _activeValues[key.toUpperCase()] ?? '';
   }
 
+  void updateValuesFromValuation(Map<String, String> newPlaceholders) {
+    _activeValues.addAll(newPlaceholders);
+    _deltaValues.addAll(newPlaceholders);
+    _isDirty = true;
+    if (_workspaceModel?.documentDom != null) {
+      _workspaceVm = DocumentWorkspaceVm.fromDocumentDom(_workspaceModel!.documentDom!, _activeValues);
+    }
+    notifyListeners();
+  }
+
   /// Saves changed delta values to backend
   Future<bool> saveChanges({bool isAutoSave = false}) async {
     if (_workspaceModel == null || _deltaValues.isEmpty) {

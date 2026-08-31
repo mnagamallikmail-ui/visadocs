@@ -5,11 +5,17 @@ import jakarta.persistence.*;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "templates")
-public class Template {
+@Table(name = "template_versions")
+public class TemplateVersion {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(name = "template_id", nullable = false)
+    private Long templateId;
+
+    @Column(nullable = false)
+    private int version;
 
     @Column(nullable = false)
     private String name;
@@ -21,12 +27,6 @@ public class Template {
     @Column(name = "field_mapping", nullable = false, columnDefinition = "TEXT")
     private String fieldMapping;
 
-    @Column(name = "is_active", nullable = false, length = 1)
-    private String isActive = "Y";
-
-    @Column(name = "status", nullable = false)
-    private String status = "PENDING";
-
     @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     @Column(name = "document_dom", columnDefinition = "JSONB")
     private String documentDom;
@@ -35,33 +35,38 @@ public class Template {
     @Column(name = "placeholder_registry", columnDefinition = "JSONB")
     private String placeholderRegistry;
 
-    @Column(name = "version", nullable = false)
-    private int version = 1;
+    @Column(name = "change_summary", length = 500)
+    private String changeSummary;
 
-    @Column(name = "processing_error", columnDefinition = "TEXT")
-    private String processingError;
-
-    @Column(name = "created_at", nullable = false, updatable = false)
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
-    @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt = LocalDateTime.now();
+    @Column(name = "created_by")
+    private Long createdBy;
 
-    @PrePersist
-    protected void onCreate() {
-        if (createdAt == null) createdAt = LocalDateTime.now();
-        if (updatedAt == null) updatedAt = LocalDateTime.now();
+    public TemplateVersion() {}
+
+    public TemplateVersion(Template template, String changeSummary, Long createdBy) {
+        this.templateId = template.getId();
+        this.version = template.getVersion();
+        this.name = template.getName();
+        this.templateContent = template.getTemplateContent();
+        this.fieldMapping = template.getFieldMapping();
+        this.documentDom = template.getDocumentDom();
+        this.placeholderRegistry = template.getPlaceholderRegistry();
+        this.changeSummary = changeSummary;
+        this.createdAt = LocalDateTime.now();
+        this.createdBy = createdBy;
     }
-
-    @PreUpdate
-    protected void onUpdate() {
-        updatedAt = LocalDateTime.now();
-    }
-
-    public Template() {}
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+
+    public Long getTemplateId() { return templateId; }
+    public void setTemplateId(Long templateId) { this.templateId = templateId; }
+
+    public int getVersion() { return version; }
+    public void setVersion(int version) { this.version = version; }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
@@ -72,27 +77,18 @@ public class Template {
     public String getFieldMapping() { return fieldMapping; }
     public void setFieldMapping(String fieldMapping) { this.fieldMapping = fieldMapping; }
 
-    public String getIsActive() { return isActive; }
-    public void setIsActive(String isActive) { this.isActive = isActive; }
-
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
-
     public String getDocumentDom() { return documentDom; }
     public void setDocumentDom(String documentDom) { this.documentDom = documentDom; }
 
     public String getPlaceholderRegistry() { return placeholderRegistry; }
     public void setPlaceholderRegistry(String placeholderRegistry) { this.placeholderRegistry = placeholderRegistry; }
 
-    public int getVersion() { return version; }
-    public void setVersion(int version) { this.version = version; }
-
-    public String getProcessingError() { return processingError; }
-    public void setProcessingError(String processingError) { this.processingError = processingError; }
+    public String getChangeSummary() { return changeSummary; }
+    public void setChangeSummary(String changeSummary) { this.changeSummary = changeSummary; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
 
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public Long getCreatedBy() { return createdBy; }
+    public void setCreatedBy(Long createdBy) { this.createdBy = createdBy; }
 }

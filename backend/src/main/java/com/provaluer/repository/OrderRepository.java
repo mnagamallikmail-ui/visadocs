@@ -11,10 +11,13 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findAllByStatus(String status);
     List<Order> findAllByPaIdAndStatus(Long paId, String status);
 
-    @Query("SELECT o FROM Order o ORDER BY o.createdAt DESC")
+    @Query("SELECT o FROM Order o WHERE o.isDeleted = false ORDER BY o.createdAt DESC")
     List<Order> findAllOrderedByCreatedAt();
 
-    @Query("SELECT o FROM Order o WHERE o.status NOT IN ('FINAL_DELIVERY', 'DRAFT') ORDER BY o.slaExpiryTime ASC")
+    @Query("SELECT o FROM Order o WHERE o.isDeleted = true ORDER BY o.deletedAt DESC")
+    List<Order> findAllDeletedOrders();
+
+    @Query("SELECT o FROM Order o WHERE o.isDeleted = false AND o.status NOT IN ('FINAL_DELIVERY', 'DRAFT') ORDER BY o.slaExpiryTime ASC")
     List<Order> findAllActiveSlaOrders();
 
     long countByReportNumberStartingWith(String prefix);

@@ -256,6 +256,9 @@ public class DocxStructureParser {
         }
 
         String textStr = fullText.toString();
+        if (textStr.contains("{{") && textStr.contains("}}")) {
+            textStr = textStr.replaceAll("\\{\\{([A-Za-z0-9_]+)\\}\\}", "<<$1>>");
+        }
         if (textStr.contains("<<") && textStr.contains(">>")) {
             p.getContent().clear();
 
