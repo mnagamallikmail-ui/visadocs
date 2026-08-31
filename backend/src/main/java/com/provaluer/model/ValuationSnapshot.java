@@ -27,7 +27,8 @@ public class ValuationSnapshot {
     @Column(name = "document_hash", length = 64)
     private String documentHash;
 
-    @Column(name = "snapshot_data", columnDefinition = "TEXT", nullable = false)
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "snapshot_data", columnDefinition = "JSONB", nullable = false)
     private String snapshotData;
 
     @JsonIgnore
