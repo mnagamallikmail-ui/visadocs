@@ -766,25 +766,24 @@ public class DocxTemplateEngine {
         List<JcEnumeration> alignments = List.of(JcEnumeration.LEFT, JcEnumeration.RIGHT);
         List<List<String>> rows = new ArrayList<>();
         if (inputs != null) {
-            rows.add(List.of("Total Land Value", "INR " + inputs.getOrDefault("TOTAL_LAND_VALUE", "0")));
-            rows.add(List.of("Total Replacement Cost", "INR " + inputs.getOrDefault("TOTAL_REPLACEMENT_COST", "0")));
-            rows.add(List.of("Total Depreciation Amount", "INR " + inputs.getOrDefault("TOTAL_DEPRECIATION_AMOUNT", "0")));
-            rows.add(List.of("Total Salvage Value Floor", "INR " + inputs.getOrDefault("TOTAL_SALVAGE_VALUE", "0")));
-            rows.add(List.of("Total Building Value", "INR " + inputs.getOrDefault("TOTAL_BUILDING_VALUE", "0")));
-            rows.add(List.of("Fair Market Value", "INR " + inputs.getOrDefault("FAIR_VALUE", "0")));
-            rows.add(List.of("Realizable Percentage", inputs.getOrDefault("REALIZABLE_PERCENTAGE", "85%")));
-            rows.add(List.of("Realizable Sale Value", "INR " + inputs.getOrDefault("REALIZABLE_VALUE", "0")));
-            rows.add(List.of("Distress Sale Percentage", inputs.getOrDefault("DISTRESS_SALE_PERCENTAGE", "75%")));
-            rows.add(List.of("Distress Sale Value", "INR " + inputs.getOrDefault("DISTRESS_SALE_VALUE", "0")));
-            rows.add(List.of("Insurable Value (Building Replacement Cost)", "INR " + inputs.getOrDefault("INSURABLE_VALUE", inputs.getOrDefault("TOTAL_REPLACEMENT_COST", "0"))));
-            rows.add(List.of("Government / Guideline Value", "INR " + inputs.getOrDefault("GOVERNMENT_VALUE", "0")));
-            rows.add(List.of("Say Value (Rounded Fair Value)", "INR " + inputs.getOrDefault("SAY_VALUE", inputs.getOrDefault("FAIR_VALUE", "0"))));
+            rows.add(List.of("Total Land Value", "₹ " + inputs.getOrDefault("TOTAL_LAND_VALUE", "0")));
+            rows.add(List.of("Total Replacement Cost", "₹ " + inputs.getOrDefault("TOTAL_REPLACEMENT_COST", "0")));
+            rows.add(List.of("Total Depreciation Amount", "₹ " + inputs.getOrDefault("TOTAL_DEPRECIATION_AMOUNT", "0")));
+            rows.add(List.of("Total Salvage Value Floor", "₹ " + inputs.getOrDefault("TOTAL_SALVAGE_VALUE", "0")));
+            rows.add(List.of("Total Building Value", "₹ " + inputs.getOrDefault("TOTAL_BUILDING_VALUE", "0")));
+            rows.add(List.of("Fair Market Value", "₹ " + inputs.getOrDefault("FAIR_VALUE", "0")));
+            rows.add(List.of("Realizable Percentage", inputs.getOrDefault("REALIZABLE_PERCENTAGE", "85") + "%"));
+            rows.add(List.of("Realizable Sale Value", "₹ " + inputs.getOrDefault("REALIZABLE_VALUE", "0")));
+            rows.add(List.of("Distress Sale Percentage", inputs.getOrDefault("DISTRESS_SALE_PERCENTAGE", "75") + "%"));
+            rows.add(List.of("Distress Sale Value", "₹ " + inputs.getOrDefault("DISTRESS_SALE_VALUE", "0")));
+            rows.add(List.of("Insurable Value (Building Replacement Cost)", "₹ " + inputs.getOrDefault("INSURABLE_VALUE", inputs.getOrDefault("TOTAL_REPLACEMENT_COST", "0"))));
+            rows.add(List.of("Government / Guideline Value", "₹ " + inputs.getOrDefault("GOVERNMENT_VALUE", "0")));
         }
         return createDocxTable(headers, colWidths, rows, null, 20, alignments);
     }
 
     private Tbl buildDynamicComparablesTable(Map<String, String> inputs) {
-        List<String> headers = List.of("Location", "Survey No", "Area", "Rate (INR)", "Sale Value (INR)", "Date", "Source");
+        List<String> headers = List.of("Location", "Survey No", "Area", "Rate (₹)", "Sale Value (₹)", "Date", "Source");
         List<Integer> colWidths = List.of(1800, 1300, 1100, 1300, 1500, 1100, 1500);
         List<JcEnumeration> alignments = List.of(JcEnumeration.LEFT, JcEnumeration.LEFT, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.CENTER, JcEnumeration.LEFT);
         List<List<String>> rows = new ArrayList<>();
@@ -799,8 +798,8 @@ public class DocxTemplateEngine {
                                 n.path("location").asText("-"),
                                 n.path("surveyNo").asText("-"),
                                 n.path("enteredArea").asText("0") + " " + n.path("enteredUnit").asText("Sq.Ft"),
-                                n.path("rate").asText("0"),
-                                n.path("saleValue").asText("0"),
+                                "₹ " + n.path("rate").asText("0"),
+                                "₹ " + n.path("saleValue").asText("0"),
                                 n.path("transactionDate").asText("-"),
                                 n.path("source").asText("-")
                         ));
@@ -817,7 +816,7 @@ public class DocxTemplateEngine {
     }
 
     private Tbl buildDynamicPropertyValueTable(Map<String, String> inputs) {
-        List<String> headers = List.of("PROPERTY COMPONENT", "ASSESSED VALUE (INR)");
+        List<String> headers = List.of("Particulars", "Amount (₹)");
         List<Integer> colWidths = List.of(5300, 4300);
         List<JcEnumeration> alignments = List.of(JcEnumeration.LEFT, JcEnumeration.RIGHT);
         List<List<String>> rows = new ArrayList<>();
@@ -827,10 +826,10 @@ public class DocxTemplateEngine {
         String fairVal = inputs != null ? inputs.getOrDefault("fair_value", inputs.getOrDefault("FAIR_VALUE", "0")) : "0";
         String sayVal = inputs != null ? inputs.getOrDefault("say_value", inputs.getOrDefault("SAY_VALUE", fairVal)) : fairVal;
 
-        rows.add(List.of("Value of Land", "INR " + landVal));
-        rows.add(List.of("Value of Buildings", "INR " + bldgVal));
-        rows.add(List.of("Total (Fair Market Value)", "INR " + fairVal));
-        rows.add(List.of("Say (Rounded Presentation Value)", "INR " + sayVal));
+        rows.add(List.of("Value of Land", "₹ " + landVal));
+        rows.add(List.of("Value of Buildings", "₹ " + bldgVal));
+        rows.add(List.of("Total", "₹ " + fairVal));
+        rows.add(List.of("Say", "₹ " + sayVal));
 
         return createDocxTable(headers, colWidths, rows, null, 20, alignments);
     }

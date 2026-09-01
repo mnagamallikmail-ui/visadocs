@@ -188,15 +188,18 @@ void main() {
       // Verify VALUE OF THE PROPERTY UI
       expect(find.text('VALUE OF THE PROPERTY'), findsOneWidget);
       expect(find.text('CALCULATED SUMMARY'), findsOneWidget);
+      expect(find.text('Particulars'), findsOneWidget);
+      expect(find.text('Amount (₹)'), findsOneWidget);
       expect(find.text('Value of Land'), findsOneWidget);
       expect(find.text('Value of Buildings'), findsOneWidget);
-      expect(find.text('Total (Fair Market Value)'), findsOneWidget);
-      expect(find.textContaining('Say (Rounded to nearest Lakh)'), findsOneWidget);
+      expect(find.text('Total'), findsOneWidget);
+      expect(find.text('Say'), findsOneWidget);
 
       // Verify VALUATION_SUMMARY_TABLE UI
       expect(find.text('SUMMARY OF VALUATION'), findsOneWidget);
       expect(find.text('<<VALUATION_SUMMARY_TABLE>>'), findsOneWidget);
       expect(find.text('Total Fair Market Value:'), findsOneWidget);
+      expect(find.text('Calculated Government Value:'), findsOneWidget);
     });
   });
 }

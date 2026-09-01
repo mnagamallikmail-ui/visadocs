@@ -757,32 +757,40 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 1: FlexColumnWidth(4.5),
               },
               children: [
+                // Table Header
+                TableRow(
+                  decoration: const BoxDecoration(color: AppColors.surfaceSoft, border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
+                  children: [
+                    Padding(padding: const EdgeInsets.all(10), child: Text('Particulars', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold))),
+                    Padding(padding: const EdgeInsets.all(10), child: Text('Amount (₹)', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold))),
+                  ],
+                ),
                 TableRow(
                   decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
                   children: [
                     Padding(padding: const EdgeInsets.all(10), child: Text('Value of Land', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600))),
-                    Padding(padding: const EdgeInsets.all(10), child: Text('INR ${IndianNumberFormatter.format(landVal)}', style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold))),
+                    Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(landVal)}', style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold))),
                   ],
                 ),
                 TableRow(
                   decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
                   children: [
                     Padding(padding: const EdgeInsets.all(10), child: Text('Value of Buildings', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600))),
-                    Padding(padding: const EdgeInsets.all(10), child: Text('INR ${IndianNumberFormatter.format(bldgVal)}', style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold))),
+                    Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(bldgVal)}', style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold))),
                   ],
                 ),
                 TableRow(
                   decoration: BoxDecoration(color: AppColors.surfaceSoft, border: const Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
                   children: [
-                    Padding(padding: const EdgeInsets.all(10), child: Text('Total (Fair Market Value)', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary))),
-                    Padding(padding: const EdgeInsets.all(10), child: Text('INR ${IndianNumberFormatter.format(fairVal)}', style: GoogleFonts.firaCode(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary))),
+                    Padding(padding: const EdgeInsets.all(10), child: Text('Total', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary))),
+                    Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(fairVal)}', style: GoogleFonts.firaCode(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary))),
                   ],
                 ),
                 TableRow(
                   decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.05)),
                   children: [
-                    Padding(padding: const EdgeInsets.all(10), child: Text('Say (Rounded to nearest Lakh)', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.ink))),
-                    Padding(padding: const EdgeInsets.all(10), child: Text('INR ${IndianNumberFormatter.format(sayVal)}', style: GoogleFonts.firaCode(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.successAccent))),
+                    Padding(padding: const EdgeInsets.all(10), child: Text('Say', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.ink))),
+                    Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(sayVal)}', style: GoogleFonts.firaCode(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.successAccent))),
                   ],
                 ),
               ],
@@ -836,11 +844,11 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             ],
           ),
           const SizedBox(height: 16),
-          _buildSummaryDetailRow('Total Land Value:', 'INR ${IndianNumberFormatter.format(data.totalLandValue)}', IndianCurrencyToWords.convertToWords(data.totalLandValue)),
+          _buildSummaryDetailRow('Total Land Value:', '₹ ${IndianNumberFormatter.format(data.totalLandValue)}', IndianCurrencyToWords.convertToWords(data.totalLandValue)),
           const Divider(height: 18),
-          _buildSummaryDetailRow('Total Building Value:', 'INR ${IndianNumberFormatter.format(data.totalBuildingValue)}', IndianCurrencyToWords.convertToWords(data.totalBuildingValue)),
+          _buildSummaryDetailRow('Total Building Value:', '₹ ${IndianNumberFormatter.format(data.totalBuildingValue)}', IndianCurrencyToWords.convertToWords(data.totalBuildingValue)),
           const Divider(height: 18),
-          _buildSummaryDetailRow('Total Fair Market Value:', 'INR ${IndianNumberFormatter.format(data.fairValue)}', IndianCurrencyToWords.convertToWords(data.fairValue), isHighlight: true),
+          _buildSummaryDetailRow('Total Fair Market Value:', '₹ ${IndianNumberFormatter.format(data.fairValue)}', IndianCurrencyToWords.convertToWords(data.fairValue), isHighlight: true),
           const Divider(height: 18),
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -873,7 +881,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                         Expanded(
                           child: _buildSummaryDetailRow(
                             'Realizable Value (${data.realizablePercentage}%):',
-                            'INR ${IndianNumberFormatter.format(data.realizableValue)}',
+                            '₹ ${IndianNumberFormatter.format(data.realizableValue)}',
                             IndianCurrencyToWords.convertToWords(data.realizableValue),
                           ),
                         ),
@@ -911,7 +919,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                         Expanded(
                           child: _buildSummaryDetailRow(
                             'Distress Sale Value (${data.distressSalePercentage}%):',
-                            'INR ${IndianNumberFormatter.format(data.distressSaleValue)}',
+                            '₹ ${IndianNumberFormatter.format(data.distressSaleValue)}',
                             IndianCurrencyToWords.convertToWords(data.distressSaleValue),
                           ),
                         ),
@@ -923,46 +931,94 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             ],
           ),
           const Divider(height: 18),
-          _buildSummaryDetailRow('Insurable Value (Total Building Replacement Cost):', 'INR ${IndianNumberFormatter.format(insurableVal)}', IndianCurrencyToWords.convertToWords(insurableVal)),
+          _buildSummaryDetailRow('Insurable Value (Total Building Replacement Cost):', '₹ ${IndianNumberFormatter.format(insurableVal)}', IndianCurrencyToWords.convertToWords(insurableVal)),
           const Divider(height: 18),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                flex: 2,
-                child: TextFormField(
-                  initialValue: data.governmentValue > 0 ? data.governmentValue.toStringAsFixed(2) : '',
-                  enabled: !isReadOnly,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(
-                    labelText: 'Government / Guideline Value (INR)',
-                    hintText: 'Enter guideline value',
-                    isDense: true,
-                    border: OutlineInputBorder(),
-                    prefixText: 'INR ',
-                  ),
-                  onChanged: (val) {
-                    data.governmentValue = double.tryParse(val) ?? 0;
-                    provider.recalculateValuation();
-                  },
+          
+          // Government Value Section with Dynamic Calculation & Override
+          Container(
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceSoft,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.hairlineSoft),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Government / Guideline Rates', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.ink)),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.deepTeal.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text('STATUTORY CALCULATION', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.deepTeal)),
+                    ),
+                  ],
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                flex: 3,
-                child: _buildSummaryDetailRow(
-                  'Assessed Government Value:',
-                  'INR ${IndianNumberFormatter.format(data.governmentValue)}',
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: '12000',
+                        enabled: !isReadOnly,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Govt Land Rate (₹/Sq.Yd)',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (val) {
+                          provider.recalculateValuation();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: '2100',
+                        enabled: !isReadOnly,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Govt RCC Rate (₹/Sq.Ft)',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (val) {
+                          provider.recalculateValuation();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: '1500',
+                        enabled: !isReadOnly,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Govt Steel Rate (₹/Sq.Ft)',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                        ),
+                        onChanged: (val) {
+                          provider.recalculateValuation();
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                _buildSummaryDetailRow(
+                  'Calculated Government Value:',
+                  '₹ ${IndianNumberFormatter.format(data.governmentValue)}',
                   IndianCurrencyToWords.convertToWords(data.governmentValue),
                 ),
-              ),
-            ],
-          ),
-          const Divider(height: 18),
-          _buildSummaryDetailRow(
-            'Say Value (Rounded Fair Value):',
-            'INR ${IndianNumberFormatter.format(ValuationCalculator.computeSayValue(data.fairValue))}',
-            IndianCurrencyToWords.convertToWords(ValuationCalculator.computeSayValue(data.fairValue)),
+              ],
+            ),
           ),
         ],
       ),
