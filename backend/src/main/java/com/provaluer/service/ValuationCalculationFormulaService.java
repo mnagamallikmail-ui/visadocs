@@ -131,9 +131,53 @@ public class ValuationCalculationFormulaService {
         BigDecimal insurableValue = totalReplCost.setScale(2, RoundingMode.HALF_UP);
         data.setInsurableValue(insurableValue);
 
-        // 7. Government Value guard
-        if (data.getGovernmentValue() == null) {
-            data.setGovernmentValue(BigDecimal.ZERO);
+        // 7. Government Value calculation: (Land Area * Govt Land Rate) + (RCC Area * Govt RCC Rate) + (Steel Area * Govt Steel Rate)
+        if (data.getGovernmentValue() == null || data.getGovernmentValue().compareTo(BigDecimal.ZERO) == 0) {
+            BigDecimal govtVal = calculateGovernmentValue(landItems, buildingItems, new BigDecimal("5500"), new BigDecimal("2400"), new BigDecimal("1900"));
+            data.setGovernmentValue(govtVal);
         }
+    }
+
+    /**
+     * Calculates Government Value according to statutory formula:
+     * (Land Area * Govt Land Rate) + (RCC Area * Govt RCC Rate) + (Steel Area * Govt Steel Rate)
+     */
+    public BigDecimal calculateGovernmentValue(List<ValuationLandItem> landItems,
+                                               List<ValuationBuildingItem> buildingItems,
+                                               BigDecimal govtLandRate,
+                                               BigDecimal govtRccRate,
+                                               BigDecimal govtSteelRate) {
+        BigDecimal totalGovt = BigDecimal.ZERO;
+
+        BigDecimal landRate = (govtLandRate != null && govtLandRate.compareTo(BigDecimal.ZERO) > 0)
+                ? govtLandRate : new BigDecimal("5500");
+        BigDecimal rccRate = (govtRccRate != null && govtRccRate.compareTo(BigDecimal.ZERO) > 0)
+                ? govtRccRate : new BigDecimal("2400");
+        BigDecimal steelRate = (govtSteelRate != null && govtSteelRate.compareTo(BigDecimal.ZERO) > 0)
+                ? govtSteelRate : new BigDecimal("1900");
+
+        if (landItems != null) {
+            for (ValuationLandItem l : landItems) {
+                BigDecimal area = l.getStandardAreaSqft() != null ? l.getStandardAreaSqft() : BigDecimal.ZERO;
+                totalGovt = totalGovt.add(area.multiply(landRate));
+            }
+        }
+
+        if (buildingItems != null) {
+            for (ValuationBuildingItem b : buildingItems) {
+                BigDecimal area = b.getStandardAreaSqft() != null ? b.getStandardAreaSqft() : BigDecimal.ZERO;
+                String bType = (b.getBuildingType() != null ? b.getBuildingType() : "").toLowerCase();
+                String desc = (b.getDescription() != null ? b.getDescription() : "").toLowerCase();
+                String struct = (b.getStructureType() != null ? b.getStructureType() : "").toLowerCase();
+
+                if (bType.contains("steel") || desc.contains("steel") || struct.contains("steel") || desc.contains("shed")) {
+                    totalGovt = totalGovt.add(area.multiply(steelRate));
+                } else {
+                    totalGovt = totalGovt.add(area.multiply(rccRate));
+                }
+            }
+        }
+
+        return totalGovt.setScale(2, RoundingMode.HALF_UP);
     }
 }

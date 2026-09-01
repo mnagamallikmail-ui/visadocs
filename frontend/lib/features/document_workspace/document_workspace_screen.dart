@@ -146,65 +146,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
   }
 
   Future<void> _handleSpaApprove() async {
-    final finalValueController = TextEditingController();
-
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Row(
-          children: [
-            const Icon(Icons.verified_rounded, color: AppColors.successAccent, size: 20),
-            const SizedBox(width: 8),
-            Text('Approve Valuation Report', style: AppTypography.heading4().copyWith(color: AppColors.ink)),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Enter the final confirmed property valuation value to lock and compile the final document report.',
-              style: AppTypography.bodySm().copyWith(color: AppColors.slate),
-            ),
-            const SizedBox(height: 16),
-            TextField(
-              controller: finalValueController,
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-              autofocus: true,
-              decoration: InputDecoration(
-                labelText: 'Final Valuation Amount (INR)',
-                prefixText: 'INR ',
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('Cancel', style: AppTypography.bodyMdMedium(color: AppColors.slate)),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (finalValueController.text.trim().isEmpty) return;
-              Navigator.of(ctx).pop(true);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.successAccent,
-              foregroundColor: Colors.white,
-            ),
-            child: const Text('Approve & Compile'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    final finalVal = double.parse(finalValueController.text.trim());
+    final finalVal = _provider.valuationData?.fairValue ?? 0.0;
     final success = await _provider.spaApprove(finalVal);
     if (!mounted) return;
 

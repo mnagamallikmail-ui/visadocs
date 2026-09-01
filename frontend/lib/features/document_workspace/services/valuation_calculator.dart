@@ -69,6 +69,23 @@ class ValuationCalculator {
 
     // 6. Insurable Value = Total Replacement Cost (Excluding Land)
     data.insurableValue = totalReplCost;
+
+    // 7. Government Value = (Land Area * Govt Land Rate) + (RCC Area * Govt RCC Rate) + (Steel Area * Govt Steel Rate)
+    if (data.governmentValue <= 0) {
+      double govtVal = 0;
+      for (final l in landItems) {
+        govtVal += (l.standardAreaSqft * 5500.0);
+      }
+      for (final b in buildingItems) {
+        final bType = (b.buildingType + " " + b.description).toLowerCase();
+        if (bType.contains('steel') || bType.contains('shed')) {
+          govtVal += (b.standardAreaSqft * 1900.0);
+        } else {
+          govtVal += (b.standardAreaSqft * 2400.0);
+        }
+      }
+      data.governmentValue = govtVal;
+    }
   }
 
   static Map<String, String> generatePlaceholders({

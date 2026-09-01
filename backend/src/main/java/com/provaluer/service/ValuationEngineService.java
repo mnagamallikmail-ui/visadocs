@@ -422,7 +422,10 @@ public class ValuationEngineService {
         map.put("insurable_value_words", IndianCurrencyToWords.convertToWords(insurableVal));
 
         // Government Value (Independent Guideline / Statutory Value)
-        BigDecimal govtVal = data.getGovernmentValue() != null ? data.getGovernmentValue() : BigDecimal.ZERO;
+        BigDecimal govtVal = data.getGovernmentValue();
+        if (govtVal == null || govtVal.signum() == 0) {
+            govtVal = formulaService.calculateGovernmentValue(landItems, buildingItems, new BigDecimal("5500"), new BigDecimal("2400"), new BigDecimal("1900"));
+        }
         map.put("government_value", IndianNumberFormatter.format(govtVal));
         map.put("government_value_words", IndianCurrencyToWords.convertToWords(govtVal));
 
