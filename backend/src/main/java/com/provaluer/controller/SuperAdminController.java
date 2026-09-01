@@ -38,6 +38,15 @@ public class SuperAdminController {
     @Autowired private PerformanceLedgerRepository performanceLedgerRepository;
     @Autowired private SystemSettingRepository systemSettingRepository;
     @Autowired private TemplateRepository templateRepository;
+    @Autowired private com.provaluer.repository.TemplateVersionRepository templateVersionRepository;
+    @Autowired private com.provaluer.repository.TemplateQuestionRepository templateQuestionRepository;
+    @Autowired private com.provaluer.repository.DocumentStudioConfigRepository documentStudioConfigRepository;
+    @Autowired private com.provaluer.repository.ValuationDataRepository valuationDataRepository;
+    @Autowired private com.provaluer.repository.ValuationLandItemRepository valuationLandItemRepository;
+    @Autowired private com.provaluer.repository.ValuationBuildingItemRepository valuationBuildingItemRepository;
+    @Autowired private com.provaluer.repository.ValuationComparableSaleRepository valuationComparableSaleRepository;
+    @Autowired private com.provaluer.repository.ValuationSnapshotRepository valuationSnapshotRepository;
+    @Autowired private com.provaluer.repository.ValuationAuditLogRepository valuationAuditLogRepository;
     @Autowired private AuditLogRepository auditLogRepository;
     @Autowired private PricingService pricingService;
     @Autowired private AuditLogService auditLogService;
@@ -49,16 +58,24 @@ public class SuperAdminController {
     // ─────────────────────────────────────────────
     // HELPERS
     // ─────────────────────────────────────────────
-    private UserDetailsImpl currentPrincipal() {
-        return (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-    }
-
     private String actorEmail() {
-        return currentPrincipal().getUsername();
+        try {
+            Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            if (principal instanceof org.springframework.security.core.userdetails.UserDetails) {
+                return ((org.springframework.security.core.userdetails.UserDetails) principal).getUsername();
+            }
+        } catch (Exception ignored) {}
+        return "superadmin@provaluer.com";
     }
 
     private Long actorId() {
-        return currentPrincipal().getId();
+        try {
+            Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            if (principal instanceof UserDetailsImpl) {
+                return ((UserDetailsImpl) principal).getId();
+            }
+        } catch (Exception ignored) {}
+        return 1L;
     }
 
     // ─────────────────────────────────────────────
@@ -798,7 +815,7 @@ public class SuperAdminController {
 
     /**
      * DELETE /api/v1/admin/reports/purge-all
-     * Administrative purge of all orders, inputs, documents, revisions, and performance ledger
+     * Administrative purge of all orders, inputs, documents, revisions, valuation data, and performance ledger
      * allowing the team to start completely afresh with clean state.
      */
     @DeleteMapping("/reports/purge-all")
@@ -806,6 +823,24 @@ public class SuperAdminController {
     public ResponseEntity<?> purgeAllReports() {
         log.warn("SUPER_ADMIN #{} initiated purge of ALL report and order data.", actorId());
         
+        long valAuditDeleted = valuationAuditLogRepository.count();
+        valuationAuditLogRepository.deleteAll();
+
+        long landDeleted = valuationLandItemRepository.count();
+        valuationLandItemRepository.deleteAll();
+
+        long bldgDeleted = valuationBuildingItemRepository.count();
+        valuationBuildingItemRepository.deleteAll();
+
+        long compsDeleted = valuationComparableSaleRepository.count();
+        valuationComparableSaleRepository.deleteAll();
+
+        long snapshotsDeleted = valuationSnapshotRepository.count();
+        valuationSnapshotRepository.deleteAll();
+
+        long valDataDeleted = valuationDataRepository.count();
+        valuationDataRepository.deleteAll();
+
         long docsDeleted = orderDocumentRepository.count();
         orderDocumentRepository.deleteAll();
 
@@ -825,15 +860,52 @@ public class SuperAdminController {
         orderRepository.deleteAll();
 
         auditLogService.log(actorId(), actorEmail(), "SUPER_ADMIN", "PURGE_ALL_REPORTS", "ORDER",
-                null, null, null, String.format("Purged %d orders, %d inputs, %d documents, %d revisions", ordersDeleted, inputsDeleted, docsDeleted, revisionsDeleted));
+                null, null, null, String.format("Purged %d orders, %d valuation records, %d documents, %d snapshots", ordersDeleted, valDataDeleted, docsDeleted, snapshotsDeleted));
 
         return ResponseEntity.ok(Map.of(
             "status", "SUCCESS",
-            "message", "All orders and reports successfully purged. System reset for fresh start.",
+            "message", "All orders, valuation records, snapshots, and reports successfully purged. System reset for fresh start.",
             "purgedOrders", ordersDeleted,
+            "purgedValuationData", valDataDeleted,
+            "purgedLandItems", landDeleted,
+            "purgedBuildingItems", bldgDeleted,
+            "purgedSnapshots", snapshotsDeleted,
             "purgedDocuments", docsDeleted,
             "purgedInputs", inputsDeleted,
             "purgedRevisions", revisionsDeleted
+        ));
+    }
+
+    /**
+     * DELETE /api/v1/admin/templates/purge-all
+     * Administrative purge of all templates, versions, dictionaries, and studio configurations.
+     */
+    @DeleteMapping("/templates/purge-all")
+    @Transactional
+    public ResponseEntity<?> purgeAllTemplates() {
+        log.warn("SUPER_ADMIN #{} initiated purge of ALL template data.", actorId());
+
+        long studioConfigsDeleted = documentStudioConfigRepository.count();
+        documentStudioConfigRepository.deleteAll();
+
+        long questionsDeleted = templateQuestionRepository.count();
+        templateQuestionRepository.deleteAll();
+
+        long versionsDeleted = templateVersionRepository.count();
+        templateVersionRepository.deleteAll();
+
+        long templatesDeleted = templateRepository.count();
+        templateRepository.deleteAll();
+
+        auditLogService.log(actorId(), actorEmail(), "SUPER_ADMIN", "PURGE_ALL_TEMPLATES", "TEMPLATE",
+                null, null, null, String.format("Purged %d templates, %d template versions, %d studio configs", templatesDeleted, versionsDeleted, studioConfigsDeleted));
+
+        return ResponseEntity.ok(Map.of(
+            "status", "SUCCESS",
+            "message", "All templates and versions successfully purged from database.",
+            "purgedTemplates", templatesDeleted,
+            "purgedVersions", versionsDeleted,
+            "purgedStudioConfigs", studioConfigsDeleted
         ));
     }
 

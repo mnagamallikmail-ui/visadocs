@@ -358,6 +358,44 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
     } catch (_) {}
   }
 
+  Future<void> _deleteOrder(dynamic order) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Move Order to Trash?'),
+        content: Text('Are you sure you want to soft-delete order #${order['id']}? It can be restored from the Trash Bin.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRedDark),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('DELETE', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _api.dio.delete('/api/v1/admin/orders/${order['id']}');
+      _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          backgroundColor: AppColors.success,
+          content: Text('Order moved to Trash Bin.'),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.brandRedDark,
+          content: Text('Failed to delete order: ${ApiService.getErrorMessage(e)}'),
+        ));
+      }
+    }
+  }
+
   Future<void> _showCreateOrderDialog() async {
     final categoryCtrl = TextEditingController();
     final purposeCtrl = TextEditingController();
@@ -590,13 +628,15 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                               ),
                             ),
                             SizedBox(
-                              width: 220,
+                              width: 300,
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.end,
                                 children: [
                                   _queueBtn('Release', Icons.send_outlined, AppColors.primary, () => _forceRelease(o)),
-                                  const SizedBox(width: 8),
-                                  _queueBtn('Waive Payment', Icons.money_off_outlined, AppColors.success, () => _waivePayment(o)),
+                                  const SizedBox(width: 6),
+                                  _queueBtn('Waive', Icons.money_off_outlined, AppColors.success, () => _waivePayment(o)),
+                                  const SizedBox(width: 6),
+                                  _queueBtn('Delete', Icons.delete_outline_rounded, AppColors.brandRedDark, () => _deleteOrder(o)),
                                 ],
                               ),
                             ),
@@ -1241,6 +1281,45 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
     }
   }
 
+  // Purge All Templates
+  Future<void> _purgeAllTemplates() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Purge All Templates?'),
+        content: const Text('Are you sure you want to permanently delete ALL templates and their versions? This action cannot be undone.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRedDark),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('PURGE ALL TEMPLATES', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _api.dio.delete('/api/v1/admin/templates/purge-all');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          backgroundColor: AppColors.success,
+          content: Text('All templates permanently purged.'),
+        ));
+      }
+      _load();
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.brandRedDark,
+          content: Text(ApiService.getErrorMessage(e)),
+        ));
+      }
+    }
+  }
+
   // 0.6 Async DOCX Upload
   Future<void> _uploadTemplate() async {
     try {
@@ -1802,6 +1881,13 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                 icon: const Icon(Icons.refresh),
                 onPressed: _load,
                 style: AppComponents.secondaryButton,
+              ),
+              const SizedBox(width: 8),
+              OutlinedButton.icon(
+                label: const Text('Delete All Templates'),
+                icon: const Icon(Icons.delete_sweep_rounded, color: AppColors.brandRedDark),
+                onPressed: _templates.isEmpty ? null : _purgeAllTemplates,
+                style: OutlinedButton.styleFrom(foregroundColor: AppColors.brandRedDark),
               ),
               const SizedBox(width: 8),
               ElevatedButton.icon(
@@ -2845,6 +2931,24 @@ class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
   }
 
   Future<void> _purge(int id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Permanently Purge Report?'),
+        content: const Text('Are you sure you want to permanently delete this report? This will remove all associated valuation items, snapshots, and documents.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRedDark),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('PURGE', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
     try {
       await _api.dio.delete('/api/v1/admin/orders/$id/purge');
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -2860,6 +2964,40 @@ class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
     }
   }
 
+  Future<void> _purgeAll() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Purge ALL Reports & Valuation Data?'),
+        content: const Text('CRITICAL: This will permanently delete ALL orders, valuation items, snapshots, documents, inputs, and revisions from the entire system. This action cannot be reversed!'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRedDark),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('PURGE ALL REPORTS', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _api.dio.delete('/api/v1/admin/reports/purge-all');
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+        backgroundColor: AppColors.success,
+        content: Text('All reports and valuation data permanently purged.'),
+      ));
+      _load();
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: AppColors.brandRedDark,
+        content: Text('Purge all failed: ${ApiService.getErrorMessage(e)}'),
+      ));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -2867,11 +3005,22 @@ class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
         _sectionHeader(
           'Deleted Reports & Trash Bin',
           'Super Admin audit and recovery console for soft-deleted valuation orders',
-          action: OutlinedButton.icon(
-            label: const Text('Refresh'),
-            icon: const Icon(Icons.refresh),
-            onPressed: _load,
-            style: AppComponents.secondaryButton,
+          action: Row(
+            children: [
+              OutlinedButton.icon(
+                label: const Text('Refresh'),
+                icon: const Icon(Icons.refresh),
+                onPressed: _load,
+                style: AppComponents.secondaryButton,
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton.icon(
+                label: const Text('Purge All Reports'),
+                icon: const Icon(Icons.delete_forever_rounded),
+                onPressed: _purgeAll,
+                style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRedDark, foregroundColor: Colors.white),
+              ),
+            ],
           ),
         ),
         Expanded(
