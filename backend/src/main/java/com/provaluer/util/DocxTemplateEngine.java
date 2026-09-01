@@ -666,6 +666,8 @@ public class DocxTemplateEngine {
 
     private Tbl buildDynamicLandTable(Map<String, String> inputs) {
         List<String> headers = List.of("Survey No", "Description", "Area", "Unit", "Area (Sq.Ft)", "Rate (INR)", "Value (INR)");
+        List<Integer> colWidths = List.of(1300, 2100, 1100, 900, 1400, 1300, 1500);
+        List<JcEnumeration> alignments = List.of(JcEnumeration.LEFT, JcEnumeration.LEFT, JcEnumeration.RIGHT, JcEnumeration.CENTER, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.RIGHT);
         List<List<String>> rows = new ArrayList<>();
         
         // Parse land items from JSON if available in inputs
@@ -703,11 +705,13 @@ public class DocxTemplateEngine {
         }
 
         List<String> footer = List.of("Total Land Value", "", "", "", "", "", inputs != null ? inputs.getOrDefault("TOTAL_LAND_VALUE", "0") : "0");
-        return createDocxTable(headers, rows, footer);
+        return createDocxTable(headers, colWidths, rows, footer, 18, alignments);
     }
 
     private Tbl buildDynamicBuildingTable(Map<String, String> inputs) {
-        List<String> headers = List.of("Structure", "Type", "Area", "Rate", "Cost (INR)", "Age", "Life", "Depr %", "Depr (INR)", "Value (INR)");
+        List<String> headers = List.of("Structure", "Type", "Area", "Rate (INR)", "Cost (INR)", "Age", "Life", "Dep %", "Depr (INR)", "Value (INR)");
+        List<Integer> colWidths = List.of(1400, 1300, 1000, 950, 1250, 550, 550, 650, 1100, 1250);
+        List<JcEnumeration> alignments = List.of(JcEnumeration.LEFT, JcEnumeration.LEFT, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.CENTER, JcEnumeration.CENTER, JcEnumeration.CENTER, JcEnumeration.RIGHT, JcEnumeration.RIGHT);
         List<List<String>> rows = new ArrayList<>();
 
         String bldgJson = inputs != null ? inputs.get("RAW_BUILDING_ITEMS_JSON") : null;
@@ -749,11 +753,13 @@ public class DocxTemplateEngine {
         }
 
         List<String> footer = List.of("Total Building Value", "", "", "", "", "", "", "", "", inputs != null ? inputs.getOrDefault("TOTAL_BUILDING_VALUE", "0") : "0");
-        return createDocxTable(headers, rows, footer);
+        return createDocxTable(headers, colWidths, rows, footer, 17, alignments);
     }
 
     private Tbl buildDynamicValuationSummaryTable(Map<String, String> inputs) {
-        List<String> headers = List.of("Valuation Parameter", "Assessed Value / Percentage");
+        List<String> headers = List.of("VALUATION PARAMETER", "ASSESSED VALUE / PERCENTAGE");
+        List<Integer> colWidths = List.of(5300, 4300);
+        List<JcEnumeration> alignments = List.of(JcEnumeration.LEFT, JcEnumeration.RIGHT);
         List<List<String>> rows = new ArrayList<>();
         if (inputs != null) {
             rows.add(List.of("Total Land Value", "INR " + inputs.getOrDefault("TOTAL_LAND_VALUE", "0")));
@@ -768,12 +774,15 @@ public class DocxTemplateEngine {
             rows.add(List.of("Distress Sale Value", "INR " + inputs.getOrDefault("DISTRESS_SALE_VALUE", "0")));
             rows.add(List.of("Insurable Value (Building Replacement Cost)", "INR " + inputs.getOrDefault("INSURABLE_VALUE", inputs.getOrDefault("TOTAL_REPLACEMENT_COST", "0"))));
             rows.add(List.of("Government / Guideline Value", "INR " + inputs.getOrDefault("GOVERNMENT_VALUE", "0")));
+            rows.add(List.of("Say Value (Rounded Fair Value)", "INR " + inputs.getOrDefault("SAY_VALUE", inputs.getOrDefault("FAIR_VALUE", "0"))));
         }
-        return createDocxTable(headers, rows, null);
+        return createDocxTable(headers, colWidths, rows, null, 20, alignments);
     }
 
     private Tbl buildDynamicComparablesTable(Map<String, String> inputs) {
         List<String> headers = List.of("Location", "Survey No", "Area", "Rate (INR)", "Sale Value (INR)", "Date", "Source");
+        List<Integer> colWidths = List.of(1800, 1300, 1100, 1300, 1500, 1100, 1500);
+        List<JcEnumeration> alignments = List.of(JcEnumeration.LEFT, JcEnumeration.LEFT, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.CENTER, JcEnumeration.LEFT);
         List<List<String>> rows = new ArrayList<>();
 
         String compJson = inputs != null ? inputs.get("RAW_COMPARABLES_JSON") : null;
@@ -800,11 +809,13 @@ public class DocxTemplateEngine {
             rows.add(List.of("Market Vicinity", "Primary Cluster", "Standard Unit", "Prevailing Rate", "Comparable Value", "Recent", "Registrar Office"));
         }
 
-        return createDocxTable(headers, rows, null);
+        return createDocxTable(headers, colWidths, rows, null, 18, alignments);
     }
 
     private Tbl buildDynamicPropertyValueTable(Map<String, String> inputs) {
-        List<String> headers = List.of("Description", "Assessed Value");
+        List<String> headers = List.of("PROPERTY COMPONENT", "ASSESSED VALUE (INR)");
+        List<Integer> colWidths = List.of(5300, 4300);
+        List<JcEnumeration> alignments = List.of(JcEnumeration.LEFT, JcEnumeration.RIGHT);
         List<List<String>> rows = new ArrayList<>();
 
         String landVal = inputs != null ? inputs.getOrDefault("total_land_value", inputs.getOrDefault("TOTAL_LAND_VALUE", "0")) : "0";
@@ -814,13 +825,13 @@ public class DocxTemplateEngine {
 
         rows.add(List.of("Value of Land", "INR " + landVal));
         rows.add(List.of("Value of Buildings", "INR " + bldgVal));
-        rows.add(List.of("Total", "INR " + fairVal));
-        rows.add(List.of("Say", "INR " + sayVal));
+        rows.add(List.of("Total (Fair Market Value)", "INR " + fairVal));
+        rows.add(List.of("Say (Rounded Presentation Value)", "INR " + sayVal));
 
-        return createDocxTable(headers, rows, null);
+        return createDocxTable(headers, colWidths, rows, null, 20, alignments);
     }
 
-    private Tbl createDocxTable(List<String> headers, List<List<String>> dataRows, List<String> footerRow) {
+    private Tbl createDocxTable(List<String> headers, List<Integer> colWidths, List<List<String>> dataRows, List<String> footerRow, int fontSizeHalfPts, List<JcEnumeration> alignments) {
         ObjectFactory factory = new ObjectFactory();
         Tbl tbl = factory.createTbl();
 
@@ -830,11 +841,24 @@ public class DocxTemplateEngine {
         layout.setType(STTblLayoutType.FIXED);
         tblPr.setTblLayout(layout);
 
+        // Explicit Table Width
+        int totalWidth = (colWidths != null) ? colWidths.stream().mapToInt(Integer::intValue).sum() : 9600;
+        TblWidth tblW = factory.createTblWidth();
+        tblW.setType("dxa");
+        tblW.setW(BigInteger.valueOf(totalWidth));
+        tblPr.setTblW(tblW);
+
+        // Alignment Center
+        Jc jc = factory.createJc();
+        jc.setVal(JcEnumeration.CENTER);
+        tblPr.setJc(jc);
+
+        // Table Borders matching corporate accent 3494BA
         TblBorders borders = factory.createTblBorders();
         CTBorder border = factory.createCTBorder();
         border.setVal(STBorder.SINGLE);
         border.setSz(BigInteger.valueOf(4));
-        border.setColor("CCCCCC");
+        border.setColor("3494BA");
         borders.setTop(border);
         borders.setBottom(border);
         borders.setLeft(border);
@@ -842,20 +866,99 @@ public class DocxTemplateEngine {
         borders.setInsideH(border);
         borders.setInsideV(border);
         tblPr.setTblBorders(borders);
+
+        // Cell Margins
+        CTTblCellMar cellMar = factory.createCTTblCellMar();
+        TblWidth topMar = factory.createTblWidth();
+        topMar.setType("dxa");
+        topMar.setW(BigInteger.valueOf(120));
+        cellMar.setTop(topMar);
+        TblWidth botMar = factory.createTblWidth();
+        botMar.setType("dxa");
+        botMar.setW(BigInteger.valueOf(120));
+        cellMar.setBottom(botMar);
+        TblWidth leftMar = factory.createTblWidth();
+        leftMar.setType("dxa");
+        leftMar.setW(BigInteger.valueOf(140));
+        cellMar.setLeft(leftMar);
+        TblWidth rightMar = factory.createTblWidth();
+        rightMar.setType("dxa");
+        rightMar.setW(BigInteger.valueOf(140));
+        cellMar.setRight(rightMar);
+        tblPr.setTblCellMar(cellMar);
+
         tbl.setTblPr(tblPr);
 
-        // 2. Header Row
+        // 2. Table Grid
+        if (colWidths != null && !colWidths.isEmpty()) {
+            TblGrid tblGrid = factory.createTblGrid();
+            for (int w : colWidths) {
+                TblGridCol col = factory.createTblGridCol();
+                col.setW(BigInteger.valueOf(w));
+                tblGrid.getGridCol().add(col);
+            }
+            tbl.setTblGrid(tblGrid);
+        }
+
+        // 3. Header Row (3494BA Shading, White Bold Book Antiqua Text, NoWrap)
         if (headers != null && !headers.isEmpty()) {
             Tr headerTr = factory.createTr();
-            for (String h : headers) {
+            TrPr trPr = factory.createTrPr();
+            trPr.getCnfStyleOrDivIdOrGridBefore().add(factory.createCTTrPrBaseTblHeader(factory.createBooleanDefaultTrue()));
+            trPr.getCnfStyleOrDivIdOrGridBefore().add(factory.createCTTrPrBaseCantSplit(factory.createBooleanDefaultTrue()));
+            headerTr.setTrPr(trPr);
+
+            for (int colIdx = 0; colIdx < headers.size(); colIdx++) {
+                String h = headers.get(colIdx);
+                int w = (colWidths != null && colIdx < colWidths.size()) ? colWidths.get(colIdx) : 1200;
+                JcEnumeration align = (alignments != null && colIdx < alignments.size()) ? alignments.get(colIdx) : JcEnumeration.LEFT;
+
                 Tc tc = factory.createTc();
+                TcPr tcPr = factory.createTcPr();
+                
+                // Width
+                TblWidth tcW = factory.createTblWidth();
+                tcW.setType("dxa");
+                tcW.setW(BigInteger.valueOf(w));
+                tcPr.setTcW(tcW);
+
+                // Shading 3494BA
+                CTShd shd = factory.createCTShd();
+                shd.setVal(STShd.CLEAR);
+                shd.setColor("auto");
+                shd.setFill("3494BA");
+                tcPr.setShd(shd);
+
+                // NoWrap to guarantee single-line fit
+                tcPr.setNoWrap(factory.createBooleanDefaultTrue());
+
+                // Vertical center alignment
+                CTVerticalJc vAlign = factory.createCTVerticalJc();
+                vAlign.setVal(STVerticalJc.CENTER);
+                tcPr.setVAlign(vAlign);
+                tc.setTcPr(tcPr);
+
                 P p = factory.createP();
+                PPr ppr = factory.createPPr();
+                Jc pJc = factory.createJc();
+                pJc.setVal(align);
+                ppr.setJc(pJc);
+                p.setPPr(ppr);
+
                 R r = factory.createR();
                 RPr rpr = factory.createRPr();
-                BooleanDefaultTrue b = factory.createBooleanDefaultTrue();
-                rpr.setB(b);
+                rpr.setB(factory.createBooleanDefaultTrue());
+                RFonts fonts = factory.createRFonts();
+                fonts.setAscii("Book Antiqua");
+                fonts.setHAnsi("Book Antiqua");
+                rpr.setRFonts(fonts);
+
+                HpsMeasure sz = factory.createHpsMeasure();
+                sz.setVal(BigInteger.valueOf(fontSizeHalfPts));
+                rpr.setSz(sz);
+
                 Color color = factory.createColor();
-                color.setVal("000000");
+                color.setVal("FFFFFF");
                 rpr.setColor(color);
                 r.setRPr(rpr);
 
@@ -865,62 +968,154 @@ public class DocxTemplateEngine {
                 p.getContent().add(r);
                 tc.getContent().add(p);
 
-                // Header cell background
-                TcPr tcPr = factory.createTcPr();
-                CTShd shd = factory.createCTShd();
-                shd.setVal(STShd.CLEAR);
-                shd.setColor("auto");
-                shd.setFill("EAEAEA");
-                tcPr.setShd(shd);
-                tc.setTcPr(tcPr);
-
                 headerTr.getContent().add(tc);
             }
             tbl.getContent().add(headerTr);
         }
 
-        // 3. Data Rows
+        // 4. Data Rows
         if (dataRows != null) {
-            for (List<String> rowData : dataRows) {
+            for (int rIdx = 0; rIdx < dataRows.size(); rIdx++) {
+                List<String> rowData = dataRows.get(rIdx);
                 Tr tr = factory.createTr();
-                for (String val : rowData) {
+                TrPr trPr = factory.createTrPr();
+                trPr.getCnfStyleOrDivIdOrGridBefore().add(factory.createCTTrPrBaseCantSplit(factory.createBooleanDefaultTrue()));
+                tr.setTrPr(trPr);
+
+                boolean isTotalOrSayRow = rowData.get(0).toLowerCase().contains("total") || rowData.get(0).toLowerCase().contains("say");
+
+                for (int colIdx = 0; colIdx < rowData.size(); colIdx++) {
+                    String val = rowData.get(colIdx);
+                    int w = (colWidths != null && colIdx < colWidths.size()) ? colWidths.get(colIdx) : 1200;
+                    JcEnumeration align = (alignments != null && colIdx < alignments.size()) ? alignments.get(colIdx) : JcEnumeration.LEFT;
+
                     Tc tc = factory.createTc();
+                    TcPr tcPr = factory.createTcPr();
+                    
+                    TblWidth tcW = factory.createTblWidth();
+                    tcW.setType("dxa");
+                    tcW.setW(BigInteger.valueOf(w));
+                    tcPr.setTcW(tcW);
+
+                    // Row shading
+                    if (isTotalOrSayRow) {
+                        CTShd shd = factory.createCTShd();
+                        shd.setVal(STShd.CLEAR);
+                        shd.setColor("auto");
+                        shd.setFill("F0F5F8");
+                        tcPr.setShd(shd);
+                    } else if (rIdx % 2 == 1) {
+                        CTShd shd = factory.createCTShd();
+                        shd.setVal(STShd.CLEAR);
+                        shd.setColor("auto");
+                        shd.setFill("FAFCFD");
+                        tcPr.setShd(shd);
+                    }
+
+                    CTVerticalJc vAlign = factory.createCTVerticalJc();
+                    vAlign.setVal(STVerticalJc.CENTER);
+                    tcPr.setVAlign(vAlign);
+                    tc.setTcPr(tcPr);
+
                     P p = factory.createP();
+                    PPr ppr = factory.createPPr();
+                    Jc pJc = factory.createJc();
+                    pJc.setVal(align);
+                    ppr.setJc(pJc);
+                    p.setPPr(ppr);
+
                     R r = factory.createR();
+                    RPr rpr = factory.createRPr();
+                    if (isTotalOrSayRow || (colIdx == 0 && dataRows.get(0).size() == 2)) {
+                        rpr.setB(factory.createBooleanDefaultTrue());
+                    }
+
+                    RFonts fonts = factory.createRFonts();
+                    fonts.setAscii("Book Antiqua");
+                    fonts.setHAnsi("Book Antiqua");
+                    rpr.setRFonts(fonts);
+
+                    HpsMeasure sz = factory.createHpsMeasure();
+                    sz.setVal(BigInteger.valueOf(fontSizeHalfPts));
+                    rpr.setSz(sz);
+
+                    Color color = factory.createColor();
+                    color.setVal(isTotalOrSayRow ? "0070C0" : "000000");
+                    rpr.setColor(color);
+                    r.setRPr(rpr);
+
                     Text text = factory.createText();
                     text.setValue(val != null ? val : "");
                     r.getContent().add(text);
                     p.getContent().add(r);
                     tc.getContent().add(p);
+
                     tr.getContent().add(tc);
                 }
                 tbl.getContent().add(tr);
             }
         }
 
-        // 4. Footer Row (Bold)
+        // 5. Footer Row (Total Summary)
         if (footerRow != null && !footerRow.isEmpty()) {
             Tr footerTr = factory.createTr();
-            for (String val : footerRow) {
+            TrPr trPr = factory.createTrPr();
+            trPr.getCnfStyleOrDivIdOrGridBefore().add(factory.createCTTrPrBaseCantSplit(factory.createBooleanDefaultTrue()));
+            footerTr.setTrPr(trPr);
+
+            for (int colIdx = 0; colIdx < footerRow.size(); colIdx++) {
+                String val = footerRow.get(colIdx);
+                int w = (colWidths != null && colIdx < colWidths.size()) ? colWidths.get(colIdx) : 1200;
+                JcEnumeration align = (alignments != null && colIdx < alignments.size()) ? alignments.get(colIdx) : JcEnumeration.LEFT;
+
                 Tc tc = factory.createTc();
+                TcPr tcPr = factory.createTcPr();
+                
+                TblWidth tcW = factory.createTblWidth();
+                tcW.setType("dxa");
+                tcW.setW(BigInteger.valueOf(w));
+                tcPr.setTcW(tcW);
+
+                CTShd shd = factory.createCTShd();
+                shd.setVal(STShd.CLEAR);
+                shd.setColor("auto");
+                shd.setFill("EBF2F7");
+                tcPr.setShd(shd);
+
+                CTVerticalJc vAlign = factory.createCTVerticalJc();
+                vAlign.setVal(STVerticalJc.CENTER);
+                tcPr.setVAlign(vAlign);
+                tc.setTcPr(tcPr);
+
                 P p = factory.createP();
+                PPr ppr = factory.createPPr();
+                Jc pJc = factory.createJc();
+                pJc.setVal(align);
+                ppr.setJc(pJc);
+                p.setPPr(ppr);
+
                 R r = factory.createR();
                 RPr rpr = factory.createRPr();
                 rpr.setB(factory.createBooleanDefaultTrue());
+                RFonts fonts = factory.createRFonts();
+                fonts.setAscii("Book Antiqua");
+                fonts.setHAnsi("Book Antiqua");
+                rpr.setRFonts(fonts);
+
+                HpsMeasure sz = factory.createHpsMeasure();
+                sz.setVal(BigInteger.valueOf(fontSizeHalfPts));
+                rpr.setSz(sz);
+
+                Color color = factory.createColor();
+                color.setVal("0070C0");
+                rpr.setColor(color);
                 r.setRPr(rpr);
+
                 Text text = factory.createText();
                 text.setValue(val != null ? val : "");
                 r.getContent().add(text);
                 p.getContent().add(r);
                 tc.getContent().add(p);
-
-                TcPr tcPr = factory.createTcPr();
-                CTShd shd = factory.createCTShd();
-                shd.setVal(STShd.CLEAR);
-                shd.setColor("auto");
-                shd.setFill("F5F5F5");
-                tcPr.setShd(shd);
-                tc.setTcPr(tcPr);
 
                 footerTr.getContent().add(tc);
             }

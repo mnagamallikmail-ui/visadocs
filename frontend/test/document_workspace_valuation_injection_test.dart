@@ -176,11 +176,13 @@ void main() {
       await tester.pumpAndSettle();
 
       // Verify LAND_TABLE UI
-      expect(find.textContaining('Land Parcels Breakdown'), findsOneWidget);
+      expect(find.text('VALUE OF LAND'), findsOneWidget);
+      expect(find.text('<<LAND_TABLE>>'), findsOneWidget);
       expect(find.text('Add Parcel'), findsOneWidget);
 
       // Verify BUILDING_TABLE UI
-      expect(find.textContaining('Building Structures Breakdown'), findsOneWidget);
+      expect(find.text('VALUE OF BUILDING'), findsOneWidget);
+      expect(find.text('<<BUILDING_TABLE>>'), findsOneWidget);
       expect(find.text('Add Structure'), findsOneWidget);
 
       // Verify VALUE OF THE PROPERTY UI
@@ -192,7 +194,8 @@ void main() {
       expect(find.textContaining('Say (Rounded to nearest Lakh)'), findsOneWidget);
 
       // Verify VALUATION_SUMMARY_TABLE UI
-      expect(find.textContaining('Consolidated Valuation Summary Certificate'), findsOneWidget);
+      expect(find.text('SUMMARY OF VALUATION'), findsOneWidget);
+      expect(find.text('<<VALUATION_SUMMARY_TABLE>>'), findsOneWidget);
       expect(find.text('Total Fair Market Value:'), findsOneWidget);
     });
   });

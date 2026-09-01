@@ -317,8 +317,17 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                     const Icon(Icons.landscape_rounded, color: AppColors.deepTeal, size: 20),
                     const SizedBox(width: 8),
                     Text(
-                      'Land Parcels Breakdown (<<LAND_TABLE>>)',
+                      'VALUE OF LAND',
                       style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.deepTeal.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text('<<LAND_TABLE>>', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.deepTeal)),
                     ),
                   ],
                 ),
@@ -508,8 +517,17 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                     const Icon(Icons.apartment_rounded, color: AppColors.deepTeal, size: 20),
                     const SizedBox(width: 8),
                     Text(
-                      'Building Structures Breakdown (<<BUILDING_TABLE>>)',
+                      'VALUE OF BUILDING',
                       style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: AppColors.deepTeal.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: const Text('<<BUILDING_TABLE>>', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.deepTeal)),
                     ),
                   ],
                 ),
@@ -544,13 +562,13 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                         Expanded(flex: 2, child: Text('Structure', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         Expanded(flex: 2, child: Text('Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         Expanded(flex: 2, child: Text('Area (Sq.Ft)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 2, child: Text('Rate', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 2, child: Text('Repl Cost', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 2, child: Text('Rate (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 2, child: Text('Repl Cost (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         Expanded(flex: 1, child: Text('Age', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         Expanded(flex: 1, child: Text('Life', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         Expanded(flex: 1, child: Text('Dep %', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 2, child: Text('Depr Amt', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 2, child: Text('Building Value', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 2, child: Text('Depr (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 2, child: Text('Value (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         SizedBox(width: 36),
                       ],
                     ),
@@ -735,8 +753,8 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             padding: const EdgeInsets.all(16),
             child: Table(
               columnWidths: const {
-                0: FlexColumnWidth(4),
-                1: FlexColumnWidth(6),
+                0: FlexColumnWidth(5.5),
+                1: FlexColumnWidth(4.5),
               },
               children: [
                 TableRow(
@@ -803,9 +821,17 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Consolidated Valuation Summary Certificate (<<VALUATION_SUMMARY_TABLE>>)',
+                  'SUMMARY OF VALUATION',
                   style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink),
                 ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.deepTeal.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text('<<VALUATION_SUMMARY_TABLE>>', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.deepTeal)),
               ),
             ],
           ),
