@@ -744,17 +744,19 @@ public class DocumentWorkspaceService {
             }
         }
 
-        // Merge Valuation Engine Placeholders as Single Source of Truth
+        // Merge Valuation Engine Placeholders as fallback / bundle computation
         try {
             com.provaluer.dto.ValuationBundleResponse valBundle = valuationEngineService.getValuationBundle(orderId);
             if (valBundle != null && valBundle.getPlaceholders() != null) {
                 for (Map.Entry<String, String> entry : valBundle.getPlaceholders().entrySet()) {
                     String k = entry.getKey();
                     String v = entry.getValue();
-                    if (v != null && !v.trim().isEmpty()) {
-                        map.put(k, v);
-                    } else if (!map.containsKey(k)) {
-                        map.put(k, "");
+                    if (!map.containsKey(k) || map.get(k) == null || map.get(k).trim().isEmpty()) {
+                        if (v != null && !v.trim().isEmpty()) {
+                            map.put(k, v);
+                        } else {
+                            map.put(k, "");
+                        }
                     }
                 }
 
