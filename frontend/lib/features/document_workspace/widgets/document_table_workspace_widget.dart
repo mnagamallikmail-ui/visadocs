@@ -6,6 +6,7 @@ import '../../../theme/app_typography.dart';
 import '../../../utils/indian_number_formatter.dart';
 import '../../../utils/indian_currency_to_words.dart';
 import '../models/workspace_view_model.dart';
+import '../models/document_workspace_model.dart';
 import '../models/valuation_models.dart';
 import '../services/valuation_calculator.dart';
 import '../providers/document_workspace_provider.dart';
@@ -280,10 +281,10 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     return const SizedBox.shrink();
   }
 
-  // ─── Inline Valuation: LAND_TABLE ─────────────────────────────────────────
+  // ─── Inline Valuation: LAND_TABLE (Read-Only Preview from Valuation Engine) ─
   Widget _buildInlineLandSection(BuildContext context, DocumentWorkspaceProvider provider) {
     final landItems = provider.landItems;
-    final isReadOnly = provider.isReadOnly;
+    final data = provider.valuationData;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
@@ -331,53 +332,50 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                     ),
                   ],
                 ),
-                if (!isReadOnly)
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.deepTeal,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      textStyle: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
-                    ),
-                    icon: const Icon(Icons.add, size: 14),
-                    label: const Text('Add Parcel'),
-                    onPressed: provider.addLandItem,
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.deepTeal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    textStyle: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
                   ),
+                  icon: const Icon(Icons.calculate_outlined, size: 14),
+                  label: const Text('Edit in Valuation Engine'),
+                  onPressed: () => provider.setViewMode(WorkspaceViewMode.valuationEngine),
+                ),
               ],
             ),
           ),
 
-          // Scrollable Table Content
+          // Scrollable Table Content (Read-Only)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: SizedBox(
-              width: 960,
+              width: 900,
               child: Column(
                 children: [
                   // Table Header
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     color: AppColors.surfaceSoft,
                     child: Row(
                       children: const [
                         SizedBox(width: 44, child: Text('S.No', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
                         Expanded(flex: 4, child: Text('Description', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 2, child: Text('Entered Area', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 2, child: Text('Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 2, child: Text('Area & Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         Expanded(flex: 2, child: Text('Area (Sq.Ft)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 2, child: Text('Rate (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 2, child: Text('Amount (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        SizedBox(width: 36),
+                        Expanded(flex: 2, child: Text('Rate (₹/Unit)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 3, child: Text('Amount (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.right)),
                       ],
                     ),
                   ),
 
-                  // Dynamic Rows
+                  // Dynamic Read-Only Rows
                   ...landItems.asMap().entries.map((entry) {
                     final idx = entry.key;
                     final item = entry.value;
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
                       child: Row(
                         children: [
@@ -389,62 +387,41 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                               textAlign: TextAlign.center,
                             ),
                           ),
-                          Expanded(flex: 4, child: TextFormField(
-                            initialValue: item.description.isNotEmpty ? item.description : (item.surveyNo.isNotEmpty ? 'Plot (Sy.No.${item.surveyNo})' : ''),
-                            enabled: !isReadOnly,
-                            decoration: const InputDecoration(hintText: 'e.g. Commercial Plot (Sy.No.42/A)', isDense: true, border: OutlineInputBorder()),
-                            onChanged: (val) {
-                              item.description = val;
-                              provider.recalculateValuation();
-                            },
-                          )),
-                          const SizedBox(width: 6),
-                          Expanded(flex: 2, child: TextFormField(
-                            initialValue: item.enteredArea.toString(),
-                            enabled: !isReadOnly,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
-                            onChanged: (val) {
-                              item.enteredArea = double.tryParse(val) ?? 0;
-                              provider.recalculateValuation();
-                            },
-                          )),
-                          const SizedBox(width: 6),
-                          Expanded(flex: 2, child: DropdownButtonFormField<String>(
-                            isExpanded: true,
-                            value: ['Sq.Ft', 'Sq.Yd', 'Acre', 'Gunta', 'Hectare'].contains(item.enteredUnit) ? item.enteredUnit : 'Sq.Ft',
-                            items: ['Sq.Ft', 'Sq.Yd', 'Acre', 'Gunta', 'Hectare'].map((u) => DropdownMenuItem(value: u, child: Text(u, style: const TextStyle(fontSize: 11)))).toList(),
-                            onChanged: isReadOnly ? null : (val) {
-                              if (val != null) {
-                                item.enteredUnit = val;
-                                provider.recalculateValuation();
-                              }
-                            },
-                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
-                          )),
-                          const SizedBox(width: 6),
-                          Expanded(flex: 2, child: Text(IndianNumberFormatter.format(item.standardAreaSqft), style: GoogleFonts.firaCode(fontSize: 11))),
-                          const SizedBox(width: 6),
-                          Expanded(flex: 2, child: TextFormField(
-                            initialValue: item.rate.toString(),
-                            enabled: !isReadOnly,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
-                            onChanged: (val) {
-                              item.rate = double.tryParse(val) ?? 0;
-                              provider.recalculateValuation();
-                            },
-                          )),
-                          const SizedBox(width: 6),
-                          Expanded(flex: 2, child: Text(IndianNumberFormatter.format(item.value), style: GoogleFonts.firaCode(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary))),
-                          SizedBox(
-                            width: 36,
-                            child: isReadOnly || landItems.length <= 1
-                                ? null
-                                : IconButton(
-                                    icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.brandRedDark),
-                                    onPressed: () => provider.removeLandItem(idx),
-                                  ),
+                          Expanded(
+                            flex: 4,
+                            child: Text(
+                              item.description.isNotEmpty ? item.description : (item.surveyNo.isNotEmpty ? 'Plot (Sy.No.${item.surveyNo})' : 'Land Parcel ${idx + 1}'),
+                              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.ink),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              '${item.enteredArea} ${item.enteredUnit}',
+                              style: GoogleFonts.firaCode(fontSize: 11, color: AppColors.slate),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              IndianNumberFormatter.format(item.standardAreaSqft, includeDecimals: true),
+                              style: GoogleFonts.firaCode(fontSize: 11),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Text(
+                              '₹ ${IndianNumberFormatter.format(item.rate)}',
+                              style: GoogleFonts.firaCode(fontSize: 11),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 3,
+                            child: Text(
+                              '₹ ${IndianNumberFormatter.format(item.value)}',
+                              style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                              textAlign: TextAlign.right,
+                            ),
                           ),
                         ],
                       ),
@@ -455,20 +432,35 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             ),
           ),
 
-          // Total Row
+          // Total & Say Rows (Read-Only)
           Container(
             padding: const EdgeInsets.all(14),
             decoration: const BoxDecoration(
               color: AppColors.surfaceSoft,
               borderRadius: BorderRadius.vertical(bottom: Radius.circular(9)),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
               children: [
-                const Text('TOTAL LAND VALUE (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                Text(
-                  'INR ${IndianNumberFormatter.format(provider.valuationData?.totalLandValue ?? 0)}',
-                  style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('TOTAL LAND VALUE', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                    Text(
+                      '₹ ${IndianNumberFormatter.format(data?.totalLandValue ?? 0)}',
+                      style: GoogleFonts.firaCode(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.ink),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('SAY LAND VALUE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary)),
+                    Text(
+                      '₹ ${IndianNumberFormatter.format(data?.sayLandValue ?? 0)}',
+                      style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -478,10 +470,10 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     );
   }
 
-  // ─── Inline Valuation: BUILDING_TABLE ─────────────────────────────────────
+  // ─── Inline Valuation: BUILDING_TABLE (Read-Only Preview from Valuation Engine) ─
   Widget _buildInlineBuildingSection(BuildContext context, DocumentWorkspaceProvider provider) {
     final buildingItems = provider.buildingItems;
-    final isReadOnly = provider.isReadOnly;
+    final data = provider.valuationData;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
@@ -529,140 +521,96 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                     ),
                   ],
                 ),
-                if (!isReadOnly)
-                  ElevatedButton.icon(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.deepTeal,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      textStyle: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
-                    ),
-                    icon: const Icon(Icons.add, size: 14),
-                    label: const Text('Add Structure'),
-                    onPressed: provider.addBuildingItem,
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.deepTeal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    textStyle: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
                   ),
+                  icon: const Icon(Icons.calculate_outlined, size: 14),
+                  label: const Text('Edit in Valuation Engine'),
+                  onPressed: () => provider.setViewMode(WorkspaceViewMode.valuationEngine),
+                ),
               ],
             ),
           ),
-          // Scrollable Table Content
+          // Scrollable Table Content (Read-Only)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: SizedBox(
-              width: 1040,
+              width: 1000,
               child: Column(
                 children: [
                   // Table Header
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     color: AppColors.surfaceSoft,
                     child: Row(
                       children: const [
                         Expanded(flex: 3, child: Text('Description', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         Expanded(flex: 2, child: Text('Building Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         Expanded(flex: 2, child: Text('Area (Sq.Ft)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 2, child: Text('Rate (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 2, child: Text('Repl Cost (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 1, child: Text('Age', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 1, child: Text('Life', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 2, child: Text('Rate (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 2, child: Text('Repl Cost (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 1, child: Text('Age/Life', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         Expanded(flex: 1, child: Text('Dep %', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 2, child: Text('Depr (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 2, child: Text('Value (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        SizedBox(width: 36),
+                        Expanded(flex: 2, child: Text('Depr (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 3, child: Text('Net Value (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.right)),
                       ],
                     ),
                   ),
 
-                  // Dynamic Rows
+                  // Dynamic Read-Only Rows
                   ...buildingItems.asMap().entries.map((entry) {
-                    final idx = entry.key;
                     final item = entry.value;
                     return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                       decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
                       child: Row(
                         children: [
-                          Expanded(flex: 3, child: TextFormField(
-                            initialValue: item.description.isNotEmpty ? item.description : (item.structureType != 'Ground Floor' && item.structureType.isNotEmpty ? item.structureType : 'Commercial Building'),
-                            enabled: !isReadOnly,
-                            decoration: const InputDecoration(hintText: 'e.g. Commercial Office Building', isDense: true, border: OutlineInputBorder()),
-                            onChanged: (val) {
-                              item.description = val;
-                              provider.recalculateValuation();
-                            },
-                          )),
-                          const SizedBox(width: 4),
-                          Expanded(flex: 2, child: DropdownButtonFormField<String>(
-                            isExpanded: true,
-                            value: ['RCC Commercial', 'RCC Residential', 'Industrial Building', 'Warehouse', 'Steel Shed', 'PEB Structure'].contains(item.buildingType) ? item.buildingType : 'RCC Commercial',
-                            items: ['RCC Commercial', 'RCC Residential', 'Industrial Building', 'Warehouse', 'Steel Shed', 'PEB Structure'].map((b) => DropdownMenuItem(value: b, child: Text(b, style: const TextStyle(fontSize: 10)))).toList(),
-                            onChanged: isReadOnly ? null : (val) {
-                              if (val != null) {
-                                item.buildingType = val;
-                                provider.recalculateValuation();
-                              }
-                            },
-                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
-                          )),
-                          const SizedBox(width: 4),
-                          Expanded(flex: 2, child: TextFormField(
-                            initialValue: item.enteredArea.toString(),
-                            enabled: !isReadOnly,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
-                            onChanged: (val) {
-                              item.enteredArea = double.tryParse(val) ?? 0;
-                              provider.recalculateValuation();
-                            },
-                          )),
-                          const SizedBox(width: 4),
-                          Expanded(flex: 2, child: TextFormField(
-                            initialValue: item.replacementRate.toString(),
-                            enabled: !isReadOnly,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
-                            onChanged: (val) {
-                              item.replacementRate = double.tryParse(val) ?? 0;
-                              provider.recalculateValuation();
-                            },
-                          )),
-                          const SizedBox(width: 4),
-                          Expanded(flex: 2, child: Text(IndianNumberFormatter.format(item.replacementCost), style: GoogleFonts.firaCode(fontSize: 10))),
-                          const SizedBox(width: 4),
-                          Expanded(flex: 1, child: TextFormField(
-                            initialValue: item.buildingAge.toString(),
-                            enabled: !isReadOnly,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
-                            onChanged: (val) {
-                              item.buildingAge = double.tryParse(val) ?? 0;
-                              provider.recalculateValuation();
-                            },
-                          )),
-                          const SizedBox(width: 4),
-                          Expanded(flex: 1, child: TextFormField(
-                            initialValue: item.buildingUsefulLife.toString(),
-                            enabled: !isReadOnly,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
-                            onChanged: (val) {
-                              item.buildingUsefulLife = int.tryParse(val) ?? 60;
-                              provider.recalculateValuation();
-                            },
-                          )),
-                          const SizedBox(width: 4),
-                          Expanded(flex: 1, child: Text('${item.depreciationPercentage.toStringAsFixed(1)}%', style: GoogleFonts.firaCode(fontSize: 10))),
-                          const SizedBox(width: 4),
-                          Expanded(flex: 2, child: Text(IndianNumberFormatter.format(item.depreciationAmount), style: GoogleFonts.firaCode(fontSize: 10, color: AppColors.brandRedDark))),
-                          const SizedBox(width: 4),
-                          Expanded(flex: 2, child: Text(IndianNumberFormatter.format(item.buildingValue), style: GoogleFonts.firaCode(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary))),
-                          SizedBox(
-                            width: 36,
-                            child: isReadOnly || buildingItems.length <= 1
-                                ? null
-                                : IconButton(
-                                    icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.brandRedDark),
-                                    onPressed: () => provider.removeBuildingItem(idx),
-                                  ),
+                          Expanded(
+                            flex: 3,
+                            child: Text(
+                              item.description.isNotEmpty ? item.description : (item.structureType.isNotEmpty ? item.structureType : 'Commercial Building'),
+                              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.ink),
+                            ),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Text(item.buildingType, style: GoogleFonts.inter(fontSize: 11, color: AppColors.slate)),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Text(IndianNumberFormatter.format(item.enteredArea, includeDecimals: true), style: GoogleFonts.firaCode(fontSize: 11)),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Text('₹ ${IndianNumberFormatter.format(item.replacementRate)}', style: GoogleFonts.firaCode(fontSize: 11)),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Text('₹ ${IndianNumberFormatter.format(item.replacementCost)}', style: GoogleFonts.firaCode(fontSize: 11)),
+                          ),
+                          Expanded(
+                            flex: 1,
+                            child: Text('${item.buildingAge}/${item.buildingUsefulLife}y', style: GoogleFonts.firaCode(fontSize: 11)),
+                          ),
+                          Expanded(
+                            flex: 1,
+                            child: Text('${item.depreciationPercentage.toStringAsFixed(1)}%', style: GoogleFonts.firaCode(fontSize: 11)),
+                          ),
+                          Expanded(
+                            flex: 2,
+                            child: Text('₹ ${IndianNumberFormatter.format(item.depreciationAmount)}', style: GoogleFonts.firaCode(fontSize: 11, color: AppColors.brandRedDark)),
+                          ),
+                          Expanded(
+                            flex: 3,
+                            child: Text(
+                              '₹ ${IndianNumberFormatter.format(item.buildingValue)}',
+                              style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                              textAlign: TextAlign.right,
+                            ),
                           ),
                         ],
                       ),
@@ -673,20 +621,35 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             ),
           ),
 
-          // Total Row
+          // Total & Say Rows (Read-Only)
           Container(
             padding: const EdgeInsets.all(14),
             decoration: const BoxDecoration(
               color: AppColors.surfaceSoft,
               borderRadius: BorderRadius.vertical(bottom: Radius.circular(9)),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
               children: [
-                const Text('TOTAL BUILDING VALUE (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
-                Text(
-                  'INR ${IndianNumberFormatter.format(provider.valuationData?.totalBuildingValue ?? 0)}',
-                  style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('TOTAL BUILDING VALUE', style: TextStyle(fontWeight: FontWeight.w600, fontSize: 12)),
+                    Text(
+                      '₹ ${IndianNumberFormatter.format(data?.totalBuildingValue ?? 0)}',
+                      style: GoogleFonts.firaCode(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.ink),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text('SAY BUILDING VALUE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.primary)),
+                    Text(
+                      '₹ ${IndianNumberFormatter.format(data?.sayBuildingValue ?? 0)}',
+                      style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
+                    ),
+                  ],
                 ),
               ],
             ),
@@ -696,13 +659,13 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     );
   }
 
-  // ─── Inline Valuation: VALUE OF THE PROPERTY TABLE ─────────────────────────
+  // ─── Inline Valuation: VALUE OF THE PROPERTY TABLE (Read-Only) ────────────
   Widget _buildInlinePropertySection(BuildContext context, DocumentWorkspaceProvider provider) {
     final data = provider.valuationData;
-    final landVal = data?.totalLandValue ?? 0.0;
-    final bldgVal = data?.totalBuildingValue ?? 0.0;
+    final landVal = data?.sayLandValue != null && data!.sayLandValue > 0 ? data.sayLandValue : (data?.totalLandValue ?? 0.0);
+    final bldgVal = data?.sayBuildingValue != null && data!.sayBuildingValue > 0 ? data.sayBuildingValue : (data?.totalBuildingValue ?? 0.0);
     final fairVal = data?.fairValue ?? 0.0;
-    final sayVal = ValuationCalculator.computeSayValue(fairVal);
+    final sayVal = data?.fairValue ?? 0.0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
@@ -736,10 +699,16 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                   style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink),
                 ),
                 const Spacer(),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(4)),
-                  child: const Text('CALCULATED SUMMARY', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    textStyle: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                  icon: const Icon(Icons.calculate_outlined, size: 14),
+                  label: const Text('Edit in Valuation Engine'),
+                  onPressed: () => provider.setViewMode(WorkspaceViewMode.valuationEngine),
                 ),
               ],
             ),
@@ -752,7 +721,6 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 1: FlexColumnWidth(4.5),
               },
               children: [
-                // Table Header
                 TableRow(
                   decoration: const BoxDecoration(color: AppColors.surfaceSoft, border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
                   children: [
@@ -763,14 +731,14 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 TableRow(
                   decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
                   children: [
-                    Padding(padding: const EdgeInsets.all(10), child: Text('Value of Land', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600))),
+                    Padding(padding: const EdgeInsets.all(10), child: Text('Value of Land (Say Land)', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600))),
                     Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(landVal)}', style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold))),
                   ],
                 ),
                 TableRow(
                   decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
                   children: [
-                    Padding(padding: const EdgeInsets.all(10), child: Text('Value of Buildings', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600))),
+                    Padding(padding: const EdgeInsets.all(10), child: Text('Value of Buildings (Say Bldg)', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600))),
                     Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(bldgVal)}', style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold))),
                   ],
                 ),
@@ -796,17 +764,15 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     );
   }
 
-  // ─── Inline Valuation: VALUATION_SUMMARY_TABLE ────────────────────────────
+  // ─── Inline Valuation: 4-Column VALUATION SUMMARY (Read-Only from Engine) ──
   Widget _buildInlineSummarySection(BuildContext context, DocumentWorkspaceProvider provider) {
     final data = provider.valuationData;
     if (data == null) return const SizedBox.shrink();
 
-    final isReadOnly = provider.isReadOnly;
     final insurableVal = data.insurableValue > 0 ? data.insurableValue : data.totalReplacementCost;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
-      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(10),
@@ -818,201 +784,177 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Row(
-            children: [
-              const Icon(Icons.verified_rounded, color: AppColors.successAccent, size: 22),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'SUMMARY OF VALUATION',
-                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink),
-                ),
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.deepTeal.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: const Text('<<VALUATION_SUMMARY_TABLE>>', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.deepTeal)),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildSummaryDetailRow('Total Land Value:', '₹ ${IndianNumberFormatter.format(data.totalLandValue)}', IndianCurrencyToWords.convertToWords(data.totalLandValue)),
-          const Divider(height: 18),
-          _buildSummaryDetailRow('Total Building Value:', '₹ ${IndianNumberFormatter.format(data.totalBuildingValue)}', IndianCurrencyToWords.convertToWords(data.totalBuildingValue)),
-          const Divider(height: 18),
-          _buildSummaryDetailRow('Total Fair Market Value:', '₹ ${IndianNumberFormatter.format(data.fairValue)}', IndianCurrencyToWords.convertToWords(data.fairValue), isHighlight: true),
-          const Divider(height: 18),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        SizedBox(
-                          width: 80,
-                          child: TextFormField(
-                            initialValue: data.realizablePercentage.toString(),
-                            enabled: !isReadOnly,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(
-                              labelText: 'Realizable %',
-                              isDense: true,
-                              suffixText: '%',
-                              border: OutlineInputBorder(),
-                            ),
-                            onChanged: (val) {
-                              data.realizablePercentage = double.tryParse(val) ?? 85.0;
-                              provider.recalculateValuation();
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildSummaryDetailRow(
-                            'Realizable Value (${data.realizablePercentage}%):',
-                            '₹ ${IndianNumberFormatter.format(data.realizableValue)}',
-                            IndianCurrencyToWords.convertToWords(data.realizableValue),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        SizedBox(
-                          width: 80,
-                          child: TextFormField(
-                            initialValue: data.distressSalePercentage.toString(),
-                            enabled: !isReadOnly,
-                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                            decoration: const InputDecoration(
-                              labelText: 'Distress %',
-                              isDense: true,
-                              suffixText: '%',
-                              border: OutlineInputBorder(),
-                            ),
-                            onChanged: (val) {
-                              data.distressSalePercentage = double.tryParse(val) ?? 75.0;
-                              provider.recalculateValuation();
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: _buildSummaryDetailRow(
-                            'Distress Sale Value (${data.distressSalePercentage}%):',
-                            '₹ ${IndianNumberFormatter.format(data.distressSaleValue)}',
-                            IndianCurrencyToWords.convertToWords(data.distressSaleValue),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const Divider(height: 18),
-          _buildSummaryDetailRow('Insurable Value (Total Building Replacement Cost):', '₹ ${IndianNumberFormatter.format(insurableVal)}', IndianCurrencyToWords.convertToWords(insurableVal)),
-          const Divider(height: 18),
-          
-          // Government Value Section with Dynamic Calculation & Override
+          // Section Header
           Container(
-            padding: const EdgeInsets.all(12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: AppColors.surfaceSoft,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.hairlineSoft),
+              color: AppColors.deepTeal.withValues(alpha: 0.08),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(9)),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Government / Guideline Rates', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.ink)),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: AppColors.deepTeal.withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
+                const Icon(Icons.verified_rounded, color: AppColors.successAccent, size: 22),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Row(
+                    children: [
+                      Text(
+                        'SUMMARY OF VALUATION',
+                        style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink),
                       ),
-                      child: const Text('STATUTORY CALCULATION', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.deepTeal)),
-                    ),
-                  ],
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.deepTeal.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text('<<VALUATION_SUMMARY_TABLE>>', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.deepTeal)),
+                      ),
+                    ],
+                  ),
                 ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        initialValue: '12000',
-                        enabled: !isReadOnly,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(
-                          labelText: 'Govt Land Rate (₹/Sq.Yd)',
-                          isDense: true,
-                          border: OutlineInputBorder(),
-                        ),
-                        onChanged: (val) {
-                          provider.recalculateValuation();
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextFormField(
-                        initialValue: '2100',
-                        enabled: !isReadOnly,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(
-                          labelText: 'Govt RCC Rate (₹/Sq.Ft)',
-                          isDense: true,
-                          border: OutlineInputBorder(),
-                        ),
-                        onChanged: (val) {
-                          provider.recalculateValuation();
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: TextFormField(
-                        initialValue: '1500',
-                        enabled: !isReadOnly,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(
-                          labelText: 'Govt Steel Rate (₹/Sq.Ft)',
-                          isDense: true,
-                          border: OutlineInputBorder(),
-                        ),
-                        onChanged: (val) {
-                          provider.recalculateValuation();
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                _buildSummaryDetailRow(
-                  'Calculated Government Value:',
-                  '₹ ${IndianNumberFormatter.format(data.governmentValue)}',
-                  IndianCurrencyToWords.convertToWords(data.governmentValue),
+                ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.deepTeal,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    textStyle: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
+                  ),
+                  icon: const Icon(Icons.calculate_outlined, size: 14),
+                  label: const Text('Edit in Valuation Engine'),
+                  onPressed: () => provider.setViewMode(WorkspaceViewMode.valuationEngine),
                 ),
               ],
+            ),
+          ),
+
+          // 4-Column Live Valuation Summary Grid Table matching DOCX output (Read-Only)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.hairlineSoft),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                children: [
+                  // Table Header
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF3494BA),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
+                    ),
+                    child: Row(
+                      children: const [
+                        Expanded(flex: 3, child: Text('VALUATION PARAMETER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white))),
+                        Expanded(flex: 2, child: Text('LAND (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white), textAlign: TextAlign.right)),
+                        Expanded(flex: 2, child: Text('BUILDING (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white), textAlign: TextAlign.right)),
+                        Expanded(flex: 2, child: Text('TOTAL (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white), textAlign: TextAlign.right)),
+                      ],
+                    ),
+                  ),
+                  // Row 1: Fair Value (Say Land + Say Bldg)
+                  _buildInlineSummaryTableRow(
+                    'Fair Market Value (Say Land + Say Bldg)',
+                    '₹ ${IndianNumberFormatter.format(data.sayLandValue)}',
+                    '₹ ${IndianNumberFormatter.format(data.sayBuildingValue)}',
+                    '₹ ${IndianNumberFormatter.format(data.fairValue)}',
+                    isHighlight: true,
+                  ),
+                  const Divider(height: 1),
+                  // Row 2: Realizable Value
+                  _buildInlineSummaryTableRow(
+                    'Realizable Value (${data.landRealizablePercentage}% Land, ${data.buildingRealizablePercentage}% Bldg)',
+                    '₹ ${IndianNumberFormatter.format(data.landRealizableValue)}',
+                    '₹ ${IndianNumberFormatter.format(data.buildingRealizableValue)}',
+                    '₹ ${IndianNumberFormatter.format(data.realizableValue)}',
+                  ),
+                  const Divider(height: 1),
+                  // Row 3: Distress Sale Value
+                  _buildInlineSummaryTableRow(
+                    'Distress Sale Value (${data.landDistressPercentage}% Land, ${data.buildingDistressPercentage}% Bldg)',
+                    '₹ ${IndianNumberFormatter.format(data.landDistressValue)}',
+                    '₹ ${IndianNumberFormatter.format(data.buildingDistressValue)}',
+                    '₹ ${IndianNumberFormatter.format(data.distressSaleValue)}',
+                  ),
+                  const Divider(height: 1),
+                  // Row 4: Government Value
+                  _buildInlineSummaryTableRow(
+                    'Government / Guideline Value',
+                    '₹ ${IndianNumberFormatter.format(data.landGovernmentValue)}',
+                    '₹ ${IndianNumberFormatter.format(data.buildingGovernmentValue)}',
+                    '₹ ${IndianNumberFormatter.format(data.governmentValue)}',
+                    isHighlight: true,
+                  ),
+                  const Divider(height: 1),
+                  // Row 5: Insurable Value
+                  _buildInlineSummaryTableRow(
+                    'Insurable Value (Replacement Cost)',
+                    'N/A',
+                    '₹ ${IndianNumberFormatter.format(insurableVal)}',
+                    '₹ ${IndianNumberFormatter.format(insurableVal)}',
+                  ),
+                ],
+              ),
+            ),
+          ),
+
+          // Total in words footer
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+            child: _buildSummaryDetailRow(
+              'Total Fair Market Value (in words):',
+              '₹ ${IndianNumberFormatter.format(data.fairValue)}',
+              IndianCurrencyToWords.convertToWords(data.fairValue),
+              isHighlight: true,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildInlineSummaryTableRow(String label, String land, String bldg, String total, {bool isHighlight = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      color: isHighlight ? const Color(0xFFF3F9FA) : Colors.white,
+      child: Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: isHighlight ? FontWeight.bold : FontWeight.w500,
+                fontSize: 12,
+                color: isHighlight ? AppColors.primary : AppColors.ink,
+              ),
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              land,
+              style: GoogleFonts.firaCode(fontSize: 12, fontWeight: isHighlight ? FontWeight.bold : FontWeight.normal),
+              textAlign: TextAlign.right,
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              bldg,
+              style: GoogleFonts.firaCode(fontSize: 12, fontWeight: isHighlight ? FontWeight.bold : FontWeight.normal),
+              textAlign: TextAlign.right,
+            ),
+          ),
+          Expanded(
+            flex: 2,
+            child: Text(
+              total,
+              style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: isHighlight ? AppColors.primary : AppColors.ink),
+              textAlign: TextAlign.right,
             ),
           ),
         ],

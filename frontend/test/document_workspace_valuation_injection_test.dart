@@ -175,31 +175,25 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Verify LAND_TABLE UI
+      // Verify LAND_TABLE UI & Edit in Valuation Engine
       expect(find.text('VALUE OF LAND'), findsOneWidget);
       expect(find.text('<<LAND_TABLE>>'), findsOneWidget);
-      expect(find.text('Add Parcel'), findsOneWidget);
+      expect(find.text('Edit in Valuation Engine'), findsWidgets);
 
       // Verify BUILDING_TABLE UI
       expect(find.text('VALUE OF BUILDING'), findsOneWidget);
       expect(find.text('<<BUILDING_TABLE>>'), findsOneWidget);
-      expect(find.text('Add Structure'), findsOneWidget);
 
       // Verify VALUE OF THE PROPERTY UI
       expect(find.text('VALUE OF THE PROPERTY'), findsOneWidget);
-      expect(find.text('CALCULATED SUMMARY'), findsOneWidget);
-      expect(find.text('Particulars'), findsOneWidget);
-      expect(find.text('Amount (₹)'), findsOneWidget);
-      expect(find.text('Value of Land'), findsOneWidget);
-      expect(find.text('Value of Buildings'), findsOneWidget);
-      expect(find.text('Total'), findsOneWidget);
-      expect(find.text('Say'), findsOneWidget);
+      expect(find.text('VALUATION PARAMETER'), findsWidgets);
+      expect(find.text('LAND (₹)'), findsWidgets);
+      expect(find.text('BUILDING (₹)'), findsWidgets);
+      expect(find.text('TOTAL (₹)'), findsWidgets);
 
       // Verify VALUATION_SUMMARY_TABLE UI
       expect(find.text('SUMMARY OF VALUATION'), findsOneWidget);
       expect(find.text('<<VALUATION_SUMMARY_TABLE>>'), findsOneWidget);
-      expect(find.text('Total Fair Market Value:'), findsOneWidget);
-      expect(find.text('Calculated Government Value:'), findsOneWidget);
     });
   });
 }
