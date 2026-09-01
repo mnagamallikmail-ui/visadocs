@@ -15,6 +15,9 @@ public class ValuationCalculationFormulaService {
 
     /**
      * Calculates values for a single land parcel.
+     * Phase 1: Rate belongs to the selected unit (e.g. ₹ / Sq.Yd, ₹ / Sq.Ft, ₹ / Acre).
+     * Value = enteredArea * rate.
+     * standardAreaSqft is maintained for standardized display and statutory / government calculations.
      */
     public void calculateLandItem(ValuationLandItem item) {
         if (item == null) return;
@@ -25,12 +28,13 @@ public class ValuationCalculationFormulaService {
         BigDecimal standardAreaSqft = UnitConversionEngine.toStandardSqFt(enteredArea, enteredUnit);
         item.setStandardAreaSqft(standardAreaSqft);
 
-        BigDecimal value = standardAreaSqft.multiply(rate).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal value = enteredArea.multiply(rate).setScale(2, RoundingMode.HALF_UP);
         item.setValue(value);
     }
 
     /**
      * Calculates replacement cost, depreciation, and building value for a single structure item.
+     * Phase 2: PEB Structures and Steel Sheds default to 40 years useful life.
      */
     public void calculateBuildingItem(ValuationBuildingItem item) {
         if (item == null) return;
@@ -38,7 +42,22 @@ public class ValuationCalculationFormulaService {
         String enteredUnit = item.getEnteredUnit() != null ? item.getEnteredUnit() : "Sq.Ft";
         BigDecimal replacementRate = item.getReplacementRate() != null ? item.getReplacementRate() : BigDecimal.ZERO;
         BigDecimal buildingAge = item.getBuildingAge() != null ? item.getBuildingAge() : BigDecimal.ZERO;
-        int usefulLife = item.getBuildingUsefulLife() > 0 ? item.getBuildingUsefulLife() : 60;
+
+        String bType = (item.getBuildingType() != null ? item.getBuildingType() : "").toLowerCase();
+        String desc = (item.getDescription() != null ? item.getDescription() : "").toLowerCase();
+        String struct = (item.getStructureType() != null ? item.getStructureType() : "").toLowerCase();
+
+        int usefulLife = item.getBuildingUsefulLife();
+        if (usefulLife <= 0 || (usefulLife == 60 && (bType.contains("peb") || bType.contains("shed") || desc.contains("peb") || desc.contains("shed") || struct.contains("shed")))) {
+            if (bType.contains("peb") || bType.contains("shed") || desc.contains("peb") || desc.contains("shed") || struct.contains("shed")) {
+                usefulLife = 40;
+                item.setBuildingUsefulLife(40);
+            } else {
+                usefulLife = 60;
+                item.setBuildingUsefulLife(60);
+            }
+        }
+
         BigDecimal salvagePercentage = item.getSalvagePercentage() != null ? item.getSalvagePercentage() : new BigDecimal("10.00");
 
         // 1. Standard Area
@@ -73,6 +92,7 @@ public class ValuationCalculationFormulaService {
 
     /**
      * Aggregates land items, building items, and updates the overall ValuationData totals.
+     * Implements Say Value driven model, separate realizable/distress percentages, and component breakdowns.
      */
     public void calculateSummary(ValuationData data, List<ValuationLandItem> landItems, List<ValuationBuildingItem> buildingItems) {
         if (data == null) return;
@@ -113,48 +133,63 @@ public class ValuationCalculationFormulaService {
         data.setTotalSalvageValue(totalSalvage.setScale(2, RoundingMode.HALF_UP));
         data.setTotalBuildingValue(totalBuilding.setScale(2, RoundingMode.HALF_UP));
 
-        // 3. Fair Value = Total Land + Total Building
-        BigDecimal fairValue = totalLand.add(totalBuilding).setScale(2, RoundingMode.HALF_UP);
+        // 3. Say Values (Phase 4): Say Land Value & Say Building Value
+        BigDecimal sayLand = computeSayValue(totalLand);
+        BigDecimal sayBldg = computeSayValue(totalBuilding);
+        data.setSayLandValue(sayLand);
+        data.setSayBuildingValue(sayBldg);
+
+        // 4. Fair Value = Say Land Value + Say Building Value (NOT raw totals) (Phase 4 & 9)
+        BigDecimal fairValue = sayLand.add(sayBldg).setScale(2, RoundingMode.HALF_UP);
         data.setFairValue(fairValue);
 
-        // 4. Realizable Value = Fair Value * realizable_percentage / 100
-        BigDecimal realizablePct = data.getRealizablePercentage() != null ? data.getRealizablePercentage() : new BigDecimal("85.00");
-        BigDecimal realizableVal = fairValue.multiply(realizablePct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        data.setRealizableValue(realizableVal);
+        // 5. Separate Realizable Percentages (Phase 6 & 10)
+        BigDecimal landRealPct = data.getLandRealizablePercentage() != null ? data.getLandRealizablePercentage() : new BigDecimal("85.00");
+        BigDecimal bldgRealPct = data.getBuildingRealizablePercentage() != null ? data.getBuildingRealizablePercentage() : new BigDecimal("85.00");
+        data.setLandRealizablePercentage(landRealPct);
+        data.setBuildingRealizablePercentage(bldgRealPct);
 
-        // 5. Distress Sale Value = Fair Value * distress_sale_percentage / 100
-        BigDecimal distressPct = data.getDistressSalePercentage() != null ? data.getDistressSalePercentage() : new BigDecimal("75.00");
-        BigDecimal distressVal = fairValue.multiply(distressPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        data.setDistressSaleValue(distressVal);
+        BigDecimal landRealVal = sayLand.multiply(landRealPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal bldgRealVal = sayBldg.multiply(bldgRealPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal totalRealVal = landRealVal.add(bldgRealVal).setScale(2, RoundingMode.HALF_UP);
 
-        // 6. Insurable Value = Total Replacement Cost (Building replacement costs only, excluding land)
+        data.setLandRealizableValue(landRealVal);
+        data.setBuildingRealizableValue(bldgRealVal);
+        data.setRealizableValue(totalRealVal);
+
+        // 6. Separate Distress Percentages (Phase 7 & 11)
+        BigDecimal landDistPct = data.getLandDistressPercentage() != null ? data.getLandDistressPercentage() : new BigDecimal("75.00");
+        BigDecimal bldgDistPct = data.getBuildingDistressPercentage() != null ? data.getBuildingDistressPercentage() : new BigDecimal("75.00");
+        data.setLandDistressPercentage(landDistPct);
+        data.setBuildingDistressPercentage(bldgDistPct);
+
+        BigDecimal landDistVal = sayLand.multiply(landDistPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal bldgDistVal = sayBldg.multiply(bldgDistPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal totalDistVal = landDistVal.add(bldgDistVal).setScale(2, RoundingMode.HALF_UP);
+
+        data.setLandDistressValue(landDistVal);
+        data.setBuildingDistressValue(bldgDistVal);
+        data.setDistressSaleValue(totalDistVal);
+
+        // 7. Insurable Value = Total Replacement Cost of Buildings (Phase 13)
         BigDecimal insurableValue = totalReplCost.setScale(2, RoundingMode.HALF_UP);
         data.setInsurableValue(insurableValue);
 
-        // 7. Government Value calculation: (Land Area * Govt Land Rate) + (RCC Area * Govt RCC Rate) + (Steel Area * Govt Steel Rate)
+        // 8. Government Values (Phase 12)
+        BigDecimal landGovt = calculateLandGovernmentValue(landItems, new BigDecimal("5500"));
+        BigDecimal bldgGovt = calculateBuildingGovernmentValue(buildingItems, new BigDecimal("2400"), new BigDecimal("1900"));
+        data.setLandGovernmentValue(landGovt);
+        data.setBuildingGovernmentValue(bldgGovt);
+
         if (data.getGovernmentValue() == null || data.getGovernmentValue().compareTo(BigDecimal.ZERO) == 0) {
-            BigDecimal govtVal = calculateGovernmentValue(landItems, buildingItems, new BigDecimal("5500"), new BigDecimal("2400"), new BigDecimal("1900"));
-            data.setGovernmentValue(govtVal);
+            data.setGovernmentValue(landGovt.add(bldgGovt).setScale(2, RoundingMode.HALF_UP));
         }
     }
 
-    /**
-     * Calculates Government Value according to statutory formula:
-     * (Land Area * Govt Land Rate) + (RCC Area * Govt RCC Rate) + (Steel Area * Govt Steel Rate)
-     */
-    public BigDecimal calculateGovernmentValue(List<ValuationLandItem> landItems,
-                                               List<ValuationBuildingItem> buildingItems,
-                                               BigDecimal govtLandRate,
-                                               BigDecimal govtRccRate,
-                                               BigDecimal govtSteelRate) {
+    public BigDecimal calculateLandGovernmentValue(List<ValuationLandItem> landItems, BigDecimal govtLandRate) {
         BigDecimal totalGovt = BigDecimal.ZERO;
-
         BigDecimal landRate = (govtLandRate != null && govtLandRate.compareTo(BigDecimal.ZERO) > 0)
                 ? govtLandRate : new BigDecimal("5500");
-        BigDecimal rccRate = (govtRccRate != null && govtRccRate.compareTo(BigDecimal.ZERO) > 0)
-                ? govtRccRate : new BigDecimal("2400");
-        BigDecimal steelRate = (govtSteelRate != null && govtSteelRate.compareTo(BigDecimal.ZERO) > 0)
-                ? govtSteelRate : new BigDecimal("1900");
 
         if (landItems != null) {
             for (ValuationLandItem l : landItems) {
@@ -162,6 +197,15 @@ public class ValuationCalculationFormulaService {
                 totalGovt = totalGovt.add(area.multiply(landRate));
             }
         }
+        return totalGovt.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    public BigDecimal calculateBuildingGovernmentValue(List<ValuationBuildingItem> buildingItems, BigDecimal govtRccRate, BigDecimal govtSteelRate) {
+        BigDecimal totalGovt = BigDecimal.ZERO;
+        BigDecimal rccRate = (govtRccRate != null && govtRccRate.compareTo(BigDecimal.ZERO) > 0)
+                ? govtRccRate : new BigDecimal("2400");
+        BigDecimal steelRate = (govtSteelRate != null && govtSteelRate.compareTo(BigDecimal.ZERO) > 0)
+                ? govtSteelRate : new BigDecimal("1900");
 
         if (buildingItems != null) {
             for (ValuationBuildingItem b : buildingItems) {
@@ -170,14 +214,38 @@ public class ValuationCalculationFormulaService {
                 String desc = (b.getDescription() != null ? b.getDescription() : "").toLowerCase();
                 String struct = (b.getStructureType() != null ? b.getStructureType() : "").toLowerCase();
 
-                if (bType.contains("steel") || desc.contains("steel") || struct.contains("steel") || desc.contains("shed")) {
+                if (bType.contains("steel") || desc.contains("steel") || struct.contains("steel") || desc.contains("shed") || bType.contains("peb") || desc.contains("peb")) {
                     totalGovt = totalGovt.add(area.multiply(steelRate));
                 } else {
                     totalGovt = totalGovt.add(area.multiply(rccRate));
                 }
             }
         }
-
         return totalGovt.setScale(2, RoundingMode.HALF_UP);
+    }
+
+    public BigDecimal calculateGovernmentValue(List<ValuationLandItem> landItems,
+                                               List<ValuationBuildingItem> buildingItems,
+                                               BigDecimal govtLandRate,
+                                               BigDecimal govtRccRate,
+                                               BigDecimal govtSteelRate) {
+        BigDecimal landGovt = calculateLandGovernmentValue(landItems, govtLandRate);
+        BigDecimal bldgGovt = calculateBuildingGovernmentValue(buildingItems, govtRccRate, govtSteelRate);
+        return landGovt.add(bldgGovt).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Presentation Say Value: Rounded to nearest Lakh when value >= 1 Crore.
+     */
+    public static BigDecimal computeSayValue(BigDecimal value) {
+        if (value == null) return BigDecimal.ZERO;
+        BigDecimal oneCrore = new BigDecimal("10000000");
+        BigDecimal oneLakh = new BigDecimal("100000");
+        if (value.compareTo(oneCrore) >= 0) {
+            BigDecimal roundedInLakhs = value.divide(oneLakh, 0, RoundingMode.HALF_UP);
+            return roundedInLakhs.multiply(oneLakh).setScale(2, RoundingMode.HALF_UP);
+        } else {
+            return value.setScale(2, RoundingMode.HALF_UP);
+        }
     }
 }

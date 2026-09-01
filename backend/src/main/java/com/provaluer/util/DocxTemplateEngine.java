@@ -743,8 +743,20 @@ public class DocxTemplateEngine {
             ));
         }
 
-        String totalLandVal = "₹ " + formatIndian(inputs != null ? inputs.getOrDefault("TOTAL_LAND_VALUE", inputs.getOrDefault("total_land_value", "0")) : "0");
-        return createDocxTableWithMergedTotal(headers, colWidths, rows, "TOTAL LAND VALUE", totalLandVal, 18, alignments);
+        String rawTotalLand = inputs != null ? inputs.getOrDefault("TOTAL_LAND_VALUE", inputs.getOrDefault("total_land_value", "0")) : "0";
+        String rawSayLand = inputs != null ? inputs.getOrDefault("SAY_LAND_VALUE", inputs.getOrDefault("say_land_value", rawTotalLand)) : rawTotalLand;
+        if (rawSayLand.equals("0") || rawSayLand.trim().isEmpty()) {
+            rawSayLand = rawTotalLand;
+        }
+
+        String totalLandVal = "₹ " + formatIndian(rawTotalLand);
+        String sayLandVal = "₹ " + formatIndian(rawSayLand);
+
+        List<Map.Entry<String, String>> totals = List.of(
+                Map.entry("TOTAL LAND VALUE", totalLandVal),
+                Map.entry("SAY LAND VALUE", sayLandVal)
+        );
+        return createDocxTableWithMultipleMergedTotals(headers, colWidths, rows, totals, 18, alignments);
     }
 
     private Tbl buildDynamicBuildingTable(Map<String, String> inputs) {
@@ -799,29 +811,59 @@ public class DocxTemplateEngine {
             ));
         }
 
-        String totalBldgVal = "₹ " + formatIndian(inputs != null ? inputs.getOrDefault("TOTAL_BUILDING_VALUE", inputs.getOrDefault("total_building_value", "0")) : "0");
-        return createDocxTableWithMergedTotal(headers, colWidths, rows, "TOTAL BUILDING VALUE", totalBldgVal, 17, alignments);
+        String rawTotalBldg = inputs != null ? inputs.getOrDefault("TOTAL_BUILDING_VALUE", inputs.getOrDefault("total_building_value", "0")) : "0";
+        String rawSayBldg = inputs != null ? inputs.getOrDefault("SAY_BUILDING_VALUE", inputs.getOrDefault("say_building_value", rawTotalBldg)) : rawTotalBldg;
+        if (rawSayBldg.equals("0") || rawSayBldg.trim().isEmpty()) {
+            rawSayBldg = rawTotalBldg;
+        }
+
+        String totalBldgVal = "₹ " + formatIndian(rawTotalBldg);
+        String sayBldgVal = "₹ " + formatIndian(rawSayBldg);
+
+        List<Map.Entry<String, String>> totals = List.of(
+                Map.entry("TOTAL BUILDING VALUE", totalBldgVal),
+                Map.entry("SAY BUILDING VALUE", sayBldgVal)
+        );
+        return createDocxTableWithMultipleMergedTotals(headers, colWidths, rows, totals, 17, alignments);
     }
 
     private Tbl buildDynamicValuationSummaryTable(Map<String, String> inputs) {
-        List<String> headers = List.of("VALUATION PARAMETER", "ASSESSED VALUE");
-        List<Integer> colWidths = List.of(5600, 4000);
-        List<JcEnumeration> alignments = List.of(JcEnumeration.LEFT, JcEnumeration.RIGHT);
+        List<String> headers = List.of("VALUATION PARAMETER", "LAND (₹)", "BUILDING (₹)", "TOTAL (₹)");
+        List<Integer> colWidths = List.of(3600, 2000, 2000, 2000);
+        List<JcEnumeration> alignments = List.of(JcEnumeration.LEFT, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.RIGHT);
         List<List<String>> rows = new ArrayList<>();
-        if (inputs != null) {
-            String fairVal = formatIndian(inputs.getOrDefault("FAIR_VALUE", inputs.getOrDefault("fair_value", "0")));
-            String realVal = formatIndian(inputs.getOrDefault("REALIZABLE_VALUE", inputs.getOrDefault("realizable_value", "0")));
-            String distVal = formatIndian(inputs.getOrDefault("DISTRESS_SALE_VALUE", inputs.getOrDefault("distress_sale_value", "0")));
-            String govtVal = formatIndian(inputs.getOrDefault("GOVERNMENT_VALUE", inputs.getOrDefault("government_value", "0")));
-            String insVal = formatIndian(inputs.getOrDefault("INSURABLE_VALUE", inputs.getOrDefault("insurable_value", inputs.getOrDefault("TOTAL_REPLACEMENT_COST", "0"))));
 
-            rows.add(List.of("Fair Value", "₹ " + fairVal));
-            rows.add(List.of("Realizable Value", "₹ " + realVal));
-            rows.add(List.of("Distress Sale Value", "₹ " + distVal));
-            rows.add(List.of("Government Value", "₹ " + govtVal));
-            rows.add(List.of("Insurable Value", "₹ " + insVal));
+        if (inputs != null) {
+            // 1. Fair Value Row (Phase 9): Say Land Value | Say Building Value | Fair Value
+            String sayLandVal = formatIndian(inputs.getOrDefault("SAY_LAND_VALUE", inputs.getOrDefault("say_land_value", inputs.getOrDefault("TOTAL_LAND_VALUE", "0"))));
+            String sayBldgVal = formatIndian(inputs.getOrDefault("SAY_BUILDING_VALUE", inputs.getOrDefault("say_building_value", inputs.getOrDefault("TOTAL_BUILDING_VALUE", "0"))));
+            String fairVal = formatIndian(inputs.getOrDefault("FAIR_VALUE", inputs.getOrDefault("fair_value", "0")));
+            rows.add(List.of("Fair Value", "₹ " + sayLandVal, "₹ " + sayBldgVal, "₹ " + fairVal));
+
+            // 2. Realizable Value Row (Phase 10): Land Realizable | Building Realizable | Total Realizable
+            String landReal = formatIndian(inputs.getOrDefault("LAND_REALIZABLE_VALUE", inputs.getOrDefault("land_realizable_value", "0")));
+            String bldgReal = formatIndian(inputs.getOrDefault("BUILDING_REALIZABLE_VALUE", inputs.getOrDefault("building_realizable_value", "0")));
+            String totalReal = formatIndian(inputs.getOrDefault("REALIZABLE_VALUE", inputs.getOrDefault("realizable_value", "0")));
+            rows.add(List.of("Realizable Value", "₹ " + landReal, "₹ " + bldgReal, "₹ " + totalReal));
+
+            // 3. Distress Sale Value Row (Phase 11): Land Distress | Building Distress | Total Distress
+            String landDist = formatIndian(inputs.getOrDefault("LAND_DISTRESS_VALUE", inputs.getOrDefault("land_distress_value", "0")));
+            String bldgDist = formatIndian(inputs.getOrDefault("BUILDING_DISTRESS_VALUE", inputs.getOrDefault("building_distress_value", "0")));
+            String totalDist = formatIndian(inputs.getOrDefault("DISTRESS_SALE_VALUE", inputs.getOrDefault("distress_sale_value", "0")));
+            rows.add(List.of("Distress Sale Value", "₹ " + landDist, "₹ " + bldgDist, "₹ " + totalDist));
+
+            // 4. Government Value Row (Phase 12): Land Govt | Building Govt | Total Govt
+            String landGovt = formatIndian(inputs.getOrDefault("LAND_GOVERNMENT_VALUE", inputs.getOrDefault("land_government_value", "0")));
+            String bldgGovt = formatIndian(inputs.getOrDefault("BUILDING_GOVERNMENT_VALUE", inputs.getOrDefault("building_government_value", "0")));
+            String totalGovt = formatIndian(inputs.getOrDefault("GOVERNMENT_VALUE", inputs.getOrDefault("government_value", "0")));
+            rows.add(List.of("Government Value", "₹ " + landGovt, "₹ " + bldgGovt, "₹ " + totalGovt));
+
+            // 5. Insurable Value Row (Phase 13): N/A | Building Insurable | Total Insurable
+            String insVal = formatIndian(inputs.getOrDefault("INSURABLE_VALUE", inputs.getOrDefault("insurable_value", inputs.getOrDefault("TOTAL_REPLACEMENT_COST", "0"))));
+            rows.add(List.of("Insurable Value", "N/A", "₹ " + insVal, "₹ " + insVal));
         }
-        return createDocxTable(headers, colWidths, rows, null, 20, alignments);
+
+        return createDocxTable(headers, colWidths, rows, null, 18, alignments);
     }
 
     private Tbl buildDynamicComparablesTable(Map<String, String> inputs) {
@@ -882,16 +924,24 @@ public class DocxTemplateEngine {
         }
     }
 
+    /**
+     * Phase 5: Property Value Table
+     * Structure:
+     * PROPERTY VALUE COMPONENT | AMOUNT (₹)
+     * Value of Land           | ₹ <Say Land Value>
+     * Value of Building       | ₹ <Say Building Value>
+     * Total Property Value    | ₹ <Fair Value>
+     * (Say row removed completely)
+     */
     private Tbl buildDynamicPropertyValueTable(Map<String, String> inputs) {
         List<String> headers = List.of("PROPERTY VALUE COMPONENT", "AMOUNT (₹)");
         List<Integer> colWidths = List.of(5600, 4000);
         List<JcEnumeration> alignments = List.of(JcEnumeration.LEFT, JcEnumeration.RIGHT);
         List<List<String>> rows = new ArrayList<>();
 
-        String rawLandVal = inputs != null ? inputs.getOrDefault("total_land_value", inputs.getOrDefault("TOTAL_LAND_VALUE", "0")) : "0";
-        String rawBldgVal = inputs != null ? inputs.getOrDefault("total_building_value", inputs.getOrDefault("TOTAL_BUILDING_VALUE", "0")) : "0";
+        String rawLandVal = inputs != null ? inputs.getOrDefault("say_land_value", inputs.getOrDefault("SAY_LAND_VALUE", inputs.getOrDefault("total_land_value", inputs.getOrDefault("TOTAL_LAND_VALUE", "0")))) : "0";
+        String rawBldgVal = inputs != null ? inputs.getOrDefault("say_building_value", inputs.getOrDefault("SAY_BUILDING_VALUE", inputs.getOrDefault("total_building_value", inputs.getOrDefault("TOTAL_BUILDING_VALUE", "0")))) : "0";
         String rawFairVal = inputs != null ? inputs.getOrDefault("fair_value", inputs.getOrDefault("FAIR_VALUE", "0")) : "0";
-        String rawSayVal = inputs != null ? inputs.getOrDefault("say_value", inputs.getOrDefault("SAY_VALUE", "0")) : "0";
 
         // Fallback calculation from RAW JSON if zero/missing
         if (("0".equals(rawLandVal) || rawLandVal.trim().isEmpty()) && inputs != null && inputs.containsKey("RAW_LAND_ITEMS_JSON")) {
@@ -928,24 +978,22 @@ public class DocxTemplateEngine {
             } catch (Exception ignored) {}
         }
 
-        if ("0".equals(rawSayVal) || rawSayVal.trim().isEmpty()) {
-            rawSayVal = rawFairVal;
-        }
-
         String landVal = formatIndian(rawLandVal);
         String bldgVal = formatIndian(rawBldgVal);
         String fairVal = formatIndian(rawFairVal);
-        String sayVal = formatIndian(rawSayVal);
 
         rows.add(List.of("Value of Land", "₹ " + landVal));
         rows.add(List.of("Value of Building", "₹ " + bldgVal));
-        rows.add(List.of("Total", "₹ " + fairVal));
-        rows.add(List.of("Say", "₹ " + sayVal));
+        rows.add(List.of("Total Property Value", "₹ " + fairVal));
 
         return createDocxTable(headers, colWidths, rows, null, 20, alignments);
     }
 
     private Tbl createDocxTableWithMergedTotal(List<String> headers, List<Integer> colWidths, List<List<String>> dataRows, String totalLabel, String totalValue, int fontSizeHalfPts, List<JcEnumeration> alignments) {
+        return createDocxTableWithMultipleMergedTotals(headers, colWidths, dataRows, List.of(Map.entry(totalLabel, totalValue)), fontSizeHalfPts, alignments);
+    }
+
+    private Tbl createDocxTableWithMultipleMergedTotals(List<String> headers, List<Integer> colWidths, List<List<String>> dataRows, List<Map.Entry<String, String>> totals, int fontSizeHalfPts, List<JcEnumeration> alignments) {
         ObjectFactory factory = new ObjectFactory();
         Tbl tbl = createDocxTable(headers, colWidths, dataRows, null, fontSizeHalfPts, alignments);
 
@@ -979,105 +1027,111 @@ public class DocxTemplateEngine {
         }
         tbl.getContent().add(blankTr);
 
-        // 2. Insert Merged Total Row
-        Tr totalTr = factory.createTr();
-        TrPr totalTrPr = factory.createTrPr();
-        totalTrPr.getCnfStyleOrDivIdOrGridBefore().add(factory.createCTTrPrBaseCantSplit(factory.createBooleanDefaultTrue()));
-        totalTr.setTrPr(totalTrPr);
+        if (totals != null) {
+            for (Map.Entry<String, String> entry : totals) {
+                String totalLabel = entry.getKey();
+                String totalValue = entry.getValue();
 
-        // Cell 1: Merged (totalCols - 1)
-        int mergedColCount = totalCols - 1;
-        int mergedWidth = 0;
-        for (int c = 0; c < mergedColCount; c++) {
-            mergedWidth += (colWidths != null && c < colWidths.size()) ? colWidths.get(c) : 1200;
+                Tr totalTr = factory.createTr();
+                TrPr totalTrPr = factory.createTrPr();
+                totalTrPr.getCnfStyleOrDivIdOrGridBefore().add(factory.createCTTrPrBaseCantSplit(factory.createBooleanDefaultTrue()));
+                totalTr.setTrPr(totalTrPr);
+
+                // Cell 1: Merged (totalCols - 1)
+                int mergedColCount = totalCols - 1;
+                int mergedWidth = 0;
+                for (int c = 0; c < mergedColCount; c++) {
+                    mergedWidth += (colWidths != null && c < colWidths.size()) ? colWidths.get(c) : 1200;
+                }
+
+                Tc tcLabel = factory.createTc();
+                TcPr tcPrLabel = factory.createTcPr();
+                TblWidth tcWLabel = factory.createTblWidth();
+                tcWLabel.setType("dxa");
+                tcWLabel.setW(BigInteger.valueOf(mergedWidth));
+                tcPrLabel.setTcW(tcWLabel);
+
+                TcPrInner.GridSpan gridSpan = factory.createTcPrInnerGridSpan();
+                gridSpan.setVal(BigInteger.valueOf(mergedColCount));
+                tcPrLabel.setGridSpan(gridSpan);
+
+                CTShd shdTotal = factory.createCTShd();
+                shdTotal.setVal(STShd.CLEAR);
+                shdTotal.setColor("auto");
+                shdTotal.setFill("EBF2F7");
+                tcPrLabel.setShd(shdTotal);
+
+                CTVerticalJc vAlign = factory.createCTVerticalJc();
+                vAlign.setVal(STVerticalJc.CENTER);
+                tcPrLabel.setVAlign(vAlign);
+                tcLabel.setTcPr(tcPrLabel);
+
+                P pLabel = factory.createP();
+                PPr pprLabel = factory.createPPr();
+                Jc pJcLabel = factory.createJc();
+                pJcLabel.setVal(JcEnumeration.RIGHT);
+                pprLabel.setJc(pJcLabel);
+                pLabel.setPPr(pprLabel);
+
+                R rLabel = factory.createR();
+                RPr rprLabel = factory.createRPr();
+                rprLabel.setB(factory.createBooleanDefaultTrue());
+                RFonts fontsLabel = factory.createRFonts();
+                fontsLabel.setAscii("Book Antiqua");
+                fontsLabel.setHAnsi("Book Antiqua");
+                rprLabel.setRFonts(fontsLabel);
+                HpsMeasure szLabel = factory.createHpsMeasure();
+                szLabel.setVal(BigInteger.valueOf(fontSizeHalfPts));
+                rprLabel.setSz(szLabel);
+                Color colLabel = factory.createColor();
+                colLabel.setVal("0070C0");
+                rprLabel.setColor(colLabel);
+                rLabel.setRPr(rprLabel);
+
+                Text textLabel = factory.createText();
+                textLabel.setValue(totalLabel);
+                rLabel.getContent().add(textLabel);
+                pLabel.getContent().add(rLabel);
+                tcLabel.getContent().add(pLabel);
+                totalTr.getContent().add(tcLabel);
+
+                // Cell 2: Amount cell (last column)
+                int lastColWidth = (colWidths != null && colWidths.size() > 0) ? colWidths.get(colWidths.size() - 1) : 1600;
+                Tc tcVal = factory.createTc();
+                TcPr tcPrVal = factory.createTcPr();
+                TblWidth tcWVal = factory.createTblWidth();
+                tcWVal.setType("dxa");
+                tcWVal.setW(BigInteger.valueOf(lastColWidth));
+                tcPrVal.setTcW(tcWVal);
+                tcPrVal.setShd(shdTotal);
+                tcPrVal.setVAlign(vAlign);
+                tcVal.setTcPr(tcPrVal);
+
+                P pVal = factory.createP();
+                PPr pprVal = factory.createPPr();
+                Jc pJcVal = factory.createJc();
+                pJcVal.setVal(JcEnumeration.RIGHT);
+                pprVal.setJc(pJcVal);
+                pVal.setPPr(pprVal);
+
+                R rVal = factory.createR();
+                RPr rprVal = factory.createRPr();
+                rprVal.setB(factory.createBooleanDefaultTrue());
+                rprVal.setRFonts(fontsLabel);
+                rprVal.setSz(szLabel);
+                rprVal.setColor(colLabel);
+                rVal.setRPr(rprVal);
+
+                Text textVal = factory.createText();
+                textVal.setValue(totalValue);
+                rVal.getContent().add(textVal);
+                pVal.getContent().add(rVal);
+                tcVal.getContent().add(pVal);
+                totalTr.getContent().add(tcVal);
+
+                tbl.getContent().add(totalTr);
+            }
         }
-
-        Tc tcLabel = factory.createTc();
-        TcPr tcPrLabel = factory.createTcPr();
-        TblWidth tcWLabel = factory.createTblWidth();
-        tcWLabel.setType("dxa");
-        tcWLabel.setW(BigInteger.valueOf(mergedWidth));
-        tcPrLabel.setTcW(tcWLabel);
-
-        TcPrInner.GridSpan gridSpan = factory.createTcPrInnerGridSpan();
-        gridSpan.setVal(BigInteger.valueOf(mergedColCount));
-        tcPrLabel.setGridSpan(gridSpan);
-
-        CTShd shdTotal = factory.createCTShd();
-        shdTotal.setVal(STShd.CLEAR);
-        shdTotal.setColor("auto");
-        shdTotal.setFill("EBF2F7");
-        tcPrLabel.setShd(shdTotal);
-
-        CTVerticalJc vAlign = factory.createCTVerticalJc();
-        vAlign.setVal(STVerticalJc.CENTER);
-        tcPrLabel.setVAlign(vAlign);
-        tcLabel.setTcPr(tcPrLabel);
-
-        P pLabel = factory.createP();
-        PPr pprLabel = factory.createPPr();
-        Jc pJcLabel = factory.createJc();
-        pJcLabel.setVal(JcEnumeration.RIGHT);
-        pprLabel.setJc(pJcLabel);
-        pLabel.setPPr(pprLabel);
-
-        R rLabel = factory.createR();
-        RPr rprLabel = factory.createRPr();
-        rprLabel.setB(factory.createBooleanDefaultTrue());
-        RFonts fontsLabel = factory.createRFonts();
-        fontsLabel.setAscii("Book Antiqua");
-        fontsLabel.setHAnsi("Book Antiqua");
-        rprLabel.setRFonts(fontsLabel);
-        HpsMeasure szLabel = factory.createHpsMeasure();
-        szLabel.setVal(BigInteger.valueOf(fontSizeHalfPts));
-        rprLabel.setSz(szLabel);
-        Color colLabel = factory.createColor();
-        colLabel.setVal("0070C0");
-        rprLabel.setColor(colLabel);
-        rLabel.setRPr(rprLabel);
-
-        Text textLabel = factory.createText();
-        textLabel.setValue(totalLabel);
-        rLabel.getContent().add(textLabel);
-        pLabel.getContent().add(rLabel);
-        tcLabel.getContent().add(pLabel);
-        totalTr.getContent().add(tcLabel);
-
-        // Cell 2: Amount cell (last column)
-        int lastColWidth = (colWidths != null && colWidths.size() > 0) ? colWidths.get(colWidths.size() - 1) : 1600;
-        Tc tcVal = factory.createTc();
-        TcPr tcPrVal = factory.createTcPr();
-        TblWidth tcWVal = factory.createTblWidth();
-        tcWVal.setType("dxa");
-        tcWVal.setW(BigInteger.valueOf(lastColWidth));
-        tcPrVal.setTcW(tcWVal);
-        tcPrVal.setShd(shdTotal);
-        tcPrVal.setVAlign(vAlign);
-        tcVal.setTcPr(tcPrVal);
-
-        P pVal = factory.createP();
-        PPr pprVal = factory.createPPr();
-        Jc pJcVal = factory.createJc();
-        pJcVal.setVal(JcEnumeration.RIGHT);
-        pprVal.setJc(pJcVal);
-        pVal.setPPr(pprVal);
-
-        R rVal = factory.createR();
-        RPr rprVal = factory.createRPr();
-        rprVal.setB(factory.createBooleanDefaultTrue());
-        rprVal.setRFonts(fontsLabel);
-        rprVal.setSz(szLabel);
-        rprVal.setColor(colLabel);
-        rVal.setRPr(rprVal);
-
-        Text textVal = factory.createText();
-        textVal.setValue(totalValue);
-        rVal.getContent().add(textVal);
-        pVal.getContent().add(rVal);
-        tcVal.getContent().add(pVal);
-        totalTr.getContent().add(tcVal);
-
-        tbl.getContent().add(totalTr);
 
         return tbl;
     }

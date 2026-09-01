@@ -6,12 +6,24 @@ class ValuationDataModel {
   double totalReplacementCost;
   double totalDepreciationAmount;
   double totalSalvageValue;
+  double sayLandValue;
+  double sayBuildingValue;
   double fairValue;
+  double landRealizablePercentage;
+  double buildingRealizablePercentage;
   double realizablePercentage;
+  double landRealizableValue;
+  double buildingRealizableValue;
   double realizableValue;
+  double landDistressPercentage;
+  double buildingDistressPercentage;
   double distressSalePercentage;
+  double landDistressValue;
+  double buildingDistressValue;
   double distressSaleValue;
   double defaultSalvagePercentage;
+  double landGovernmentValue;
+  double buildingGovernmentValue;
   double governmentValue;
   double insurableValue;
   String valuationStatus;
@@ -25,12 +37,24 @@ class ValuationDataModel {
     this.totalReplacementCost = 0,
     this.totalDepreciationAmount = 0,
     this.totalSalvageValue = 0,
+    this.sayLandValue = 0,
+    this.sayBuildingValue = 0,
     this.fairValue = 0,
+    this.landRealizablePercentage = 85.0,
+    this.buildingRealizablePercentage = 85.0,
     this.realizablePercentage = 85.0,
+    this.landRealizableValue = 0,
+    this.buildingRealizableValue = 0,
     this.realizableValue = 0,
+    this.landDistressPercentage = 75.0,
+    this.buildingDistressPercentage = 75.0,
     this.distressSalePercentage = 75.0,
+    this.landDistressValue = 0,
+    this.buildingDistressValue = 0,
     this.distressSaleValue = 0,
     this.defaultSalvagePercentage = 10.0,
+    this.landGovernmentValue = 0,
+    this.buildingGovernmentValue = 0,
     this.governmentValue = 0,
     this.insurableValue = 0,
     this.valuationStatus = 'DRAFT',
@@ -38,6 +62,11 @@ class ValuationDataModel {
   });
 
   factory ValuationDataModel.fromJson(Map<String, dynamic> json) {
+    final landRealPct = (json['landRealizablePercentage'] as num?)?.toDouble() ?? (json['realizablePercentage'] as num?)?.toDouble() ?? 85.0;
+    final bldgRealPct = (json['buildingRealizablePercentage'] as num?)?.toDouble() ?? (json['realizablePercentage'] as num?)?.toDouble() ?? 85.0;
+    final landDistPct = (json['landDistressPercentage'] as num?)?.toDouble() ?? (json['distressSalePercentage'] as num?)?.toDouble() ?? 75.0;
+    final bldgDistPct = (json['buildingDistressPercentage'] as num?)?.toDouble() ?? (json['distressSalePercentage'] as num?)?.toDouble() ?? 75.0;
+
     return ValuationDataModel(
       id: json['id'] as int?,
       orderId: (json['orderId'] ?? 0) as int,
@@ -46,12 +75,24 @@ class ValuationDataModel {
       totalReplacementCost: (json['totalReplacementCost'] as num?)?.toDouble() ?? 0,
       totalDepreciationAmount: (json['totalDepreciationAmount'] as num?)?.toDouble() ?? 0,
       totalSalvageValue: (json['totalSalvageValue'] as num?)?.toDouble() ?? 0,
+      sayLandValue: (json['sayLandValue'] as num?)?.toDouble() ?? 0,
+      sayBuildingValue: (json['sayBuildingValue'] as num?)?.toDouble() ?? 0,
       fairValue: (json['fairValue'] as num?)?.toDouble() ?? 0,
-      realizablePercentage: (json['realizablePercentage'] as num?)?.toDouble() ?? 85.0,
+      landRealizablePercentage: landRealPct,
+      buildingRealizablePercentage: bldgRealPct,
+      realizablePercentage: (json['realizablePercentage'] as num?)?.toDouble() ?? landRealPct,
+      landRealizableValue: (json['landRealizableValue'] as num?)?.toDouble() ?? 0,
+      buildingRealizableValue: (json['buildingRealizableValue'] as num?)?.toDouble() ?? 0,
       realizableValue: (json['realizableValue'] as num?)?.toDouble() ?? 0,
-      distressSalePercentage: (json['distressSalePercentage'] as num?)?.toDouble() ?? 75.0,
+      landDistressPercentage: landDistPct,
+      buildingDistressPercentage: bldgDistPct,
+      distressSalePercentage: (json['distressSalePercentage'] as num?)?.toDouble() ?? landDistPct,
+      landDistressValue: (json['landDistressValue'] as num?)?.toDouble() ?? 0,
+      buildingDistressValue: (json['buildingDistressValue'] as num?)?.toDouble() ?? 0,
       distressSaleValue: (json['distressSaleValue'] as num?)?.toDouble() ?? 0,
       defaultSalvagePercentage: (json['defaultSalvagePercentage'] as num?)?.toDouble() ?? 10.0,
+      landGovernmentValue: (json['landGovernmentValue'] as num?)?.toDouble() ?? 0,
+      buildingGovernmentValue: (json['buildingGovernmentValue'] as num?)?.toDouble() ?? 0,
       governmentValue: (json['governmentValue'] as num?)?.toDouble() ?? 0,
       insurableValue: (json['insurableValue'] as num?)?.toDouble() ?? (json['totalReplacementCost'] as num?)?.toDouble() ?? 0,
       valuationStatus: json['valuationStatus']?.toString() ?? 'DRAFT',
@@ -67,12 +108,24 @@ class ValuationDataModel {
     'totalReplacementCost': totalReplacementCost,
     'totalDepreciationAmount': totalDepreciationAmount,
     'totalSalvageValue': totalSalvageValue,
+    'sayLandValue': sayLandValue,
+    'sayBuildingValue': sayBuildingValue,
     'fairValue': fairValue,
+    'landRealizablePercentage': landRealizablePercentage,
+    'buildingRealizablePercentage': buildingRealizablePercentage,
     'realizablePercentage': realizablePercentage,
+    'landRealizableValue': landRealizableValue,
+    'buildingRealizableValue': buildingRealizableValue,
     'realizableValue': realizableValue,
+    'landDistressPercentage': landDistressPercentage,
+    'buildingDistressPercentage': buildingDistressPercentage,
     'distressSalePercentage': distressSalePercentage,
+    'landDistressValue': landDistressValue,
+    'buildingDistressValue': buildingDistressValue,
     'distressSaleValue': distressSaleValue,
     'defaultSalvagePercentage': defaultSalvagePercentage,
+    'landGovernmentValue': landGovernmentValue,
+    'buildingGovernmentValue': buildingGovernmentValue,
     'governmentValue': governmentValue,
     'insurableValue': insurableValue,
     'valuationStatus': valuationStatus,

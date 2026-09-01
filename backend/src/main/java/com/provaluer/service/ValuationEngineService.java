@@ -127,12 +127,32 @@ public class ValuationEngineService {
         BigDecimal oldDistressValue = data.getDistressSaleValue();
         BigDecimal oldGovtValue = data.getGovernmentValue() != null ? data.getGovernmentValue() : BigDecimal.ZERO;
 
-        if (request.getRealizablePercentage() != null) {
+        if (request.getLandRealizablePercentage() != null) {
+            data.setLandRealizablePercentage(request.getLandRealizablePercentage());
+        } else if (request.getRealizablePercentage() != null) {
+            data.setLandRealizablePercentage(request.getRealizablePercentage());
             data.setRealizablePercentage(request.getRealizablePercentage());
         }
-        if (request.getDistressSalePercentage() != null) {
+        if (request.getBuildingRealizablePercentage() != null) {
+            data.setBuildingRealizablePercentage(request.getBuildingRealizablePercentage());
+        } else if (request.getRealizablePercentage() != null) {
+            data.setBuildingRealizablePercentage(request.getRealizablePercentage());
+            data.setRealizablePercentage(request.getRealizablePercentage());
+        }
+
+        if (request.getLandDistressPercentage() != null) {
+            data.setLandDistressPercentage(request.getLandDistressPercentage());
+        } else if (request.getDistressSalePercentage() != null) {
+            data.setLandDistressPercentage(request.getDistressSalePercentage());
             data.setDistressSalePercentage(request.getDistressSalePercentage());
         }
+        if (request.getBuildingDistressPercentage() != null) {
+            data.setBuildingDistressPercentage(request.getBuildingDistressPercentage());
+        } else if (request.getDistressSalePercentage() != null) {
+            data.setBuildingDistressPercentage(request.getDistressSalePercentage());
+            data.setDistressSalePercentage(request.getDistressSalePercentage());
+        }
+
         if (request.getDefaultSalvagePercentage() != null) {
             data.setDefaultSalvagePercentage(request.getDefaultSalvagePercentage());
         }
@@ -393,6 +413,11 @@ public class ValuationEngineService {
         // Land Values
         map.put("total_land_value", IndianNumberFormatter.format(data.getTotalLandValue()));
         map.put("total_land_value_words", IndianCurrencyToWords.convertToWords(data.getTotalLandValue()));
+        BigDecimal sayLand = data.getSayLandValue() != null && data.getSayLandValue().compareTo(BigDecimal.ZERO) > 0
+                ? data.getSayLandValue()
+                : computeSayValue(data.getTotalLandValue());
+        map.put("say_land_value", IndianNumberFormatter.format(sayLand));
+        map.put("say_land_value_words", IndianCurrencyToWords.convertToWords(sayLand));
 
         // Building Values
         map.put("total_replacement_cost", IndianNumberFormatter.format(data.getTotalReplacementCost()));
@@ -403,16 +428,58 @@ public class ValuationEngineService {
         map.put("total_salvage_value_words", IndianCurrencyToWords.convertToWords(data.getTotalSalvageValue()));
         map.put("total_building_value", IndianNumberFormatter.format(data.getTotalBuildingValue()));
         map.put("total_building_value_words", IndianCurrencyToWords.convertToWords(data.getTotalBuildingValue()));
+        BigDecimal sayBldg = data.getSayBuildingValue() != null && data.getSayBuildingValue().compareTo(BigDecimal.ZERO) > 0
+                ? data.getSayBuildingValue()
+                : computeSayValue(data.getTotalBuildingValue());
+        map.put("say_building_value", IndianNumberFormatter.format(sayBldg));
+        map.put("say_building_value_words", IndianCurrencyToWords.convertToWords(sayBldg));
 
         // Valuation Summary
-        map.put("fair_value", IndianNumberFormatter.format(data.getFairValue()));
-        map.put("fair_value_words", IndianCurrencyToWords.convertToWords(data.getFairValue()));
-        map.put("realizable_percentage", data.getRealizablePercentage() + "%");
-        map.put("realizable_value", IndianNumberFormatter.format(data.getRealizableValue()));
-        map.put("realizable_value_words", IndianCurrencyToWords.convertToWords(data.getRealizableValue()));
-        map.put("distress_sale_percentage", data.getDistressSalePercentage() + "%");
-        map.put("distress_sale_value", IndianNumberFormatter.format(data.getDistressSaleValue()));
-        map.put("distress_sale_value_words", IndianCurrencyToWords.convertToWords(data.getDistressSaleValue()));
+        BigDecimal fairVal = sayLand.add(sayBldg);
+        map.put("fair_value", IndianNumberFormatter.format(fairVal));
+        map.put("fair_value_words", IndianCurrencyToWords.convertToWords(fairVal));
+
+        // Separate Realizable
+        BigDecimal landRealPct = data.getLandRealizablePercentage() != null ? data.getLandRealizablePercentage() : new BigDecimal("85.00");
+        BigDecimal bldgRealPct = data.getBuildingRealizablePercentage() != null ? data.getBuildingRealizablePercentage() : new BigDecimal("85.00");
+        BigDecimal landRealVal = data.getLandRealizableValue() != null && data.getLandRealizableValue().compareTo(BigDecimal.ZERO) > 0
+                ? data.getLandRealizableValue()
+                : sayLand.multiply(landRealPct).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+        BigDecimal bldgRealVal = data.getBuildingRealizableValue() != null && data.getBuildingRealizableValue().compareTo(BigDecimal.ZERO) > 0
+                ? data.getBuildingRealizableValue()
+                : sayBldg.multiply(bldgRealPct).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+        BigDecimal totalRealVal = landRealVal.add(bldgRealVal);
+
+        map.put("land_realizable_percentage", landRealPct + "%");
+        map.put("land_realizable_value", IndianNumberFormatter.format(landRealVal));
+        map.put("land_realizable_value_words", IndianCurrencyToWords.convertToWords(landRealVal));
+        map.put("building_realizable_percentage", bldgRealPct + "%");
+        map.put("building_realizable_value", IndianNumberFormatter.format(bldgRealVal));
+        map.put("building_realizable_value_words", IndianCurrencyToWords.convertToWords(bldgRealVal));
+        map.put("realizable_percentage", landRealPct + "%");
+        map.put("realizable_value", IndianNumberFormatter.format(totalRealVal));
+        map.put("realizable_value_words", IndianCurrencyToWords.convertToWords(totalRealVal));
+
+        // Separate Distress
+        BigDecimal landDistPct = data.getLandDistressPercentage() != null ? data.getLandDistressPercentage() : new BigDecimal("75.00");
+        BigDecimal bldgDistPct = data.getBuildingDistressPercentage() != null ? data.getBuildingDistressPercentage() : new BigDecimal("75.00");
+        BigDecimal landDistVal = data.getLandDistressValue() != null && data.getLandDistressValue().compareTo(BigDecimal.ZERO) > 0
+                ? data.getLandDistressValue()
+                : sayLand.multiply(landDistPct).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+        BigDecimal bldgDistVal = data.getBuildingDistressValue() != null && data.getBuildingDistressValue().compareTo(BigDecimal.ZERO) > 0
+                ? data.getBuildingDistressValue()
+                : sayBldg.multiply(bldgDistPct).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+        BigDecimal totalDistVal = landDistVal.add(bldgDistVal);
+
+        map.put("land_distress_percentage", landDistPct + "%");
+        map.put("land_distress_value", IndianNumberFormatter.format(landDistVal));
+        map.put("land_distress_value_words", IndianCurrencyToWords.convertToWords(landDistVal));
+        map.put("building_distress_percentage", bldgDistPct + "%");
+        map.put("building_distress_value", IndianNumberFormatter.format(bldgDistVal));
+        map.put("building_distress_value_words", IndianCurrencyToWords.convertToWords(bldgDistVal));
+        map.put("distress_sale_percentage", landDistPct + "%");
+        map.put("distress_sale_value", IndianNumberFormatter.format(totalDistVal));
+        map.put("distress_sale_value_words", IndianCurrencyToWords.convertToWords(totalDistVal));
 
         // Insurable Value (Business Rule: Insurable Value = Total Replacement Cost of Buildings)
         BigDecimal insurableVal = (data.getInsurableValue() != null && data.getInsurableValue().signum() > 0)
@@ -422,15 +489,25 @@ public class ValuationEngineService {
         map.put("insurable_value_words", IndianCurrencyToWords.convertToWords(insurableVal));
 
         // Government Value (Independent Guideline / Statutory Value)
-        BigDecimal govtVal = data.getGovernmentValue();
-        if (govtVal == null || govtVal.signum() == 0) {
-            govtVal = formulaService.calculateGovernmentValue(landItems, buildingItems, new BigDecimal("5500"), new BigDecimal("2400"), new BigDecimal("1900"));
-        }
-        map.put("government_value", IndianNumberFormatter.format(govtVal));
-        map.put("government_value_words", IndianCurrencyToWords.convertToWords(govtVal));
+        BigDecimal landGovt = data.getLandGovernmentValue() != null && data.getLandGovernmentValue().compareTo(BigDecimal.ZERO) > 0
+                ? data.getLandGovernmentValue()
+                : formulaService.calculateLandGovernmentValue(landItems, new BigDecimal("5500"));
+        BigDecimal bldgGovt = data.getBuildingGovernmentValue() != null && data.getBuildingGovernmentValue().compareTo(BigDecimal.ZERO) > 0
+                ? data.getBuildingGovernmentValue()
+                : formulaService.calculateBuildingGovernmentValue(buildingItems, new BigDecimal("2400"), new BigDecimal("1900"));
+        BigDecimal totalGovt = (data.getGovernmentValue() != null && data.getGovernmentValue().compareTo(BigDecimal.ZERO) > 0)
+                ? data.getGovernmentValue()
+                : landGovt.add(bldgGovt);
 
-        // Say Value (Presentation Value: Rounded Fair Value to nearest Lakh if >= 1 Crore)
-        BigDecimal sayVal = computeSayValue(data.getFairValue());
+        map.put("land_government_value", IndianNumberFormatter.format(landGovt));
+        map.put("land_government_value_words", IndianCurrencyToWords.convertToWords(landGovt));
+        map.put("building_government_value", IndianNumberFormatter.format(bldgGovt));
+        map.put("building_government_value_words", IndianCurrencyToWords.convertToWords(bldgGovt));
+        map.put("government_value", IndianNumberFormatter.format(totalGovt));
+        map.put("government_value_words", IndianCurrencyToWords.convertToWords(totalGovt));
+
+        // Say Value
+        BigDecimal sayVal = computeSayValue(fairVal);
         map.put("say_value", IndianNumberFormatter.format(sayVal));
         map.put("say_value_words", IndianCurrencyToWords.convertToWords(sayVal));
 

@@ -1,1 +1,7 @@
-UAT fix: parseLongSafe helper, remove duplicate service field, table spacing
+Fix report generation zero-value propagation, add PROPERTY_VALUE_TABLE and table spacing
+
+- Phase 1: Treat 0, 0.0, 0.00, ₹ 0 as empty in getConsolidatedValues so valuation bundle values overwrite them
+- Phase 2: Add full <<PROPERTY_VALUE_TABLE>> placeholder support and catalog entry
+- Phase 3: Align Workspace UI to show S.No and clean Description with Sy.No hint, remove Ground Floor/floor labels
+- Phase 4: Enforce two blank spacing paragraphs between every generated table
+- Phase 5: Verified with automated unit and integration report generation tests

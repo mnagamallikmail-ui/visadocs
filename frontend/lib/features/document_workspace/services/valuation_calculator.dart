@@ -6,14 +6,30 @@ import '../models/valuation_models.dart';
 class ValuationCalculator {
   static void calculateLandItem(ValuationLandItemModel item) {
     item.standardAreaSqft = UnitConversionEngine.toStandardSqFt(item.enteredArea, item.enteredUnit);
-    item.value = item.standardAreaSqft * item.rate;
+    // Phase 1: Rate belongs to the selected unit (e.g. ₹/Sq.Yd, ₹/Sq.Ft, ₹/Acre). Value = enteredArea * rate.
+    item.value = item.enteredArea * item.rate;
   }
 
   static void calculateBuildingItem(ValuationBuildingItemModel item) {
     item.standardAreaSqft = UnitConversionEngine.toStandardSqFt(item.enteredArea, item.enteredUnit);
     item.replacementCost = item.standardAreaSqft * item.replacementRate;
 
-    final usefulLife = item.buildingUsefulLife > 0 ? item.buildingUsefulLife : 60;
+    final bType = item.buildingType.toLowerCase();
+    final desc = item.description.toLowerCase();
+    final struct = item.structureType.toLowerCase();
+
+    int usefulLife = item.buildingUsefulLife;
+    // Phase 2: Default useful life for PEB Structures and Steel Sheds is 40 years
+    if (usefulLife <= 0 || (usefulLife == 60 && (bType.contains('peb') || bType.contains('shed') || desc.contains('peb') || desc.contains('shed') || struct.contains('shed')))) {
+      if (bType.contains('peb') || bType.contains('shed') || desc.contains('peb') || desc.contains('shed') || struct.contains('shed')) {
+        usefulLife = 40;
+        item.buildingUsefulLife = 40;
+      } else {
+        usefulLife = 60;
+        item.buildingUsefulLife = 60;
+      }
+    }
+
     final ageRatio = item.buildingAge / usefulLife;
     final salvageFactor = 1.0 - (item.salvagePercentage / 100.0);
 
@@ -58,33 +74,61 @@ class ValuationCalculator {
     data.totalSalvageValue = totalSalvage;
     data.totalBuildingValue = totalBuilding;
 
-    // 3. Fair Value = Total Land + Total Building
-    data.fairValue = totalLand + totalBuilding;
+    // 3. Say Values (Phase 4): Say Land Value & Say Building Value
+    final sayLand = computeSayValue(totalLand);
+    final sayBldg = computeSayValue(totalBuilding);
+    data.sayLandValue = sayLand;
+    data.sayBuildingValue = sayBldg;
 
-    // 4. Realizable Value
-    data.realizableValue = data.fairValue * (data.realizablePercentage / 100.0);
+    // 4. Fair Value = Say Land Value + Say Building Value (NOT raw totals) (Phase 4 & 9)
+    data.fairValue = sayLand + sayBldg;
 
-    // 5. Distress Sale Value
-    data.distressSaleValue = data.fairValue * (data.distressSalePercentage / 100.0);
+    // 5. Separate Realizable Percentages (Phase 6 & 10)
+    final landRealPct = data.landRealizablePercentage > 0 ? data.landRealizablePercentage : 85.0;
+    final bldgRealPct = data.buildingRealizablePercentage > 0 ? data.buildingRealizablePercentage : 85.0;
+    data.landRealizablePercentage = landRealPct;
+    data.buildingRealizablePercentage = bldgRealPct;
 
-    // 6. Insurable Value = Total Replacement Cost (Excluding Land)
+    final landRealVal = sayLand * (landRealPct / 100.0);
+    final bldgRealVal = sayBldg * (bldgRealPct / 100.0);
+    data.landRealizableValue = landRealVal;
+    data.buildingRealizableValue = bldgRealVal;
+    data.realizableValue = landRealVal + bldgRealVal;
+
+    // 6. Separate Distress Percentages (Phase 7 & 11)
+    final landDistPct = data.landDistressPercentage > 0 ? data.landDistressPercentage : 75.0;
+    final bldgDistPct = data.buildingDistressPercentage > 0 ? data.buildingDistressPercentage : 75.0;
+    data.landDistressPercentage = landDistPct;
+    data.buildingDistressPercentage = bldgDistPct;
+
+    final landDistVal = sayLand * (landDistPct / 100.0);
+    final bldgDistVal = sayBldg * (bldgDistPct / 100.0);
+    data.landDistressValue = landDistVal;
+    data.buildingDistressValue = bldgDistVal;
+    data.distressSaleValue = landDistVal + bldgDistVal;
+
+    // 7. Insurable Value = Total Replacement Cost of Buildings (Phase 13)
     data.insurableValue = totalReplCost;
 
-    // 7. Government Value = (Land Area * Govt Land Rate) + (RCC Area * Govt RCC Rate) + (Steel Area * Govt Steel Rate)
+    // 8. Government Values (Phase 12)
+    double landGovt = 0;
+    for (final l in landItems) {
+      landGovt += (l.standardAreaSqft * 5500.0);
+    }
+    double bldgGovt = 0;
+    for (final b in buildingItems) {
+      final bType = (b.buildingType + " " + b.description).toLowerCase();
+      if (bType.contains('steel') || bType.contains('shed') || bType.contains('peb')) {
+        bldgGovt += (b.standardAreaSqft * 1900.0);
+      } else {
+        bldgGovt += (b.standardAreaSqft * 2400.0);
+      }
+    }
+    data.landGovernmentValue = landGovt;
+    data.buildingGovernmentValue = bldgGovt;
+
     if (data.governmentValue <= 0) {
-      double govtVal = 0;
-      for (final l in landItems) {
-        govtVal += (l.standardAreaSqft * 5500.0);
-      }
-      for (final b in buildingItems) {
-        final bType = (b.buildingType + " " + b.description).toLowerCase();
-        if (bType.contains('steel') || bType.contains('shed')) {
-          govtVal += (b.standardAreaSqft * 1900.0);
-        } else {
-          govtVal += (b.standardAreaSqft * 2400.0);
-        }
-      }
-      data.governmentValue = govtVal;
+      data.governmentValue = landGovt + bldgGovt;
     }
   }
 
@@ -110,6 +154,9 @@ class ValuationCalculator {
     // Land
     map['total_land_value'] = IndianNumberFormatter.format(data.totalLandValue);
     map['total_land_value_words'] = IndianCurrencyToWords.convertToWords(data.totalLandValue);
+    final sayLand = data.sayLandValue > 0 ? data.sayLandValue : computeSayValue(data.totalLandValue);
+    map['say_land_value'] = IndianNumberFormatter.format(sayLand);
+    map['say_land_value_words'] = IndianCurrencyToWords.convertToWords(sayLand);
 
     // Building
     map['total_replacement_cost'] = IndianNumberFormatter.format(data.totalReplacementCost);
@@ -120,16 +167,44 @@ class ValuationCalculator {
     map['total_salvage_value_words'] = IndianCurrencyToWords.convertToWords(data.totalSalvageValue);
     map['total_building_value'] = IndianNumberFormatter.format(data.totalBuildingValue);
     map['total_building_value_words'] = IndianCurrencyToWords.convertToWords(data.totalBuildingValue);
+    final sayBldg = data.sayBuildingValue > 0 ? data.sayBuildingValue : computeSayValue(data.totalBuildingValue);
+    map['say_building_value'] = IndianNumberFormatter.format(sayBldg);
+    map['say_building_value_words'] = IndianCurrencyToWords.convertToWords(sayBldg);
 
     // Valuation Summary
-    map['fair_value'] = IndianNumberFormatter.format(data.fairValue);
-    map['fair_value_words'] = IndianCurrencyToWords.convertToWords(data.fairValue);
-    map['realizable_percentage'] = '${data.realizablePercentage.toStringAsFixed(1)}%';
-    map['realizable_value'] = IndianNumberFormatter.format(data.realizableValue);
-    map['realizable_value_words'] = IndianCurrencyToWords.convertToWords(data.realizableValue);
-    map['distress_sale_percentage'] = '${data.distressSalePercentage.toStringAsFixed(1)}%';
-    map['distress_sale_value'] = IndianNumberFormatter.format(data.distressSaleValue);
-    map['distress_sale_value_words'] = IndianCurrencyToWords.convertToWords(data.distressSaleValue);
+    final fairVal = sayLand + sayBldg;
+    map['fair_value'] = IndianNumberFormatter.format(fairVal);
+    map['fair_value_words'] = IndianCurrencyToWords.convertToWords(fairVal);
+
+    // Separate Realizable
+    final landRealVal = data.landRealizableValue > 0 ? data.landRealizableValue : sayLand * (data.landRealizablePercentage / 100.0);
+    final bldgRealVal = data.buildingRealizableValue > 0 ? data.buildingRealizableValue : sayBldg * (data.buildingRealizablePercentage / 100.0);
+    final totalRealVal = landRealVal + bldgRealVal;
+
+    map['land_realizable_percentage'] = '${data.landRealizablePercentage.toStringAsFixed(1)}%';
+    map['land_realizable_value'] = IndianNumberFormatter.format(landRealVal);
+    map['land_realizable_value_words'] = IndianCurrencyToWords.convertToWords(landRealVal);
+    map['building_realizable_percentage'] = '${data.buildingRealizablePercentage.toStringAsFixed(1)}%';
+    map['building_realizable_value'] = IndianNumberFormatter.format(bldgRealVal);
+    map['building_realizable_value_words'] = IndianCurrencyToWords.convertToWords(bldgRealVal);
+    map['realizable_percentage'] = '${data.landRealizablePercentage.toStringAsFixed(1)}%';
+    map['realizable_value'] = IndianNumberFormatter.format(totalRealVal);
+    map['realizable_value_words'] = IndianCurrencyToWords.convertToWords(totalRealVal);
+
+    // Separate Distress
+    final landDistVal = data.landDistressValue > 0 ? data.landDistressValue : sayLand * (data.landDistressPercentage / 100.0);
+    final bldgDistVal = data.buildingDistressValue > 0 ? data.buildingDistressValue : sayBldg * (data.buildingDistressPercentage / 100.0);
+    final totalDistVal = landDistVal + bldgDistVal;
+
+    map['land_distress_percentage'] = '${data.landDistressPercentage.toStringAsFixed(1)}%';
+    map['land_distress_value'] = IndianNumberFormatter.format(landDistVal);
+    map['land_distress_value_words'] = IndianCurrencyToWords.convertToWords(landDistVal);
+    map['building_distress_percentage'] = '${data.buildingDistressPercentage.toStringAsFixed(1)}%';
+    map['building_distress_value'] = IndianNumberFormatter.format(bldgDistVal);
+    map['building_distress_value_words'] = IndianCurrencyToWords.convertToWords(bldgDistVal);
+    map['distress_sale_percentage'] = '${data.landDistressPercentage.toStringAsFixed(1)}%';
+    map['distress_sale_value'] = IndianNumberFormatter.format(totalDistVal);
+    map['distress_sale_value_words'] = IndianCurrencyToWords.convertToWords(totalDistVal);
 
     // Insurable Value (Business Rule: Total Building Replacement Cost)
     final insurable = data.insurableValue > 0 ? data.insurableValue : data.totalReplacementCost;
@@ -137,11 +212,16 @@ class ValuationCalculator {
     map['insurable_value_words'] = IndianCurrencyToWords.convertToWords(insurable);
 
     // Government Value (Independent Guideline / Statutory Value)
-    map['government_value'] = IndianNumberFormatter.format(data.governmentValue);
-    map['government_value_words'] = IndianCurrencyToWords.convertToWords(data.governmentValue);
+    final totalGovt = data.governmentValue > 0 ? data.governmentValue : (data.landGovernmentValue + data.buildingGovernmentValue);
+    map['land_government_value'] = IndianNumberFormatter.format(data.landGovernmentValue);
+    map['land_government_value_words'] = IndianCurrencyToWords.convertToWords(data.landGovernmentValue);
+    map['building_government_value'] = IndianNumberFormatter.format(data.buildingGovernmentValue);
+    map['building_government_value_words'] = IndianCurrencyToWords.convertToWords(data.buildingGovernmentValue);
+    map['government_value'] = IndianNumberFormatter.format(totalGovt);
+    map['government_value_words'] = IndianCurrencyToWords.convertToWords(totalGovt);
 
     // Say Value (Presentation Value: Rounded Fair Value to nearest Lakh if >= 1 Crore)
-    final sayVal = computeSayValue(data.fairValue);
+    final sayVal = computeSayValue(fairVal);
     map['say_value'] = IndianNumberFormatter.format(sayVal);
     map['say_value_words'] = IndianCurrencyToWords.convertToWords(sayVal);
 

@@ -10,6 +10,12 @@ import java.util.List;
 public class SaveValuationRequest {
     private BigDecimal realizablePercentage;
     private BigDecimal distressSalePercentage;
+    private BigDecimal landRealizablePercentage;
+    private BigDecimal buildingRealizablePercentage;
+    private BigDecimal landDistressPercentage;
+    private BigDecimal buildingDistressPercentage;
+    private BigDecimal sayLandValue;
+    private BigDecimal sayBuildingValue;
     private BigDecimal defaultSalvagePercentage;
     private BigDecimal governmentValue;
     private List<ValuationLandItem> landItems;
@@ -18,6 +24,24 @@ public class SaveValuationRequest {
     private String reason; // for audit logging
 
     public SaveValuationRequest() {}
+
+    public BigDecimal getLandRealizablePercentage() { return landRealizablePercentage; }
+    public void setLandRealizablePercentage(BigDecimal landRealizablePercentage) { this.landRealizablePercentage = landRealizablePercentage; }
+
+    public BigDecimal getBuildingRealizablePercentage() { return buildingRealizablePercentage; }
+    public void setBuildingRealizablePercentage(BigDecimal buildingRealizablePercentage) { this.buildingRealizablePercentage = buildingRealizablePercentage; }
+
+    public BigDecimal getLandDistressPercentage() { return landDistressPercentage; }
+    public void setLandDistressPercentage(BigDecimal landDistressPercentage) { this.landDistressPercentage = landDistressPercentage; }
+
+    public BigDecimal getBuildingDistressPercentage() { return buildingDistressPercentage; }
+    public void setBuildingDistressPercentage(BigDecimal buildingDistressPercentage) { this.buildingDistressPercentage = buildingDistressPercentage; }
+
+    public BigDecimal getSayLandValue() { return sayLandValue; }
+    public void setSayLandValue(BigDecimal sayLandValue) { this.sayLandValue = sayLandValue; }
+
+    public BigDecimal getSayBuildingValue() { return sayBuildingValue; }
+    public void setSayBuildingValue(BigDecimal sayBuildingValue) { this.sayBuildingValue = sayBuildingValue; }
 
     public BigDecimal getRealizablePercentage() { return realizablePercentage; }
     public void setRealizablePercentage(BigDecimal realizablePercentage) { this.realizablePercentage = realizablePercentage; }

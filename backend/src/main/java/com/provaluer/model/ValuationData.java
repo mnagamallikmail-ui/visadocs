@@ -54,6 +54,42 @@ public class ValuationData {
     @Column(name = "default_salvage_percentage", precision = 5, scale = 2, nullable = false)
     private BigDecimal defaultSalvagePercentage = new BigDecimal("10.00");
 
+    @Column(name = "say_land_value", precision = 19, scale = 2, nullable = false)
+    private BigDecimal sayLandValue = BigDecimal.ZERO;
+
+    @Column(name = "say_building_value", precision = 19, scale = 2, nullable = false)
+    private BigDecimal sayBuildingValue = BigDecimal.ZERO;
+
+    @Column(name = "land_realizable_percentage", precision = 5, scale = 2, nullable = false)
+    private BigDecimal landRealizablePercentage = new BigDecimal("85.00");
+
+    @Column(name = "building_realizable_percentage", precision = 5, scale = 2, nullable = false)
+    private BigDecimal buildingRealizablePercentage = new BigDecimal("85.00");
+
+    @Column(name = "land_distress_percentage", precision = 5, scale = 2, nullable = false)
+    private BigDecimal landDistressPercentage = new BigDecimal("75.00");
+
+    @Column(name = "building_distress_percentage", precision = 5, scale = 2, nullable = false)
+    private BigDecimal buildingDistressPercentage = new BigDecimal("75.00");
+
+    @Column(name = "land_realizable_value", precision = 19, scale = 2, nullable = false)
+    private BigDecimal landRealizableValue = BigDecimal.ZERO;
+
+    @Column(name = "building_realizable_value", precision = 19, scale = 2, nullable = false)
+    private BigDecimal buildingRealizableValue = BigDecimal.ZERO;
+
+    @Column(name = "land_distress_value", precision = 19, scale = 2, nullable = false)
+    private BigDecimal landDistressValue = BigDecimal.ZERO;
+
+    @Column(name = "building_distress_value", precision = 19, scale = 2, nullable = false)
+    private BigDecimal buildingDistressValue = BigDecimal.ZERO;
+
+    @Column(name = "land_government_value", precision = 19, scale = 2, nullable = false)
+    private BigDecimal landGovernmentValue = BigDecimal.ZERO;
+
+    @Column(name = "building_government_value", precision = 19, scale = 2, nullable = false)
+    private BigDecimal buildingGovernmentValue = BigDecimal.ZERO;
+
     @Column(name = "valuation_status", nullable = false)
     private String valuationStatus = "DRAFT"; // DRAFT, FINALIZED, LOCKED, ARCHIVED
 
@@ -118,6 +154,42 @@ public class ValuationData {
 
     public BigDecimal getDefaultSalvagePercentage() { return defaultSalvagePercentage; }
     public void setDefaultSalvagePercentage(BigDecimal defaultSalvagePercentage) { this.defaultSalvagePercentage = defaultSalvagePercentage; }
+
+    public BigDecimal getSayLandValue() { return sayLandValue; }
+    public void setSayLandValue(BigDecimal sayLandValue) { this.sayLandValue = sayLandValue; }
+
+    public BigDecimal getSayBuildingValue() { return sayBuildingValue; }
+    public void setSayBuildingValue(BigDecimal sayBuildingValue) { this.sayBuildingValue = sayBuildingValue; }
+
+    public BigDecimal getLandRealizablePercentage() { return landRealizablePercentage; }
+    public void setLandRealizablePercentage(BigDecimal landRealizablePercentage) { this.landRealizablePercentage = landRealizablePercentage; }
+
+    public BigDecimal getBuildingRealizablePercentage() { return buildingRealizablePercentage; }
+    public void setBuildingRealizablePercentage(BigDecimal buildingRealizablePercentage) { this.buildingRealizablePercentage = buildingRealizablePercentage; }
+
+    public BigDecimal getLandDistressPercentage() { return landDistressPercentage; }
+    public void setLandDistressPercentage(BigDecimal landDistressPercentage) { this.landDistressPercentage = landDistressPercentage; }
+
+    public BigDecimal getBuildingDistressPercentage() { return buildingDistressPercentage; }
+    public void setBuildingDistressPercentage(BigDecimal buildingDistressPercentage) { this.buildingDistressPercentage = buildingDistressPercentage; }
+
+    public BigDecimal getLandRealizableValue() { return landRealizableValue; }
+    public void setLandRealizableValue(BigDecimal landRealizableValue) { this.landRealizableValue = landRealizableValue; }
+
+    public BigDecimal getBuildingRealizableValue() { return buildingRealizableValue; }
+    public void setBuildingRealizableValue(BigDecimal buildingRealizableValue) { this.buildingRealizableValue = buildingRealizableValue; }
+
+    public BigDecimal getLandDistressValue() { return landDistressValue; }
+    public void setLandDistressValue(BigDecimal landDistressValue) { this.landDistressValue = landDistressValue; }
+
+    public BigDecimal getBuildingDistressValue() { return buildingDistressValue; }
+    public void setBuildingDistressValue(BigDecimal buildingDistressValue) { this.buildingDistressValue = buildingDistressValue; }
+
+    public BigDecimal getLandGovernmentValue() { return landGovernmentValue; }
+    public void setLandGovernmentValue(BigDecimal landGovernmentValue) { this.landGovernmentValue = landGovernmentValue; }
+
+    public BigDecimal getBuildingGovernmentValue() { return buildingGovernmentValue; }
+    public void setBuildingGovernmentValue(BigDecimal buildingGovernmentValue) { this.buildingGovernmentValue = buildingGovernmentValue; }
 
     public String getValuationStatus() { return valuationStatus; }
     public void setValuationStatus(String valuationStatus) { this.valuationStatus = valuationStatus; }
