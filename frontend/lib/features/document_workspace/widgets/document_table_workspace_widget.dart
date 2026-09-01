@@ -846,11 +846,79 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
-                child: _buildSummaryDetailRow('Realizable Value (${data.realizablePercentage}%):', 'INR ${IndianNumberFormatter.format(data.realizableValue)}', IndianCurrencyToWords.convertToWords(data.realizableValue)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 80,
+                          child: TextFormField(
+                            initialValue: data.realizablePercentage.toString(),
+                            enabled: !isReadOnly,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(
+                              labelText: 'Realizable %',
+                              isDense: true,
+                              suffixText: '%',
+                              border: OutlineInputBorder(),
+                            ),
+                            onChanged: (val) {
+                              data.realizablePercentage = double.tryParse(val) ?? 85.0;
+                              provider.recalculateValuation();
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildSummaryDetailRow(
+                            'Realizable Value (${data.realizablePercentage}%):',
+                            'INR ${IndianNumberFormatter.format(data.realizableValue)}',
+                            IndianCurrencyToWords.convertToWords(data.realizableValue),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(width: 16),
               Expanded(
-                child: _buildSummaryDetailRow('Distress Sale Value (${data.distressSalePercentage}%):', 'INR ${IndianNumberFormatter.format(data.distressSaleValue)}', IndianCurrencyToWords.convertToWords(data.distressSaleValue)),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        SizedBox(
+                          width: 80,
+                          child: TextFormField(
+                            initialValue: data.distressSalePercentage.toString(),
+                            enabled: !isReadOnly,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(
+                              labelText: 'Distress %',
+                              isDense: true,
+                              suffixText: '%',
+                              border: OutlineInputBorder(),
+                            ),
+                            onChanged: (val) {
+                              data.distressSalePercentage = double.tryParse(val) ?? 75.0;
+                              provider.recalculateValuation();
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: _buildSummaryDetailRow(
+                            'Distress Sale Value (${data.distressSalePercentage}%):',
+                            'INR ${IndianNumberFormatter.format(data.distressSaleValue)}',
+                            IndianCurrencyToWords.convertToWords(data.distressSaleValue),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ],
           ),

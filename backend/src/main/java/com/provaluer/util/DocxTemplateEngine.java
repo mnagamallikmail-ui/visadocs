@@ -665,9 +665,9 @@ public class DocxTemplateEngine {
     }
 
     private Tbl buildDynamicLandTable(Map<String, String> inputs) {
-        List<String> headers = List.of("Survey No", "Description", "Area", "Unit", "Area (Sq.Ft)", "Rate (INR)", "Value (INR)");
-        List<Integer> colWidths = List.of(1300, 2100, 1100, 900, 1400, 1300, 1500);
-        List<JcEnumeration> alignments = List.of(JcEnumeration.LEFT, JcEnumeration.LEFT, JcEnumeration.RIGHT, JcEnumeration.CENTER, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.RIGHT);
+        List<String> headers = List.of("S.No", "Description", "Unit", "Quantity", "Rate (₹)", "Amount (₹)");
+        List<Integer> colWidths = List.of(800, 3200, 1200, 1400, 1400, 1600);
+        List<JcEnumeration> alignments = List.of(JcEnumeration.CENTER, JcEnumeration.LEFT, JcEnumeration.CENTER, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.RIGHT);
         List<List<String>> rows = new ArrayList<>();
         
         // Parse land items from JSON if available in inputs
@@ -676,15 +676,21 @@ public class DocxTemplateEngine {
             try {
                 com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(landJson);
                 if (root.isArray()) {
+                    int sNo = 1;
                     for (com.fasterxml.jackson.databind.JsonNode n : root) {
+                        String sNoStr = String.valueOf(sNo++);
+                        String desc = n.path("description").asText("Land Parcel");
+                        String survey = n.path("surveyNo").asText("");
+                        if (!survey.isEmpty() && !survey.equals("-")) {
+                            desc = desc + " (Sy. No: " + survey + ")";
+                        }
                         rows.add(List.of(
-                                n.path("surveyNo").asText("-"),
-                                n.path("description").asText("Land Parcel"),
-                                n.path("enteredArea").asText("0"),
+                                sNoStr,
+                                desc,
                                 n.path("enteredUnit").asText("Sq.Ft"),
-                                n.path("standardAreaSqft").asText("0"),
-                                n.path("rate").asText("0"),
-                                n.path("value").asText("0")
+                                n.path("enteredArea").asText("0"),
+                                "₹ " + n.path("rate").asText("0"),
+                                "₹ " + n.path("value").asText("0")
                         ));
                     }
                 }
@@ -694,24 +700,23 @@ public class DocxTemplateEngine {
         if (rows.isEmpty()) {
             // Default single row from inputs
             rows.add(List.of(
-                    inputs != null ? inputs.getOrDefault("SURVEY_NO", "-") : "-",
+                    "1",
                     "Primary Land Parcel",
-                    inputs != null ? inputs.getOrDefault("LAND_AREA", "0") : "0",
                     "Sq.Ft",
                     inputs != null ? inputs.getOrDefault("LAND_AREA", "0") : "0",
-                    inputs != null ? inputs.getOrDefault("LAND_RATE", "0") : "0",
-                    inputs != null ? inputs.getOrDefault("TOTAL_LAND_VALUE", inputs.getOrDefault("LAND_VALUE", "0")) : "0"
+                    "₹ " + (inputs != null ? inputs.getOrDefault("LAND_RATE", "0") : "0"),
+                    "₹ " + (inputs != null ? inputs.getOrDefault("TOTAL_LAND_VALUE", inputs.getOrDefault("LAND_VALUE", "0")) : "0")
             ));
         }
 
-        List<String> footer = List.of("Total Land Value", "", "", "", "", "", inputs != null ? inputs.getOrDefault("TOTAL_LAND_VALUE", "0") : "0");
+        List<String> footer = List.of("Total Land Value", "", "", "", "", "₹ " + (inputs != null ? inputs.getOrDefault("TOTAL_LAND_VALUE", "0") : "0"));
         return createDocxTable(headers, colWidths, rows, footer, 18, alignments);
     }
 
     private Tbl buildDynamicBuildingTable(Map<String, String> inputs) {
-        List<String> headers = List.of("Structure", "Type", "Area", "Rate (INR)", "Cost (INR)", "Age", "Life", "Dep %", "Depr (INR)", "Value (INR)");
-        List<Integer> colWidths = List.of(1400, 1300, 1000, 950, 1250, 550, 550, 650, 1100, 1250);
-        List<JcEnumeration> alignments = List.of(JcEnumeration.LEFT, JcEnumeration.LEFT, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.CENTER, JcEnumeration.CENTER, JcEnumeration.CENTER, JcEnumeration.RIGHT, JcEnumeration.RIGHT);
+        List<String> headers = List.of("S.No", "Description", "Building Type", "Unit", "Quantity", "Rate (₹)", "Amount (₹)", "Depreciation (₹)", "Fair Value (₹)");
+        List<Integer> colWidths = List.of(700, 1600, 1500, 900, 1000, 1000, 1300, 1300, 1300);
+        List<JcEnumeration> alignments = List.of(JcEnumeration.CENTER, JcEnumeration.LEFT, JcEnumeration.LEFT, JcEnumeration.CENTER, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.RIGHT);
         List<List<String>> rows = new ArrayList<>();
 
         String bldgJson = inputs != null ? inputs.get("RAW_BUILDING_ITEMS_JSON") : null;
@@ -719,18 +724,18 @@ public class DocxTemplateEngine {
             try {
                 com.fasterxml.jackson.databind.JsonNode root = objectMapper.readTree(bldgJson);
                 if (root.isArray()) {
+                    int sNo = 1;
                     for (com.fasterxml.jackson.databind.JsonNode n : root) {
                         rows.add(List.of(
+                                String.valueOf(sNo++),
                                 n.path("structureType").asText("Structure"),
                                 n.path("buildingType").asText("RCC"),
-                                n.path("enteredArea").asText("0") + " " + n.path("enteredUnit").asText("Sq.Ft"),
-                                n.path("replacementRate").asText("0"),
-                                n.path("replacementCost").asText("0"),
-                                n.path("buildingAge").asText("0") + " Yrs",
-                                n.path("buildingUsefulLife").asText("60") + " Yrs",
-                                n.path("depreciationPercentage").asText("0") + "%",
-                                n.path("depreciationAmount").asText("0"),
-                                n.path("buildingValue").asText("0")
+                                n.path("enteredUnit").asText("Sq.Ft"),
+                                n.path("enteredArea").asText("0"),
+                                "₹ " + n.path("replacementRate").asText("0"),
+                                "₹ " + n.path("replacementCost").asText("0"),
+                                "₹ " + n.path("depreciationAmount").asText("0"),
+                                "₹ " + n.path("buildingValue").asText("0")
                         ));
                     }
                 }
@@ -739,20 +744,19 @@ public class DocxTemplateEngine {
 
         if (rows.isEmpty()) {
             rows.add(List.of(
+                    "1",
                     "Main Structure",
                     inputs != null ? inputs.getOrDefault("BUILDING_TYPE", "RCC Residential") : "RCC Residential",
+                    "Sq.Ft",
                     inputs != null ? inputs.getOrDefault("BUILDING_AREA", "0") : "0",
-                    inputs != null ? inputs.getOrDefault("REPLACEMENT_RATE", "0") : "0",
-                    inputs != null ? inputs.getOrDefault("TOTAL_REPLACEMENT_COST", inputs.getOrDefault("REPLACEMENT_COST", "0")) : "0",
-                    inputs != null ? inputs.getOrDefault("BUILDING_AGE", "0") : "0",
-                    inputs != null ? inputs.getOrDefault("BUILDING_USEFUL_LIFE", "60") : "60",
-                    inputs != null ? inputs.getOrDefault("DEPRECIATION_PERCENT", "0%") : "0%",
-                    inputs != null ? inputs.getOrDefault("TOTAL_DEPRECIATION_AMOUNT", inputs.getOrDefault("DEPRECIATION_AMOUNT", "0")) : "0",
-                    inputs != null ? inputs.getOrDefault("TOTAL_BUILDING_VALUE", inputs.getOrDefault("BUILDING_VALUE", "0")) : "0"
+                    "₹ " + (inputs != null ? inputs.getOrDefault("REPLACEMENT_RATE", "0") : "0"),
+                    "₹ " + (inputs != null ? inputs.getOrDefault("TOTAL_REPLACEMENT_COST", inputs.getOrDefault("REPLACEMENT_COST", "0")) : "0"),
+                    "₹ " + (inputs != null ? inputs.getOrDefault("TOTAL_DEPRECIATION_AMOUNT", inputs.getOrDefault("DEPRECIATION_AMOUNT", "0")) : "0"),
+                    "₹ " + (inputs != null ? inputs.getOrDefault("TOTAL_BUILDING_VALUE", inputs.getOrDefault("BUILDING_VALUE", "0")) : "0")
             ));
         }
 
-        List<String> footer = List.of("Total Building Value", "", "", "", "", "", "", "", "", inputs != null ? inputs.getOrDefault("TOTAL_BUILDING_VALUE", "0") : "0");
+        List<String> footer = List.of("Total Building Value", "", "", "", "", "", "", "", "₹ " + (inputs != null ? inputs.getOrDefault("TOTAL_BUILDING_VALUE", "0") : "0"));
         return createDocxTable(headers, colWidths, rows, footer, 17, alignments);
     }
 
