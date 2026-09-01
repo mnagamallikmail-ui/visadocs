@@ -49,6 +49,12 @@ public class TemplateController {
     @Autowired
     private com.provaluer.repository.TemplateQuestionRepository templateQuestionRepository;
 
+    @Autowired
+    private com.provaluer.repository.DocumentStudioConfigRepository studioConfigRepository;
+
+    @Autowired
+    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private Long currentUserId() {
@@ -264,17 +270,37 @@ public class TemplateController {
 
     /**
      * DELETE /api/v1/templates/{id}
-     * Deletes a template from the database.
+     * Deletes a template from the database after cascading dependent records.
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @Transactional
     public ResponseEntity<?> deleteTemplate(@PathVariable Long id) {
-        return templateRepository.findById(id)
-                .map(t -> {
-                    templateRepository.delete(t);
-                    return ResponseEntity.ok().build();
-                })
-                .orElse(ResponseEntity.notFound().build());
+        Optional<Template> optionalTemplate = templateRepository.findById(id);
+        if (optionalTemplate.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+
+        try {
+            Template template = optionalTemplate.get();
+
+            // 1. Unlink orders using this template to avoid foreign key violation
+            jdbcTemplate.update("UPDATE orders SET template_id = NULL WHERE template_id = ?", id);
+
+            // 2. Delete dependent document studio configs
+            studioConfigRepository.deleteByTemplateId(id);
+
+            // 3. Delete dependent template versions
+            templateVersionRepository.deleteAllByTemplateId(id);
+
+            // 4. Delete the parent template
+            templateRepository.delete(template);
+
+            return ResponseEntity.ok(Map.of("status", "SUCCESS", "message", "Template deleted successfully."));
+        } catch (Exception e) {
+            return ResponseEntity.status(org.springframework.http.HttpStatus.CONFLICT)
+                    .body(Map.of("status", "ERROR", "message", "Cannot delete template due to dependent records: " + e.getMessage()));
+        }
     }
 
     /**

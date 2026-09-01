@@ -54,6 +54,7 @@ public class SuperAdminController {
     @Autowired private PasswordEncoder passwordEncoder;
     @Autowired private DocumentWorkspaceService documentWorkspaceService;
     @Autowired private TemplateProcessingService templateProcessingService;
+    @Autowired private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
 
     // ─────────────────────────────────────────────
     // HELPERS
@@ -884,6 +885,9 @@ public class SuperAdminController {
     @Transactional
     public ResponseEntity<?> purgeAllTemplates() {
         log.warn("SUPER_ADMIN #{} initiated purge of ALL template data.", actorId());
+
+        // 1. Unlink any orders referencing templates to prevent foreign key violation
+        jdbcTemplate.update("UPDATE orders SET template_id = NULL WHERE template_id IS NOT NULL");
 
         long studioConfigsDeleted = documentStudioConfigRepository.count();
         documentStudioConfigRepository.deleteAll();
