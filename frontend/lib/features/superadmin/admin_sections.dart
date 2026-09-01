@@ -1683,9 +1683,13 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                         content: Text('Template finalized, activated, and versioned successfully!'),
                       ));
                     } catch (e) {
+                      String errorMsg = ApiService.getErrorMessage(e);
+                      if (errorMsg.contains('duplicate key') || errorMsg.contains('uk_template_version') || errorMsg.contains('already exists')) {
+                        errorMsg = 'Duplicate version detected. The template version was already registered.';
+                      }
                       messenger.showSnackBar(SnackBar(
                         backgroundColor: AppColors.brandRedDark,
-                        content: Text('Failed to finalize: ${ApiService.getErrorMessage(e)}'),
+                        content: Text('Failed to finalize: $errorMsg'),
                       ));
                     } finally {
                       _load();

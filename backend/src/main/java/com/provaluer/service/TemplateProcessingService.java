@@ -142,7 +142,29 @@ public class TemplateProcessingService {
 
     @Transactional
     public TemplateVersion saveVersionSnapshot(Template template, String changeSummary, Long actorId) {
+        // Find existing versions for this template to prevent duplicate key violations on (template_id, version)
+        java.util.List<TemplateVersion> existingVersions = templateVersionRepository.findAllByTemplateIdOrderByVersionDesc(template.getId());
+        int targetVersion = template.getVersion();
+
+        if (!existingVersions.isEmpty()) {
+            int maxVersion = existingVersions.get(0).getVersion();
+            final int currentVer = targetVersion;
+            boolean versionAlreadyExists = existingVersions.stream().anyMatch(v -> v.getVersion() == currentVer);
+            if (versionAlreadyExists || targetVersion <= maxVersion) {
+                targetVersion = maxVersion + 1;
+                template.setVersion(targetVersion);
+                templateRepository.save(template);
+            }
+        } else {
+            if (targetVersion <= 0) {
+                targetVersion = 1;
+                template.setVersion(1);
+                templateRepository.save(template);
+            }
+        }
+
         TemplateVersion version = new TemplateVersion(template, changeSummary, actorId);
+        version.setVersion(targetVersion);
         return templateVersionRepository.save(version);
     }
 

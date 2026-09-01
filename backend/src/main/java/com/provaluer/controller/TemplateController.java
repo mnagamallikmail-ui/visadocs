@@ -245,6 +245,7 @@ public class TemplateController {
      */
     @PostMapping("/{id}/confirm")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @Transactional
     public ResponseEntity<?> confirmTemplate(@PathVariable Long id, @RequestBody String fieldMappingUpdates) {
         Optional<Template> templateOpt = templateRepository.findById(id);
         if (templateOpt.isPresent()) {
