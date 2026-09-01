@@ -1148,8 +1148,8 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
   }
 
   // 0.2 Safe template list loading with defensive error handling
-  Future<void> _load() async {
-    if (mounted) setState(() => _loading = true);
+  Future<void> _load({bool silent = false}) async {
+    if (mounted && !silent) setState(() => _loading = true);
     try {
       final r = await _api.dio.get('/api/v1/templates');
       if (mounted) {
@@ -1163,7 +1163,7 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
         _checkAndStartPolling();
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted && !silent) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           backgroundColor: AppColors.brandRedDark,
           content: Text(ApiService.getErrorMessage(e)),
@@ -1171,7 +1171,7 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
       }
     } finally {
       // 0.1 Defensive loading state reset
-      if (mounted) {
+      if (mounted && !silent) {
         setState(() => _loading = false);
       }
     }
@@ -1265,12 +1265,15 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
     try {
       await _api.dio.delete('/api/v1/templates/${t['id']}');
       if (mounted) {
+        setState(() {
+          _templates.removeWhere((item) => item['id'] == t['id']);
+        });
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           backgroundColor: AppColors.success,
           content: Text('Template deleted successfully.'),
         ));
       }
-      _load();
+      _load(silent: true);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
