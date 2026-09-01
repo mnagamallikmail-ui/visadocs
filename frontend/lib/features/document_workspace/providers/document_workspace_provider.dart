@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../../document_studio/models/visual_preview_model.dart';
 import '../models/document_workspace_model.dart';
+import '../models/valuation_models.dart';
 import '../models/workspace_view_model.dart';
 import '../services/document_workspace_api_service.dart';
+import '../services/valuation_calculator.dart';
 
 enum DocumentScrollMode {
   continuous,
@@ -28,6 +31,11 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   DocumentWorkspaceModel? _workspaceModel;
   DocumentWorkspaceVm? _workspaceVm;
   VisualPreviewModel? _livePreviewModel;
+
+  ValuationDataModel? _valuationData;
+  List<ValuationLandItemModel> _landItems = [];
+  List<ValuationBuildingItemModel> _buildingItems = [];
+  List<ValuationComparableSaleModel> _comparables = [];
 
   int _activeSectionIndex = 0;
   final ValueNotifier<int?> scrollToSectionRequested = ValueNotifier<int?>(null);
@@ -58,6 +66,10 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   DocumentWorkspaceModel? get workspaceModel => _workspaceModel;
   DocumentWorkspaceVm? get workspaceVm => _workspaceVm;
   VisualPreviewModel? get livePreviewModel => _livePreviewModel;
+  ValuationDataModel? get valuationData => _valuationData;
+  List<ValuationLandItemModel> get landItems => _landItems;
+  List<ValuationBuildingItemModel> get buildingItems => _buildingItems;
+  List<ValuationComparableSaleModel> get comparables => _comparables;
   int get activeSectionIndex => _activeSectionIndex;
   Map<String, String> get activeValues => _activeValues;
   Map<String, String> get deltaValues => _deltaValues;
@@ -122,6 +134,8 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       _activeValues = Map<String, String>.from(model.values);
       _deltaValues.clear();
 
+      _initValuationDataFromValues(orderId);
+
       if (model.documentDom != null) {
         _workspaceVm = DocumentWorkspaceVm.fromDocumentDom(model.documentDom!, _activeValues);
       } else {
@@ -150,6 +164,171 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     }
   }
 
+  void _initValuationDataFromValues(int orderId) {
+    _valuationData = ValuationDataModel(orderId: orderId);
+
+    // 1. Land Items
+    final rawLand = _activeValues['RAW_LAND_ITEMS_JSON'];
+    if (rawLand != null && rawLand.trim().isNotEmpty) {
+      try {
+        final List<dynamic> decoded = jsonDecode(rawLand);
+        _landItems = decoded.map((j) => ValuationLandItemModel.fromJson(j as Map<String, dynamic>)).toList();
+      } catch (_) {}
+    }
+    if (_landItems.isEmpty) {
+      _landItems = [
+        ValuationLandItemModel(
+          orderId: orderId,
+          surveyNo: 'Survey 1',
+          description: 'Primary Plot',
+          enteredArea: 1000,
+          enteredUnit: 'Sq.Ft',
+          standardAreaSqft: 1000,
+          rate: 1500,
+          value: 1500000,
+        ),
+      ];
+    }
+
+    // 2. Building Items
+    final rawBldg = _activeValues['RAW_BUILDING_ITEMS_JSON'];
+    if (rawBldg != null && rawBldg.trim().isNotEmpty) {
+      try {
+        final List<dynamic> decoded = jsonDecode(rawBldg);
+        _buildingItems = decoded.map((j) => ValuationBuildingItemModel.fromJson(j as Map<String, dynamic>)).toList();
+      } catch (_) {}
+    }
+    if (_buildingItems.isEmpty) {
+      _buildingItems = [
+        ValuationBuildingItemModel(
+          orderId: orderId,
+          structureType: 'Ground Floor',
+          buildingType: 'RCC Commercial',
+          description: 'Main Building Block',
+          enteredArea: 1000,
+          enteredUnit: 'Sq.Ft',
+          standardAreaSqft: 1000,
+          replacementRate: 2500,
+          replacementCost: 2500000,
+          buildingAge: 5,
+          buildingUsefulLife: 60,
+          salvagePercentage: 10,
+          depreciationPercentage: 7.5,
+          depreciationAmount: 187500,
+          buildingValue: 2312500,
+        ),
+      ];
+    }
+
+    // 3. Government Value
+    final govtStr = _activeValues['GOVERNMENT_VALUE'] ?? _activeValues['government_value'];
+    if (govtStr != null) {
+      final cleanGovt = govtStr.replaceAll(',', '').trim();
+      _valuationData!.governmentValue = double.tryParse(cleanGovt) ?? 0.0;
+    }
+
+    ValuationCalculator.recalculateSummary(_valuationData!, _landItems, _buildingItems);
+    final initialPlaceholders = ValuationCalculator.generatePlaceholders(
+      orderInfo: {
+        'id': _workspaceModel?.orderId ?? orderId,
+        'clientName': _activeValues['CLIENT_NAME'] ?? _activeValues['client_name'] ?? '',
+        'bankName': _activeValues['BANK_NAME'] ?? _activeValues['bank_name'] ?? '',
+        'branchName': _activeValues['BRANCH_NAME'] ?? _activeValues['branch_name'] ?? '',
+      },
+      data: _valuationData!,
+      landItems: _landItems,
+      buildingItems: _buildingItems,
+      comparables: _comparables,
+    );
+    _activeValues.addAll(initialPlaceholders);
+  }
+
+  void recalculateValuation() {
+    if (_valuationData == null) return;
+    ValuationCalculator.recalculateSummary(_valuationData!, _landItems, _buildingItems);
+    final placeholders = ValuationCalculator.generatePlaceholders(
+      orderInfo: {
+        'id': _workspaceModel?.orderId ?? 0,
+        'clientName': _activeValues['CLIENT_NAME'] ?? _activeValues['client_name'] ?? '',
+        'bankName': _activeValues['BANK_NAME'] ?? _activeValues['bank_name'] ?? '',
+        'branchName': _activeValues['BRANCH_NAME'] ?? _activeValues['branch_name'] ?? '',
+      },
+      data: _valuationData!,
+      landItems: _landItems,
+      buildingItems: _buildingItems,
+      comparables: _comparables,
+    );
+
+    _activeValues.addAll(placeholders);
+    _deltaValues.addAll(placeholders);
+
+    try {
+      final landJson = jsonEncode(_landItems.map((i) => i.toJson()).toList());
+      final bldgJson = jsonEncode(_buildingItems.map((i) => i.toJson()).toList());
+      _activeValues['RAW_LAND_ITEMS_JSON'] = landJson;
+      _deltaValues['RAW_LAND_ITEMS_JSON'] = landJson;
+      _activeValues['RAW_BUILDING_ITEMS_JSON'] = bldgJson;
+      _deltaValues['RAW_BUILDING_ITEMS_JSON'] = bldgJson;
+    } catch (_) {}
+
+    _isDirty = true;
+    if (_workspaceModel?.documentDom != null) {
+      _workspaceVm = DocumentWorkspaceVm.fromDocumentDom(_workspaceModel!.documentDom!, _activeValues);
+    }
+    notifyListeners();
+  }
+
+  void addLandItem() {
+    if (_workspaceModel == null) return;
+    _landItems.add(ValuationLandItemModel(
+      orderId: _workspaceModel!.orderId,
+      surveyNo: 'Plot ${_landItems.length + 1}',
+      description: 'Land Parcel ${_landItems.length + 1}',
+      enteredArea: 500,
+      enteredUnit: 'Sq.Ft',
+      standardAreaSqft: 500,
+      rate: 1000,
+      value: 500000,
+    ));
+    recalculateValuation();
+  }
+
+  void removeLandItem(int index) {
+    if (_landItems.length > 1 && index >= 0 && index < _landItems.length) {
+      _landItems.removeAt(index);
+      recalculateValuation();
+    }
+  }
+
+  void addBuildingItem() {
+    if (_workspaceModel == null) return;
+    _buildingItems.add(ValuationBuildingItemModel(
+      orderId: _workspaceModel!.orderId,
+      structureType: 'First Floor',
+      buildingType: 'RCC Commercial',
+      description: 'Structure ${_buildingItems.length + 1}',
+      enteredArea: 500,
+      enteredUnit: 'Sq.Ft',
+      standardAreaSqft: 500,
+      replacementRate: 2000,
+      replacementCost: 1000000,
+      buildingAge: 2,
+      buildingUsefulLife: 60,
+      salvagePercentage: 10,
+      depreciationPercentage: 3.0,
+      depreciationAmount: 30000,
+      buildingValue: 970000,
+    ));
+    recalculateValuation();
+  }
+
+  void removeBuildingItem(int index) {
+    if (_buildingItems.length > 1 && index >= 0 && index < _buildingItems.length) {
+      _buildingItems.removeAt(index);
+      recalculateValuation();
+    }
+  }
+
   /// Asynchronously compiles preview in background without blocking workspace data entry
   void _initBackgroundPreview(int orderId) {
     if (_livePreviewModel != null && _livePreviewModel!.pages.isNotEmpty) return;
@@ -173,6 +352,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     _workspaceModel = model;
     _activeValues = Map<String, String>.from(model.values);
     _deltaValues.clear();
+    _initValuationDataFromValues(model.orderId);
     if (model.documentDom != null) {
       _workspaceVm = DocumentWorkspaceVm.fromDocumentDom(model.documentDom!, _activeValues);
     }

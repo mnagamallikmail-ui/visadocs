@@ -3,7 +3,11 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_typography.dart';
+import '../../../utils/indian_number_formatter.dart';
+import '../../../utils/indian_currency_to_words.dart';
 import '../models/workspace_view_model.dart';
+import '../models/valuation_models.dart';
+import '../services/valuation_calculator.dart';
 import '../providers/document_workspace_provider.dart';
 import 'document_input_slot_widget.dart';
 
@@ -116,35 +120,50 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     final vm = provider.workspaceVm;
 
     if (vm == null || vm.sections.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.description_outlined, size: 48, color: AppColors.steel),
-            const SizedBox(height: 12),
-            Text(
-              'No document structure loaded',
-              style: AppTypography.heading4().copyWith(color: AppColors.slate),
-            ),
-          ],
+      return Container(
+        color: AppColors.canvas,
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.description_outlined, size: 48, color: AppColors.steel),
+              const SizedBox(height: 12),
+              Text(
+                'Document Workspace Ready',
+                style: AppTypography.heading4().copyWith(color: AppColors.ink),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Select an order to begin data entry or review document inputs.',
+                style: AppTypography.bodySm().copyWith(color: AppColors.slate),
+              ),
+            ],
+          ),
         ),
       );
     }
 
     _ensureKeysSize(vm.sections.length);
 
+    // ─── Section-by-Section Mode (Paged Viewport) ───────────────────────────
     if (provider.scrollMode == DocumentScrollMode.sectionBySection) {
-      // ─── Single Section Mode ──────────────────────────────────────────
       final activeIndex = provider.activeSectionIndex.clamp(0, vm.sections.length - 1);
       final activeSection = vm.sections[activeIndex];
 
       return Container(
         color: AppColors.canvas,
         child: CustomScrollView(
-          key: PageStorageKey<String>('single_section_${activeSection.sectionIndex}'),
           slivers: [
             SliverToBoxAdapter(
-              child: _buildSectionHeaderCard(activeSection, provider.isReadOnly, isContinuous: false),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1040),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(28, 20, 28, 0),
+                    child: _buildSectionHeaderCard(activeSection, provider.isReadOnly, isContinuous: false),
+                  ),
+                ),
+              ),
             ),
             if (activeSection.orderedBlocks.isNotEmpty)
               SliverPadding(
@@ -153,12 +172,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                   delegate: SliverChildBuilderDelegate(
                     (context, index) {
                       final block = activeSection.orderedBlocks[index];
-                      if (block is TableBlockVm) {
-                        return _buildTableCard(context, block.table, provider.isReadOnly);
-                      } else if (block is ParagraphBlockWrapperVm) {
-                        return _buildParagraphBlock(context, block.block, provider.isReadOnly);
-                      }
-                      return const SizedBox.shrink();
+                      return _buildSectionBlock(context, block, provider);
                     },
                     childCount: activeSection.orderedBlocks.length,
                   ),
@@ -198,10 +212,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                   // Render Section Blocks
                   if (vm.sections[sIdx].orderedBlocks.isNotEmpty)
                     for (final block in vm.sections[sIdx].orderedBlocks) ...[
-                      if (block is TableBlockVm)
-                        _buildTableCard(context, block.table, provider.isReadOnly)
-                      else if (block is ParagraphBlockWrapperVm)
-                        _buildParagraphBlock(context, block.block, provider.isReadOnly),
+                      _buildSectionBlock(context, block, provider),
                     ]
                   else
                     Padding(
@@ -249,6 +260,652 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildSectionBlock(BuildContext context, SectionBlockVm block, DocumentWorkspaceProvider provider) {
+    if (block is TableBlockVm) {
+      return _buildTableCard(context, block.table, provider.isReadOnly);
+    } else if (block is ParagraphBlockWrapperVm) {
+      return _buildParagraphBlock(context, block.block, provider.isReadOnly);
+    } else if (block is ValuationLandBlockVm) {
+      return _buildInlineLandSection(context, provider);
+    } else if (block is ValuationBuildingBlockVm) {
+      return _buildInlineBuildingSection(context, provider);
+    } else if (block is ValuationPropertyBlockVm) {
+      return _buildInlinePropertySection(context, provider);
+    } else if (block is ValuationSummaryBlockVm) {
+      return _buildInlineSummarySection(context, provider);
+    }
+    return const SizedBox.shrink();
+  }
+
+  // ─── Inline Valuation: LAND_TABLE ─────────────────────────────────────────
+  Widget _buildInlineLandSection(BuildContext context, DocumentWorkspaceProvider provider) {
+    final landItems = provider.landItems;
+    final isReadOnly = provider.isReadOnly;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.3), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Section Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.deepTeal.withValues(alpha: 0.08),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(9)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.landscape_rounded, color: AppColors.deepTeal, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Land Parcels Breakdown (<<LAND_TABLE>>)',
+                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink),
+                    ),
+                  ],
+                ),
+                if (!isReadOnly)
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.deepTeal,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      textStyle: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
+                    ),
+                    icon: const Icon(Icons.add, size: 14),
+                    label: const Text('Add Parcel'),
+                    onPressed: provider.addLandItem,
+                  ),
+              ],
+            ),
+          ),
+
+          // Scrollable Table Content
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: 960,
+              child: Column(
+                children: [
+                  // Table Header
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    color: AppColors.surfaceSoft,
+                    child: Row(
+                      children: const [
+                        Expanded(flex: 2, child: Text('Survey No', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 2, child: Text('Description', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 2, child: Text('Entered Area', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 2, child: Text('Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 2, child: Text('Area (Sq.Ft)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 2, child: Text('Rate (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 2, child: Text('Total Value (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        SizedBox(width: 36),
+                      ],
+                    ),
+                  ),
+
+                  // Dynamic Rows
+                  ...landItems.asMap().entries.map((entry) {
+                    final idx = entry.key;
+                    final item = entry.value;
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
+                      child: Row(
+                        children: [
+                          Expanded(flex: 2, child: TextFormField(
+                            initialValue: item.surveyNo,
+                            enabled: !isReadOnly,
+                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                            onChanged: (val) {
+                              item.surveyNo = val;
+                              provider.recalculateValuation();
+                            },
+                          )),
+                          const SizedBox(width: 6),
+                          Expanded(flex: 2, child: TextFormField(
+                            initialValue: item.description,
+                            enabled: !isReadOnly,
+                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                            onChanged: (val) {
+                              item.description = val;
+                              provider.recalculateValuation();
+                            },
+                          )),
+                          const SizedBox(width: 6),
+                          Expanded(flex: 2, child: TextFormField(
+                            initialValue: item.enteredArea.toString(),
+                            enabled: !isReadOnly,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                            onChanged: (val) {
+                              item.enteredArea = double.tryParse(val) ?? 0;
+                              provider.recalculateValuation();
+                            },
+                          )),
+                          const SizedBox(width: 6),
+                          Expanded(flex: 2, child: DropdownButtonFormField<String>(
+                            isExpanded: true,
+                            value: ['Sq.Ft', 'Sq.Yd', 'Acre', 'Gunta', 'Hectare'].contains(item.enteredUnit) ? item.enteredUnit : 'Sq.Ft',
+                            items: ['Sq.Ft', 'Sq.Yd', 'Acre', 'Gunta', 'Hectare'].map((u) => DropdownMenuItem(value: u, child: Text(u, style: const TextStyle(fontSize: 11)))).toList(),
+                            onChanged: isReadOnly ? null : (val) {
+                              if (val != null) {
+                                item.enteredUnit = val;
+                                provider.recalculateValuation();
+                              }
+                            },
+                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                          )),
+                          const SizedBox(width: 6),
+                          Expanded(flex: 2, child: Text(IndianNumberFormatter.format(item.standardAreaSqft), style: GoogleFonts.firaCode(fontSize: 11))),
+                          const SizedBox(width: 6),
+                          Expanded(flex: 2, child: TextFormField(
+                            initialValue: item.rate.toString(),
+                            enabled: !isReadOnly,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                            onChanged: (val) {
+                              item.rate = double.tryParse(val) ?? 0;
+                              provider.recalculateValuation();
+                            },
+                          )),
+                          const SizedBox(width: 6),
+                          Expanded(flex: 2, child: Text(IndianNumberFormatter.format(item.value), style: GoogleFonts.firaCode(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary))),
+                          SizedBox(
+                            width: 36,
+                            child: isReadOnly || landItems.length <= 1
+                                ? null
+                                : IconButton(
+                                    icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.brandRedDark),
+                                    onPressed: () => provider.removeLandItem(idx),
+                                  ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ),
+
+          // Total Row
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceSoft,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(9)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('TOTAL LAND VALUE (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                Text(
+                  'INR ${IndianNumberFormatter.format(provider.valuationData?.totalLandValue ?? 0)}',
+                  style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Inline Valuation: BUILDING_TABLE ─────────────────────────────────────
+  Widget _buildInlineBuildingSection(BuildContext context, DocumentWorkspaceProvider provider) {
+    final buildingItems = provider.buildingItems;
+    final isReadOnly = provider.isReadOnly;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.3), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Section Header
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.deepTeal.withValues(alpha: 0.08),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(9)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.apartment_rounded, color: AppColors.deepTeal, size: 20),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Building Structures Breakdown (<<BUILDING_TABLE>>)',
+                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink),
+                    ),
+                  ],
+                ),
+                if (!isReadOnly)
+                  ElevatedButton.icon(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.deepTeal,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      textStyle: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600),
+                    ),
+                    icon: const Icon(Icons.add, size: 14),
+                    label: const Text('Add Structure'),
+                    onPressed: provider.addBuildingItem,
+                  ),
+              ],
+            ),
+          ),
+          // Scrollable Table Content
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: 1040,
+              child: Column(
+                children: [
+                  // Table Header
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    color: AppColors.surfaceSoft,
+                    child: Row(
+                      children: const [
+                        Expanded(flex: 2, child: Text('Structure', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 2, child: Text('Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 2, child: Text('Area (Sq.Ft)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 2, child: Text('Rate', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 2, child: Text('Repl Cost', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 1, child: Text('Age', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 1, child: Text('Life', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 1, child: Text('Dep %', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 2, child: Text('Depr Amt', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 2, child: Text('Building Value', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        SizedBox(width: 36),
+                      ],
+                    ),
+                  ),
+
+                  // Dynamic Rows
+                  ...buildingItems.asMap().entries.map((entry) {
+                    final idx = entry.key;
+                    final item = entry.value;
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
+                      child: Row(
+                        children: [
+                          Expanded(flex: 2, child: DropdownButtonFormField<String>(
+                            isExpanded: true,
+                            value: ['Ground Floor', 'First Floor', 'Second Floor', 'Third Floor', 'Basement', 'Mezzanine', 'Terrace Shed'].contains(item.structureType) ? item.structureType : 'Ground Floor',
+                            items: ['Ground Floor', 'First Floor', 'Second Floor', 'Third Floor', 'Basement', 'Mezzanine', 'Terrace Shed'].map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 10)))).toList(),
+                            onChanged: isReadOnly ? null : (val) {
+                              if (val != null) {
+                                item.structureType = val;
+                                provider.recalculateValuation();
+                              }
+                            },
+                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                          )),
+                          const SizedBox(width: 4),
+                          Expanded(flex: 2, child: DropdownButtonFormField<String>(
+                            isExpanded: true,
+                            value: ['RCC Commercial', 'RCC Residential', 'Industrial Building', 'Warehouse', 'Steel Shed', 'PEB Structure'].contains(item.buildingType) ? item.buildingType : 'RCC Commercial',
+                            items: ['RCC Commercial', 'RCC Residential', 'Industrial Building', 'Warehouse', 'Steel Shed', 'PEB Structure'].map((b) => DropdownMenuItem(value: b, child: Text(b, style: const TextStyle(fontSize: 10)))).toList(),
+                            onChanged: isReadOnly ? null : (val) {
+                              if (val != null) {
+                                item.buildingType = val;
+                                provider.recalculateValuation();
+                              }
+                            },
+                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                          )),
+                          const SizedBox(width: 4),
+                          Expanded(flex: 2, child: TextFormField(
+                            initialValue: item.enteredArea.toString(),
+                            enabled: !isReadOnly,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                            onChanged: (val) {
+                              item.enteredArea = double.tryParse(val) ?? 0;
+                              provider.recalculateValuation();
+                            },
+                          )),
+                          const SizedBox(width: 4),
+                          Expanded(flex: 2, child: TextFormField(
+                            initialValue: item.replacementRate.toString(),
+                            enabled: !isReadOnly,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                            onChanged: (val) {
+                              item.replacementRate = double.tryParse(val) ?? 0;
+                              provider.recalculateValuation();
+                            },
+                          )),
+                          const SizedBox(width: 4),
+                          Expanded(flex: 2, child: Text(IndianNumberFormatter.format(item.replacementCost), style: GoogleFonts.firaCode(fontSize: 10))),
+                          const SizedBox(width: 4),
+                          Expanded(flex: 1, child: TextFormField(
+                            initialValue: item.buildingAge.toString(),
+                            enabled: !isReadOnly,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                            onChanged: (val) {
+                              item.buildingAge = double.tryParse(val) ?? 0;
+                              provider.recalculateValuation();
+                            },
+                          )),
+                          const SizedBox(width: 4),
+                          Expanded(flex: 1, child: TextFormField(
+                            initialValue: item.buildingUsefulLife.toString(),
+                            enabled: !isReadOnly,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                            onChanged: (val) {
+                              item.buildingUsefulLife = int.tryParse(val) ?? 60;
+                              provider.recalculateValuation();
+                            },
+                          )),
+                          const SizedBox(width: 4),
+                          Expanded(flex: 1, child: Text('${item.depreciationPercentage.toStringAsFixed(1)}%', style: GoogleFonts.firaCode(fontSize: 10))),
+                          const SizedBox(width: 4),
+                          Expanded(flex: 2, child: Text(IndianNumberFormatter.format(item.depreciationAmount), style: GoogleFonts.firaCode(fontSize: 10, color: AppColors.brandRedDark))),
+                          const SizedBox(width: 4),
+                          Expanded(flex: 2, child: Text(IndianNumberFormatter.format(item.buildingValue), style: GoogleFonts.firaCode(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary))),
+                          SizedBox(
+                            width: 36,
+                            child: isReadOnly || buildingItems.length <= 1
+                                ? null
+                                : IconButton(
+                                    icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.brandRedDark),
+                                    onPressed: () => provider.removeBuildingItem(idx),
+                                  ),
+                          ),
+                        ],
+                      ),
+                    );
+                  }),
+                ],
+              ),
+            ),
+          ),
+
+          // Total Row
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceSoft,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(9)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text('TOTAL BUILDING VALUE (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                Text(
+                  'INR ${IndianNumberFormatter.format(provider.valuationData?.totalBuildingValue ?? 0)}',
+                  style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Inline Valuation: VALUE OF THE PROPERTY TABLE ─────────────────────────
+  Widget _buildInlinePropertySection(BuildContext context, DocumentWorkspaceProvider provider) {
+    final data = provider.valuationData;
+    final landVal = data?.totalLandValue ?? 0.0;
+    final bldgVal = data?.totalBuildingValue ?? 0.0;
+    final fairVal = data?.fairValue ?? 0.0;
+    final sayVal = ValuationCalculator.computeSayValue(fairVal);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.08),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(9)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.account_balance_wallet_rounded, color: AppColors.primary, size: 20),
+                const SizedBox(width: 8),
+                Text(
+                  'VALUE OF THE PROPERTY',
+                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink),
+                ),
+                const Spacer(),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(4)),
+                  child: const Text('CALCULATED SUMMARY', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Table(
+              columnWidths: const {
+                0: FlexColumnWidth(4),
+                1: FlexColumnWidth(6),
+              },
+              children: [
+                TableRow(
+                  decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
+                  children: [
+                    Padding(padding: const EdgeInsets.all(10), child: Text('Value of Land', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600))),
+                    Padding(padding: const EdgeInsets.all(10), child: Text('INR ${IndianNumberFormatter.format(landVal)}', style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold))),
+                  ],
+                ),
+                TableRow(
+                  decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
+                  children: [
+                    Padding(padding: const EdgeInsets.all(10), child: Text('Value of Buildings', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600))),
+                    Padding(padding: const EdgeInsets.all(10), child: Text('INR ${IndianNumberFormatter.format(bldgVal)}', style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold))),
+                  ],
+                ),
+                TableRow(
+                  decoration: BoxDecoration(color: AppColors.surfaceSoft, border: const Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
+                  children: [
+                    Padding(padding: const EdgeInsets.all(10), child: Text('Total (Fair Market Value)', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary))),
+                    Padding(padding: const EdgeInsets.all(10), child: Text('INR ${IndianNumberFormatter.format(fairVal)}', style: GoogleFonts.firaCode(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary))),
+                  ],
+                ),
+                TableRow(
+                  decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.05)),
+                  children: [
+                    Padding(padding: const EdgeInsets.all(10), child: Text('Say (Rounded to nearest Lakh)', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.ink))),
+                    Padding(padding: const EdgeInsets.all(10), child: Text('INR ${IndianNumberFormatter.format(sayVal)}', style: GoogleFonts.firaCode(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.successAccent))),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─── Inline Valuation: VALUATION_SUMMARY_TABLE ────────────────────────────
+  Widget _buildInlineSummarySection(BuildContext context, DocumentWorkspaceProvider provider) {
+    final data = provider.valuationData;
+    if (data == null) return const SizedBox.shrink();
+
+    final isReadOnly = provider.isReadOnly;
+    final insurableVal = data.insurableValue > 0 ? data.insurableValue : data.totalReplacementCost;
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 24),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.3), width: 1.5),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.verified_rounded, color: AppColors.successAccent, size: 22),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'Consolidated Valuation Summary Certificate (<<VALUATION_SUMMARY_TABLE>>)',
+                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _buildSummaryDetailRow('Total Land Value:', 'INR ${IndianNumberFormatter.format(data.totalLandValue)}', IndianCurrencyToWords.convertToWords(data.totalLandValue)),
+          const Divider(height: 18),
+          _buildSummaryDetailRow('Total Building Value:', 'INR ${IndianNumberFormatter.format(data.totalBuildingValue)}', IndianCurrencyToWords.convertToWords(data.totalBuildingValue)),
+          const Divider(height: 18),
+          _buildSummaryDetailRow('Total Fair Market Value:', 'INR ${IndianNumberFormatter.format(data.fairValue)}', IndianCurrencyToWords.convertToWords(data.fairValue), isHighlight: true),
+          const Divider(height: 18),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _buildSummaryDetailRow('Realizable Value (${data.realizablePercentage}%):', 'INR ${IndianNumberFormatter.format(data.realizableValue)}', IndianCurrencyToWords.convertToWords(data.realizableValue)),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: _buildSummaryDetailRow('Distress Sale Value (${data.distressSalePercentage}%):', 'INR ${IndianNumberFormatter.format(data.distressSaleValue)}', IndianCurrencyToWords.convertToWords(data.distressSaleValue)),
+              ),
+            ],
+          ),
+          const Divider(height: 18),
+          _buildSummaryDetailRow('Insurable Value (Total Building Replacement Cost):', 'INR ${IndianNumberFormatter.format(insurableVal)}', IndianCurrencyToWords.convertToWords(insurableVal)),
+          const Divider(height: 18),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  initialValue: data.governmentValue > 0 ? data.governmentValue.toStringAsFixed(2) : '',
+                  enabled: !isReadOnly,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Government / Guideline Value (INR)',
+                    hintText: 'Enter guideline value',
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                    prefixText: 'INR ',
+                  ),
+                  onChanged: (val) {
+                    data.governmentValue = double.tryParse(val) ?? 0;
+                    provider.recalculateValuation();
+                  },
+                ),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                flex: 3,
+                child: _buildSummaryDetailRow(
+                  'Assessed Government Value:',
+                  'INR ${IndianNumberFormatter.format(data.governmentValue)}',
+                  IndianCurrencyToWords.convertToWords(data.governmentValue),
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 18),
+          _buildSummaryDetailRow(
+            'Say Value (Rounded Fair Value):',
+            'INR ${IndianNumberFormatter.format(ValuationCalculator.computeSayValue(data.fairValue))}',
+            IndianCurrencyToWords.convertToWords(ValuationCalculator.computeSayValue(data.fairValue)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummaryDetailRow(String label, String value, String words, {bool isHighlight = false}) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  fontWeight: isHighlight ? FontWeight.bold : FontWeight.w600,
+                  fontSize: isHighlight ? 14 : 12,
+                  color: isHighlight ? AppColors.primary : AppColors.ink,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              value,
+              style: GoogleFonts.firaCode(
+                fontWeight: FontWeight.bold,
+                fontSize: isHighlight ? 16 : 13,
+                color: isHighlight ? AppColors.primary : AppColors.ink,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 2),
+        Text(words, style: GoogleFonts.merriweather(fontStyle: FontStyle.italic, fontSize: 11, color: AppColors.slate)),
+      ],
     );
   }
 

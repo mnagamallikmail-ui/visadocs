@@ -91,10 +91,37 @@ class DocumentWorkspaceVm {
             }
           }
 
+          // Check if this paragraph is a dynamic valuation table directive
+          final upperPKeys = pKeys.map((k) => k.toUpperCase().trim()).toList();
+          if (upperPKeys.contains('LAND_TABLE') || upperPKeys.contains('DYNAMIC_LAND_TABLE')) {
+            orderedBlocks.add(ValuationLandBlockVm(el.id));
+            continue;
+          }
+          if (upperPKeys.contains('BUILDING_TABLE') || upperPKeys.contains('DYNAMIC_BUILDING_TABLE')) {
+            orderedBlocks.add(ValuationBuildingBlockVm(el.id));
+            continue;
+          }
+          if (upperPKeys.contains('VALUATION_SUMMARY_TABLE') || upperPKeys.contains('DYNAMIC_VALUATION_SUMMARY_TABLE')) {
+            orderedBlocks.add(ValuationSummaryBlockVm(el.id));
+            continue;
+          }
+          if (upperPKeys.contains('PROPERTY_VALUE_TABLE') ||
+              upperPKeys.contains('VALUE_OF_THE_PROPERTY') ||
+              upperPKeys.contains('VALUE_OF_THE_PROPERTY_TABLE') ||
+              (upperPKeys.contains('TOTAL_LAND_VALUE') && upperPKeys.contains('FAIR_VALUE') && upperPKeys.contains('SAY_VALUE'))) {
+            orderedBlocks.add(ValuationPropertyBlockVm(el.id));
+            continue;
+          }
+
           if (pKeys.isNotEmpty) {
             final List<InputFieldVm> fields = [];
             for (final rawKey in pKeys) {
-              final keyUpper = rawKey.toUpperCase();
+              final keyUpper = rawKey.toUpperCase().trim();
+              // Filter out calculated outputs and dynamic directives so they do NOT render as questions
+              if (isCalculatedValuationKey(keyUpper)) {
+                continue;
+              }
+
               sectionKeys.add(keyUpper);
               final occ = counts[keyUpper] ?? 1;
               final summaryItem = summaries[keyUpper];
@@ -135,13 +162,31 @@ class DocumentWorkspaceVm {
               ));
             }
 
-            final block = ParagraphBlockVm(
-              id: el.id,
-              inputFields: fields,
-              rawText: text,
-            );
-            paragraphBlocks.add(block);
-            orderedBlocks.add(ParagraphBlockWrapperVm(block));
+            if (fields.isNotEmpty) {
+              final block = ParagraphBlockVm(
+                id: el.id,
+                inputFields: fields,
+                rawText: text,
+              );
+              paragraphBlocks.add(block);
+              orderedBlocks.add(ParagraphBlockWrapperVm(block));
+            } else {
+              final cleanText = text.trim();
+              if (cleanText.isNotEmpty &&
+                  cleanText.length > 1 &&
+                  !cleanText.startsWith('<<') &&
+                  cleanText != '_' &&
+                  cleanText != 'n' &&
+                  cleanText != 'r') {
+                final block = ParagraphBlockVm(
+                  id: el.id,
+                  staticText: cleanText,
+                  rawText: text,
+                );
+                paragraphBlocks.add(block);
+                orderedBlocks.add(ParagraphBlockWrapperVm(block));
+              }
+            }
           } else {
             final cleanText = text.trim();
             // Orphan text cleanup: do not create paragraph blocks for single-character parser artifacts or whitespace noise
@@ -226,6 +271,66 @@ class TableBlockVm extends SectionBlockVm {
 class ParagraphBlockWrapperVm extends SectionBlockVm {
   final ParagraphBlockVm block;
   ParagraphBlockWrapperVm(this.block);
+}
+
+class ValuationLandBlockVm extends SectionBlockVm {
+  final String id;
+  ValuationLandBlockVm(this.id);
+}
+
+class ValuationBuildingBlockVm extends SectionBlockVm {
+  final String id;
+  ValuationBuildingBlockVm(this.id);
+}
+
+class ValuationSummaryBlockVm extends SectionBlockVm {
+  final String id;
+  ValuationSummaryBlockVm(this.id);
+}
+
+class ValuationPropertyBlockVm extends SectionBlockVm {
+  final String id;
+  ValuationPropertyBlockVm(this.id);
+}
+
+bool isCalculatedValuationKey(String key) {
+  final upper = key.toUpperCase().trim();
+  return upper == 'TOTAL_LAND_VALUE' ||
+      upper == 'TOTAL_LAND_VALUE_WORDS' ||
+      upper == 'TOTAL_BUILDING_VALUE' ||
+      upper == 'TOTAL_BUILDING_VALUE_WORDS' ||
+      upper == 'TOTAL_REPLACEMENT_COST' ||
+      upper == 'TOTAL_REPLACEMENT_COST_WORDS' ||
+      upper == 'TOTAL_DEPRECIATION_AMOUNT' ||
+      upper == 'TOTAL_DEPRECIATION_AMOUNT_WORDS' ||
+      upper == 'TOTAL_SALVAGE_VALUE' ||
+      upper == 'TOTAL_SALVAGE_VALUE_WORDS' ||
+      upper == 'FAIR_VALUE' ||
+      upper == 'FAIR_VALUE_WORDS' ||
+      upper == 'SAY_VALUE' ||
+      upper == 'SAY_VALUE_WORDS' ||
+      upper == 'REALIZABLE_VALUE' ||
+      upper == 'REALIZABLE_VALUE_WORDS' ||
+      upper == 'DISTRESS_SALE_VALUE' ||
+      upper == 'DISTRESS_SALE_VALUE_WORDS' ||
+      upper == 'INSURABLE_VALUE' ||
+      upper == 'INSURABLE_VALUE_WORDS' ||
+      upper == 'GOVERNMENT_VALUE' ||
+      upper == 'GOVERNMENT_VALUE_WORDS' ||
+      upper == 'REALIZABLE_PERCENTAGE' ||
+      upper == 'DISTRESS_SALE_PERCENTAGE' ||
+      upper == 'LAND_TABLE' ||
+      upper == 'DYNAMIC_LAND_TABLE' ||
+      upper == 'BUILDING_TABLE' ||
+      upper == 'DYNAMIC_BUILDING_TABLE' ||
+      upper == 'VALUATION_SUMMARY_TABLE' ||
+      upper == 'DYNAMIC_VALUATION_SUMMARY_TABLE' ||
+      upper == 'PROPERTY_VALUE_TABLE' ||
+      upper == 'DYNAMIC_PROPERTY_VALUE_TABLE' ||
+      upper == 'VALUE_OF_THE_PROPERTY' ||
+      upper == 'VALUE_OF_THE_PROPERTY_TABLE' ||
+      upper == 'COMPARABLES_TABLE' ||
+      upper == 'DYNAMIC_COMPARABLES_TABLE';
 }
 
 /// ViewModel for a paragraph block containing static text or interactive input fields.

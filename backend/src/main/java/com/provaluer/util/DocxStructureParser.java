@@ -850,6 +850,24 @@ public class DocxStructureParser {
 
     private String inferFieldType(String key) {
         String upper = key.toUpperCase();
+        if (upper.equals("LAND_TABLE") || upper.equals("DYNAMIC_LAND_TABLE")) {
+            return "DYNAMIC_LAND_TABLE";
+        }
+        if (upper.equals("BUILDING_TABLE") || upper.equals("DYNAMIC_BUILDING_TABLE")) {
+            return "DYNAMIC_BUILDING_TABLE";
+        }
+        if (upper.equals("VALUATION_SUMMARY_TABLE") || upper.equals("DYNAMIC_VALUATION_SUMMARY_TABLE")) {
+            return "DYNAMIC_VALUATION_SUMMARY_TABLE";
+        }
+        if (upper.equals("PROPERTY_VALUE_TABLE") || upper.equals("VALUE_OF_THE_PROPERTY_TABLE") || upper.equals("VALUE_OF_THE_PROPERTY")) {
+            return "DYNAMIC_PROPERTY_VALUE_TABLE";
+        }
+        if (upper.equals("COMPARABLES_TABLE") || upper.equals("DYNAMIC_COMPARABLES_TABLE")) {
+            return "DYNAMIC_COMPARABLES_TABLE";
+        }
+        if (isCalculatedValuationKey(upper)) {
+            return "CALCULATED";
+        }
         if (upper.startsWith("IMG_") || upper.endsWith("_IMAGE") || upper.contains("PHOTO") || upper.contains("SIGNATURE")) {
             return "IMAGE";
         }
@@ -864,8 +882,30 @@ public class DocxStructureParser {
         return "TEXT";
     }
 
+    public static boolean isCalculatedValuationKey(String key) {
+        if (key == null) return false;
+        String upper = key.toUpperCase().trim();
+        return upper.equals("TOTAL_LAND_VALUE") || upper.equals("TOTAL_LAND_VALUE_WORDS")
+                || upper.equals("TOTAL_BUILDING_VALUE") || upper.equals("TOTAL_BUILDING_VALUE_WORDS")
+                || upper.equals("TOTAL_REPLACEMENT_COST") || upper.equals("TOTAL_REPLACEMENT_COST_WORDS")
+                || upper.equals("TOTAL_DEPRECIATION_AMOUNT") || upper.equals("TOTAL_DEPRECIATION_AMOUNT_WORDS")
+                || upper.equals("TOTAL_SALVAGE_VALUE") || upper.equals("TOTAL_SALVAGE_VALUE_WORDS")
+                || upper.equals("FAIR_VALUE") || upper.equals("FAIR_VALUE_WORDS")
+                || upper.equals("SAY_VALUE") || upper.equals("SAY_VALUE_WORDS")
+                || upper.equals("REALIZABLE_VALUE") || upper.equals("REALIZABLE_VALUE_WORDS")
+                || upper.equals("DISTRESS_SALE_VALUE") || upper.equals("DISTRESS_SALE_VALUE_WORDS")
+                || upper.equals("INSURABLE_VALUE") || upper.equals("INSURABLE_VALUE_WORDS")
+                || upper.equals("GOVERNMENT_VALUE") || upper.equals("GOVERNMENT_VALUE_WORDS")
+                || upper.equals("REALIZABLE_PERCENTAGE") || upper.equals("DISTRESS_SALE_PERCENTAGE");
+    }
+
     private static final Map<String, String> KNOWN_HUMANIZED_LABELS = new HashMap<>();
     static {
+        KNOWN_HUMANIZED_LABELS.put("LAND_TABLE", "Dynamic Multi-Parcel Land Breakdown");
+        KNOWN_HUMANIZED_LABELS.put("BUILDING_TABLE", "Dynamic Multi-Structure Building Breakdown");
+        KNOWN_HUMANIZED_LABELS.put("VALUATION_SUMMARY_TABLE", "Consolidated Valuation Summary Certificate");
+        KNOWN_HUMANIZED_LABELS.put("PROPERTY_VALUE_TABLE", "Value of the Property Assessment");
+        KNOWN_HUMANIZED_LABELS.put("COMPARABLES_TABLE", "Market Comparable Sales Analysis");
         KNOWN_HUMANIZED_LABELS.put("VRIN", "Valuer Registration Identification Number");
         KNOWN_HUMANIZED_LABELS.put("REPORT_REF_NO", "Report Reference Number");
         KNOWN_HUMANIZED_LABELS.put("REF_NO", "Reference Number");
@@ -1055,6 +1095,7 @@ public class DocxStructureParser {
                 ObjectNode item = registry.putObject(key);
                 item.put("type", type);
                 item.put("source", source);
+                item.put("isCalculated", isCalculatedValuationKey(key));
                 if (summary.has("questionText")) {
                     item.put("questionText", summary.get("questionText").asText());
                 }
