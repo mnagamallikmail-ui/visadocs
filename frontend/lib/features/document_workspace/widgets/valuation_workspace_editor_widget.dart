@@ -713,6 +713,12 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
               ),
             ],
           ),
+          const Divider(height: 20),
+          _buildSummaryRow(
+            'Say Value (Rounded Fair Value):',
+            'INR ${IndianNumberFormatter.format(ValuationCalculator.computeSayValue(data.fairValue))}',
+            IndianCurrencyToWords.convertToWords(ValuationCalculator.computeSayValue(data.fairValue)),
+          ),
         ],
       ),
     );

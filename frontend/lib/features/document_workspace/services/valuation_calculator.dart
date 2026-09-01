@@ -123,6 +123,11 @@ class ValuationCalculator {
     map['government_value'] = IndianNumberFormatter.format(data.governmentValue);
     map['government_value_words'] = IndianCurrencyToWords.convertToWords(data.governmentValue);
 
+    // Say Value (Presentation Value: Rounded Fair Value to nearest Lakh if >= 1 Crore)
+    final sayVal = computeSayValue(data.fairValue);
+    map['say_value'] = IndianNumberFormatter.format(sayVal);
+    map['say_value_words'] = IndianCurrencyToWords.convertToWords(sayVal);
+
     // Single Parcel / Building backward compatibility
     if (landItems.isNotEmpty) {
       final l = landItems.first;
@@ -155,5 +160,13 @@ class ValuationCalculator {
     map.addAll(uppercaseMap);
 
     return map;
+  }
+
+  /// Presentation Say Value: Rounded Fair Value to nearest Lakh when Fair Value >= 1 Crore.
+  static double computeSayValue(double fairValue) {
+    if (fairValue >= 10000000.0) {
+      return (fairValue / 100000.0).roundToDouble() * 100000.0;
+    }
+    return fairValue;
   }
 }

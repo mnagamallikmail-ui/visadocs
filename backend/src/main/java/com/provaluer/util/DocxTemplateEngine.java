@@ -618,6 +618,13 @@ public class DocxTemplateEngine {
                         elements.set(i, compTable);
                         continue;
                     }
+                } else if (pText.equalsIgnoreCase("<<PROPERTY_VALUE_TABLE>>") || pText.contains("<<PROPERTY_VALUE_TABLE>>")
+                        || pText.equalsIgnoreCase("<<VALUE_OF_THE_PROPERTY_TABLE>>") || pText.contains("<<VALUE_OF_THE_PROPERTY_TABLE>>")) {
+                    Tbl propTable = buildDynamicPropertyValueTable(inputs);
+                    if (propTable != null) {
+                        elements.set(i, propTable);
+                        continue;
+                    }
                 }
                 
                 substituteInParagraph(wordMLPackage, p, inputs, images);
@@ -792,6 +799,23 @@ public class DocxTemplateEngine {
         if (rows.isEmpty()) {
             rows.add(List.of("Market Vicinity", "Primary Cluster", "Standard Unit", "Prevailing Rate", "Comparable Value", "Recent", "Registrar Office"));
         }
+
+        return createDocxTable(headers, rows, null);
+    }
+
+    private Tbl buildDynamicPropertyValueTable(Map<String, String> inputs) {
+        List<String> headers = List.of("Description", "Assessed Value");
+        List<List<String>> rows = new ArrayList<>();
+
+        String landVal = inputs != null ? inputs.getOrDefault("total_land_value", inputs.getOrDefault("TOTAL_LAND_VALUE", "0")) : "0";
+        String bldgVal = inputs != null ? inputs.getOrDefault("total_building_value", inputs.getOrDefault("TOTAL_BUILDING_VALUE", "0")) : "0";
+        String fairVal = inputs != null ? inputs.getOrDefault("fair_value", inputs.getOrDefault("FAIR_VALUE", "0")) : "0";
+        String sayVal = inputs != null ? inputs.getOrDefault("say_value", inputs.getOrDefault("SAY_VALUE", fairVal)) : fairVal;
+
+        rows.add(List.of("Value of Land", "INR " + landVal));
+        rows.add(List.of("Value of Buildings", "INR " + bldgVal));
+        rows.add(List.of("Total", "INR " + fairVal));
+        rows.add(List.of("Say", "INR " + sayVal));
 
         return createDocxTable(headers, rows, null);
     }

@@ -225,6 +225,10 @@ For each building structure item:
    $$\text{Government Value} = \text{Assessed Statutory / SRO Guideline Value}$$
    *(Independent statutory field; does not alter Fair Value).*
 
+8. **Say Value (Presentation Rule):**
+   $$\text{Say Value} = \begin{cases} \text{round}_{\text{Lakh}}(\text{Fair Value}), & \text{if Fair Value} \ge 1,00,00,000 \text{ (1 Crore)} \\ \text{Fair Value}, & \text{if Fair Value} < 1,00,00,000 \end{cases}$$
+   *(Say Value is strictly a presentation figure and does not alter Realizable, Distress, Insurable, or Government values).*
+
 ---
 
 # 4. Complete Canonical Placeholder Catalog
@@ -238,6 +242,7 @@ Placeholders can be written in either lowercase or uppercase inside Word templat
 | `<<BUILDING_TABLE>>` | Multi-structure dynamic building breakdown with SLM depreciation and net values |
 | `<<VALUATION_SUMMARY_TABLE>>` | Consolidated 12-row certified summary breakdown table |
 | `<<COMPARABLES_TABLE>>` | Comparable market sales analysis table |
+| `<<PROPERTY_VALUE_TABLE>>` | Value of the Property table (Land, Building, Total Fair Value, Say Value) |
 
 ---
 
@@ -250,6 +255,7 @@ Placeholders can be written in either lowercase or uppercase inside Word templat
 | `<<total_salvage_value>>` | `<<total_salvage_value_words>>` | Total protected residual salvage floor |
 | `<<total_building_value>>` | `<<total_building_value_words>>` | Depreciated net building market value |
 | `<<fair_value>>` | `<<fair_value_words>>` | Total Fair Market Value (Land + Building) |
+| `<<say_value>>` | `<<say_value_words>>` | Presentation Say Value rounded to nearest Lakh if $\ge$ 1 Crore |
 | `<<realizable_value>>` | `<<realizable_value_words>>` | Assessed Realizable / Market Realization Value |
 | `<<distress_sale_value>>` | `<<distress_sale_value_words>>` | Assessed Distress / Liquidation Sale Value |
 | `<<insurable_value>>` | `<<insurable_value_words>>` | Insurable asset value (Replacement Cost) |

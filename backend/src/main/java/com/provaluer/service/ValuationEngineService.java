@@ -426,6 +426,11 @@ public class ValuationEngineService {
         map.put("government_value", IndianNumberFormatter.format(govtVal));
         map.put("government_value_words", IndianCurrencyToWords.convertToWords(govtVal));
 
+        // Say Value (Presentation Value: Rounded Fair Value to nearest Lakh if >= 1 Crore)
+        BigDecimal sayVal = computeSayValue(data.getFairValue());
+        map.put("say_value", IndianNumberFormatter.format(sayVal));
+        map.put("say_value_words", IndianCurrencyToWords.convertToWords(sayVal));
+
         // Backward compatibility for single land / building placeholders
         if (landItems != null && !landItems.isEmpty()) {
             ValuationLandItem firstLand = landItems.get(0);
@@ -511,6 +516,8 @@ public class ValuationEngineService {
         catalog.add(new PlaceholderCatalogItemDTO("<<insurable_value_words>>", "Insurable Value in Words", "Rupees One Crore Twenty Lakh Only", "Valuation", "Certified words format"));
         catalog.add(new PlaceholderCatalogItemDTO("<<government_value>>", "Government / Guideline Value", "95,00,000", "Valuation", "Statutory or guideline rate value"));
         catalog.add(new PlaceholderCatalogItemDTO("<<government_value_words>>", "Government Value in Words", "Rupees Ninety Five Lakh Only", "Valuation", "Certified words format"));
+        catalog.add(new PlaceholderCatalogItemDTO("<<say_value>>", "Say Value (Rounded Fair Value)", "1,88,00,000", "Valuation", "Presentation Say Value rounded to nearest Lakh if >= 1 Crore"));
+        catalog.add(new PlaceholderCatalogItemDTO("<<say_value_words>>", "Say Value in Words", "Rupees One Crore Eighty Eight Lakh Only", "Valuation", "Certified words for Say Value"));
 
         // Dynamic Tables
         catalog.add(new PlaceholderCatalogItemDTO("<<LAND_TABLE>>", "Dynamic Land Parcels Table", "Generated Land Table", "Dynamic Tables", "Auto-expands all parcels with survey numbers and totals"));
@@ -519,5 +526,22 @@ public class ValuationEngineService {
         catalog.add(new PlaceholderCatalogItemDTO("<<COMPARABLES_TABLE>>", "Market Comparable Sales Table", "Generated Comparables Table", "Dynamic Tables", "Comparable transactions matrix"));
 
         return catalog;
+    }
+
+    /**
+     * Presentation Say Value: Rounded Fair Value to nearest Lakh when Fair Value >= 1 Crore.
+     */
+    public static BigDecimal computeSayValue(BigDecimal fairValue) {
+        if (fairValue == null) {
+            return BigDecimal.ZERO;
+        }
+        BigDecimal oneCrore = new BigDecimal("10000000");
+        BigDecimal oneLakh = new BigDecimal("100000");
+        if (fairValue.compareTo(oneCrore) >= 0) {
+            BigDecimal roundedInLakhs = fairValue.divide(oneLakh, 0, java.math.RoundingMode.HALF_UP);
+            return roundedInLakhs.multiply(oneLakh).setScale(2, java.math.RoundingMode.HALF_UP);
+        } else {
+            return fairValue.setScale(2, java.math.RoundingMode.HALF_UP);
+        }
     }
 }

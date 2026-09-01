@@ -169,6 +169,26 @@ public class ValuationEngineServiceTest {
     }
 
     @Test
+    @DisplayName("Say Value rounds to nearest Lakh when Fair Value is 1 Crore or above")
+    public void testSayValueCalculation() {
+        // Example 1: 8,99,97,730 -> 9,00,00,000
+        BigDecimal ex1 = new BigDecimal("89997730.00");
+        assertEquals(0, new BigDecimal("90000000.00").compareTo(ValuationEngineService.computeSayValue(ex1)));
+
+        // Example 2: 24,38,72,110 -> 24,39,00,000
+        BigDecimal ex2 = new BigDecimal("243872110.00");
+        assertEquals(0, new BigDecimal("243900000.00").compareTo(ValuationEngineService.computeSayValue(ex2)));
+
+        // Example 3: 109,38,22,456 -> 109,38,00,000
+        BigDecimal ex3 = new BigDecimal("1093822456.00");
+        assertEquals(0, new BigDecimal("1093800000.00").compareTo(ValuationEngineService.computeSayValue(ex3)));
+
+        // Under 1 Crore: Exact Fair Value preserved (no rounding)
+        BigDecimal under1Cr = new BigDecimal("7542380.00");
+        assertEquals(0, new BigDecimal("7542380.00").compareTo(ValuationEngineService.computeSayValue(under1Cr)));
+    }
+
+    @Test
     @DisplayName("Salvage Floor Guard prevents building value from dropping below salvage percentage")
     public void testSalvageFloorProtection() {
         ValuationBuildingItem oldBuilding = new ValuationBuildingItem();

@@ -101,9 +101,29 @@ void main() {
       expect(placeholders['GOVERNMENT_VALUE'], '95,00,000');
       expect(placeholders['GOVERNMENT_VALUE_WORDS'], 'Rupees Ninety Five Lakh Only');
 
+      // Check Say Value Placeholders (Fair Value = 1,02,50,000 >= 1 Crore -> Rounded to nearest Lakh = 1,03,00,000)
+      expect(placeholders['say_value'], '1,03,00,000');
+      expect(placeholders['say_value_words'], 'Rupees One Crore Three Lakh Only');
+      expect(placeholders['SAY_VALUE'], '1,03,00,000');
+      expect(placeholders['SAY_VALUE_WORDS'], 'Rupees One Crore Three Lakh Only');
+
       // Check Fair Value & Totals
       expect(placeholders['fair_value'], '1,02,50,000');
       expect(placeholders['fair_value_words'], 'Rupees One Crore Two Lakh Fifty Thousand Only');
+    });
+
+    test('ValuationCalculator.computeSayValue verifies presentation rounding rules', () {
+      // Example 1: 8,99,97,730 -> 9,00,00,000
+      expect(ValuationCalculator.computeSayValue(89997730.0), 90000000.0);
+
+      // Example 2: 24,38,72,110 -> 24,39,00,000
+      expect(ValuationCalculator.computeSayValue(243872110.0), 243900000.0);
+
+      // Example 3: 109,38,22,456 -> 109,38,00,000
+      expect(ValuationCalculator.computeSayValue(1093822456.0), 1093800000.0);
+
+      // Under 1 Crore: Exact Fair Value preserved
+      expect(ValuationCalculator.computeSayValue(7542380.0), 7542380.0);
     });
 
     test('ValuationDataModel serialization roundtrip preserves insurableValue and governmentValue', () {

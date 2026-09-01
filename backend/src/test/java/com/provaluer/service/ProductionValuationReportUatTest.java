@@ -331,6 +331,10 @@ public class ProductionValuationReportUatTest {
         m.put("government_value", "45,00,00,000");
         m.put("GOVERNMENT_VALUE_WORDS", "Rupees Forty Five Crore Only");
         m.put("government_value_words", "Rupees Forty Five Crore Only");
+        m.put("SAY_VALUE", "85,56,00,000");
+        m.put("say_value", "85,56,00,000");
+        m.put("SAY_VALUE_WORDS", "Rupees Eighty Five Crore Fifty Six Lakh Only");
+        m.put("say_value_words", "Rupees Eighty Five Crore Fifty Six Lakh Only");
 
         // Dynamic Table JSONs
         m.put("RAW_LAND_ITEMS_JSON", "[{\"surveyNo\":\"95/B\",\"description\":\"Commercial Land Parcel 1\",\"enteredArea\":10724.0,\"enteredUnit\":\"Sq.Yd\",\"standardAreaSqft\":96516.0,\"rate\":15000.0,\"value\":160860000.0}]");
