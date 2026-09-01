@@ -179,8 +179,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       _landItems = [
         ValuationLandItemModel(
           orderId: orderId,
-          surveyNo: 'Survey 1',
-          description: 'Primary Plot',
+          description: 'Primary Plot (Sy.No.42/A)',
           enteredArea: 1000,
           enteredUnit: 'Sq.Ft',
           standardAreaSqft: 1000,
@@ -202,9 +201,8 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       _buildingItems = [
         ValuationBuildingItemModel(
           orderId: orderId,
-          structureType: 'Ground Floor',
           buildingType: 'RCC Commercial',
-          description: 'Main Building Block',
+          description: 'Commercial Building Block',
           enteredArea: 1000,
           enteredUnit: 'Sq.Ft',
           standardAreaSqft: 1000,
@@ -282,8 +280,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     if (_workspaceModel == null) return;
     _landItems.add(ValuationLandItemModel(
       orderId: _workspaceModel!.orderId,
-      surveyNo: 'Plot ${_landItems.length + 1}',
-      description: 'Land Parcel ${_landItems.length + 1}',
+      description: 'Commercial Plot ${_landItems.length + 1} (Sy.No.42/B)',
       enteredArea: 500,
       enteredUnit: 'Sq.Ft',
       standardAreaSqft: 500,
@@ -304,9 +301,8 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     if (_workspaceModel == null) return;
     _buildingItems.add(ValuationBuildingItemModel(
       orderId: _workspaceModel!.orderId,
-      structureType: 'First Floor',
       buildingType: 'RCC Commercial',
-      description: 'Structure ${_buildingItems.length + 1}',
+      description: 'Commercial Structure ${_buildingItems.length + 1}',
       enteredArea: 500,
       enteredUnit: 'Sq.Ft',
       standardAreaSqft: 500,

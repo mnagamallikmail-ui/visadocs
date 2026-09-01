@@ -360,7 +360,8 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                     color: AppColors.surfaceSoft,
                     child: Row(
                       children: const [
-                        Expanded(flex: 3, child: Text('Description (inc. Sy.No)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        SizedBox(width: 44, child: Text('S.No', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
+                        Expanded(flex: 4, child: Text('Description', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         Expanded(flex: 2, child: Text('Entered Area', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         Expanded(flex: 2, child: Text('Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         Expanded(flex: 2, child: Text('Area (Sq.Ft)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
@@ -380,10 +381,18 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                       decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
                       child: Row(
                         children: [
-                          Expanded(flex: 3, child: TextFormField(
+                          SizedBox(
+                            width: 44,
+                            child: Text(
+                              '${idx + 1}',
+                              style: GoogleFonts.firaCode(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMuted),
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                          Expanded(flex: 4, child: TextFormField(
                             initialValue: item.description.isNotEmpty ? item.description : (item.surveyNo.isNotEmpty ? 'Plot (Sy.No.${item.surveyNo})' : ''),
                             enabled: !isReadOnly,
-                            decoration: const InputDecoration(hintText: 'e.g. Residential Plot (Sy.No.42/A)', isDense: true, border: OutlineInputBorder()),
+                            decoration: const InputDecoration(hintText: 'e.g. Commercial Plot (Sy.No.42/A)', isDense: true, border: OutlineInputBorder()),
                             onChanged: (val) {
                               item.description = val;
                               provider.recalculateValuation();

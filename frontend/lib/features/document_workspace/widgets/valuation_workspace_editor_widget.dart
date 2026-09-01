@@ -250,7 +250,7 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
           // 2. BUILDING VALUATION SECTION
           _buildSectionHeader('2. Building Structures & Area Breakup', Icons.apartment_rounded, onAdd: isReadOnly ? null : () {
             setState(() {
-              _buildingItems.add(ValuationBuildingItemModel(structureType: 'First Floor', buildingType: 'RCC Residential', enteredArea: 1000, replacementRate: 2000, buildingAge: 5, buildingUsefulLife: 60));
+              _buildingItems.add(ValuationBuildingItemModel(description: 'Commercial Building', buildingType: 'RCC Commercial', enteredArea: 1000, replacementRate: 2000, buildingAge: 5, buildingUsefulLife: 60));
               _recalculateAll();
             });
           }),
@@ -309,7 +309,8 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
             ),
             child: Row(
               children: const [
-                Expanded(flex: 3, child: Text('Description (inc. Sy.No)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                SizedBox(width: 44, child: Text('S.No', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                Expanded(flex: 4, child: Text('Description', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
                 Expanded(flex: 2, child: Text('Area', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
                 Expanded(flex: 2, child: Text('Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
                 Expanded(flex: 2, child: Text('Standard Sq.Ft', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
@@ -327,10 +328,18 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
               decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
               child: Row(
                 children: [
-                  Expanded(flex: 3, child: TextFormField(
+                  SizedBox(
+                    width: 44,
+                    child: Text(
+                      '${idx + 1}',
+                      style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textMuted),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  Expanded(flex: 4, child: TextFormField(
                     initialValue: item.description.isNotEmpty ? item.description : (item.surveyNo.isNotEmpty ? 'Plot (Sy.No.${item.surveyNo})' : ''),
                     enabled: !isReadOnly,
-                    decoration: const InputDecoration(hintText: 'e.g. Residential Plot (Sy.No.42/A)', isDense: true, border: OutlineInputBorder()),
+                    decoration: const InputDecoration(hintText: 'e.g. Commercial Plot (Sy.No.42/A)', isDense: true, border: OutlineInputBorder()),
                     onChanged: (val) => item.description = val,
                   )),
                   const SizedBox(width: 8),

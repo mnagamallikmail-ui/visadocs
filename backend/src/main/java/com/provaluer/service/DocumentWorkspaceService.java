@@ -750,23 +750,30 @@ public class DocumentWorkspaceService {
                 for (Map.Entry<String, String> entry : valBundle.getPlaceholders().entrySet()) {
                     String k = entry.getKey();
                     String v = entry.getValue();
-                    if (!map.containsKey(k) || map.get(k) == null || map.get(k).trim().isEmpty()) {
+                    String existing = map.get(k);
+
+                    boolean isExistingEmptyOrZero = (existing == null || existing.trim().isEmpty()
+                            || existing.trim().equals("0") || existing.trim().equals("0.0") || existing.trim().equals("0.00")
+                            || existing.trim().equals("₹ 0") || existing.trim().equals("₹ 0.00") || existing.trim().equals("INR 0")
+                            || existing.trim().equalsIgnoreCase("Rupees Zero Only") || existing.trim().equalsIgnoreCase("Zero"));
+
+                    if (!map.containsKey(k) || isExistingEmptyOrZero) {
                         if (v != null && !v.trim().isEmpty()) {
                             map.put(k, v);
-                        } else {
+                        } else if (!map.containsKey(k)) {
                             map.put(k, "");
                         }
                     }
                 }
 
                 // Serialized RAW items for Dynamic DOCX repeating tables
-                if (valBundle.getLandItems() != null) {
+                if (valBundle.getLandItems() != null && !valBundle.getLandItems().isEmpty()) {
                     map.put("RAW_LAND_ITEMS_JSON", objectMapper.writeValueAsString(valBundle.getLandItems()));
                 }
-                if (valBundle.getBuildingItems() != null) {
+                if (valBundle.getBuildingItems() != null && !valBundle.getBuildingItems().isEmpty()) {
                     map.put("RAW_BUILDING_ITEMS_JSON", objectMapper.writeValueAsString(valBundle.getBuildingItems()));
                 }
-                if (valBundle.getComparableSales() != null) {
+                if (valBundle.getComparableSales() != null && !valBundle.getComparableSales().isEmpty()) {
                     map.put("RAW_COMPARABLES_JSON", objectMapper.writeValueAsString(valBundle.getComparableSales()));
                 }
             }

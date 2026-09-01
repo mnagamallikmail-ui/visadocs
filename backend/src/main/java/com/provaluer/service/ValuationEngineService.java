@@ -525,6 +525,7 @@ public class ValuationEngineService {
         // Dynamic Tables
         catalog.add(new PlaceholderCatalogItemDTO("<<LAND_TABLE>>", "Dynamic Land Parcels Table", "Generated Land Table", "Dynamic Tables", "Auto-expands all parcels with survey numbers and totals"));
         catalog.add(new PlaceholderCatalogItemDTO("<<BUILDING_TABLE>>", "Dynamic Building Breakdown Table", "Generated Building Table", "Dynamic Tables", "Auto-expands structures, rates, depreciation & totals"));
+        catalog.add(new PlaceholderCatalogItemDTO("<<PROPERTY_VALUE_TABLE>>", "Dynamic Property Value Component Table", "Generated Property Value Table", "Dynamic Tables", "Renders Value of Land, Value of Building, Total, Say"));
         catalog.add(new PlaceholderCatalogItemDTO("<<VALUATION_SUMMARY_TABLE>>", "Dynamic Valuation Summary Table", "Generated Summary Table", "Dynamic Tables", "Complete financial breakdown table"));
         catalog.add(new PlaceholderCatalogItemDTO("<<COMPARABLES_TABLE>>", "Market Comparable Sales Table", "Generated Comparables Table", "Dynamic Tables", "Comparable transactions matrix"));
 
