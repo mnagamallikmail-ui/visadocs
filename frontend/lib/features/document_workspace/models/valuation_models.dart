@@ -12,6 +12,8 @@ class ValuationDataModel {
   double distressSalePercentage;
   double distressSaleValue;
   double defaultSalvagePercentage;
+  double governmentValue;
+  double insurableValue;
   String valuationStatus;
   int currentVersion;
 
@@ -29,6 +31,8 @@ class ValuationDataModel {
     this.distressSalePercentage = 75.0,
     this.distressSaleValue = 0,
     this.defaultSalvagePercentage = 10.0,
+    this.governmentValue = 0,
+    this.insurableValue = 0,
     this.valuationStatus = 'DRAFT',
     this.currentVersion = 1,
   });
@@ -48,6 +52,8 @@ class ValuationDataModel {
       distressSalePercentage: (json['distressSalePercentage'] as num?)?.toDouble() ?? 75.0,
       distressSaleValue: (json['distressSaleValue'] as num?)?.toDouble() ?? 0,
       defaultSalvagePercentage: (json['defaultSalvagePercentage'] as num?)?.toDouble() ?? 10.0,
+      governmentValue: (json['governmentValue'] as num?)?.toDouble() ?? 0,
+      insurableValue: (json['insurableValue'] as num?)?.toDouble() ?? (json['totalReplacementCost'] as num?)?.toDouble() ?? 0,
       valuationStatus: json['valuationStatus']?.toString() ?? 'DRAFT',
       currentVersion: (json['currentVersion'] as num?)?.toInt() ?? 1,
     );
@@ -67,6 +73,8 @@ class ValuationDataModel {
     'distressSalePercentage': distressSalePercentage,
     'distressSaleValue': distressSaleValue,
     'defaultSalvagePercentage': defaultSalvagePercentage,
+    'governmentValue': governmentValue,
+    'insurableValue': insurableValue,
     'valuationStatus': valuationStatus,
     'currentVersion': currentVersion,
   };

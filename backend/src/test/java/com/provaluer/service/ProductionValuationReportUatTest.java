@@ -226,18 +226,25 @@ public class ProductionValuationReportUatTest {
         Map<String, String> m = new LinkedHashMap<>();
         m.put("PROPERTY_DESCRIPTION", "Commercial Multi-Story Office Complex & Land");
         m.put("Property_Description", "Commercial Multi-Story Office Complex & Land");
+        m.put("property_type", "Commercial Multi-Story Office Complex & Land");
         m.put("PROPERTY_ADDRESS", "Plot 42, Financial District, Nanakramguda, Hyderabad 500032");
         m.put("Property_Address", "Plot 42, Financial District, Nanakramguda, Hyderabad 500032");
+        m.put("property_address", "Plot 42, Financial District, Nanakramguda, Hyderabad 500032");
         m.put("NAME_OF_THE_OWNER", "M/s Apex Infrastructure Holdings Pvt Ltd");
         m.put("name_of_the_owner", "M/s Apex Infrastructure Holdings Pvt Ltd");
+        m.put("owner_name", "M/s Apex Infrastructure Holdings Pvt Ltd");
         m.put("REPORT_REF_NO", "PV/HYD/COM/2026/0882");
+        m.put("REPORT_NO", "PV/HYD/COM/2026/0882");
+        m.put("report_no", "PV/HYD/COM/2026/0882");
         m.put("DATE_OF_REPORT", "30-Aug-2026");
         m.put("Date_of_Report", "30-Aug-2026");
         m.put("Date_of_report", "30-Aug-2026");
+        m.put("report_date", "30-Aug-2026");
         m.put("VRIN", "IBBI/RV/02/2020/11894");
         m.put("TO_ADDRESSEE", "The Chief Manager, State Bank of India, Commercial Credit Division");
         m.put("NAME OF THE CLIENT", "Apex Infrastructure Holdings Ltd");
         m.put("Name of The Client", "Apex Infrastructure Holdings Ltd");
+        m.put("client_name", "Apex Infrastructure Holdings Ltd");
         m.put("SCOPE_OF_WORK", "Comprehensive Physical Due Diligence and Fair Market Value Assessment");
         m.put("Scope_of_Work", "Comprehensive Physical Due Diligence and Fair Market Value Assessment");
         m.put("PURPOSE", "Bank Mortgage & Working Capital Credit Facility Assessment");
@@ -245,6 +252,7 @@ public class ProductionValuationReportUatTest {
         m.put("Approach", "Sales Comparison Method & Depreciated Replacement Cost Method");
         m.put("DATE_OF_INSPECTION", "28-Aug-2026");
         m.put("Date_of_Inspection", "28-Aug-2026");
+        m.put("inspection_date", "28-Aug-2026");
         m.put("PERSON_COORDINATED_FOR_INSPECTION", "Mr. Rajesh Kumar (Chief Project Director, 9876543210)");
         m.put("Person_Coordinated_for_Inspection", "Mr. Rajesh Kumar (Chief Project Director, 9876543210)");
         m.put("CLIENT_NAME", "Apex Infrastructure Holdings Pvt Ltd, Regd Off: Plot 42, Nanakramguda, Hyderabad (100% Share)");
@@ -282,7 +290,52 @@ public class ProductionValuationReportUatTest {
         m.put("DISADVANTAGES", "High acquisition cost in prime submarket; peak-hour traffic at junction during office closing hours.");
         m.put("OBSERVATION_1", "The property is located in the most sought-after commercial corridor with tier-1 MNC tech tenants in immediate vicinity.");
         m.put("OBSERVATION_2", "Building structure exhibits superior Grade-A construction standards, modern glass facade, and advanced BMS automation.");
+        m.put("OBSERVATION_3", "Independent market inquiries confirm strong commercial capital appreciation and active transaction velocity in the micro-market.");
         m.put("OBSERVATON_3", "Independent market inquiries confirm strong commercial capital appreciation and active transaction velocity in the micro-market.");
+
+        // Valuation Financials & Words
+        m.put("TOTAL_LAND_VALUE", "16,08,60,000");
+        m.put("total_land_value", "16,08,60,000");
+        m.put("TOTAL_LAND_VALUE_WORDS", "Rupees Sixteen Crore Eight Lakh Sixty Thousand Only");
+        m.put("total_land_value_words", "Rupees Sixteen Crore Eight Lakh Sixty Thousand Only");
+        m.put("TOTAL_REPLACEMENT_COST", "81,73,66,700");
+        m.put("total_replacement_cost", "81,73,66,700");
+        m.put("TOTAL_REPLACEMENT_COST_WORDS", "Rupees Eighty One Crore Seventy Three Lakh Sixty Six Thousand Seven Hundred Only");
+        m.put("total_replacement_cost_words", "Rupees Eighty One Crore Seventy Three Lakh Sixty Six Thousand Seven Hundred Only");
+        m.put("TOTAL_BUILDING_VALUE", "69,47,61,695");
+        m.put("total_building_value", "69,47,61,695");
+        m.put("TOTAL_BUILDING_VALUE_WORDS", "Rupees Sixty Nine Crore Forty Seven Lakh Sixty One Thousand Six Hundred Ninety Five Only");
+        m.put("total_building_value_words", "Rupees Sixty Nine Crore Forty Seven Lakh Sixty One Thousand Six Hundred Ninety Five Only");
+
+        m.put("FAIR_VALUE", "85,56,21,695");
+        m.put("fair_value", "85,56,21,695");
+        m.put("FAIR_VALUE_WORDS", "Rupees Eighty Five Crore Fifty Six Lakh Twenty One Thousand Six Hundred Ninety Five Only");
+        m.put("fair_value_words", "Rupees Eighty Five Crore Fifty Six Lakh Twenty One Thousand Six Hundred Ninety Five Only");
+        m.put("REALIZABLE_PERCENTAGE", "85%");
+        m.put("realizable_percentage", "85%");
+        m.put("REALIZABLE_VALUE", "72,72,78,441");
+        m.put("realizable_value", "72,72,78,441");
+        m.put("REALIZABLE_VALUE_WORDS", "Rupees Seventy Two Crore Seventy Two Lakh Seventy Eight Thousand Four Hundred Forty One Only");
+        m.put("realizable_value_words", "Rupees Seventy Two Crore Seventy Two Lakh Seventy Eight Thousand Four Hundred Forty One Only");
+        m.put("DISTRESS_SALE_PERCENTAGE", "75%");
+        m.put("distress_sale_percentage", "75%");
+        m.put("DISTRESS_SALE_VALUE", "64,17,16,271");
+        m.put("distress_sale_value", "64,17,16,271");
+        m.put("DISTRESS_SALE_VALUE_WORDS", "Rupees Sixty Four Crore Seventeen Lakh Sixteen Thousand Two Hundred Seventy One Only");
+        m.put("distress_sale_value_words", "Rupees Sixty Four Crore Seventeen Lakh Sixteen Thousand Two Hundred Seventy One Only");
+        m.put("INSURABLE_VALUE", "81,73,66,700");
+        m.put("insurable_value", "81,73,66,700");
+        m.put("INSURABLE_VALUE_WORDS", "Rupees Eighty One Crore Seventy Three Lakh Sixty Six Thousand Seven Hundred Only");
+        m.put("insurable_value_words", "Rupees Eighty One Crore Seventy Three Lakh Sixty Six Thousand Seven Hundred Only");
+        m.put("GOVERNMENT_VALUE", "45,00,00,000");
+        m.put("government_value", "45,00,00,000");
+        m.put("GOVERNMENT_VALUE_WORDS", "Rupees Forty Five Crore Only");
+        m.put("government_value_words", "Rupees Forty Five Crore Only");
+
+        // Dynamic Table JSONs
+        m.put("RAW_LAND_ITEMS_JSON", "[{\"surveyNo\":\"95/B\",\"description\":\"Commercial Land Parcel 1\",\"enteredArea\":10724.0,\"enteredUnit\":\"Sq.Yd\",\"standardAreaSqft\":96516.0,\"rate\":15000.0,\"value\":160860000.0}]");
+        m.put("RAW_BUILDING_ITEMS_JSON", "[{\"structureType\":\"Ground Floor\",\"buildingType\":\"RCC Commercial\",\"description\":\"Commercial Block A\",\"enteredArea\":215097.0,\"enteredUnit\":\"Sq.Ft\",\"standardAreaSqft\":215097.0,\"replacementRate\":3800.0,\"replacementCost\":817366700.0,\"buildingAge\":3.0,\"buildingUsefulLife\":60,\"salvagePercentage\":10.0,\"depreciationPercentage\":4.5,\"depreciationAmount\":36781501.5,\"buildingValue\":780585198.5}]");
+
         return m;
     }
 }

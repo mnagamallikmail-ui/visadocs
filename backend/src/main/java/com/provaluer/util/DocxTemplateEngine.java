@@ -759,6 +759,8 @@ public class DocxTemplateEngine {
             rows.add(List.of("Realizable Sale Value", "INR " + inputs.getOrDefault("REALIZABLE_VALUE", "0")));
             rows.add(List.of("Distress Sale Percentage", inputs.getOrDefault("DISTRESS_SALE_PERCENTAGE", "75%")));
             rows.add(List.of("Distress Sale Value", "INR " + inputs.getOrDefault("DISTRESS_SALE_VALUE", "0")));
+            rows.add(List.of("Insurable Value (Building Replacement Cost)", "INR " + inputs.getOrDefault("INSURABLE_VALUE", inputs.getOrDefault("TOTAL_REPLACEMENT_COST", "0"))));
+            rows.add(List.of("Government / Guideline Value", "INR " + inputs.getOrDefault("GOVERNMENT_VALUE", "0")));
         }
         return createDocxTable(headers, rows, null);
     }

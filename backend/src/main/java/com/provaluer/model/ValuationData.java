@@ -45,6 +45,12 @@ public class ValuationData {
     @Column(name = "distress_sale_value", precision = 19, scale = 2, nullable = false)
     private BigDecimal distressSaleValue = BigDecimal.ZERO;
 
+    @Column(name = "government_value", precision = 19, scale = 2, nullable = false)
+    private BigDecimal governmentValue = BigDecimal.ZERO;
+
+    @Column(name = "insurable_value", precision = 19, scale = 2, nullable = false)
+    private BigDecimal insurableValue = BigDecimal.ZERO;
+
     @Column(name = "default_salvage_percentage", precision = 5, scale = 2, nullable = false)
     private BigDecimal defaultSalvagePercentage = new BigDecimal("10.00");
 
@@ -103,6 +109,12 @@ public class ValuationData {
 
     public BigDecimal getDistressSaleValue() { return distressSaleValue; }
     public void setDistressSaleValue(BigDecimal distressSaleValue) { this.distressSaleValue = distressSaleValue; }
+
+    public BigDecimal getGovernmentValue() { return governmentValue; }
+    public void setGovernmentValue(BigDecimal governmentValue) { this.governmentValue = governmentValue; }
+
+    public BigDecimal getInsurableValue() { return insurableValue; }
+    public void setInsurableValue(BigDecimal insurableValue) { this.insurableValue = insurableValue; }
 
     public BigDecimal getDefaultSalvagePercentage() { return defaultSalvagePercentage; }
     public void setDefaultSalvagePercentage(BigDecimal defaultSalvagePercentage) { this.defaultSalvagePercentage = defaultSalvagePercentage; }

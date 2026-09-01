@@ -116,6 +116,7 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
         'realizablePercentage': _data!.realizablePercentage,
         'distressSalePercentage': _data!.distressSalePercentage,
         'defaultSalvagePercentage': _data!.defaultSalvagePercentage,
+        'governmentValue': _data!.governmentValue,
         'landItems': _landItems.map((e) => e.toJson()).toList(),
         'buildingItems': _buildingItems.map((e) => e.toJson()).toList(),
         'comparableSales': _comparables.map((e) => e.toJson()).toList(),
@@ -268,7 +269,7 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
           const SizedBox(height: 24),
 
           // 4. SUMMARY & CERTIFICATE OUTPUTS CARD
-          _buildSummaryCard(),
+          _buildSummaryCard(isReadOnly),
         ],
       ),
     );
@@ -631,9 +632,11 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
     );
   }
 
-  Widget _buildSummaryCard() {
+  Widget _buildSummaryCard(bool isReadOnly) {
     final data = _data;
     if (data == null) return const SizedBox.shrink();
+
+    final insurableVal = data.insurableValue > 0 ? data.insurableValue : data.totalReplacementCost;
 
     return Container(
       padding: const EdgeInsets.all(24),
@@ -670,6 +673,43 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
               const SizedBox(width: 24),
               Expanded(
                 child: _buildSummaryRow('Distress Sale Value (${data.distressSalePercentage}%):', 'INR ${IndianNumberFormatter.format(data.distressSaleValue)}', IndianCurrencyToWords.convertToWords(data.distressSaleValue)),
+              ),
+            ],
+          ),
+          const Divider(height: 20),
+          _buildSummaryRow('Insurable Value (Total Building Replacement Cost):', 'INR ${IndianNumberFormatter.format(insurableVal)}', IndianCurrencyToWords.convertToWords(insurableVal)),
+          const Divider(height: 20),
+          // Government / Guideline Value Input & Display
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 2,
+                child: TextFormField(
+                  initialValue: data.governmentValue > 0 ? data.governmentValue.toStringAsFixed(2) : '',
+                  enabled: !isReadOnly,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  decoration: const InputDecoration(
+                    labelText: 'Government / Guideline Value (INR)',
+                    hintText: 'Enter statutory or guideline value',
+                    isDense: true,
+                    border: OutlineInputBorder(),
+                    prefixText: 'INR ',
+                  ),
+                  onChanged: (val) {
+                    data.governmentValue = double.tryParse(val) ?? 0;
+                    _recalculateAll();
+                  },
+                ),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                flex: 3,
+                child: _buildSummaryRow(
+                  'Assessed Government Value:',
+                  'INR ${IndianNumberFormatter.format(data.governmentValue)}',
+                  IndianCurrencyToWords.convertToWords(data.governmentValue),
+                ),
               ),
             ],
           ),

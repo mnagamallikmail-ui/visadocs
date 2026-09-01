@@ -116,6 +116,56 @@ public class ValuationEngineServiceTest {
 
         // Distress Sale Value (75%) = 85,50,000 * 0.75 = 64,12,500
         assertEquals(0, new BigDecimal("6412500.00").compareTo(data.getDistressSaleValue()));
+
+        // Insurable Value (Business Rule: SUM of building replacement costs = 30,00,000, land excluded)
+        assertEquals(0, new BigDecimal("3000000.00").compareTo(data.getInsurableValue()));
+    }
+
+    @Test
+    @DisplayName("Insurable Value equals Total Building Replacement Cost and excludes Land Value")
+    public void testInsurableValueCalculation() {
+        ValuationData data = new ValuationData(103L);
+
+        List<ValuationLandItem> landItems = new ArrayList<>();
+        ValuationLandItem land = new ValuationLandItem();
+        land.setEnteredArea(new BigDecimal("5000"));
+        land.setRate(new BigDecimal("1000")); // Land value = 50,00,000
+        landItems.add(land);
+
+        List<ValuationBuildingItem> buildingItems = new ArrayList<>();
+        ValuationBuildingItem b1 = new ValuationBuildingItem();
+        b1.setEnteredArea(new BigDecimal("2000"));
+        b1.setReplacementRate(new BigDecimal("1500")); // Repl Cost 1 = 30,00,000
+        b1.setBuildingAge(new BigDecimal("5"));
+        b1.setBuildingUsefulLife(60);
+        buildingItems.add(b1);
+
+        ValuationBuildingItem b2 = new ValuationBuildingItem();
+        b2.setEnteredArea(new BigDecimal("1000"));
+        b2.setReplacementRate(new BigDecimal("2000")); // Repl Cost 2 = 20,00,000
+        b2.setBuildingAge(new BigDecimal("10"));
+        b2.setBuildingUsefulLife(60);
+        buildingItems.add(b2);
+
+        formulaService.calculateSummary(data, landItems, buildingItems);
+
+        // Land value = 50,00,000
+        assertEquals(0, new BigDecimal("5000000.00").compareTo(data.getTotalLandValue()));
+        // Total Replacement Cost = 30,00,000 + 20,00,000 = 50,00,000
+        assertEquals(0, new BigDecimal("5000000.00").compareTo(data.getTotalReplacementCost()));
+        // Insurable Value must equal Total Replacement Cost (50,00,000), ignoring Land
+        assertEquals(0, new BigDecimal("5000000.00").compareTo(data.getInsurableValue()));
+    }
+
+    @Test
+    @DisplayName("Government Value is independently tracked and preserved")
+    public void testGovernmentValueTracking() {
+        ValuationData data = new ValuationData(104L);
+        data.setGovernmentValue(new BigDecimal("4500000.00"));
+
+        formulaService.calculateSummary(data, new ArrayList<>(), new ArrayList<>());
+
+        assertEquals(0, new BigDecimal("4500000.00").compareTo(data.getGovernmentValue()));
     }
 
     @Test

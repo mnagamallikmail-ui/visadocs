@@ -126,5 +126,14 @@ public class ValuationCalculationFormulaService {
         BigDecimal distressPct = data.getDistressSalePercentage() != null ? data.getDistressSalePercentage() : new BigDecimal("75.00");
         BigDecimal distressVal = fairValue.multiply(distressPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         data.setDistressSaleValue(distressVal);
+
+        // 6. Insurable Value = Total Replacement Cost (Building replacement costs only, excluding land)
+        BigDecimal insurableValue = totalReplCost.setScale(2, RoundingMode.HALF_UP);
+        data.setInsurableValue(insurableValue);
+
+        // 7. Government Value guard
+        if (data.getGovernmentValue() == null) {
+            data.setGovernmentValue(BigDecimal.ZERO);
+        }
     }
 }

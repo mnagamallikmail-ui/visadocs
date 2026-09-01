@@ -125,6 +125,7 @@ public class ValuationEngineService {
         BigDecimal oldFairValue = data.getFairValue();
         BigDecimal oldRealizableValue = data.getRealizableValue();
         BigDecimal oldDistressValue = data.getDistressSaleValue();
+        BigDecimal oldGovtValue = data.getGovernmentValue() != null ? data.getGovernmentValue() : BigDecimal.ZERO;
 
         if (request.getRealizablePercentage() != null) {
             data.setRealizablePercentage(request.getRealizablePercentage());
@@ -134,6 +135,9 @@ public class ValuationEngineService {
         }
         if (request.getDefaultSalvagePercentage() != null) {
             data.setDefaultSalvagePercentage(request.getDefaultSalvagePercentage());
+        }
+        if (request.getGovernmentValue() != null) {
+            data.setGovernmentValue(request.getGovernmentValue());
         }
 
         // 1. Replace Land Items
@@ -210,6 +214,12 @@ public class ValuationEngineService {
         if (oldDistressValue != null && oldDistressValue.compareTo(data.getDistressSaleValue()) != 0) {
             auditLogRepository.save(new ValuationAuditLog(
                     orderId, "distress_sale_value", oldDistressValue.toString(), data.getDistressSaleValue().toString(),
+                    source != null ? source : "manual_edit", request.getReason(), userId
+            ));
+        }
+        if (oldGovtValue != null && oldGovtValue.compareTo(data.getGovernmentValue()) != 0) {
+            auditLogRepository.save(new ValuationAuditLog(
+                    orderId, "government_value", oldGovtValue.toString(), data.getGovernmentValue().toString(),
                     source != null ? source : "manual_edit", request.getReason(), userId
             ));
         }
@@ -404,6 +414,18 @@ public class ValuationEngineService {
         map.put("distress_sale_value", IndianNumberFormatter.format(data.getDistressSaleValue()));
         map.put("distress_sale_value_words", IndianCurrencyToWords.convertToWords(data.getDistressSaleValue()));
 
+        // Insurable Value (Business Rule: Insurable Value = Total Replacement Cost of Buildings)
+        BigDecimal insurableVal = (data.getInsurableValue() != null && data.getInsurableValue().signum() > 0)
+                ? data.getInsurableValue()
+                : (data.getTotalReplacementCost() != null ? data.getTotalReplacementCost() : BigDecimal.ZERO);
+        map.put("insurable_value", IndianNumberFormatter.format(insurableVal));
+        map.put("insurable_value_words", IndianCurrencyToWords.convertToWords(insurableVal));
+
+        // Government Value (Independent Guideline / Statutory Value)
+        BigDecimal govtVal = data.getGovernmentValue() != null ? data.getGovernmentValue() : BigDecimal.ZERO;
+        map.put("government_value", IndianNumberFormatter.format(govtVal));
+        map.put("government_value_words", IndianCurrencyToWords.convertToWords(govtVal));
+
         // Backward compatibility for single land / building placeholders
         if (landItems != null && !landItems.isEmpty()) {
             ValuationLandItem firstLand = landItems.get(0);
@@ -485,6 +507,10 @@ public class ValuationEngineService {
         catalog.add(new PlaceholderCatalogItemDTO("<<distress_sale_percentage>>", "Distress Sale Percentage", "75%", "Valuation", "Default 75%, editable"));
         catalog.add(new PlaceholderCatalogItemDTO("<<distress_sale_value>>", "Distress Sale Value", "1,40,62,500", "Valuation", "Fair Value * Distress %"));
         catalog.add(new PlaceholderCatalogItemDTO("<<distress_sale_value_words>>", "Distress Sale Value in Words", "Rupees One Crore Forty Lakh Sixty Two Thousand Five Hundred Only", "Valuation", "Certified wording"));
+        catalog.add(new PlaceholderCatalogItemDTO("<<insurable_value>>", "Insurable Value (Total Building Replacement Cost)", "1,20,00,000", "Valuation", "Total Building Replacement Cost (excl. land)"));
+        catalog.add(new PlaceholderCatalogItemDTO("<<insurable_value_words>>", "Insurable Value in Words", "Rupees One Crore Twenty Lakh Only", "Valuation", "Certified words format"));
+        catalog.add(new PlaceholderCatalogItemDTO("<<government_value>>", "Government / Guideline Value", "95,00,000", "Valuation", "Statutory or guideline rate value"));
+        catalog.add(new PlaceholderCatalogItemDTO("<<government_value_words>>", "Government Value in Words", "Rupees Ninety Five Lakh Only", "Valuation", "Certified words format"));
 
         // Dynamic Tables
         catalog.add(new PlaceholderCatalogItemDTO("<<LAND_TABLE>>", "Dynamic Land Parcels Table", "Generated Land Table", "Dynamic Tables", "Auto-expands all parcels with survey numbers and totals"));

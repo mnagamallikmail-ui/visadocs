@@ -66,6 +66,9 @@ class ValuationCalculator {
 
     // 5. Distress Sale Value
     data.distressSaleValue = data.fairValue * (data.distressSalePercentage / 100.0);
+
+    // 6. Insurable Value = Total Replacement Cost (Excluding Land)
+    data.insurableValue = totalReplCost;
   }
 
   static Map<String, String> generatePlaceholders({
@@ -110,6 +113,15 @@ class ValuationCalculator {
     map['distress_sale_percentage'] = '${data.distressSalePercentage.toStringAsFixed(1)}%';
     map['distress_sale_value'] = IndianNumberFormatter.format(data.distressSaleValue);
     map['distress_sale_value_words'] = IndianCurrencyToWords.convertToWords(data.distressSaleValue);
+
+    // Insurable Value (Business Rule: Total Building Replacement Cost)
+    final insurable = data.insurableValue > 0 ? data.insurableValue : data.totalReplacementCost;
+    map['insurable_value'] = IndianNumberFormatter.format(insurable);
+    map['insurable_value_words'] = IndianCurrencyToWords.convertToWords(insurable);
+
+    // Government Value (Independent Guideline / Statutory Value)
+    map['government_value'] = IndianNumberFormatter.format(data.governmentValue);
+    map['government_value_words'] = IndianCurrencyToWords.convertToWords(data.governmentValue);
 
     // Single Parcel / Building backward compatibility
     if (landItems.isNotEmpty) {
