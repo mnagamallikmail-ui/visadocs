@@ -2131,6 +2131,98 @@ class _AdminReportSectionState extends State<AdminReportSection> {
     } catch (_) {}
   }
 
+  Future<void> _deleteOrder(dynamic o) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.canvas,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.hairlineSoft),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.errorBg,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.delete_outline_rounded, color: AppColors.brandRedDark, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Delete Report',
+                style: AppTypography.heading4().copyWith(color: AppColors.brandRedDark),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to move this report to the Trash Bin?\n\nThis action can be reversed from the Trash Bin.',
+          style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13, height: 1.6),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Cancel',
+              style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.brandRedDark,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Delete',
+              style: AppTypography.bodySm().copyWith(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      await _api.dio.delete('/api/v1/admin/orders/${o['id']}');
+      _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          content: Text(
+            'Report moved to Trash Bin successfully.',
+            style: AppTypography.bodySm().copyWith(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.brandRedDark,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          content: Text(
+            'Failed to delete report: ${ApiService.getErrorMessage(e)}',
+            style: AppTypography.bodySm().copyWith(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+        ));
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -2202,6 +2294,10 @@ class _AdminReportSectionState extends State<AdminReportSection> {
                           _overrideBtn('Force SPA Gate', AppColors.brandBlue, () => _forceStatus(o, 'SPA_GATE')),
                           const SizedBox(width: 8),
                           _overrideBtn('Reset Draft', AppColors.slate, () => _forceStatus(o, 'DRAFT')),
+                          const SizedBox(width: 8),
+                          Container(width: 1, height: 24, color: AppColors.hairlineSoft),
+                          const SizedBox(width: 8),
+                          _overrideBtn('Delete', AppColors.brandRedDark, () => _deleteOrder(o)),
                         ],
                       ),
                     ],

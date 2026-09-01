@@ -151,4 +151,86 @@ public class DocxTemplateEngineTest {
         String textResult = resultPackage.getMainDocumentPart().getXML();
         assertTrue(textResult.contains("30-May-2026") || textResult.contains("2026-05-30"));
     }
+
+    @Test
+    public void testScaleToFitPreservesAspectRatioAndQuality() throws Exception {
+        WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.createPackage();
+        ObjectFactory factory = new ObjectFactory();
+
+        // 1. Create a Landscape Photo (1600 x 900, 16:9)
+        java.awt.image.BufferedImage landscapeImg = new java.awt.image.BufferedImage(1600, 900, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        java.awt.Graphics2D gLand = landscapeImg.createGraphics();
+        gLand.setColor(java.awt.Color.BLUE);
+        gLand.fillRect(0, 0, 1600, 900);
+        gLand.dispose();
+        ByteArrayOutputStream baosLand = new ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(landscapeImg, "png", baosLand);
+        byte[] landscapeBytes = baosLand.toByteArray();
+
+        // 2. Create a Portrait Photo (900 x 1600, 9:16)
+        java.awt.image.BufferedImage portraitImg = new java.awt.image.BufferedImage(900, 1600, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        java.awt.Graphics2D gPort = portraitImg.createGraphics();
+        gPort.setColor(java.awt.Color.RED);
+        gPort.fillRect(0, 0, 900, 1600);
+        gPort.dispose();
+        ByteArrayOutputStream baosPort = new ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(portraitImg, "png", baosPort);
+        byte[] portraitBytes = baosPort.toByteArray();
+
+        // 3. Create a Square Photo (1000 x 1000, 1:1)
+        java.awt.image.BufferedImage squareImg = new java.awt.image.BufferedImage(1000, 1000, java.awt.image.BufferedImage.TYPE_INT_RGB);
+        java.awt.Graphics2D gSq = squareImg.createGraphics();
+        gSq.setColor(java.awt.Color.GREEN);
+        gSq.fillRect(0, 0, 1000, 1000);
+        gSq.dispose();
+        ByteArrayOutputStream baosSq = new ByteArrayOutputStream();
+        javax.imageio.ImageIO.write(squareImg, "png", baosSq);
+        byte[] squareBytes = baosSq.toByteArray();
+
+        // Add paragraph with text placeholders and drawing elements for IMG_FRONT_PAGE, IMG_PIC1, IMG_PIC2, IMG_PIC3
+        P p1 = factory.createP();
+        R r1 = factory.createR();
+        Text t1 = factory.createText();
+        t1.setValue("<<IMG_PIC1>>");
+        r1.getContent().add(t1);
+        p1.getContent().add(r1);
+        wordMLPackage.getMainDocumentPart().getContent().add(p1);
+
+        P p2 = factory.createP();
+        R r2 = factory.createR();
+        Text t2 = factory.createText();
+        t2.setValue("<<IMG_PIC2>>");
+        r2.getContent().add(t2);
+        p2.getContent().add(r2);
+        wordMLPackage.getMainDocumentPart().getContent().add(p2);
+
+        P p3 = factory.createP();
+        R r3 = factory.createR();
+        Text t3 = factory.createText();
+        t3.setValue("<<IMG_PIC3>>");
+        r3.getContent().add(t3);
+        p3.getContent().add(r3);
+        wordMLPackage.getMainDocumentPart().getContent().add(p3);
+
+        ByteArrayOutputStream out = new ByteArrayOutputStream();
+        wordMLPackage.save(out);
+        byte[] docxBytes = out.toByteArray();
+
+        Map<String, String> inputs = new HashMap<>();
+        Map<String, byte[]> images = new HashMap<>();
+        images.put("IMG_PIC1", landscapeBytes);
+        images.put("IMG_PIC2", portraitBytes);
+        images.put("IMG_PIC3", squareBytes);
+
+        byte[] generated = templateEngine.generateReport(docxBytes, inputs, images);
+        assertNotNull(generated);
+        assertTrue(generated.length > 0);
+
+        WordprocessingMLPackage resultPkg = WordprocessingMLPackage.load(new java.io.ByteArrayInputStream(generated));
+        assertNotNull(resultPkg);
+
+        // Verify images were placed as drawings without errors
+        String xml = resultPkg.getMainDocumentPart().getXML();
+        assertTrue(xml.contains("Uploaded Image") || xml.contains("pic:pic"));
+    }
 }

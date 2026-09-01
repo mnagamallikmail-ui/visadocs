@@ -1167,18 +1167,17 @@ public class DocxTemplateEngine {
                     BinaryPartAbstractImage imagePart = BinaryPartAbstractImage.createImagePart(wordMLPackage, imgBytes);
                     Inline inlineImage = imagePart.createImageInline("Uploaded Image", "Image", 10002, 10003, false);
                     
+                    inline.setGraphic(inlineImage.getGraphic());
                     if (inline.getExtent() != null) {
-                        inlineImage.getExtent().setCx(originalCx);
-                        inlineImage.getExtent().setCy(originalCy);
+                        inline.getExtent().setCx(originalCx);
+                        inline.getExtent().setCy(originalCy);
                     }
                     
-                    org.docx4j.dml.picture.Pic pic = inlineImage.getGraphic().getGraphicData().getPic();
+                    org.docx4j.dml.picture.Pic pic = inline.getGraphic().getGraphicData().getPic();
                     if (pic != null && pic.getSpPr() != null && pic.getSpPr().getXfrm() != null && pic.getSpPr().getXfrm().getExt() != null) {
                         pic.getSpPr().getXfrm().getExt().setCx(originalCx);
                         pic.getSpPr().getXfrm().getExt().setCy(originalCy);
                     }
-                    
-                    replaceDrawingInParagraph(p, inline, inlineImage);
                 }
             }
         }
@@ -1200,18 +1199,17 @@ public class DocxTemplateEngine {
                     BinaryPartAbstractImage imagePart = BinaryPartAbstractImage.createImagePart(wordMLPackage, imgBytes);
                     Inline inlineImage = imagePart.createImageInline("Uploaded Image", "Image", 10002, 10003, false);
                     
+                    anchor.setGraphic(inlineImage.getGraphic());
                     if (anchor.getExtent() != null) {
-                        inlineImage.getExtent().setCx(originalCx);
-                        inlineImage.getExtent().setCy(originalCy);
+                        anchor.getExtent().setCx(originalCx);
+                        anchor.getExtent().setCy(originalCy);
                     }
                     
-                    org.docx4j.dml.picture.Pic pic = inlineImage.getGraphic().getGraphicData().getPic();
+                    org.docx4j.dml.picture.Pic pic = anchor.getGraphic().getGraphicData().getPic();
                     if (pic != null && pic.getSpPr() != null && pic.getSpPr().getXfrm() != null && pic.getSpPr().getXfrm().getExt() != null) {
                         pic.getSpPr().getXfrm().getExt().setCx(originalCx);
                         pic.getSpPr().getXfrm().getExt().setCy(originalCy);
                     }
-
-                    replaceDrawingInParagraph(p, anchor, inlineImage);
                 }
             }
         }
@@ -1236,19 +1234,27 @@ public class DocxTemplateEngine {
                         // Check if the entire run is just an image placeholder like <<IMG_XYZ>>
                         if (val.startsWith("<<") && val.endsWith(">>")) {
                             String possibleKey = val.substring(2, val.length() - 2).trim().toUpperCase();
-                            if (possibleKey.contains("IMG_") || possibleKey.contains("_IMAGE")) {
+                            if (possibleKey.contains("IMG_") || possibleKey.contains("_IMAGE") || possibleKey.startsWith("PHOTO_")) {
                                 byte[] imgBytes = getUploadedOrPlaceholderImage(possibleKey, images, inputs);
                                 if (imgBytes != null) {
+                                    long frameCx = 2743200L; // 3 inches default frame
+                                    long frameCy = 1828800L; // 2 inches default frame
+                                    imgBytes = padImageToFitEmu(imgBytes, frameCx, frameCy);
+
                                     BinaryPartAbstractImage imagePart = BinaryPartAbstractImage.createImagePart(wordMLPackage, imgBytes);
                                     Inline inlineImage = imagePart.createImageInline("Uploaded Image", "Image", 10004, 10005, false);
                                     
-                                    // Set a default size for text placeholders if they don't have guidelines
-                                    inlineImage.getExtent().setCx(2743200L); // 3 inches
-                                    inlineImage.getExtent().setCy(1828800L); // 2 inches
+                                    inlineImage.getExtent().setCx(frameCx);
+                                    inlineImage.getExtent().setCy(frameCy);
+                                    
+                                    org.docx4j.dml.picture.Pic pic = inlineImage.getGraphic().getGraphicData().getPic();
+                                    if (pic != null && pic.getSpPr() != null && pic.getSpPr().getXfrm() != null && pic.getSpPr().getXfrm().getExt() != null) {
+                                        pic.getSpPr().getXfrm().getExt().setCx(frameCx);
+                                        pic.getSpPr().getXfrm().getExt().setCy(frameCy);
+                                    }
                                     
                                     ObjectFactory factory = new ObjectFactory();
                                     Drawing drawing = factory.createDrawing();
-                                    org.docx4j.dml.wordprocessingDrawing.ObjectFactory dmlFactory = new org.docx4j.dml.wordprocessingDrawing.ObjectFactory();
                                     drawing.getAnchorOrInline().add(inlineImage);
                                     
                                     runContent.set(i, drawing);
@@ -1328,31 +1334,51 @@ public class DocxTemplateEngine {
     }
 
     private byte[] getUploadedOrPlaceholderImage(String key, Map<String, byte[]> images, Map<String, String> inputs) {
-        // 1. Try bytes map
-        if (images != null && images.containsKey(key) && images.get(key) != null) {
-            return images.get(key);
+        String upperKey = key.toUpperCase();
+        // 1. Try bytes map (direct key or uppercase)
+        if (images != null) {
+            if (images.containsKey(key) && images.get(key) != null) {
+                return images.get(key);
+            }
+            if (images.containsKey(upperKey) && images.get(upperKey) != null) {
+                return images.get(upperKey);
+            }
+            for (Map.Entry<String, byte[]> e : images.entrySet()) {
+                if (e.getKey() != null && e.getKey().equalsIgnoreCase(upperKey) && e.getValue() != null) {
+                    return e.getValue();
+                }
+            }
         }
         
         // 2. Try inputs map (e.g. if it contains base64 string or mock filename)
-        if (inputs != null && inputs.containsKey(key)) {
+        if (inputs != null) {
             String val = inputs.get(key);
+            if (val == null) val = inputs.get(upperKey);
+            if (val == null) {
+                for (Map.Entry<String, String> e : inputs.entrySet()) {
+                    if (e.getKey() != null && e.getKey().equalsIgnoreCase(upperKey)) {
+                        val = e.getValue();
+                        break;
+                    }
+                }
+            }
             if (val != null && !val.trim().isEmpty()) {
                 if (val.startsWith("data:image") && val.contains(";base64,")) {
                     try {
-                        String base64Data = val.substring(val.indexOf(";base64,") + 8);
+                        String base64Data = val.substring(val.indexOf(";base64,") + 8).replaceAll("\\s+", "");
                         return Base64.getDecoder().decode(base64Data);
                     } catch (Exception ignored) {}
                 }
                 try {
-                    return Base64.getDecoder().decode(val);
+                    return Base64.getDecoder().decode(val.replaceAll("\\s+", ""));
                 } catch (Exception ignored) {}
             }
         }
         
         // 3. Fallback: Generate a nice styled placeholder image
         try {
-            int width = 600;
-            int height = 400;
+            int width = 800;
+            int height = 500;
             BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
             Graphics2D g = image.createGraphics();
             
@@ -1383,19 +1409,19 @@ public class DocxTemplateEngine {
             String title = "VALUATION REPORT IMAGE SLOT";
             FontMetrics fm = g.getFontMetrics();
             int titleX = (width - fm.stringWidth(title)) / 2;
-            g.drawString(title, titleX, 150);
+            g.drawString(title, titleX, 180);
             
-            g.setFont(new Font("Monospaced", Font.PLAIN, 18));
+            g.setFont(new Font("Monospaced", Font.PLAIN, 20));
             String keyLabel = "<< " + key + " >>";
             FontMetrics fm2 = g.getFontMetrics();
             int labelX = (width - fm2.stringWidth(keyLabel)) / 2;
-            g.drawString(keyLabel, labelX, 220);
+            g.drawString(keyLabel, labelX, 260);
             
-            g.setFont(new Font("Arial", Font.ITALIC, 14));
-            String note = "Status: Placeholder Asset Bound";
+            g.setFont(new Font("Arial", Font.ITALIC, 15));
+            String note = "Status: Placeholder Asset Bound (Scale-To-Fit)";
             FontMetrics fm3 = g.getFontMetrics();
             int noteX = (width - fm3.stringWidth(note)) / 2;
-            g.drawString(note, noteX, 280);
+            g.drawString(note, noteX, 330);
             
             g.dispose();
             
@@ -1407,32 +1433,63 @@ public class DocxTemplateEngine {
         }
     }
 
+    /**
+     * Scales the source image proportionally to fit within the placeholder frame (emuCx x emuCy)
+     * maintaining its original aspect ratio (Scale To Fit, never stretch or distort).
+     * Centers the image horizontally and vertically inside a high-resolution canvas matching the exact frame aspect ratio.
+     * Preserves full image quality and prevents content/table/paragraph shifting.
+     */
     private byte[] padImageToFitEmu(byte[] originalImageBytes, long emuCx, long emuCy) {
-        try {
-            // Approx EMU to pixel conversion (96 DPI)
-            int targetW = (int) (emuCx / 9525);
-            int targetH = (int) (emuCy / 9525);
-            if (targetW <= 0 || targetH <= 0) return originalImageBytes;
+        if (originalImageBytes == null || originalImageBytes.length == 0) return originalImageBytes;
+        if (emuCx <= 0 || emuCy <= 0) return originalImageBytes;
 
+        try {
             BufferedImage srcImg = ImageIO.read(new ByteArrayInputStream(originalImageBytes));
             if (srcImg == null) return originalImageBytes;
 
-            double scaleX = (double) targetW / srcImg.getWidth();
-            double scaleY = (double) targetH / srcImg.getHeight();
-            double scale = Math.min(scaleX, scaleY);
+            int srcW = srcImg.getWidth();
+            int srcH = srcImg.getHeight();
+            if (srcW <= 0 || srcH <= 0) return originalImageBytes;
 
-            int scaledW = (int) (srcImg.getWidth() * scale);
-            int scaledH = (int) (srcImg.getHeight() * scale);
+            double frameAspect = (double) emuCx / (double) emuCy;
+            double imgAspect = (double) srcW / (double) srcH;
 
-            BufferedImage canvas = new BufferedImage(targetW, targetH, BufferedImage.TYPE_INT_ARGB);
+            // Target canvas dimensions (in high-resolution pixels) matching frameAspect exactly
+            // Ensure minimum 1600px width/height or source image size to preserve crispness for print
+            int canvasW;
+            int canvasH;
+
+            if (imgAspect > frameAspect) {
+                // Image is wider than frame -> width determines canvas width, letterbox top/bottom
+                canvasW = Math.max(srcW, 1600);
+                canvasH = (int) Math.max(1, Math.round(canvasW / frameAspect));
+            } else {
+                // Image is taller than frame -> height determines canvas height, pillarbox left/right
+                canvasH = Math.max(srcH, 1600);
+                canvasW = (int) Math.max(1, Math.round(canvasH * frameAspect));
+            }
+
+            // Proportional scale factor to fit srcImg completely within canvasW x canvasH
+            double scale = Math.min((double) canvasW / srcW, (double) canvasH / srcH);
+            int scaledW = (int) Math.max(1, Math.round(srcW * scale));
+            int scaledH = (int) Math.max(1, Math.round(srcH * scale));
+
+            // Center image horizontally and vertically
+            int x = (canvasW - scaledW) / 2;
+            int y = (canvasH - scaledH) / 2;
+
+            // High-resolution canvas with transparent / alpha channel
+            BufferedImage canvas = new BufferedImage(canvasW, canvasH, BufferedImage.TYPE_INT_ARGB);
             Graphics2D g = canvas.createGraphics();
-            // Transparent background by default for ARGB
-            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+
+            // Set highest quality rendering hints
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
             g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_QUALITY);
+            g.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
 
-            int x = (targetW - scaledW) / 2;
-            int y = (targetH - scaledH) / 2;
+            // Draw image centered and proportionally scaled
             g.drawImage(srcImg, x, y, scaledW, scaledH, null);
             g.dispose();
 
