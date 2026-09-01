@@ -8,7 +8,6 @@ import 'screens/client_dashboard.dart';
 import 'screens/pa_dashboard.dart';
 import 'screens/spa_dashboard.dart';
 import 'screens/admin_dashboard.dart';
-import 'features/valuation/valuation_repository.dart';
 import 'screens/landing_page.dart';
 import 'theme/app_theme.dart';
 
@@ -18,7 +17,6 @@ void main() {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => OrderProvider()),
-        ChangeNotifierProvider(create: (_) => ValuationRepository()),
       ],
       child: const ProValuerApp(),
     ),
