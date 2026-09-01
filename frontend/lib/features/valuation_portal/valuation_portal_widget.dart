@@ -10,6 +10,7 @@ import 'package:encrypt/encrypt.dart' as enc;
 import 'package:intl/intl.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../providers/order_provider.dart';
+import '../../services/api_service.dart';
 import '../../services/web_file_picker.dart';
 import 'service_intake_tracks.dart';
 import '../../theme/design_system.dart';
@@ -108,6 +109,108 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
       orderProvider.fetchActiveTemplates();
     } else {
       orderProvider.fetchAllOrders();
+    }
+  }
+
+  Future<void> _deleteOrder(dynamic order) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.hairlineSoft),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.errorBg,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.delete_outline_rounded, color: AppColors.brandRedDark, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                'Delete Report',
+                style: GoogleFonts.inter(
+                  color: AppColors.brandRedDark,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Text(
+          'Are you sure you want to move this report to the Trash Bin?\n\nThis action can be reversed from the Trash Bin.',
+          style: GoogleFonts.inter(color: AppColors.slate, fontSize: 13, height: 1.5),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.inter(color: AppColors.slate, fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.brandRedDark,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text(
+              'Delete',
+              style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    try {
+      final api = ApiService();
+      await api.dio.delete('/api/v1/admin/orders/${order['id']}');
+      setState(() {
+        if (_selectedProject?['id'] == order['id']) {
+          _selectedProject = null;
+        }
+      });
+      _refreshData();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.success,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          content: Text(
+            'Report moved to Trash Bin.',
+            style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.brandRedDark,
+          behavior: SnackBarBehavior.floating,
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          content: Text(
+            'Failed to delete report: ${ApiService.getErrorMessage(e)}',
+            style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+          ),
+        ));
+      }
     }
   }
 
@@ -2589,7 +2692,72 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                                         order['estimatedValue'] != null ? _formatCurrency(order['estimatedValue']) : "",
                                         style: GoogleFonts.montserrat(color: DesignSystem.textPrimary, fontSize: 11.5, fontWeight: FontWeight.bold),
                                       ),
-                                      const SizedBox(width: 16),
+                                      const SizedBox(width: 12),
+                                      if (widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN') ...[
+                                        InkWell(
+                                          onTap: () {
+                                            if (order['templateId'] != null) {
+                                              Navigator.push(
+                                                context,
+                                                MaterialPageRoute(
+                                                  builder: (context) => DocumentWorkspaceScreen(
+                                                    orderId: order['id'],
+                                                    reportNumber: reportNum,
+                                                    role: widget.role,
+                                                  ),
+                                                ),
+                                              ).then((_) => _refreshData());
+                                            } else {
+                                              _openPopulateReportFullScreen(order, provider);
+                                            }
+                                          },
+                                          borderRadius: BorderRadius.circular(4),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.tealLight,
+                                              borderRadius: BorderRadius.circular(4),
+                                              border: Border.all(color: AppColors.deepTeal.withOpacity(0.3)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.open_in_new_rounded, size: 12, color: AppColors.deepTeal),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'Open',
+                                                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.deepTeal),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        InkWell(
+                                          onTap: () => _deleteOrder(order),
+                                          borderRadius: BorderRadius.circular(4),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: AppColors.errorBg,
+                                              borderRadius: BorderRadius.circular(4),
+                                              border: Border.all(color: AppColors.brandRedDark.withOpacity(0.3)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.delete_outline_rounded, size: 12, color: AppColors.brandRedDark),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'Delete',
+                                                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.brandRedDark),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 10),
+                                      ],
                                       Icon(
                                         isSelected ? Icons.keyboard_arrow_down : Icons.chevron_right,
                                         size: 16,
@@ -3092,6 +3260,30 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
               ],
             ],
           ),
+          if (widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN') ...[
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 38,
+              child: OutlinedButton.icon(
+                icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.brandRedDark),
+                onPressed: () => _deleteOrder(order),
+                style: OutlinedButton.styleFrom(
+                  side: BorderSide(color: AppColors.brandRedDark.withOpacity(0.5)),
+                  foregroundColor: AppColors.brandRedDark,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                ),
+                label: const Text(
+                  "MOVE REPORT TO TRASH BIN",
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppColors.brandRedDark,
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ],
     );
