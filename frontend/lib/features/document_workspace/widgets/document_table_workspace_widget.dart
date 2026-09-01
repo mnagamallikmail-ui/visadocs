@@ -360,13 +360,12 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                     color: AppColors.surfaceSoft,
                     child: Row(
                       children: const [
-                        Expanded(flex: 2, child: Text('Survey No', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 2, child: Text('Description', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 3, child: Text('Description (inc. Sy.No)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         Expanded(flex: 2, child: Text('Entered Area', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         Expanded(flex: 2, child: Text('Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         Expanded(flex: 2, child: Text('Area (Sq.Ft)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         Expanded(flex: 2, child: Text('Rate (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 2, child: Text('Total Value (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 2, child: Text('Amount (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         SizedBox(width: 36),
                       ],
                     ),
@@ -381,20 +380,10 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                       decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
                       child: Row(
                         children: [
-                          Expanded(flex: 2, child: TextFormField(
-                            initialValue: item.surveyNo,
+                          Expanded(flex: 3, child: TextFormField(
+                            initialValue: item.description.isNotEmpty ? item.description : (item.surveyNo.isNotEmpty ? 'Plot (Sy.No.${item.surveyNo})' : ''),
                             enabled: !isReadOnly,
-                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
-                            onChanged: (val) {
-                              item.surveyNo = val;
-                              provider.recalculateValuation();
-                            },
-                          )),
-                          const SizedBox(width: 6),
-                          Expanded(flex: 2, child: TextFormField(
-                            initialValue: item.description,
-                            enabled: !isReadOnly,
-                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                            decoration: const InputDecoration(hintText: 'e.g. Residential Plot (Sy.No.42/A)', isDense: true, border: OutlineInputBorder()),
                             onChanged: (val) {
                               item.description = val;
                               provider.recalculateValuation();
@@ -559,8 +548,8 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                     color: AppColors.surfaceSoft,
                     child: Row(
                       children: const [
-                        Expanded(flex: 2, child: Text('Structure', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 2, child: Text('Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 3, child: Text('Description', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                        Expanded(flex: 2, child: Text('Building Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         Expanded(flex: 2, child: Text('Area (Sq.Ft)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         Expanded(flex: 2, child: Text('Rate (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
                         Expanded(flex: 2, child: Text('Repl Cost (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
@@ -583,17 +572,14 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                       decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
                       child: Row(
                         children: [
-                          Expanded(flex: 2, child: DropdownButtonFormField<String>(
-                            isExpanded: true,
-                            value: ['Ground Floor', 'First Floor', 'Second Floor', 'Third Floor', 'Basement', 'Mezzanine', 'Terrace Shed'].contains(item.structureType) ? item.structureType : 'Ground Floor',
-                            items: ['Ground Floor', 'First Floor', 'Second Floor', 'Third Floor', 'Basement', 'Mezzanine', 'Terrace Shed'].map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 10)))).toList(),
-                            onChanged: isReadOnly ? null : (val) {
-                              if (val != null) {
-                                item.structureType = val;
-                                provider.recalculateValuation();
-                              }
+                          Expanded(flex: 3, child: TextFormField(
+                            initialValue: item.description.isNotEmpty ? item.description : (item.structureType != 'Ground Floor' && item.structureType.isNotEmpty ? item.structureType : 'Commercial Building'),
+                            enabled: !isReadOnly,
+                            decoration: const InputDecoration(hintText: 'e.g. Commercial Office Building', isDense: true, border: OutlineInputBorder()),
+                            onChanged: (val) {
+                              item.description = val;
+                              provider.recalculateValuation();
                             },
-                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
                           )),
                           const SizedBox(width: 4),
                           Expanded(flex: 2, child: DropdownButtonFormField<String>(

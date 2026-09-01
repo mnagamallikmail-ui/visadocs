@@ -1,5 +1,6 @@
 package com.provaluer.util;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -593,37 +594,56 @@ public class DocxTemplateEngine {
             if (unwrapped instanceof P) {
                 P p = (P) unwrapped;
                 String pText = getParagraphText(p).trim();
+                // Normalize paragraph text for ultra-robust placeholder matching
+                String norm = pText.replaceAll("[\\s_<>]+", "").toUpperCase();
                 
-                // 30, 31, 32, 33: Dynamic Table Generation
-                if (pText.equalsIgnoreCase("<<LAND_TABLE>>") || pText.contains("<<LAND_TABLE>>")) {
+                // Dynamic Table Generation with Two Blank Paragraphs Spacing
+                if (norm.contains("LANDTABLE")) {
                     Tbl landTable = buildDynamicLandTable(inputs);
                     if (landTable != null) {
                         elements.set(i, landTable);
+                        elements.add(i + 1, createBlankParagraph());
+                        elements.add(i + 2, createBlankParagraph());
+                        i += 2;
                         continue;
                     }
-                } else if (pText.equalsIgnoreCase("<<BUILDING_TABLE>>") || pText.contains("<<BUILDING_TABLE>>")) {
+                } else if (norm.contains("BUILDINGTABLE")) {
                     Tbl buildingTable = buildDynamicBuildingTable(inputs);
                     if (buildingTable != null) {
                         elements.set(i, buildingTable);
+                        elements.add(i + 1, createBlankParagraph());
+                        elements.add(i + 2, createBlankParagraph());
+                        i += 2;
                         continue;
                     }
-                } else if (pText.equalsIgnoreCase("<<VALUATION_SUMMARY_TABLE>>") || pText.contains("<<VALUATION_SUMMARY_TABLE>>")) {
+                } else if (norm.contains("VALUATIONSUMMARYTABLE") || (norm.contains("VALUATIONSUMMARY") && norm.contains("TABLE"))) {
                     Tbl summaryTable = buildDynamicValuationSummaryTable(inputs);
                     if (summaryTable != null) {
                         elements.set(i, summaryTable);
+                        elements.add(i + 1, createBlankParagraph());
+                        elements.add(i + 2, createBlankParagraph());
+                        i += 2;
                         continue;
                     }
-                } else if (pText.equalsIgnoreCase("<<COMPARABLES_TABLE>>") || pText.contains("<<COMPARABLES_TABLE>>")) {
+                } else if (norm.contains("COMPARABLESTABLE") || norm.contains("COMPARABLETABLE")) {
                     Tbl compTable = buildDynamicComparablesTable(inputs);
                     if (compTable != null) {
                         elements.set(i, compTable);
+                        elements.add(i + 1, createBlankParagraph());
+                        elements.add(i + 2, createBlankParagraph());
+                        i += 2;
                         continue;
                     }
-                } else if (pText.equalsIgnoreCase("<<PROPERTY_VALUE_TABLE>>") || pText.contains("<<PROPERTY_VALUE_TABLE>>")
-                        || pText.equalsIgnoreCase("<<VALUE_OF_THE_PROPERTY_TABLE>>") || pText.contains("<<VALUE_OF_THE_PROPERTY_TABLE>>")) {
+                } else if (norm.contains("PROPERTYVALUETABLE") || norm.contains("VALUEOFTHEPROPERTYTABLE") 
+                        || norm.contains("VALUEOFPROPERTYTABLE") || norm.contains("PROPERTYVALUE")
+                        || norm.contains("VALUEOFTHEPROPERTY") || norm.contains("VALUEOFPROPERTY")
+                        || norm.contains("PROPERTYVALUES")) {
                     Tbl propTable = buildDynamicPropertyValueTable(inputs);
                     if (propTable != null) {
                         elements.set(i, propTable);
+                        elements.add(i + 1, createBlankParagraph());
+                        elements.add(i + 2, createBlankParagraph());
+                        i += 2;
                         continue;
                     }
                 }
@@ -837,16 +857,85 @@ public class DocxTemplateEngine {
         return createDocxTable(headers, colWidths, rows, null, 18, alignments);
     }
 
+    private P createBlankParagraph() {
+        ObjectFactory factory = new ObjectFactory();
+        P p = factory.createP();
+        PPr ppr = factory.createPPr();
+        org.docx4j.wml.PPrBase.Spacing spacing = factory.createPPrBaseSpacing();
+        spacing.setBefore(BigInteger.valueOf(120));
+        spacing.setAfter(BigInteger.valueOf(120));
+        spacing.setLine(BigInteger.valueOf(240));
+        ppr.setSpacing(spacing);
+        p.setPPr(ppr);
+        return p;
+    }
+
+    private long parseLongSafe(String raw) {
+        if (raw == null || raw.trim().isEmpty()) return 0L;
+        try {
+            // Strip commas and currency symbols then parse
+            String cleaned = raw.replaceAll("[^\\d.]", "");
+            if (cleaned.isEmpty()) return 0L;
+            return (long) Double.parseDouble(cleaned);
+        } catch (Exception e) {
+            return 0L;
+        }
+    }
+
     private Tbl buildDynamicPropertyValueTable(Map<String, String> inputs) {
         List<String> headers = List.of("PROPERTY VALUE COMPONENT", "AMOUNT (₹)");
         List<Integer> colWidths = List.of(5600, 4000);
         List<JcEnumeration> alignments = List.of(JcEnumeration.LEFT, JcEnumeration.RIGHT);
         List<List<String>> rows = new ArrayList<>();
 
-        String landVal = formatIndian(inputs != null ? inputs.getOrDefault("total_land_value", inputs.getOrDefault("TOTAL_LAND_VALUE", "0")) : "0");
-        String bldgVal = formatIndian(inputs != null ? inputs.getOrDefault("total_building_value", inputs.getOrDefault("TOTAL_BUILDING_VALUE", "0")) : "0");
-        String fairVal = formatIndian(inputs != null ? inputs.getOrDefault("fair_value", inputs.getOrDefault("FAIR_VALUE", "0")) : "0");
-        String sayVal = formatIndian(inputs != null ? inputs.getOrDefault("say_value", inputs.getOrDefault("SAY_VALUE", fairVal)) : fairVal);
+        String rawLandVal = inputs != null ? inputs.getOrDefault("total_land_value", inputs.getOrDefault("TOTAL_LAND_VALUE", "0")) : "0";
+        String rawBldgVal = inputs != null ? inputs.getOrDefault("total_building_value", inputs.getOrDefault("TOTAL_BUILDING_VALUE", "0")) : "0";
+        String rawFairVal = inputs != null ? inputs.getOrDefault("fair_value", inputs.getOrDefault("FAIR_VALUE", "0")) : "0";
+        String rawSayVal = inputs != null ? inputs.getOrDefault("say_value", inputs.getOrDefault("SAY_VALUE", "0")) : "0";
+
+        // Fallback calculation from RAW JSON if zero/missing
+        if (("0".equals(rawLandVal) || rawLandVal.trim().isEmpty()) && inputs != null && inputs.containsKey("RAW_LAND_ITEMS_JSON")) {
+            try {
+                JsonNode arr = objectMapper.readTree(inputs.get("RAW_LAND_ITEMS_JSON"));
+                double sum = 0;
+                if (arr.isArray()) {
+                    for (JsonNode item : arr) {
+                        sum += item.path("value").asDouble(0);
+                    }
+                }
+                if (sum > 0) rawLandVal = String.valueOf((long) sum);
+            } catch (Exception ignored) {}
+        }
+
+        if (("0".equals(rawBldgVal) || rawBldgVal.trim().isEmpty()) && inputs != null && inputs.containsKey("RAW_BUILDING_ITEMS_JSON")) {
+            try {
+                JsonNode arr = objectMapper.readTree(inputs.get("RAW_BUILDING_ITEMS_JSON"));
+                double sum = 0;
+                if (arr.isArray()) {
+                    for (JsonNode item : arr) {
+                        sum += item.path("depreciatedValue").asDouble(item.path("buildingValue").asDouble(0));
+                    }
+                }
+                if (sum > 0) rawBldgVal = String.valueOf((long) sum);
+            } catch (Exception ignored) {}
+        }
+
+        if (("0".equals(rawFairVal) || rawFairVal.trim().isEmpty())) {
+            try {
+                long lVal = parseLongSafe(rawLandVal);
+                long bVal = parseLongSafe(rawBldgVal);
+                if (lVal + bVal > 0) rawFairVal = String.valueOf(lVal + bVal);
+            } catch (Exception ignored) {}
+        }
+
+        if ("0".equals(rawSayVal) || rawSayVal.trim().isEmpty()) {
+            rawSayVal = rawFairVal;
+        }
+
+        String landVal = formatIndian(rawLandVal);
+        String bldgVal = formatIndian(rawBldgVal);
+        String fairVal = formatIndian(rawFairVal);
+        String sayVal = formatIndian(rawSayVal);
 
         rows.add(List.of("Value of Land", "₹ " + landVal));
         rows.add(List.of("Value of Building", "₹ " + bldgVal));

@@ -309,13 +309,12 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
             ),
             child: Row(
               children: const [
-                Expanded(flex: 2, child: Text('Description', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                Expanded(flex: 2, child: Text('Survey No', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                Expanded(flex: 3, child: Text('Description (inc. Sy.No)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
                 Expanded(flex: 2, child: Text('Area', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
                 Expanded(flex: 2, child: Text('Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
                 Expanded(flex: 2, child: Text('Standard Sq.Ft', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
                 Expanded(flex: 2, child: Text('Rate (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
-                Expanded(flex: 2, child: Text('Value (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                Expanded(flex: 2, child: Text('Amount (INR)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
                 SizedBox(width: 40),
               ],
             ),
@@ -328,18 +327,11 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
               decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
               child: Row(
                 children: [
-                  Expanded(flex: 2, child: TextFormField(
-                    initialValue: item.description,
+                  Expanded(flex: 3, child: TextFormField(
+                    initialValue: item.description.isNotEmpty ? item.description : (item.surveyNo.isNotEmpty ? 'Plot (Sy.No.${item.surveyNo})' : ''),
                     enabled: !isReadOnly,
-                    decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                    decoration: const InputDecoration(hintText: 'e.g. Residential Plot (Sy.No.42/A)', isDense: true, border: OutlineInputBorder()),
                     onChanged: (val) => item.description = val,
-                  )),
-                  const SizedBox(width: 8),
-                  Expanded(flex: 2, child: TextFormField(
-                    initialValue: item.surveyNo,
-                    enabled: !isReadOnly,
-                    decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
-                    onChanged: (val) => item.surveyNo = val,
                   )),
                   const SizedBox(width: 8),
                   Expanded(flex: 2, child: TextFormField(
@@ -427,7 +419,7 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
             ),
             child: Row(
               children: const [
-                Expanded(flex: 2, child: Text('Structure', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
+                Expanded(flex: 3, child: Text('Description', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
                 Expanded(flex: 2, child: Text('Building Type', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
                 Expanded(flex: 2, child: Text('Area (Sq.Ft)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
                 Expanded(flex: 2, child: Text('Rate', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12))),
@@ -449,16 +441,11 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
               decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
               child: Row(
                 children: [
-                  Expanded(flex: 2, child: DropdownButtonFormField<String>(
-                    value: _structureTypes.contains(item.structureType) ? item.structureType : 'Ground Floor',
-                    items: _structureTypes.map((s) => DropdownMenuItem(value: s, child: Text(s, style: const TextStyle(fontSize: 11)))).toList(),
-                    onChanged: isReadOnly ? null : (val) {
-                      if (val != null) {
-                        item.structureType = val;
-                        _recalculateAll();
-                      }
-                    },
-                    decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                  Expanded(flex: 3, child: TextFormField(
+                    initialValue: item.description.isNotEmpty ? item.description : (item.structureType != 'Ground Floor' && item.structureType.isNotEmpty ? item.structureType : 'Commercial Building'),
+                    enabled: !isReadOnly,
+                    decoration: const InputDecoration(hintText: 'e.g. Commercial Office Building', isDense: true, border: OutlineInputBorder()),
+                    onChanged: (val) => item.description = val,
                   )),
                   const SizedBox(width: 6),
                   Expanded(flex: 2, child: DropdownButtonFormField<String>(

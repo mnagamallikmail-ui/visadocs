@@ -54,6 +54,9 @@ public class OrderController {
     @Autowired
     private SystemSettingRepository systemSettingRepository;
 
+    @Autowired
+    private com.provaluer.service.DocumentWorkspaceService documentWorkspaceService;
+
     // In-memory cache for paused orders remaining SLA business hours
     private final Map<Long, Double> pausedSlaHoursCache = new HashMap<>();
 
@@ -413,16 +416,15 @@ public class OrderController {
                 Template template = templateOpt.get();
                 byte[] templateBytes = template.getTemplateContent();
 
-                List<OrderInput> inputsList = orderInputRepository.findAllByOrderId(id);
-                Map<String, String> inputsMap = new HashMap<>();
+                Map<String, String> inputsMap = documentWorkspaceService.getConsolidatedValues(id);
                 Map<String, byte[]> imagesMap = new HashMap<>();
+                List<OrderInput> inputsList = orderInputRepository.findAllByOrderId(id);
                 for (OrderInput input : inputsList) {
                     String key = input.getFieldKey().toUpperCase();
                     String val = input.getFieldValue();
                     if ((key.contains("DATE_") || key.contains("_DATE") || key.equals("DATE")) && (val == null || val.trim().isEmpty())) {
-                        val = java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+                        inputsMap.put(key, java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy")));
                     }
-                    inputsMap.put(key, val);
                     if (input.getImageValue() != null) {
                         imagesMap.put(key, input.getImageValue());
                     }
@@ -504,16 +506,15 @@ public class OrderController {
             Template template = templateOpt.get();
             byte[] templateBytes = template.getTemplateContent();
 
-            List<OrderInput> inputsList = orderInputRepository.findAllByOrderId(id);
-            Map<String, String> inputsMap = new HashMap<>();
+            Map<String, String> inputsMap = documentWorkspaceService.getConsolidatedValues(id);
             Map<String, byte[]> imagesMap = new HashMap<>();
+            List<OrderInput> inputsList = orderInputRepository.findAllByOrderId(id);
             for (OrderInput input : inputsList) {
                 String key = input.getFieldKey().toUpperCase();
                 String val = input.getFieldValue();
                 if ((key.contains("DATE_") || key.contains("_DATE") || key.equals("DATE")) && (val == null || val.trim().isEmpty())) {
-                    val = java.time.LocalDate.now().toString();
+                    inputsMap.put(key, java.time.LocalDate.now().format(java.time.format.DateTimeFormatter.ofPattern("dd-MM-yyyy")));
                 }
-                inputsMap.put(key, val);
                 if (input.getImageValue() != null) {
                     imagesMap.put(key, input.getImageValue());
                 }
@@ -730,9 +731,6 @@ public class OrderController {
         }
         orderInputRepository.save(field);
     }
-
-    @Autowired
-    private com.provaluer.service.DocumentWorkspaceService documentWorkspaceService;
 
     private UserDetailsImpl getCurrentPrincipal() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();

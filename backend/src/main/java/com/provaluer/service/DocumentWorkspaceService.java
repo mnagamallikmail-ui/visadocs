@@ -525,16 +525,15 @@ public class DocumentWorkspaceService {
             Template template = templateRepository.findById(templateId).orElse(null);
             if (template != null && template.getTemplateContent() != null) {
                 try {
-                    List<OrderInput> inputsList = orderInputRepository.findAllByOrderId(orderId);
-                    Map<String, String> inputsMap = new HashMap<>();
+                    Map<String, String> inputsMap = getConsolidatedValues(orderId);
                     Map<String, byte[]> imagesMap = new HashMap<>();
+                    List<OrderInput> inputsList = orderInputRepository.findAllByOrderId(orderId);
                     for (OrderInput input : inputsList) {
                         String key = input.getFieldKey().toUpperCase();
                         String val = input.getFieldValue();
                         if ((key.contains("DATE_") || key.contains("_DATE") || key.equals("DATE")) && (val == null || val.trim().isEmpty())) {
-                            val = java.time.LocalDate.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy"));
+                            inputsMap.put(key, java.time.LocalDate.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")));
                         }
-                        inputsMap.put(key, val);
                         if (input.getImageValue() != null) {
                             imagesMap.put(key, input.getImageValue());
                         }
@@ -732,7 +731,7 @@ public class DocumentWorkspaceService {
         orderDocumentRepository.save(doc);
     }
 
-    private Map<String, String> getConsolidatedValues(Long orderId) {
+    public Map<String, String> getConsolidatedValues(Long orderId) {
         Map<String, String> map = new HashMap<>();
         List<OrderInput> inputs = orderInputRepository.findAllByOrderId(orderId);
         for (OrderInput input : inputs) {
