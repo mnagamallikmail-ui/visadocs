@@ -1,3 +1,5 @@
+import 'package:provider/provider.dart';
+import '../../providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import 'dart:convert';
@@ -1147,19 +1149,28 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
     super.dispose();
   }
 
-  // 0.2 Safe template list loading with defensive error handling
+  // 0.2 Safe template list loading with fresh state replacement
   Future<void> _load({bool silent = false}) async {
     if (mounted && !silent) setState(() => _loading = true);
     try {
+      if (mounted) {
+        final auth = Provider.of<AuthProvider>(context, listen: false);
+        if ((_api.token == null || _api.token!.isEmpty) && auth.token != null) {
+          _api.token = auth.token;
+        }
+      }
       final r = await _api.dio.get('/api/v1/templates');
       if (mounted) {
         setState(() {
+          _templates.clear();
           if (r.data is List) {
-            _templates = r.data as List<dynamic>;
+            _templates = List<dynamic>.from(r.data as List<dynamic>);
           } else {
             _templates = [];
           }
         });
+        debugPrint('[TEMPLATE_MANAGER] API TEMPLATE COUNT: ${_templates.length}');
+        debugPrint('[TEMPLATE_MANAGER] UI TEMPLATE COUNT: ${_templates.length}');
         _checkAndStartPolling();
       }
     } catch (e) {
@@ -1194,7 +1205,7 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
         final r = await _api.dio.get('/api/v1/templates');
         if (!mounted) return;
         if (r.data is List) {
-          final List<dynamic> updatedList = r.data as List<dynamic>;
+          final List<dynamic> updatedList = List<dynamic>.from(r.data as List<dynamic>);
           
           // Check if previously uploaded template finished parsing
           if (_lastUploadedTemplateId != null) {
@@ -1262,8 +1273,23 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
 
     if (confirm != true) return;
 
+    if (mounted) {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      if ((_api.token == null || _api.token!.isEmpty) && auth.token != null) {
+        _api.token = auth.token;
+      }
+    }
+
+    final tokenPresent = _api.token != null && _api.token!.isNotEmpty;
+    debugPrint('[TEMPLATE_DELETE] Template ID: ${t['id']}');
+    debugPrint('[TEMPLATE_DELETE] Authorization header present: $tokenPresent');
+
     try {
-      await _api.dio.delete('/api/v1/templates/${t['id']}');
+      final response = await _api.dio.delete('/api/v1/templates/${t['id']}');
+      debugPrint('[TEMPLATE_DELETE] Returned HTTP status: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        debugPrint('[TEMPLATE_DELETE] DELETE SUCCESS');
+      }
       if (mounted) {
         setState(() {
           _templates.removeWhere((item) => item['id'] == t['id']);
@@ -1273,8 +1299,14 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
           content: Text('Template deleted successfully.'),
         ));
       }
-      _load(silent: true);
+      await _load(silent: true);
     } catch (e) {
+      int? status;
+      if (e is DioException) {
+        status = e.response?.statusCode;
+      }
+      debugPrint('[TEMPLATE_DELETE] Returned HTTP status: $status');
+      debugPrint('[TEMPLATE_DELETE] DELETE FAILED with error: $e');
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           backgroundColor: AppColors.brandRedDark,
