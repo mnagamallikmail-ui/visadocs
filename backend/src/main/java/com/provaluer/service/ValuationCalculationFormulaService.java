@@ -235,17 +235,28 @@ public class ValuationCalculationFormulaService {
     }
 
     /**
-     * Presentation Say Value: Rounded to nearest Lakh when value >= 1 Crore.
+     * Presentation Say Value Rounding Rules (Phase 5):
+     * - If value is in Lakhs (< 50 Lakhs): Round to nearest ₹ 1,000 (e.g. ₹ 23,12,500 -> ₹ 23,13,000)
+     * - If value is in Tens of Lakhs (50L to 1Cr): Round to nearest ₹ 10,000 (e.g. ₹ 68,75,000 -> ₹ 68,80,000)
+     * - If value is in Crores (>= 1 Crore): Round to nearest ₹ 1,00,000 (e.g. ₹ 7,08,12,500 -> ₹ 7,08,00,000)
      */
     public static BigDecimal computeSayValue(BigDecimal value) {
-        if (value == null) return BigDecimal.ZERO;
+        if (value == null || value.compareTo(BigDecimal.ZERO) <= 0) return BigDecimal.ZERO;
+        BigDecimal fiftyLakhs = new BigDecimal("5000000");
         BigDecimal oneCrore = new BigDecimal("10000000");
+        BigDecimal oneThousand = new BigDecimal("1000");
+        BigDecimal tenThousand = new BigDecimal("10000");
         BigDecimal oneLakh = new BigDecimal("100000");
+
         if (value.compareTo(oneCrore) >= 0) {
-            BigDecimal roundedInLakhs = value.divide(oneLakh, 0, RoundingMode.HALF_UP);
-            return roundedInLakhs.multiply(oneLakh).setScale(2, RoundingMode.HALF_UP);
+            BigDecimal rounded = value.divide(oneLakh, 0, RoundingMode.HALF_UP);
+            return rounded.multiply(oneLakh).setScale(2, RoundingMode.HALF_UP);
+        } else if (value.compareTo(fiftyLakhs) >= 0) {
+            BigDecimal rounded = value.divide(tenThousand, 0, RoundingMode.HALF_UP);
+            return rounded.multiply(tenThousand).setScale(2, RoundingMode.HALF_UP);
         } else {
-            return value.setScale(2, RoundingMode.HALF_UP);
+            BigDecimal rounded = value.divide(oneThousand, 0, RoundingMode.HALF_UP);
+            return rounded.multiply(oneThousand).setScale(2, RoundingMode.HALF_UP);
         }
     }
 }

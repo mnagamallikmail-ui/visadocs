@@ -610,19 +610,10 @@ public class ValuationEngineService {
     }
 
     /**
-     * Presentation Say Value: Rounded Fair Value to nearest Lakh when Fair Value >= 1 Crore.
+     * Presentation Say Value Rounding Rules (Phase 5):
+     * Delegated to ValuationCalculationFormulaService for consistent tiered rounding.
      */
     public static BigDecimal computeSayValue(BigDecimal fairValue) {
-        if (fairValue == null) {
-            return BigDecimal.ZERO;
-        }
-        BigDecimal oneCrore = new BigDecimal("10000000");
-        BigDecimal oneLakh = new BigDecimal("100000");
-        if (fairValue.compareTo(oneCrore) >= 0) {
-            BigDecimal roundedInLakhs = fairValue.divide(oneLakh, 0, java.math.RoundingMode.HALF_UP);
-            return roundedInLakhs.multiply(oneLakh).setScale(2, java.math.RoundingMode.HALF_UP);
-        } else {
-            return fairValue.setScale(2, java.math.RoundingMode.HALF_UP);
-        }
+        return ValuationCalculationFormulaService.computeSayValue(fairValue);
     }
 }

@@ -105,6 +105,12 @@ class DocumentWorkspaceVm {
             orderedBlocks.add(ValuationSummaryBlockVm(el.id));
             continue;
           }
+          if (upperPKeys.contains('COMPARABLES_TABLE') ||
+              upperPKeys.contains('COMPARABLE_SALES_TABLE') ||
+              upperPKeys.contains('DYNAMIC_COMPARABLES_TABLE')) {
+            orderedBlocks.add(ValuationComparableBlockVm(el.id));
+            continue;
+          }
           if (upperPKeys.contains('PROPERTY_VALUE_TABLE') ||
               upperPKeys.contains('VALUE_OF_THE_PROPERTY') ||
               upperPKeys.contains('VALUE_OF_THE_PROPERTY_TABLE') ||
@@ -291,6 +297,11 @@ class ValuationSummaryBlockVm extends SectionBlockVm {
 class ValuationPropertyBlockVm extends SectionBlockVm {
   final String id;
   ValuationPropertyBlockVm(this.id);
+}
+
+class ValuationComparableBlockVm extends SectionBlockVm {
+  final String id;
+  ValuationComparableBlockVm(this.id);
 }
 
 bool isCalculatedValuationKey(String key) {

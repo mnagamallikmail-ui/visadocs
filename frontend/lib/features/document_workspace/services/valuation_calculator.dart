@@ -259,11 +259,18 @@ class ValuationCalculator {
     return map;
   }
 
-  /// Presentation Say Value: Rounded Fair Value to nearest Lakh when Fair Value >= 1 Crore.
-  static double computeSayValue(double fairValue) {
-    if (fairValue >= 10000000.0) {
-      return (fairValue / 100000.0).roundToDouble() * 100000.0;
+  /// Presentation Say Value Rounding Rules (Phase 5):
+  /// - If value is in Lakhs (< 50 Lakhs): Round to nearest ₹ 1,000 (e.g. ₹ 23,12,500 -> ₹ 23,13,000)
+  /// - If value is in Tens of Lakhs (50L to 1Cr): Round to nearest ₹ 10,000 (e.g. ₹ 68,75,000 -> ₹ 68,80,000)
+  /// - If value is in Crores (>= 1 Crore): Round to nearest ₹ 1,00,000 (e.g. ₹ 7,08,12,500 -> ₹ 7,08,00,000)
+  static double computeSayValue(double value) {
+    if (value <= 0) return 0.0;
+    if (value >= 10000000.0) {
+      return (value / 100000.0).roundToDouble() * 100000.0;
+    } else if (value >= 5000000.0) {
+      return (value / 10000.0).roundToDouble() * 10000.0;
+    } else {
+      return (value / 1000.0).roundToDouble() * 1000.0;
     }
-    return fairValue;
   }
 }

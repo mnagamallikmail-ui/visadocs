@@ -3,7 +3,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_typography.dart';
-import '../models/workspace_view_model.dart';
 import '../providers/document_workspace_provider.dart';
 
 class SectionNavigationTreeWidget extends StatelessWidget {

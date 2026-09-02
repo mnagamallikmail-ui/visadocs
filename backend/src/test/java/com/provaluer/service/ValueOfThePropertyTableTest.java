@@ -45,9 +45,21 @@ public class ValueOfThePropertyTableTest {
         BigDecimal ex3 = new BigDecimal("1093822456.00");
         assertEquals(0, new BigDecimal("1093800000.00").compareTo(ValuationEngineService.computeSayValue(ex3)));
 
-        // Under 1 Crore: Exact Fair Value preserved (no rounding)
-        BigDecimal under1Cr = new BigDecimal("7542380.00");
-        assertEquals(0, new BigDecimal("7542380.00").compareTo(ValuationEngineService.computeSayValue(under1Cr)));
+        // Phase 5 Rounding Rules:
+        // Lakhs (< 50 Lakhs): Round to nearest 1,000 (e.g. 23,12,500 -> 23,13,000)
+        BigDecimal lakhs = new BigDecimal("2312500.00");
+        assertEquals(0, new BigDecimal("2313000.00").compareTo(ValuationEngineService.computeSayValue(lakhs)));
+
+        // Tens of Lakhs (50L to 1Cr): Round to nearest 10,000 (e.g. 68,75,000 -> 68,80,000)
+        BigDecimal tensOfLakhs = new BigDecimal("6875000.00");
+        assertEquals(0, new BigDecimal("6880000.00").compareTo(ValuationEngineService.computeSayValue(tensOfLakhs)));
+
+        BigDecimal tensOfLakhs2 = new BigDecimal("7542380.00");
+        assertEquals(0, new BigDecimal("7540000.00").compareTo(ValuationEngineService.computeSayValue(tensOfLakhs2)));
+
+        // Crores (>= 1 Crore): Round to nearest 1,00,000 (e.g. 7,08,12,500 -> 7,08,00,000)
+        BigDecimal crores = new BigDecimal("70812500.00");
+        assertEquals(0, new BigDecimal("70800000.00").compareTo(ValuationEngineService.computeSayValue(crores)));
     }
 
     @Test

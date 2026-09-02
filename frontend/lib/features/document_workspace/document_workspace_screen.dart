@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
@@ -334,14 +333,15 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (widget.role == 'ADMIN' || widget.role == 'SUPER_ADMIN')
+                    _buildSegmentButton(
+                      title: 'Valuation Engine (Admin)',
+                      icon: Icons.calculate_outlined,
+                      isActive: provider.viewMode == WorkspaceViewMode.valuationEngine,
+                      onTap: () => provider.setViewMode(WorkspaceViewMode.valuationEngine),
+                    ),
                   _buildSegmentButton(
-                    title: 'Valuation Engine',
-                    icon: Icons.calculate_outlined,
-                    isActive: provider.viewMode == WorkspaceViewMode.valuationEngine,
-                    onTap: () => provider.setViewMode(WorkspaceViewMode.valuationEngine),
-                  ),
-                  _buildSegmentButton(
-                    title: 'Table Workspace',
+                    title: 'Dynamic Tables Workspace',
                     icon: Icons.table_chart_outlined,
                     isActive: provider.viewMode == WorkspaceViewMode.tableEdit,
                     onTap: () => provider.setViewMode(WorkspaceViewMode.tableEdit),

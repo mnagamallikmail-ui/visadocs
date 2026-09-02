@@ -113,17 +113,18 @@ void main() {
     });
 
     test('ValuationCalculator.computeSayValue verifies presentation rounding rules', () {
-      // Example 1: 8,99,97,730 -> 9,00,00,000
+      // Crores (>= 1 Crore): Round to nearest ₹ 1,00,000
+      expect(ValuationCalculator.computeSayValue(70812500.0), 70800000.0);
       expect(ValuationCalculator.computeSayValue(89997730.0), 90000000.0);
-
-      // Example 2: 24,38,72,110 -> 24,39,00,000
       expect(ValuationCalculator.computeSayValue(243872110.0), 243900000.0);
 
-      // Example 3: 109,38,22,456 -> 109,38,00,000
-      expect(ValuationCalculator.computeSayValue(1093822456.0), 1093800000.0);
+      // Tens of Lakhs (50L to 1Cr): Round to nearest ₹ 10,000
+      expect(ValuationCalculator.computeSayValue(6875000.0), 6880000.0);
+      expect(ValuationCalculator.computeSayValue(7542380.0), 7540000.0);
 
-      // Under 1 Crore: Exact Fair Value preserved
-      expect(ValuationCalculator.computeSayValue(7542380.0), 7542380.0);
+      // Lakhs (< 50 Lakhs): Round to nearest ₹ 1,000
+      expect(ValuationCalculator.computeSayValue(2312500.0), 2313000.0);
+      expect(ValuationCalculator.computeSayValue(4512340.0), 4512000.0);
     });
 
     test('ValuationDataModel serialization roundtrip preserves insurableValue and governmentValue', () {

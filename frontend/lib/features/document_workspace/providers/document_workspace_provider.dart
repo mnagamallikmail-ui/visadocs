@@ -185,7 +185,34 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       } catch (_) {}
     }
 
-    // 3. Government Value
+    // 3. Comparables
+    final rawComp = _activeValues['RAW_COMPARABLES_JSON'];
+    if (rawComp != null && rawComp.trim().isNotEmpty) {
+      try {
+        final List<dynamic> decoded = jsonDecode(rawComp);
+        _comparables = decoded.map((j) => ValuationComparableSaleModel.fromJson(j as Map<String, dynamic>)).toList();
+      } catch (_) {}
+    }
+
+    // 4. Percentages & Overrides
+    final landRealStr = _activeValues['LAND_REALIZABLE_PERCENTAGE'];
+    if (landRealStr != null) {
+      _valuationData!.landRealizablePercentage = double.tryParse(landRealStr) ?? 85.0;
+    }
+    final bldgRealStr = _activeValues['BUILDING_REALIZABLE_PERCENTAGE'];
+    if (bldgRealStr != null) {
+      _valuationData!.buildingRealizablePercentage = double.tryParse(bldgRealStr) ?? 85.0;
+    }
+    final landDistStr = _activeValues['LAND_DISTRESS_PERCENTAGE'];
+    if (landDistStr != null) {
+      _valuationData!.landDistressPercentage = double.tryParse(landDistStr) ?? 75.0;
+    }
+    final bldgDistStr = _activeValues['BUILDING_DISTRESS_PERCENTAGE'];
+    if (bldgDistStr != null) {
+      _valuationData!.buildingDistressPercentage = double.tryParse(bldgDistStr) ?? 75.0;
+    }
+
+    // 5. Government Value
     final govtStr = _activeValues['GOVERNMENT_VALUE'] ?? _activeValues['government_value'];
     if (govtStr != null) {
       final cleanGovt = govtStr.replaceAll(',', '').trim();
@@ -230,10 +257,26 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     try {
       final landJson = jsonEncode(_landItems.map((i) => i.toJson()).toList());
       final bldgJson = jsonEncode(_buildingItems.map((i) => i.toJson()).toList());
+      final compJson = jsonEncode(_comparables.map((i) => i.toJson()).toList());
       _activeValues['RAW_LAND_ITEMS_JSON'] = landJson;
       _deltaValues['RAW_LAND_ITEMS_JSON'] = landJson;
       _activeValues['RAW_BUILDING_ITEMS_JSON'] = bldgJson;
       _deltaValues['RAW_BUILDING_ITEMS_JSON'] = bldgJson;
+      _activeValues['RAW_COMPARABLES_JSON'] = compJson;
+      _deltaValues['RAW_COMPARABLES_JSON'] = compJson;
+
+      if (_valuationData != null) {
+        _activeValues['LAND_REALIZABLE_PERCENTAGE'] = _valuationData!.landRealizablePercentage.toString();
+        _deltaValues['LAND_REALIZABLE_PERCENTAGE'] = _valuationData!.landRealizablePercentage.toString();
+        _activeValues['BUILDING_REALIZABLE_PERCENTAGE'] = _valuationData!.buildingRealizablePercentage.toString();
+        _deltaValues['BUILDING_REALIZABLE_PERCENTAGE'] = _valuationData!.buildingRealizablePercentage.toString();
+        _activeValues['LAND_DISTRESS_PERCENTAGE'] = _valuationData!.landDistressPercentage.toString();
+        _deltaValues['LAND_DISTRESS_PERCENTAGE'] = _valuationData!.landDistressPercentage.toString();
+        _activeValues['BUILDING_DISTRESS_PERCENTAGE'] = _valuationData!.buildingDistressPercentage.toString();
+        _deltaValues['BUILDING_DISTRESS_PERCENTAGE'] = _valuationData!.buildingDistressPercentage.toString();
+        _activeValues['GOVERNMENT_VALUE'] = _valuationData!.governmentValue.toString();
+        _deltaValues['GOVERNMENT_VALUE'] = _valuationData!.governmentValue.toString();
+      }
     } catch (_) {}
 
     _isDirty = true;
@@ -244,50 +287,105 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   }
 
   void addLandItem() {
-    if (_workspaceModel == null) return;
+    final orderId = _workspaceModel?.orderId ?? 0;
     _landItems.add(ValuationLandItemModel(
-      orderId: _workspaceModel!.orderId,
-      description: 'Commercial Plot ${_landItems.length + 1} (Sy.No.42/B)',
-      enteredArea: 500,
+      orderId: orderId,
+      description: 'Plot ${_landItems.length + 1}',
+      enteredArea: 0,
       enteredUnit: 'Sq.Ft',
-      standardAreaSqft: 500,
-      rate: 1000,
-      value: 500000,
+      standardAreaSqft: 0,
+      rate: 0,
+      value: 0,
     ));
     recalculateValuation();
   }
 
   void removeLandItem(int index) {
-    if (_landItems.length > 1 && index >= 0 && index < _landItems.length) {
+    if (index >= 0 && index < _landItems.length) {
       _landItems.removeAt(index);
       recalculateValuation();
     }
   }
 
   void addBuildingItem() {
-    if (_workspaceModel == null) return;
+    final orderId = _workspaceModel?.orderId ?? 0;
     _buildingItems.add(ValuationBuildingItemModel(
-      orderId: _workspaceModel!.orderId,
+      orderId: orderId,
       buildingType: 'RCC Commercial',
-      description: 'Commercial Structure ${_buildingItems.length + 1}',
-      enteredArea: 500,
+      structureType: 'Floor ${_buildingItems.length + 1}',
+      description: 'Structure ${_buildingItems.length + 1}',
+      enteredArea: 0,
       enteredUnit: 'Sq.Ft',
-      standardAreaSqft: 500,
-      replacementRate: 2000,
-      replacementCost: 1000000,
-      buildingAge: 2,
+      standardAreaSqft: 0,
+      replacementRate: 0,
+      replacementCost: 0,
+      buildingAge: 0,
       buildingUsefulLife: 60,
       salvagePercentage: 10,
-      depreciationPercentage: 3.0,
-      depreciationAmount: 30000,
-      buildingValue: 970000,
+      depreciationPercentage: 0,
+      depreciationAmount: 0,
+      buildingValue: 0,
     ));
     recalculateValuation();
   }
 
   void removeBuildingItem(int index) {
-    if (_buildingItems.length > 1 && index >= 0 && index < _buildingItems.length) {
+    if (index >= 0 && index < _buildingItems.length) {
       _buildingItems.removeAt(index);
+      recalculateValuation();
+    }
+  }
+
+  void addComparableItem() {
+    final orderId = _workspaceModel?.orderId ?? 0;
+    _comparables.add(ValuationComparableSaleModel(
+      orderId: orderId,
+      location: 'Property ${_comparables.length + 1}',
+      enteredArea: 0,
+      rate: 0,
+      saleValue: 0,
+    ));
+    recalculateValuation();
+  }
+
+  void removeComparableItem(int index) {
+    if (index >= 0 && index < _comparables.length) {
+      _comparables.removeAt(index);
+      recalculateValuation();
+    }
+  }
+
+  void setLandRealizablePercentage(double val) {
+    if (_valuationData != null) {
+      _valuationData!.landRealizablePercentage = val;
+      recalculateValuation();
+    }
+  }
+
+  void setBuildingRealizablePercentage(double val) {
+    if (_valuationData != null) {
+      _valuationData!.buildingRealizablePercentage = val;
+      recalculateValuation();
+    }
+  }
+
+  void setLandDistressPercentage(double val) {
+    if (_valuationData != null) {
+      _valuationData!.landDistressPercentage = val;
+      recalculateValuation();
+    }
+  }
+
+  void setBuildingDistressPercentage(double val) {
+    if (_valuationData != null) {
+      _valuationData!.buildingDistressPercentage = val;
+      recalculateValuation();
+    }
+  }
+
+  void setGovernmentValue(double val) {
+    if (_valuationData != null) {
+      _valuationData!.governmentValue = val;
       recalculateValuation();
     }
   }
