@@ -1530,45 +1530,50 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
   }
 
   Widget _buildSectionHeaderCard(SectionVm section, bool isReadOnly, {required bool isContinuous}) {
+    final rawTitle = section.title.trim();
+    // Strip redundant leading numbers such as "1. " so "1. General Document" doesn't repeat "SECTION 1"
+    final cleanTitle = rawTitle.replaceFirst(RegExp(r'^\d+[\.\)]\s*'), '').trim();
+
     return Container(
-      margin: EdgeInsets.only(bottom: isContinuous ? 8 : 16, top: isContinuous ? 8 : 24),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      margin: EdgeInsets.only(bottom: isContinuous ? 6 : 10, top: isContinuous ? 6 : 12),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.2)),
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.hairlineStrong),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 1),
           ),
         ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
             decoration: BoxDecoration(
-              color: AppColors.deepTeal.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(6),
+              color: AppColors.tealLight,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.25)),
             ),
             child: Text(
               'SECTION ${section.sectionIndex + 1}',
               style: GoogleFonts.inter(
-                fontSize: 11,
+                fontSize: 10.5,
                 fontWeight: FontWeight.w700,
                 color: AppColors.deepTeal,
-                letterSpacing: 0.5,
+                letterSpacing: 0.4,
               ),
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
-              section.title,
+              cleanTitle.isNotEmpty ? cleanTitle : rawTitle,
               style: GoogleFonts.inter(
-                fontSize: 17,
+                fontSize: 15,
                 fontWeight: FontWeight.w700,
                 color: AppColors.ink,
               ),
@@ -1576,14 +1581,14 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           ),
           if (isReadOnly)
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
               decoration: BoxDecoration(
                 color: AppColors.surfaceSoft,
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
                 'READ-ONLY',
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.slate),
+                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.steel),
               ),
             ),
         ],
@@ -1725,23 +1730,23 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     if (rowVm.isSubHeader) {
       final title = rowVm.rawCells.isNotEmpty ? rowVm.rawCells.first.plainText : 'Sub-section';
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: const Color(0xFFF1F5F9),
           border: Border(bottom: BorderSide(color: AppColors.hairline, width: isLast ? 0 : 1)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.bookmark_outline_rounded, size: 16, color: AppColors.deepTeal),
+            const Icon(Icons.bookmark_outline_rounded, size: 15, color: AppColors.deepTeal),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 title,
                 style: GoogleFonts.inter(
-                  fontSize: 13,
+                  fontSize: 12.5,
                   fontWeight: FontWeight.w700,
                   color: AppColors.ink,
-                  letterSpacing: 0.3,
+                  letterSpacing: 0.2,
                 ),
               ),
             ),
@@ -1754,36 +1759,36 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     if (rowVm.isTableHeader) {
       final cells = rowVm.rawCells;
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 11),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: const Color(0xFFF8FAFC),
-          border: Border(bottom: BorderSide(color: AppColors.hairline, width: isLast ? 0 : 1.5)),
+          border: Border(bottom: BorderSide(color: AppColors.hairlineStrong, width: isLast ? 0 : 1.2)),
         ),
         child: Row(
           children: [
             if (cells.length == 3) ...[
               SizedBox(
-                width: 50,
+                width: 48,
                 child: Text(
                   cells[0].plainText.isNotEmpty ? cells[0].plainText : 'S.No',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.slate),
+                  style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.slate),
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
                 flex: 5,
                 child: Text(
                   cells[1].plainText.isNotEmpty ? cells[1].plainText : 'Particulars',
-                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.slate),
+                  style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.slate),
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
                 flex: 6,
                 child: Text(
-                  cells[2].plainText.isNotEmpty ? cells[2].plainText : 'Observed Details',
-                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.slate),
+                  cells[2].plainText.isNotEmpty ? cells[2].plainText : 'Observed Details / Input',
+                  style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.slate),
                 ),
               ),
             ] else if (cells.length == 2) ...[
@@ -1791,15 +1796,15 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 flex: 5,
                 child: Text(
                   cells[0].plainText.isNotEmpty ? cells[0].plainText : 'Particulars',
-                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.slate),
+                  style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.slate),
                 ),
               ),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(
                 flex: 6,
                 child: Text(
-                  cells[1].plainText.isNotEmpty ? cells[1].plainText : 'Details',
-                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.slate),
+                  cells[1].plainText.isNotEmpty ? cells[1].plainText : 'Details / Input',
+                  style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.slate),
                 ),
               ),
             ] else ...[
@@ -1807,7 +1812,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 Expanded(
                   child: Text(
                     c.plainText,
-                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.slate),
+                    style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.slate),
                   ),
                 ),
             ],
@@ -1819,7 +1824,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     // 3. Question-Answer Row (3-Column Layout: [INDEX] [QUESTION] [ANSWER])
     if (rowVm.is3Column) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: AppColors.hairline, width: isLast ? 0 : 1)),
         ),
@@ -1828,10 +1833,10 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           children: [
             // S.No
             SizedBox(
-              width: 50,
+              width: 48,
               child: Container(
                 alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(vertical: 4),
+                padding: const EdgeInsets.symmetric(vertical: 3),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceSoft,
                   borderRadius: BorderRadius.circular(4),
@@ -1840,29 +1845,21 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                   rowVm.serialNo ?? '',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.inter(
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: FontWeight.w700,
                     color: AppColors.slate,
                   ),
                 ),
               ),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
 
-            // Question Prompt
+            // Question Prompt with Field Priority
             Expanded(
               flex: 5,
-              child: Text(
-                rowVm.questionText ?? '',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.ink,
-                  height: 1.3,
-                ),
-              ),
+              child: _buildQuestionPrompt(rowVm),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
 
             // Answer Input(s)
             Expanded(
@@ -1872,7 +1869,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 children: [
                   for (final f in rowVm.inputFields) ...[
                     DocumentInputSlotWidget(fieldVm: f, readOnly: readOnly),
-                    if (rowVm.inputFields.last != f) const SizedBox(height: 6),
+                    if (rowVm.inputFields.last != f) const SizedBox(height: 4),
                   ],
                 ],
               ),
@@ -1885,27 +1882,19 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     // 4. Question-Answer Row (2-Column Layout: [QUESTION] [ANSWER])
     if (rowVm.is2Column) {
       return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
           border: Border(bottom: BorderSide(color: AppColors.hairline, width: isLast ? 0 : 1)),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Question Prompt
+            // Question Prompt with Field Priority
             Expanded(
               flex: 5,
-              child: Text(
-                rowVm.questionText ?? '',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.ink,
-                  height: 1.3,
-                ),
-              ),
+              child: _buildQuestionPrompt(rowVm),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 12),
 
             // Answer Input(s)
             Expanded(
@@ -1915,7 +1904,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 children: [
                   for (final f in rowVm.inputFields) ...[
                     DocumentInputSlotWidget(fieldVm: f, readOnly: readOnly),
-                    if (rowVm.inputFields.last != f) const SizedBox(height: 6),
+                    if (rowVm.inputFields.last != f) const SizedBox(height: 4),
                   ],
                 ],
               ),
@@ -1927,7 +1916,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
 
     // 5. Static Text / Irregular Row
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
       decoration: BoxDecoration(
         color: AppColors.surfaceSoft.withValues(alpha: 0.4),
         border: Border(bottom: BorderSide(color: AppColors.hairline, width: isLast ? 0 : 1)),
@@ -1940,12 +1929,124 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Text(
                   cell.plainText,
-                  style: GoogleFonts.inter(fontSize: 12, color: AppColors.slate, fontStyle: FontStyle.italic),
+                  style: GoogleFonts.inter(fontSize: 11.5, color: AppColors.slate, fontStyle: FontStyle.italic),
                 ),
               ),
             ),
         ],
       ),
+    );
+  }
+
+  /// Field Priority Renderer: Required (* in red with badge), Important (info icon), or Standard
+  Widget _buildQuestionPrompt(TableRowVm rowVm) {
+    final text = rowVm.questionText ?? '';
+    final lowerText = text.toLowerCase();
+
+    // Check if any field key or question text indicates a critical required underwriting field
+    bool isRequired = false;
+    for (final f in rowVm.inputFields) {
+      final k = f.key.toUpperCase();
+      if (k.contains('OWNER') ||
+          k.contains('CLIENT') ||
+          k.contains('ADDRESS') ||
+          k.contains('EXTENT') ||
+          k.contains('RATE') ||
+          k.contains('GUIDELINE') ||
+          k.contains('FAIR_VALUE') ||
+          k.contains('TOTAL_LAND') ||
+          k.contains('TOTAL_BUILDING') ||
+          k.contains('REPORT_NO')) {
+        isRequired = true;
+        break;
+      }
+    }
+    if (!isRequired &&
+        (lowerText.contains('name of the owner') ||
+            lowerText.contains('total extent') ||
+            lowerText.contains('market rate') ||
+            lowerText.contains('guideline') ||
+            lowerText.contains('fair market value') ||
+            lowerText.contains('property address'))) {
+      isRequired = true;
+    }
+
+    // Check if important parameter
+    bool isImportant = false;
+    if (!isRequired) {
+      for (final f in rowVm.inputFields) {
+        final k = f.key.toUpperCase();
+        if (k.contains('ZONE') ||
+            k.contains('BOUNDARY') ||
+            k.contains('NORTH') ||
+            k.contains('SOUTH') ||
+            k.contains('EAST') ||
+            k.contains('WEST') ||
+            k.contains('ROAD') ||
+            k.contains('DEPRECIATION') ||
+            k.contains('AGE')) {
+          isImportant = true;
+          break;
+        }
+      }
+    }
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Expanded(
+          child: Text.rich(
+            TextSpan(
+              children: [
+                TextSpan(
+                  text: text,
+                  style: GoogleFonts.inter(
+                    fontSize: 12.5,
+                    fontWeight: isRequired ? FontWeight.w600 : FontWeight.w500,
+                    color: AppColors.ink,
+                    height: 1.25,
+                  ),
+                ),
+                if (isRequired)
+                  TextSpan(
+                    text: ' *',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.brandRedDark,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+        if (isRequired) ...[
+          const SizedBox(width: 6),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFEE2E2),
+              borderRadius: BorderRadius.circular(3),
+              border: Border.all(color: const Color(0xFFFECACA), width: 0.8),
+            ),
+            child: Text(
+              'REQUIRED',
+              style: GoogleFonts.inter(
+                fontSize: 8.5,
+                fontWeight: FontWeight.w700,
+                color: AppColors.brandRedDark,
+                letterSpacing: 0.3,
+              ),
+            ),
+          ),
+        ] else if (isImportant) ...[
+          const SizedBox(width: 4),
+          const Tooltip(
+            message: 'Key appraisal parameter',
+            child: Icon(Icons.info_outline_rounded, size: 13, color: AppColors.steel),
+          ),
+        ],
+      ],
     );
   }
 }

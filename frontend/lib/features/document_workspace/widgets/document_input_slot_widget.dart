@@ -98,6 +98,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
     });
 
     _focusNode.addListener(() {
+      setState(() {});
       if (!_focusNode.hasFocus && widget.fieldVm.isNumber) {
         final currentText = _controller.text;
         final normalized = _normalizeValue(currentText);
@@ -248,67 +249,82 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
           crossAxisAlignment: isMultiline ? CrossAxisAlignment.start : CrossAxisAlignment.center,
           children: [
             Expanded(
-              child: TextFormField(
-                controller: _controller,
-                focusNode: _focusNode,
-                readOnly: widget.readOnly || isDate,
-                onTap: isDate ? () => _pickDate(context, provider) : null,
-                keyboardType: isMultiline
-                    ? TextInputType.multiline
-                    : (isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text),
-                minLines: isMultiline ? 3 : 1,
-                maxLines: isMultiline ? null : 1, // DEFECT 4: Auto-growing dynamic height
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w500,
-                  color: widget.readOnly ? AppColors.slate : AppColors.ink,
-                  height: 1.35,
-                ),
-                decoration: InputDecoration(
-                  hintText: isMultiline
-                      ? 'Enter ${widget.fieldVm.questionText}... (Alt+Enter for newline)'
-                      : (isDate
-                          ? 'Select date (dd-MMM-yyyy)'
-                          : 'Enter ${widget.fieldVm.questionText.isNotEmpty ? widget.fieldVm.questionText : "value"}...'),
-                  hintStyle: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: AppColors.steel.withValues(alpha: 0.8),
-                  ),
-                  filled: true,
-                  fillColor: widget.readOnly ? AppColors.surfaceSoft : Colors.white,
-                  isDense: true,
-                  contentPadding: EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: isMultiline ? 10 : 10,
-                  ),
-                  suffixIcon: isDate
-                      ? InkWell(
-                          onTap: () => _pickDate(context, provider),
-                          child: const Padding(
-                            padding: EdgeInsets.all(8.0),
-                            child: Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.deepTeal),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 140),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(6),
+                  boxShadow: _focusNode.hasFocus
+                      ? [
+                          const BoxShadow(
+                            color: Color(0x2E2563EB), // 3px rgba(37, 99, 235, 0.18)
+                            blurRadius: 3,
+                            spreadRadius: 2,
                           ),
-                        )
-                      : (isRepeated
-                          ? Tooltip(
-                              message: 'Synchronized across ${widget.fieldVm.occurrences} locations in document',
-                              child: Padding(
-                                padding: const EdgeInsets.only(right: 8),
-                                child: Icon(Icons.sync_rounded, size: 15, color: AppColors.deepTeal.withValues(alpha: 0.7)),
-                              ),
-                            )
-                          : null),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: const BorderSide(color: AppColors.hairline, width: 1.2),
+                        ]
+                      : null,
+                ),
+                child: TextFormField(
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  readOnly: widget.readOnly || isDate,
+                  onTap: isDate ? () => _pickDate(context, provider) : null,
+                  keyboardType: isMultiline
+                      ? TextInputType.multiline
+                      : (isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text),
+                  minLines: isMultiline ? 3 : 1,
+                  maxLines: isMultiline ? null : 1, // Auto-growing dynamic height
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: widget.readOnly ? AppColors.slate : AppColors.ink,
+                    height: 1.35,
                   ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: const BorderSide(color: AppColors.hairline, width: 1.2),
-                  ),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(6),
-                    borderSide: const BorderSide(color: AppColors.deepTeal, width: 1.8),
+                  decoration: InputDecoration(
+                    hintText: isMultiline
+                        ? 'Enter ${widget.fieldVm.questionText}... (Alt+Enter for newline)'
+                        : (isDate
+                            ? 'Select date (dd-MMM-yyyy)'
+                            : 'Enter ${widget.fieldVm.questionText.isNotEmpty ? widget.fieldVm.questionText : "value"}...'),
+                    hintStyle: GoogleFonts.inter(
+                      fontSize: 12,
+                      color: AppColors.steel.withValues(alpha: 0.8),
+                    ),
+                    filled: true,
+                    fillColor: widget.readOnly ? AppColors.surfaceSoft : Colors.white,
+                    isDense: true,
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 11,
+                      vertical: isMultiline ? 9 : 8,
+                    ),
+                    suffixIcon: isDate
+                        ? InkWell(
+                            onTap: () => _pickDate(context, provider),
+                            child: const Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.deepTeal),
+                            ),
+                          )
+                        : (isRepeated
+                            ? Tooltip(
+                                message: 'Synchronized across ${widget.fieldVm.occurrences} locations in document',
+                                child: Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: Icon(Icons.sync_rounded, size: 15, color: AppColors.deepTeal.withValues(alpha: 0.7)),
+                                ),
+                              )
+                            : null),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: const BorderSide(color: AppColors.hairlineStrong, width: 1.2),
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: const BorderSide(color: AppColors.hairlineStrong, width: 1.2),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(6),
+                      borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2.0),
+                    ),
                   ),
                 ),
               ),

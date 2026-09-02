@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
@@ -186,34 +187,44 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
             child: Scaffold(
               backgroundColor: AppColors.canvas,
               appBar: _buildAppBar(context, provider),
-              body: provider.isLoading
-                  ? const Center(
-                      child: CircularProgressIndicator(color: AppColors.deepTeal),
-                    )
-                  : AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 250),
-                      child: provider.viewMode == WorkspaceViewMode.valuationEngine
-                          ? ValuationWorkspaceEditorWidget(
-                              key: const ValueKey('VALUATION_ENGINE_LAYOUT'),
-                              orderId: widget.orderId,
-                              readOnly: provider.isReadOnly,
-                              onValuationChanged: (newPlaceholders) {
-                                provider.updateValuesFromValuation(newPlaceholders);
-                              },
-                            )
-                          : provider.viewMode == WorkspaceViewMode.tableEdit
-                              ? Row(
-                                  key: const ValueKey('TABLE_EDIT_LAYOUT'),
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                                  children: const [
-                                    SectionNavigationTreeWidget(),
-                                    Expanded(
-                                      child: DocumentTableWorkspaceWidget(),
-                                    ),
-                                  ],
-                                )
-                              : const LivePreviewViewerWidget(key: ValueKey('COMPILED_PREVIEW')),
-                    ),
+              body: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Sticky Property Context Header (Always visible throughout scrolling)
+                  if (!provider.isLoading && provider.workspaceModel != null)
+                    _buildPropertyContextHeader(provider),
+                  Expanded(
+                    child: provider.isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(color: AppColors.deepTeal),
+                          )
+                        : AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 250),
+                            child: provider.viewMode == WorkspaceViewMode.valuationEngine
+                                ? ValuationWorkspaceEditorWidget(
+                                    key: const ValueKey('VALUATION_ENGINE_LAYOUT'),
+                                    orderId: widget.orderId,
+                                    readOnly: provider.isReadOnly,
+                                    onValuationChanged: (newPlaceholders) {
+                                      provider.updateValuesFromValuation(newPlaceholders);
+                                    },
+                                  )
+                                : provider.viewMode == WorkspaceViewMode.tableEdit
+                                    ? Row(
+                                        key: const ValueKey('TABLE_EDIT_LAYOUT'),
+                                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                                        children: const [
+                                          SectionNavigationTreeWidget(),
+                                          Expanded(
+                                            child: DocumentTableWorkspaceWidget(),
+                                          ),
+                                        ],
+                                      )
+                                    : const LivePreviewViewerWidget(key: ValueKey('COMPILED_PREVIEW')),
+                          ),
+                  ),
+                ],
+              ),
             ),
           );
         },
@@ -248,217 +259,360 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
           }
         },
       ),
-      title: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: AppColors.tealLight,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.2)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.description_outlined, color: AppColors.deepTeal, size: 16),
-                  const SizedBox(width: 6),
-                  Text(
-                    'Document Workspace',
-                    style: AppTypography.caption(color: AppColors.deepTeal).copyWith(fontWeight: FontWeight.w700),
-                  ),
-                ],
-              ),
+      title: Row(
+        children: [
+          // Platform Title & Reference
+          Text(
+            'ProValuer Workspace',
+            style: GoogleFonts.inter(
+              fontSize: 14,
+              fontWeight: FontWeight.w700,
+              color: AppColors.ink,
+              letterSpacing: -0.2,
             ),
-            const SizedBox(width: 12),
-            Text(
-              reportNum,
-              style: AppTypography.heading4().copyWith(color: AppColors.ink),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            '•  $reportNum',
+            style: GoogleFonts.inter(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: AppColors.textSecondary,
             ),
-            const SizedBox(width: 12),
+          ),
+          const SizedBox(width: 12),
+          Container(width: 1, height: 18, color: AppColors.hairline),
+          const SizedBox(width: 12),
 
-            // Status Badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: _getStatusColor(status).withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _getStatusColor(status).withValues(alpha: 0.3)),
-              ),
-              child: Text(
-                status,
-                style: TextStyle(
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                  color: _getStatusColor(status),
+          // Segmented View Mode Toggle
+          Container(
+            padding: const EdgeInsets.all(2),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceSoft,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.hairline),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (widget.role == 'ADMIN' || widget.role == 'SUPER_ADMIN')
+                  _buildSegmentButton(
+                    title: 'Valuation Engine (Admin)',
+                    icon: Icons.calculate_outlined,
+                    isActive: provider.viewMode == WorkspaceViewMode.valuationEngine,
+                    onTap: () => provider.setViewMode(WorkspaceViewMode.valuationEngine),
+                  ),
+                _buildSegmentButton(
+                  title: 'Data Entry & Tables',
+                  icon: Icons.table_chart_outlined,
+                  isActive: provider.viewMode == WorkspaceViewMode.tableEdit,
+                  onTap: () => provider.setViewMode(WorkspaceViewMode.tableEdit),
                 ),
-              ),
+                _buildSegmentButton(
+                  title: 'Compiled PDF Preview',
+                  icon: Icons.picture_as_pdf_outlined,
+                  isActive: provider.viewMode == WorkspaceViewMode.compiledPreview,
+                  onTap: () => provider.setViewMode(WorkspaceViewMode.compiledPreview),
+                ),
+              ],
             ),
-
-            // Auto-save Status Indicator
-            const SizedBox(width: 16),
-            if (provider.isAutoSaving) ...[
-              const SizedBox(
-                width: 12,
-                height: 12,
-                child: CircularProgressIndicator(strokeWidth: 1.5, color: AppColors.deepTeal),
-              ),
-              const SizedBox(width: 6),
-              Text('Auto-saving...', style: AppTypography.caption(color: AppColors.slate)),
-            ] else if (provider.isDirty) ...[
-              Container(
-                width: 6,
-                height: 6,
-                decoration: const BoxDecoration(color: AppColors.warning, shape: BoxShape.circle),
-              ),
-              const SizedBox(width: 6),
-              Text('Unsaved changes', style: AppTypography.caption(color: AppColors.warning)),
-            ] else if (provider.lastSavedAt != null) ...[
-              const Icon(Icons.check_circle_outline_rounded, size: 12, color: AppColors.successAccent),
-              const SizedBox(width: 4),
-              Text('All changes saved', style: AppTypography.caption(color: AppColors.slate)),
-            ],
-
-            const SizedBox(width: 20),
-
-            // ─── Segmented View Mode Toggle ────────────────────────────
-            Container(
-              padding: const EdgeInsets.all(2),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceSoft,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: AppColors.hairline),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (widget.role == 'ADMIN' || widget.role == 'SUPER_ADMIN')
-                    _buildSegmentButton(
-                      title: 'Valuation Engine (Admin)',
-                      icon: Icons.calculate_outlined,
-                      isActive: provider.viewMode == WorkspaceViewMode.valuationEngine,
-                      onTap: () => provider.setViewMode(WorkspaceViewMode.valuationEngine),
-                    ),
-                  _buildSegmentButton(
-                    title: 'Dynamic Tables Workspace',
-                    icon: Icons.table_chart_outlined,
-                    isActive: provider.viewMode == WorkspaceViewMode.tableEdit,
-                    onTap: () => provider.setViewMode(WorkspaceViewMode.tableEdit),
-                  ),
-                  _buildSegmentButton(
-                    title: 'Compiled PDF Preview',
-                    icon: Icons.picture_as_pdf_outlined,
-                    isActive: provider.viewMode == WorkspaceViewMode.compiledPreview,
-                    onTap: () => provider.setViewMode(WorkspaceViewMode.compiledPreview),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
+          ),
+        ],
       ),
       actions: [
-        // Save Draft Button - ALWAYS VISIBLE in toolbar across all dirty/saving/saved states
-        ElevatedButton.icon(
+        // Subtle Auto-save Status Indicator
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 10),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (provider.isAutoSaving) ...[
+                const SizedBox(
+                  width: 12,
+                  height: 12,
+                  child: CircularProgressIndicator(strokeWidth: 1.8, color: AppColors.primaryBlue),
+                ),
+                const SizedBox(width: 6),
+                Text('Auto-saving...', style: GoogleFonts.inter(fontSize: 11, color: AppColors.slate)),
+              ] else if (provider.isDirty) ...[
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: const BoxDecoration(color: AppColors.warning, shape: BoxShape.circle),
+                ),
+                const SizedBox(width: 6),
+                Text('Unsaved edits', style: GoogleFonts.inter(fontSize: 11, color: AppColors.warning, fontWeight: FontWeight.w600)),
+              ] else if (provider.lastSavedAt != null) ...[
+                const Icon(Icons.check_circle_rounded, size: 14, color: AppColors.successAccent),
+                const SizedBox(width: 5),
+                Text('Auto-saved', style: GoogleFonts.inter(fontSize: 11, color: AppColors.slate)),
+              ],
+            ],
+          ),
+        ),
+
+        // Subordinate Save Draft Button (Neutral outline, only active if dirty)
+        OutlinedButton.icon(
           icon: provider.isSaving
               ? const SizedBox(
                   width: 12,
                   height: 12,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  child: CircularProgressIndicator(strokeWidth: 1.8, color: AppColors.slate),
                 )
               : Icon(
-                  provider.isDirty ? Icons.save_rounded : Icons.check_circle_rounded,
-                  size: 15,
-                  color: provider.isDirty
-                      ? Colors.white
-                      : (provider.isReadOnly ? AppColors.slate : AppColors.successAccent),
+                  Icons.save_outlined,
+                  size: 14,
+                  color: provider.isDirty ? AppColors.ink : AppColors.stone,
                 ),
           label: Text(
-            provider.isSaving
-                ? 'Saving...'
-                : (provider.isDirty ? 'Save Draft' : 'Saved'),
-            style: TextStyle(
+            provider.isSaving ? 'Saving...' : 'Save Draft',
+            style: GoogleFonts.inter(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: provider.isDirty
-                  ? Colors.white
-                  : (provider.isReadOnly ? AppColors.slate : AppColors.ink),
+              color: provider.isDirty ? AppColors.ink : AppColors.stone,
             ),
           ),
           onPressed: (provider.isDirty && !provider.isSaving && !provider.isReadOnly)
               ? () => provider.saveChanges()
               : null,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: provider.isDirty ? AppColors.deepTeal : AppColors.surfaceSoft,
-            foregroundColor: provider.isDirty ? Colors.white : AppColors.ink,
-            disabledBackgroundColor: provider.isSaving
-                ? AppColors.deepTeal
-                : AppColors.surfaceSoft,
-            disabledForegroundColor: provider.isSaving ? Colors.white : AppColors.slate,
-            elevation: 0,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: AppColors.ink,
+            disabledForegroundColor: AppColors.stone,
             side: BorderSide(
-              color: provider.isDirty ? AppColors.deepTeal : AppColors.hairline,
-              width: 1,
+              color: provider.isDirty ? AppColors.hairlineStrong : AppColors.hairline,
+              width: 1.2,
             ),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
           ),
         ),
-        const SizedBox(width: 8),
+        const SizedBox(width: 10),
 
-        // PA Action: Submit to SPA
+        // SINGLE DOMINANT PRIMARY ACTION: PA Submit to SPA
         if ((isPa || isAdmin) && (status == 'ASSIGNED' || status == 'ACTION_NEEDED')) ...[
           ElevatedButton.icon(
             icon: provider.isSubmitting
                 ? const SizedBox(
-                    width: 12,
-                    height: 12,
+                    width: 13,
+                    height: 13,
                     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                   )
-                : const Icon(Icons.send_rounded, size: 15),
-            label: Text(provider.isSubmitting ? 'Submitting...' : 'SUBMIT TO SPA'),
+                : const Icon(Icons.send_rounded, size: 14),
+            label: Text(
+              provider.isSubmitting ? 'Submitting...' : 'SUBMIT TO SPA',
+              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.3),
+            ),
             onPressed: provider.isSubmitting ? null : _handleSubmitToSpa,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.deepTeal,
+              backgroundColor: AppColors.primaryBlue,
               foregroundColor: Colors.white,
               elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
         ],
 
-        // SPA Action: Approve Report
+        // SINGLE DOMINANT PRIMARY ACTION: SPA Approve Report
         if ((isSpa || isAdmin) && (status == 'SPA_GATE' || status == 'ASSIGNED')) ...[
           ElevatedButton.icon(
             icon: provider.isSubmitting
                 ? const SizedBox(
-                    width: 12,
-                    height: 12,
+                    width: 13,
+                    height: 13,
                     child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
                   )
-                : const Icon(Icons.verified_rounded, size: 15),
-            label: Text(provider.isSubmitting ? 'Approving...' : 'APPROVE & COMPILE'),
+                : const Icon(Icons.verified_rounded, size: 14),
+            label: Text(
+              provider.isSubmitting ? 'Approving...' : 'APPROVE & COMPILE',
+              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.3),
+            ),
             onPressed: provider.isSubmitting ? null : _handleSpaApprove,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.successAccent,
               foregroundColor: Colors.white,
               elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
             ),
           ),
-          const SizedBox(width: 8),
+          const SizedBox(width: 10),
         ],
 
         IconButton(
-          icon: const Icon(Icons.refresh_rounded, color: AppColors.slate),
-          tooltip: 'Reload Document',
+          icon: const Icon(Icons.refresh_rounded, color: AppColors.slate, size: 20),
+          tooltip: 'Reload Document Data',
           onPressed: () => provider.loadWorkspace(widget.orderId),
         ),
         const SizedBox(width: 16),
+      ],
+    );
+  }
+
+  /// Sticky Property Context Header Strip (Fixed 42px bar, always visible throughout scrolling)
+  Widget _buildPropertyContextHeader(DocumentWorkspaceProvider provider) {
+    final workspace = provider.workspaceModel;
+    final status = workspace?.status ?? 'ASSIGNED';
+    final reportNum = workspace?.reportNumber ?? widget.reportNumber ?? 'Order #${widget.orderId}';
+
+    String propertyType = provider.getValue('PROPERTY_TYPE');
+    if (propertyType.isEmpty) propertyType = 'Commercial Property';
+
+    String ownerName = provider.getValue('OWNER_NAME');
+    if (ownerName.isEmpty) ownerName = provider.getValue('CLIENT_NAME');
+    if (ownerName.isEmpty) ownerName = 'M/s Property Owner';
+
+    String bankName = provider.getValue('BANK_NAME');
+    if (bankName.isEmpty) bankName = 'Lending Institution';
+
+    String branchName = provider.getValue('BRANCH_NAME');
+    final bankDisplay = branchName.isNotEmpty ? '$bankName ($branchName)' : bankName;
+
+    String location = provider.getValue('PROPERTY_ADDRESS');
+    if (location.isEmpty) location = provider.getValue('PROP_LOCATION');
+    if (location.isEmpty) location = 'Site Location';
+
+    return Container(
+      height: 42,
+      padding: const EdgeInsets.symmetric(horizontal: 16),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: AppColors.hairline, width: 1.2)),
+      ),
+      child: Row(
+        children: [
+          // Property Category Tag
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+            decoration: BoxDecoration(
+              color: AppColors.tealLight,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.25)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.apartment_rounded, color: AppColors.deepTeal, size: 13),
+                const SizedBox(width: 5),
+                Text(
+                  propertyType,
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.deepTeal,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          Container(width: 1, height: 18, color: AppColors.hairline),
+          const SizedBox(width: 12),
+
+          // Owner Metadata
+          _buildContextMetaItem(
+            label: 'OWNER',
+            value: ownerName,
+            icon: Icons.person_outline_rounded,
+          ),
+          const SizedBox(width: 12),
+          Container(width: 1, height: 18, color: AppColors.hairline),
+          const SizedBox(width: 12),
+
+          // Bank Metadata
+          _buildContextMetaItem(
+            label: 'BANK',
+            value: bankDisplay,
+            icon: Icons.account_balance_outlined,
+          ),
+          const SizedBox(width: 12),
+          Container(width: 1, height: 18, color: AppColors.hairline),
+          const SizedBox(width: 12),
+
+          // Location Metadata
+          Expanded(
+            child: _buildContextMetaItem(
+              label: 'LOCATION',
+              value: location,
+              icon: Icons.place_outlined,
+            ),
+          ),
+
+          const SizedBox(width: 12),
+          Container(width: 1, height: 18, color: AppColors.hairline),
+          const SizedBox(width: 12),
+
+          // Report Identification Monospace
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'REPORT REF: ',
+                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.steel),
+              ),
+              Text(
+                reportNum,
+                style: GoogleFonts.firaCode(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.ink),
+              ),
+            ],
+          ),
+
+          const SizedBox(width: 12),
+
+          // Lifecycle Status Badge
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: _getStatusColor(status).withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: _getStatusColor(status).withValues(alpha: 0.3)),
+            ),
+            child: Text(
+              status,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: _getStatusColor(status),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContextMetaItem({
+    required String label,
+    required String value,
+    required IconData icon,
+  }) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 13, color: AppColors.steel),
+        const SizedBox(width: 4),
+        Text(
+          '$label: ',
+          style: GoogleFonts.inter(
+            fontSize: 10,
+            fontWeight: FontWeight.w700,
+            color: AppColors.steel,
+          ),
+        ),
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 180),
+          child: Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.inter(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: AppColors.ink,
+            ),
+          ),
+        ),
       ],
     );
   }

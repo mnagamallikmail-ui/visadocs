@@ -7,50 +7,56 @@ class AppColors {
   AppColors._();
 
   // ── Primary Backgrounds ──────────────────────────────────────────────────
-  /// Main page canvas — warm cream #FFFAF0
-  static const Color canvas       = Color(0xFFFFFAF0);
-  /// Soft alt background — #FAF5E8
-  static const Color surfaceSoft  = Color(0xFFFAF5E8);
-  /// Card background — #F5F0E0
-  static const Color cardBg       = Color(0xFFF5F0E0);
+  /// Main page canvas — neutral cool slate #F8FAFC
+  static const Color canvas       = Color(0xFFF8FAFC);
+  /// Soft alt background — cool slate-100 #F1F5F9
+  static const Color surfaceSoft  = Color(0xFFF1F5F9);
+  /// Card background — pure white #FFFFFF
+  static const Color cardBg       = Color(0xFFFFFFFF);
   /// Pure white surface (dialogs, dropdowns)
   static const Color surface      = Color(0xFFFFFFFF);
 
   // ── Borders ──────────────────────────────────────────────────────────────
-  /// Default borders — warm tan #E8E0D0
-  static const Color hairline       = Color(0xFFE8E0D0);
-  /// Soft inner dividers — #F0EAD8
-  static const Color hairlineSoft   = Color(0xFFF0EAD8);
-  /// Stronger borders for inputs — #D4C8B0
-  static const Color hairlineStrong = Color(0xFFD4C8B0);
+  /// Default borders — clean neutral gray-200 #E5E7EB
+  static const Color hairline       = Color(0xFFE5E7EB);
+  /// Soft inner dividers — #F3F4F6
+  static const Color hairlineSoft   = Color(0xFFF3F4F6);
+  /// Stronger borders for inputs — defined gray-300 #D1D5DB
+  static const Color hairlineStrong = Color(0xFFD1D5DB);
 
   // ── Text ─────────────────────────────────────────────────────────────────
-  /// Primary — near black #0A0A0A
-  static const Color ink            = Color(0xFF0A0A0A);
-  /// Secondary — charcoal #3A3A3A
-  static const Color textSecondary  = Color(0xFF3A3A3A);
-  /// Muted — #6A6A6A
-  static const Color textMuted      = Color(0xFF6A6A6A);
+  /// Primary — high contrast near black #111827
+  static const Color ink            = Color(0xFF111827);
+  /// Secondary — readable slate #4B5563
+  static const Color textSecondary  = Color(0xFF4B5563);
+  /// Muted — medium gray #6B7280
+  static const Color textMuted      = Color(0xFF6B7280);
   /// Slate — medium grey for captions/labels
-  static const Color slate          = Color(0xFF6A6A6A);
-  /// Steel — lighter muted text
-  static const Color steel          = Color(0xFF8A8A8A);
-  /// Stone — disabled text
-  static const Color stone          = Color(0xFFB0A898);
+  static const Color slate          = Color(0xFF4B5563);
+  /// Steel — lighter muted text #6B7280
+  static const Color steel          = Color(0xFF6B7280);
+  /// Stone — disabled / hint text #9CA3AF
+  static const Color stone          = Color(0xFF9CA3AF);
   /// On dark — white for dark backgrounds
   static const Color onDark         = Color(0xFFFFFFFF);
   /// Muted on dark
-  static const Color onDarkMuted    = Color(0xFFBBB0A0);
+  static const Color onDarkMuted    = Color(0xFF9CA3AF);
 
-  // ── Brand Accents — Clay Enterprise PropTech ─────────────────────────────
-  /// Deep Teal — primary action #1A3A3A
-  static const Color deepTeal       = Color(0xFF1A3A3A);
-  /// Deep Teal pressed — darker hover state
-  static const Color deepTealPressed = Color(0xFF122828);
-  /// Teal light tint — #E8F4F4
-  static const Color tealLight      = Color(0xFFE8F4F4);
+  // ── Brand Accents — Professional Appraisal Workstation ───────────────────
+  /// Dominant Primary Action Blue — #2563EB (Tailwind Blue-600)
+  static const Color primaryBlue       = Color(0xFF2563EB);
+  static const Color primaryBluePressed = Color(0xFF1D4ED8);
+  static const Color primaryBlueLight  = Color(0xFFEFF6FF);
+  /// Focus ring halo (3px rgba(37, 99, 235, 0.16))
+  static const Color focusHalo         = Color(0x292563EB);
 
-  // ── Feature Card Colors (Clay palette) ───────────────────────────────────
+  /// Domain Brand Teal — deep professional engineering teal #0F4C5C
+  static const Color deepTeal          = Color(0xFF0F4C5C);
+  static const Color deepTealPressed   = Color(0xFF0A333E);
+  static const Color tealLight         = Color(0xFFE6F4F7);
+  static const Color brandTeal         = deepTeal;
+
+  // ── Feature Card Colors (Clay palette preserved) ─────────────────────────
   /// Pink — #FF4D8B
   static const Color featurePink       = Color(0xFFFF4D8B);
   static const Color featurePinkLight  = Color(0xFFFFF0F5);
@@ -64,39 +70,37 @@ class AppColors {
   static const Color featureOchre      = Color(0xFFE8B94A);
   static const Color featureOchreLight = Color(0xFFFFF8E8);
   /// Deep Teal feature card
-  static const Color featureTeal       = Color(0xFF1A3A3A);
-  static const Color featureTealLight  = Color(0xFFE8F4F4);
+  static const Color featureTeal       = deepTeal;
+  static const Color featureTealLight  = tealLight;
 
   // ── Semantic ─────────────────────────────────────────────────────────────
-  static const Color successAccent = Color(0xFF22C55E);
+  static const Color successAccent = Color(0xFF16A34A); // emerald-600
   static const Color successBg     = Color(0xFFDCFCE7);
-  static const Color warning       = Color(0xFFF59E0B);
+  static const Color warning       = Color(0xFFD97706); // amber-600
   static const Color warningBg     = Color(0xFFFEF3C7);
-  static const Color brandRedDark  = Color(0xFFEF4444);
+  static const Color brandRedDark  = Color(0xFFDC2626); // red-600
   static const Color brandRed      = Color(0xFFFEE2E2);
 
   // ── Footer ───────────────────────────────────────────────────────────────
-  static const Color footerBg      = Color(0xFF0A0A0A);
+  static const Color footerBg      = Color(0xFF111827);
 
   // ── Sidebar ──────────────────────────────────────────────────────────────
-  static const Color sidebarBg       = Color(0xFFFFFAF0); // warm cream sidebar
-  static const Color sidebarSelected = Color(0xFFE8F4F4); // teal tint
-  static const Color sidebarText     = Color(0xFF0A0A0A);
-  static const Color sidebarMuted    = Color(0xFF6A6A6A);
-  static const Color sidebarAccent   = Color(0xFF1A3A3A); // deep teal
-  static const Color sidebarHover    = Color(0xFFF5F0E0); // card bg
+  static const Color sidebarBg       = Color(0xFFFFFFFF);
+  static const Color sidebarSelected = Color(0xFFF0FDF4); // subtle success/progress tint
+  static const Color sidebarText     = Color(0xFF111827);
+  static const Color sidebarMuted    = Color(0xFF6B7280);
+  static const Color sidebarAccent   = Color(0xFF2563EB); // primary blue
+  static const Color sidebarHover    = Color(0xFFF1F5F9); // slate-100
 
   // ── Legacy Backward-Compat Aliases ───────────────────────────────────────
   // These preserve all existing widget references without any breakage.
-
-  // Primary blue → mapped to deep teal
-  static const Color brandBlue          = deepTeal;
-  static const Color bluePressed        = deepTealPressed;
-  static const Color primary            = deepTeal;
+  static const Color brandBlue          = primaryBlue;
+  static const Color bluePressed        = primaryBluePressed;
+  static const Color primary            = primaryBlue;
   static const Color onPrimary          = onDark;
-  static const Color primaryPressed     = deepTealPressed;
+  static const Color primaryPressed     = primaryBluePressed;
   static const Color primaryDisabled    = hairlineStrong;
-  static const Color surfacePricingFeatured = tealLight;
+  static const Color surfacePricingFeatured = primaryBlueLight;
 
   // Legacy yellow → ochre
   static const Color brandYellow        = featureOchre;
@@ -109,8 +113,7 @@ class AppColors {
   static const Color coralLight         = featurePeachLight;
   static const Color coralDark          = Color(0xFF8A4010);
 
-  // Legacy teal → featureTeal/tealLight
-  static const Color brandTeal          = deepTeal;
+  // Legacy teal aliases
   static const Color tealDark           = deepTealPressed;
   static const Color mossDark           = Color(0xFF0A2020);
 
@@ -143,6 +146,6 @@ class AppColors {
   static const Color success            = successAccent;
   static const Color error              = brandRedDark;
   static const Color errorBg            = brandRed;
-  static const Color info               = deepTeal;
-  static const Color infoBg             = tealLight;
+  static const Color info               = primaryBlue;
+  static const Color infoBg             = primaryBlueLight;
 }
