@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../theme/app_colors.dart';
+import '../../../utils/indian_number_formatter.dart';
 import '../models/workspace_view_model.dart';
 import '../providers/document_workspace_provider.dart';
 
@@ -70,6 +71,14 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
         return formatDate(parsed);
       }
     }
+    if (widget.fieldVm.isNumber && val.isNotEmpty) {
+      final clean = val.replaceAll(',', '').trim();
+      final numVal = num.tryParse(clean);
+      if (numVal != null) {
+        final hasDecimal = clean.contains('.');
+        return IndianNumberFormatter.format(numVal, includeDecimals: hasDecimal);
+      }
+    }
     return val;
   }
 
@@ -85,6 +94,17 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
     _controller.addListener(() {
       if (_focusNode.hasFocus) {
         provider.updateValue(widget.fieldVm.key, _controller.text);
+      }
+    });
+
+    _focusNode.addListener(() {
+      if (!_focusNode.hasFocus && widget.fieldVm.isNumber) {
+        final currentText = _controller.text;
+        final normalized = _normalizeValue(currentText);
+        if (normalized != currentText) {
+          _controller.text = normalized;
+          provider.updateValue(widget.fieldVm.key, normalized);
+        }
       }
     });
   }

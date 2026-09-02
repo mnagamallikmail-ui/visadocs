@@ -72,13 +72,6 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
         _comparables = bundle.comparableSales;
         _isLocked = bundle.isLocked;
 
-        // Ensure at least 1 parcel and 1 building exist
-        if (_landItems.isEmpty) {
-          _landItems.add(ValuationLandItemModel(description: 'Main Parcel', enteredArea: 2400, enteredUnit: 'Sq.Ft', rate: 2500));
-        }
-        if (_buildingItems.isEmpty) {
-          _buildingItems.add(ValuationBuildingItemModel(structureType: 'Ground Floor', buildingType: 'RCC Residential', enteredArea: 1500, replacementRate: 2000, buildingAge: 5, buildingUsefulLife: 60));
-        }
         _recalculateAll(notifyParent: true);
       });
     } catch (e) {
@@ -326,6 +319,15 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
               ],
             ),
           ),
+          if (_landItems.isEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+              alignment: Alignment.center,
+              child: Text(
+                'No land parcels added yet. Click "+ Add Parcel" above to add records.',
+                style: GoogleFonts.inter(fontSize: 13, color: AppColors.slate, fontStyle: FontStyle.italic),
+              ),
+            ),
           ..._landItems.asMap().entries.map((entry) {
             final idx = entry.key;
             final item = entry.value;
@@ -350,12 +352,12 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
                   )),
                   const SizedBox(width: 8),
                   Expanded(flex: 2, child: TextFormField(
-                    initialValue: item.enteredArea.toString(),
+                    initialValue: item.enteredArea > 0 ? IndianNumberFormatter.format(item.enteredArea, includeDecimals: item.enteredArea % 1 != 0) : '',
                     enabled: !isReadOnly,
-                    keyboardType: TextInputType.number,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
                     onChanged: (val) {
-                      item.enteredArea = double.tryParse(val) ?? 0;
+                      item.enteredArea = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
                       _recalculateAll();
                     },
                   )),
@@ -375,12 +377,12 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
                   Expanded(flex: 2, child: Text(IndianNumberFormatter.format(item.standardAreaSqft, includeDecimals: true), style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold))),
                   const SizedBox(width: 8),
                   Expanded(flex: 2, child: TextFormField(
-                    initialValue: item.rate.toString(),
+                    initialValue: item.rate > 0 ? IndianNumberFormatter.format(item.rate, includeDecimals: item.rate % 1 != 0) : '',
                     enabled: !isReadOnly,
-                    keyboardType: TextInputType.number,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
                     decoration: InputDecoration(isDense: true, border: const OutlineInputBorder(), hintText: '₹ / ${item.enteredUnit}'),
                     onChanged: (val) {
-                      item.rate = double.tryParse(val) ?? 0;
+                      item.rate = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
                       _recalculateAll();
                     },
                   )),
@@ -388,7 +390,7 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
                   Expanded(flex: 2, child: Text('₹ ' + IndianNumberFormatter.format(item.value), style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary))),
                   SizedBox(
                     width: 40,
-                    child: isReadOnly || _landItems.length <= 1
+                    child: isReadOnly
                         ? null
                         : IconButton(
                             icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.brandRedDark),
@@ -476,6 +478,15 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
                       ],
                     ),
                   ),
+                  if (_buildingItems.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'No building structures added yet. Click "+ Add Structure" above to add records.',
+                        style: GoogleFonts.inter(fontSize: 13, color: AppColors.slate, fontStyle: FontStyle.italic),
+                      ),
+                    ),
                   ..._buildingItems.asMap().entries.map((entry) {
                     final idx = entry.key;
                     final item = entry.value;
@@ -519,23 +530,23 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
                           )),
                           const SizedBox(width: 8),
                           Expanded(flex: 2, child: TextFormField(
-                            initialValue: item.enteredArea.toString(),
+                            initialValue: item.enteredArea > 0 ? IndianNumberFormatter.format(item.enteredArea, includeDecimals: item.enteredArea % 1 != 0) : '',
                             enabled: !isReadOnly,
-                            keyboardType: TextInputType.number,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
                             onChanged: (val) {
-                              item.enteredArea = double.tryParse(val) ?? 0;
+                              item.enteredArea = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
                               _recalculateAll();
                             },
                           )),
                           const SizedBox(width: 8),
                           Expanded(flex: 2, child: TextFormField(
-                            initialValue: item.replacementRate.toString(),
+                            initialValue: item.replacementRate > 0 ? IndianNumberFormatter.format(item.replacementRate, includeDecimals: item.replacementRate % 1 != 0) : '',
                             enabled: !isReadOnly,
-                            keyboardType: TextInputType.number,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
                             onChanged: (val) {
-                              item.replacementRate = double.tryParse(val) ?? 0;
+                              item.replacementRate = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
                               _recalculateAll();
                             },
                           )),
@@ -543,23 +554,23 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
                           Expanded(flex: 2, child: Text('₹ ' + IndianNumberFormatter.format(item.replacementCost), style: GoogleFonts.firaCode(fontSize: 11))),
                           const SizedBox(width: 8),
                           Expanded(flex: 1, child: TextFormField(
-                            initialValue: item.buildingAge.toString(),
+                            initialValue: item.buildingAge > 0 ? item.buildingAge.toString() : '',
                             enabled: !isReadOnly,
-                            keyboardType: TextInputType.number,
-                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(isDense: true, border: OutlineInputBorder(), hintText: '0'),
                             onChanged: (val) {
-                              item.buildingAge = double.tryParse(val) ?? 0;
+                              item.buildingAge = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
                               _recalculateAll();
                             },
                           )),
                           const SizedBox(width: 8),
                           Expanded(flex: 1, child: TextFormField(
-                            initialValue: item.buildingUsefulLife.toString(),
+                            initialValue: item.buildingUsefulLife > 0 ? item.buildingUsefulLife.toString() : '60',
                             enabled: !isReadOnly,
                             keyboardType: TextInputType.number,
                             decoration: const InputDecoration(isDense: true, border: OutlineInputBorder()),
                             onChanged: (val) {
-                              item.buildingUsefulLife = int.tryParse(val) ?? 60;
+                              item.buildingUsefulLife = int.tryParse(val.replaceAll(',', '').trim()) ?? 60;
                               _recalculateAll();
                             },
                           )),
@@ -571,7 +582,7 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
                           Expanded(flex: 2, child: Text('₹ ' + IndianNumberFormatter.format(item.buildingValue), style: GoogleFonts.firaCode(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.primary))),
                           SizedBox(
                             width: 40,
-                            child: isReadOnly || _buildingItems.length <= 1
+                            child: isReadOnly
                                 ? null
                                 : IconButton(
                                     icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.brandRedDark),
@@ -646,24 +657,24 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
                 )),
                 const SizedBox(width: 8),
                 Expanded(flex: 2, child: TextFormField(
-                  initialValue: item.enteredArea.toString(),
+                  initialValue: item.enteredArea > 0 ? IndianNumberFormatter.format(item.enteredArea, includeDecimals: item.enteredArea % 1 != 0) : '',
                   enabled: !isReadOnly,
-                  keyboardType: TextInputType.number,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(labelText: 'Area (Sq.Ft)', isDense: true, border: OutlineInputBorder()),
                   onChanged: (val) {
-                    item.enteredArea = double.tryParse(val) ?? 0;
+                    item.enteredArea = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
                     item.saleValue = item.enteredArea * item.rate;
                     setState(() {});
                   },
                 )),
                 const SizedBox(width: 8),
                 Expanded(flex: 2, child: TextFormField(
-                  initialValue: item.rate.toString(),
+                  initialValue: item.rate > 0 ? IndianNumberFormatter.format(item.rate, includeDecimals: item.rate % 1 != 0) : '',
                   enabled: !isReadOnly,
-                  keyboardType: TextInputType.number,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(labelText: 'Rate / Sq.Ft', isDense: true, border: OutlineInputBorder()),
                   onChanged: (val) {
-                    item.rate = double.tryParse(val) ?? 0;
+                    item.rate = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
                     item.saleValue = item.enteredArea * item.rate;
                     setState(() {});
                   },
@@ -883,7 +894,7 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
               Expanded(
                 flex: 2,
                 child: TextFormField(
-                  initialValue: data.governmentValue > 0 ? data.governmentValue.toStringAsFixed(2) : '',
+                  initialValue: data.governmentValue > 0 ? IndianNumberFormatter.format(data.governmentValue, includeDecimals: true) : '',
                   enabled: !isReadOnly,
                   keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   decoration: const InputDecoration(
@@ -894,7 +905,7 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
                     prefixText: '₹ ',
                   ),
                   onChanged: (val) {
-                    data.governmentValue = double.tryParse(val) ?? 0;
+                    data.governmentValue = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
                     _recalculateAll();
                   },
                 ),

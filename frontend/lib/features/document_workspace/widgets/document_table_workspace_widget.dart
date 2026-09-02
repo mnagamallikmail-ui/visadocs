@@ -371,6 +371,15 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                   ),
 
                   // Dynamic Read-Only Rows
+                  if (landItems.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'No land parcels recorded. Add parcels in the Valuation Engine.',
+                        style: GoogleFonts.inter(fontSize: 12, color: AppColors.slate, fontStyle: FontStyle.italic),
+                      ),
+                    ),
                   ...landItems.asMap().entries.map((entry) {
                     final idx = entry.key;
                     final item = entry.value;
@@ -562,6 +571,15 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                   ),
 
                   // Dynamic Read-Only Rows
+                  if (buildingItems.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'No building structures recorded. Add structures in the Valuation Engine.',
+                        style: GoogleFonts.inter(fontSize: 12, color: AppColors.slate, fontStyle: FontStyle.italic),
+                      ),
+                    ),
                   ...buildingItems.asMap().entries.map((entry) {
                     final item = entry.value;
                     return Container(

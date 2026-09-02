@@ -175,19 +175,6 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         _landItems = decoded.map((j) => ValuationLandItemModel.fromJson(j as Map<String, dynamic>)).toList();
       } catch (_) {}
     }
-    if (_landItems.isEmpty) {
-      _landItems = [
-        ValuationLandItemModel(
-          orderId: orderId,
-          description: 'Primary Plot (Sy.No.42/A)',
-          enteredArea: 1000,
-          enteredUnit: 'Sq.Ft',
-          standardAreaSqft: 1000,
-          rate: 1500,
-          value: 1500000,
-        ),
-      ];
-    }
 
     // 2. Building Items
     final rawBldg = _activeValues['RAW_BUILDING_ITEMS_JSON'];
@@ -196,26 +183,6 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         final List<dynamic> decoded = jsonDecode(rawBldg);
         _buildingItems = decoded.map((j) => ValuationBuildingItemModel.fromJson(j as Map<String, dynamic>)).toList();
       } catch (_) {}
-    }
-    if (_buildingItems.isEmpty) {
-      _buildingItems = [
-        ValuationBuildingItemModel(
-          orderId: orderId,
-          buildingType: 'RCC Commercial',
-          description: 'Commercial Building Block',
-          enteredArea: 1000,
-          enteredUnit: 'Sq.Ft',
-          standardAreaSqft: 1000,
-          replacementRate: 2500,
-          replacementCost: 2500000,
-          buildingAge: 5,
-          buildingUsefulLife: 60,
-          salvagePercentage: 10,
-          depreciationPercentage: 7.5,
-          depreciationAmount: 187500,
-          buildingValue: 2312500,
-        ),
-      ];
     }
 
     // 3. Government Value

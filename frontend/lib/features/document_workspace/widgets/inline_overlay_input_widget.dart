@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_typography.dart';
+import '../../../utils/indian_number_formatter.dart';
 import '../../document_studio/models/visual_preview_model.dart';
 import '../providers/document_workspace_provider.dart';
 
@@ -83,7 +84,15 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
 
     final provider = context.read<DocumentWorkspaceProvider>();
     provider.setFocusedKey(widget.placeholder.key);
-    _controller.text = provider.getValue(widget.placeholder.key);
+    final rawVal = provider.getValue(widget.placeholder.key);
+    final isNumber = _inferFieldType(widget.placeholder.key) == 'NUMBER';
+    if (isNumber && rawVal.trim().isNotEmpty) {
+      final clean = rawVal.replaceAll(',', '').trim();
+      final numVal = num.tryParse(clean);
+      _controller.text = numVal != null ? IndianNumberFormatter.format(numVal, includeDecimals: clean.contains('.')) : rawVal;
+    } else {
+      _controller.text = rawVal;
+    }
 
     final overlay = Overlay.of(context);
     final renderBox = context.findRenderObject() as RenderBox?;
@@ -200,7 +209,16 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
   void _commitAndCloseFloating() {
     if (!_isFloatingOpen) return;
     final provider = context.read<DocumentWorkspaceProvider>();
-    provider.updateValue(widget.placeholder.key, _controller.text);
+    final isNumber = _inferFieldType(widget.placeholder.key) == 'NUMBER';
+    String textToCommit = _controller.text;
+    if (isNumber && textToCommit.trim().isNotEmpty) {
+      final clean = textToCommit.replaceAll(',', '').trim();
+      final numVal = num.tryParse(clean);
+      if (numVal != null) {
+        textToCommit = IndianNumberFormatter.format(numVal, includeDecimals: clean.contains('.'));
+      }
+    }
+    provider.updateValue(widget.placeholder.key, textToCommit);
     provider.setFocusedKey(null);
     _removeFloatingOverlay();
   }
