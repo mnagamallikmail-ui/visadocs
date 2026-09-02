@@ -17,17 +17,18 @@ class LoginScreen extends StatefulWidget {
 
 class _LoginScreenState extends State<LoginScreen> {
   // ── Controllers (unchanged business logic) ────────────────────────────────
-  final _emailCtrl    = TextEditingController();
+  final _usernameCtrl = TextEditingController();
   final _passwordCtrl = TextEditingController();
   final _mobileCtrl   = TextEditingController();
   final _nameCtrl     = TextEditingController();
+  final _emailCtrl    = TextEditingController();
 
   bool _isLogin   = true;
   bool _isLoading = false;
   bool _obscurePassword = true;
   String? _error;
 
-  // ── Submit Handler — PRESERVED EXACTLY ────────────────────────────────────
+  // ── Submit Handler — Username Based ────────────────────────────────────
   Future<void> _handleSubmit() async {
     setState(() { _isLoading = true; _error = null; });
 
@@ -36,16 +37,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
     if (_isLogin) {
       success = await auth.login(
-        _emailCtrl.text.trim(), _passwordCtrl.text.trim());
+        _usernameCtrl.text.trim(), _passwordCtrl.text.trim());
     } else {
       success = await auth.register(
-        _emailCtrl.text.trim(), _passwordCtrl.text.trim(),
-        'CLIENT', _mobileCtrl.text.trim(), _nameCtrl.text.trim());
+        _emailCtrl.text.trim().isNotEmpty ? _emailCtrl.text.trim() : "${_usernameCtrl.text.trim()}@provaluer.com",
+        _passwordCtrl.text.trim(),
+        'CLIENT',
+        _mobileCtrl.text.trim(),
+        _nameCtrl.text.trim(),
+      );
       if (success) {
         setState(() => _isLogin = true);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            AppComponents.successSnack('Account created. Please sign in.'));
+            AppComponents.successSnack('Account created. Please sign in with your username.'));
         }
       }
     }
@@ -65,14 +70,15 @@ class _LoginScreenState extends State<LoginScreen> {
         context.go('/admin');
       }
     } else if (!success) {
-      setState(() => _error = 'Action failed. Please verify credentials.');
+      setState(() => _error = 'Invalid credentials. Please verify username and password.');
     }
   }
 
   @override
   void dispose() {
-    _emailCtrl.dispose(); _passwordCtrl.dispose();
+    _usernameCtrl.dispose(); _passwordCtrl.dispose();
     _mobileCtrl.dispose(); _nameCtrl.dispose();
+    _emailCtrl.dispose();
     super.dispose();
   }
 
@@ -117,18 +123,12 @@ class _LoginScreenState extends State<LoginScreen> {
                         const SizedBox(height: AppSpacing.xs),
                         Text(
                           _isLogin
-                              ? 'Access your valuation and engineering workspace.'
+                              ? 'Enter your username and password to sign in.'
                               : 'Register for valuation services.',
                           style: AppTypography.bodyMd(color: AppColors.textMuted),
                         ).animate(delay: 100.ms).fadeIn(duration: 400.ms),
 
                         const SizedBox(height: AppSpacing.xxl),
-
-                        // Role context tabs (visual only — actual role assigned by backend)
-                        if (_isLogin) ...[
-                          _RoleHintTabs(),
-                          const SizedBox(height: AppSpacing.xxl),
-                        ],
 
                         // Error message
                         if (_error != null) ...[
@@ -160,15 +160,22 @@ class _LoginScreenState extends State<LoginScreen> {
 
                         // Form fields
                         _formField(
-                          controller: _emailCtrl,
-                          label: 'Email Address',
-                          icon: Icons.mail_outline_rounded,
-                          keyboardType: TextInputType.emailAddress,
+                          controller: _usernameCtrl,
+                          label: 'Username',
+                          icon: Icons.person_outline_rounded,
+                          keyboardType: TextInputType.text,
                         ),
                         const SizedBox(height: AppSpacing.md),
                         _passwordField(),
 
                         if (!_isLogin) ...[
+                          const SizedBox(height: AppSpacing.md),
+                          _formField(
+                            controller: _nameCtrl,
+                            label: 'Full Name',
+                            icon: Icons.badge_outlined,
+                            keyboardType: TextInputType.name,
+                          ),
                           const SizedBox(height: AppSpacing.md),
                           _formField(
                             controller: _mobileCtrl,
@@ -178,10 +185,10 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                           const SizedBox(height: AppSpacing.md),
                           _formField(
-                            controller: _nameCtrl,
-                            label: 'Full Name',
-                            icon: Icons.person_outline_rounded,
-                            keyboardType: TextInputType.name,
+                            controller: _emailCtrl,
+                            label: 'Contact Email (Optional)',
+                            icon: Icons.mail_outline_rounded,
+                            keyboardType: TextInputType.emailAddress,
                           ),
                         ],
                         const SizedBox(height: AppSpacing.xxl),

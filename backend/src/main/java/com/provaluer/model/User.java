@@ -11,6 +11,9 @@ public class User {
     private Long id;
 
     @Column(unique = true, nullable = false)
+    private String username;
+
+    @Column(unique = true)
     private String email;
 
     @Column(nullable = false)
@@ -46,7 +49,8 @@ public class User {
 
     public User() {}
 
-    public User(String email, String password, UserRole role, String mobileNumber, String acceptedTcVersion) {
+    public User(String username, String email, String password, UserRole role, String mobileNumber, String acceptedTcVersion) {
+        this.username = username;
         this.email = email;
         this.password = password;
         this.role = role;
@@ -54,8 +58,15 @@ public class User {
         this.acceptedTcVersion = acceptedTcVersion;
     }
 
+    public User(String email, String password, UserRole role, String mobileNumber, String acceptedTcVersion) {
+        this(email != null && email.contains("@") ? email.substring(0, email.indexOf('@')) : email,
+             email, password, role, mobileNumber, acceptedTcVersion);
+    }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
+    public String getUsername() { return username; }
+    public void setUsername(String username) { this.username = username; }
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
     public String getPassword() { return password; }

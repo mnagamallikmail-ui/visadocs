@@ -8,6 +8,7 @@ class AuthProvider extends ChangeNotifier {
   bool _tcRequired = false;
   String _activeTcVersion = 'v1.0';
   String? _token;
+  String? _username;
   String? _email;
   String? _role;
   String? _fullName;
@@ -18,6 +19,7 @@ class AuthProvider extends ChangeNotifier {
   bool get tcRequired => _tcRequired;
   String get activeTcVersion => _activeTcVersion;
   String? get token => _token;
+  String? get username => _username;
   String? get email => _email;
   String? get role => _role;
   String? get fullName => _fullName;
@@ -41,16 +43,18 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> login(String email, String password) async {
+  Future<bool> login(String username, String password) async {
     try {
       final response = await _apiService.dio.post('/api/v1/auth/login', data: {
-        'email': email,
+        'username': username.trim(),
+        'email': username.trim(),
         'password': password,
       });
 
       if (response.statusCode == 200) {
         final data = response.data;
         _token = data['token'];
+        _username = data['username'] ?? username.trim();
         _email = data['email'];
         _role = data['role'];
         _fullName = data['fullName'];
@@ -103,6 +107,7 @@ class AuthProvider extends ChangeNotifier {
 
   void logout() {
     _token = null;
+    _username = null;
     _email = null;
     _role = null;
     _fullName = null;

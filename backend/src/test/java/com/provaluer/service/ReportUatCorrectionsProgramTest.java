@@ -137,27 +137,30 @@ public class ReportUatCorrectionsProgramTest {
         System.out.println("PHASE 1 (Table Overlap & Inline layout): PASS -> 4 Inline tables with zero floating overlap");
 
         // --- PHASE 2 (Land Table: Survey No in Description, Indian Numbering, Merged Total) ---
+        assertTrue(docXml.contains("Value Of Land"), "Land table must have Title Row 'Value Of Land'");
         assertTrue(docXml.contains("Residential Plot (Sy.No.42/A)"), "Survey number must be appended inside description");
         assertTrue(docXml.contains("Commercial Plot (Sy.No.42/B)"), "Survey number must be appended inside description");
         assertFalse(docXml.contains("<w:t>Survey No</w:t>"), "Survey Number must not be a separate column header in Land Table");
-        assertTrue(docXml.contains("TOTAL LAND VALUE") && docXml.contains("3,75,00,000"), "Land table must have merged total row with Indian formatting");
+        assertTrue(docXml.contains("Total Land Value") && docXml.contains("3,75,00,000"), "Land table must have merged total row with Indian formatting");
         System.out.println("PHASE 2 (Land Table Structure): PASS -> Survey No in Description & Merged Total with Indian commas");
 
         // --- PHASE 3 (Building Table: No Floor prefix, Description + Building Type, Merged Total) ---
+        assertTrue(docXml.contains("Value Of Buildings"), "Building table must have Title Row 'Value Of Buildings'");
         assertTrue(docXml.contains("RCC Commercial Building"), "Building table must contain building description");
         assertTrue(docXml.contains("Steel Industrial Shed"), "Building table must contain steel shed description");
         assertFalse(docXml.contains("<w:t>Ground Floor</w:t>"), "Floor labels must not be used as building descriptions");
-        assertTrue(docXml.contains("TOTAL BUILDING VALUE") && docXml.contains("1,85,00,000"), "Building table must have merged total row with Indian formatting");
+        assertTrue(docXml.contains("Total Building Value") && docXml.contains("1,85,00,000"), "Building table must have merged total row with Indian formatting");
         System.out.println("PHASE 3 (Building Table Structure): PASS -> Clean descriptions & Merged Total with Indian commas");
 
         // --- PHASE 4 (Property Value Table: 2-Column Table Structure) ---
-        assertTrue(docXml.contains("PROPERTY VALUE COMPONENT") && docXml.contains("AMOUNT (₹)"), "Property Value Table must render 2-column header");
-        assertTrue(docXml.contains("Value of Land") && docXml.contains("Value of Building") && docXml.contains("Total") && docXml.contains("Say"),
-                "Property value table must contain Value of Land, Value of Building, Total, Say");
+        assertTrue(docXml.contains("Value Of The Property"), "Property value table must have Title Row 'Value Of The Property'");
+        assertTrue(docXml.contains("Property Value Component") && docXml.contains("Amount (₹)"), "Property Value Table must render 2-column header");
+        assertTrue(docXml.contains("Value Of Land") && docXml.contains("Value Of Building") && docXml.contains("Total Property Value"),
+                "Property value table must contain Value Of Land, Value Of Building, Total Property Value");
         System.out.println("PHASE 4 (Property Value Table): PASS -> Structured 2-column table rendered");
 
-        // --- PHASE 5 (Valuation Summary Table: 2 Columns, Strictly 5 Rows, No Percentages) ---
-        assertTrue(docXml.contains("VALUATION PARAMETER") && docXml.contains("ASSESSED VALUE"), "Summary table must have 2-column header");
+        // --- PHASE 5 (Valuation Summary Table: 4 Columns, Strictly 5 Rows, No Percentages) ---
+        assertTrue(docXml.contains("Valuation Parameter") && docXml.contains("Land (₹)"), "Summary table must have 4-column header in Title Case");
         assertTrue(docXml.contains("Fair Value") && docXml.contains("5,60,00,000"), "Summary must display Fair Value");
         assertTrue(docXml.contains("Realizable Value") && docXml.contains("4,76,00,000"), "Summary must display Realizable Value");
         assertTrue(docXml.contains("Distress Sale Value") && docXml.contains("4,20,00,000"), "Summary must display Distress Sale Value");
@@ -165,7 +168,7 @@ public class ReportUatCorrectionsProgramTest {
         assertTrue(docXml.contains("Insurable Value") && docXml.contains("2,00,00,000"), "Summary must display Insurable Value");
         assertFalse(docXml.contains("Realizable Percentage"), "Summary table must not contain Realizable Percentage row");
         assertFalse(docXml.contains("Distress Sale Percentage"), "Summary table must not contain Distress Sale Percentage row");
-        System.out.println("PHASE 5 (Valuation Summary Table Redesign): PASS -> Exactly 5 core valuation parameters in 2 columns");
+        System.out.println("PHASE 5 (Valuation Summary Table Redesign): PASS -> Exactly 5 core valuation parameters in 4 columns");
 
         // --- PHASE 7 (Indian Numbering Standard) ---
         assertTrue(docXml.contains("3,75,00,000") && docXml.contains("1,85,00,000") && docXml.contains("5,60,00,000"),

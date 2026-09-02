@@ -60,7 +60,7 @@ public class FeatureFlagService {
                 if (hasAdminAuthority(user)) {
                     return true;
                 }
-                return isUserInPilotList(user.getUsername());
+                return isUserInPilotList(user.getUsername()) || isUserInPilotList(user.getEmail());
 
             case MODE_DISABLED:
             default:

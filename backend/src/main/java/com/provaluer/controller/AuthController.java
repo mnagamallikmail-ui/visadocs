@@ -33,8 +33,12 @@ public class AuthController {
 
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
+        String loginIdentifier = loginRequest.getUsername() != null && !loginRequest.getUsername().isBlank()
+                ? loginRequest.getUsername().trim()
+                : (loginRequest.getEmail() != null ? loginRequest.getEmail().trim() : "");
+
         Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getEmail(), loginRequest.getPassword()));
+                new UsernamePasswordAuthenticationToken(loginIdentifier, loginRequest.getPassword()));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = jwtUtils.generateJwtToken(authentication);
@@ -44,7 +48,8 @@ public class AuthController {
 
         return ResponseEntity.ok(new JwtResponse(jwt, 
                                                  userDetails.getId(), 
-                                                 userDetails.getUsername(), 
+                                                 user.getUsername(),
+                                                 user.getEmail(), 
                                                  user.getRole().name(),
                                                  user.getFullName(),
                                                  user.getMobileNumber(),
@@ -53,8 +58,25 @@ public class AuthController {
 
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody RegisterRequest signUpRequest) {
-        if (userRepository.findByEmailIgnoreCase(signUpRequest.getEmail()).isPresent()) {
-            return ResponseEntity.badRequest().body("Error: Email is already in use!");
+        String rawUsername = signUpRequest.getUsername();
+        if (rawUsername == null || rawUsername.trim().isEmpty()) {
+            // If username not explicitly provided, generate from email if present
+            if (signUpRequest.getEmail() != null && signUpRequest.getEmail().contains("@")) {
+                rawUsername = signUpRequest.getEmail().split("@")[0].trim().toLowerCase();
+            } else {
+                return ResponseEntity.badRequest().body("Error: Username is required!");
+            }
+        }
+        String username = rawUsername.trim().toLowerCase();
+
+        if (userRepository.existsByUsernameIgnoreCase(username)) {
+            return ResponseEntity.badRequest().body("Error: Username is already in use!");
+        }
+
+        if (signUpRequest.getEmail() != null && !signUpRequest.getEmail().trim().isEmpty()) {
+            if (userRepository.findByEmailIgnoreCase(signUpRequest.getEmail().trim()).isPresent()) {
+                return ResponseEntity.badRequest().body("Error: Email is already in use!");
+            }
         }
 
         // Create new user's account
@@ -68,7 +90,8 @@ public class AuthController {
         }
 
         User user = new User(
-            signUpRequest.getEmail(),
+            username,
+            signUpRequest.getEmail() != null ? signUpRequest.getEmail().trim() : null,
             encoder.encode(signUpRequest.getPassword()),
             userRole,
             signUpRequest.getMobileNumber(),
@@ -98,8 +121,12 @@ public class AuthController {
 
     // DTO Classes
     public static class LoginRequest {
+        private String username;
         private String email;
         private String password;
+
+        public String getUsername() { return username; }
+        public void setUsername(String username) { this.username = username; }
         public String getEmail() { return email; }
         public void setEmail(String email) { this.email = email; }
         public String getPassword() { return password; }
@@ -107,12 +134,16 @@ public class AuthController {
     }
 
     public static class RegisterRequest {
+        private String username;
         private String email;
         private String password;
         private String role;
         private String mobileNumber;
         private String fullName;
         private String acceptedTcVersion;
+
+        public String getUsername() { return username; }
+        public void setUsername(String username) { this.username = username; }
         public String getEmail() { return email; }
         public void setEmail(String email) { this.email = email; }
         public String getPassword() { return password; }
@@ -136,15 +167,19 @@ public class AuthController {
     public static class JwtResponse {
         private String token;
         private Long id;
+        private String username;
         private String email;
         private String role;
         private String fullName;
         private String mobileNumber;
         private String acceptedTcVersion;
 
-        public JwtResponse(String accessToken, Long id, String email, String role, String fullName, String mobileNumber, String acceptedTcVersion) {
+        public JwtResponse() {}
+
+        public JwtResponse(String accessToken, Long id, String username, String email, String role, String fullName, String mobileNumber, String acceptedTcVersion) {
             this.token = accessToken;
             this.id = id;
+            this.username = username;
             this.email = email;
             this.role = role;
             this.fullName = fullName;
@@ -152,8 +187,14 @@ public class AuthController {
             this.acceptedTcVersion = acceptedTcVersion;
         }
 
+        public JwtResponse(String accessToken, Long id, String email, String role, String fullName, String mobileNumber, String acceptedTcVersion) {
+            this(accessToken, id, email != null && email.contains("@") ? email.substring(0, email.indexOf('@')) : email,
+                 email, role, fullName, mobileNumber, acceptedTcVersion);
+        }
+
         public String getToken() { return token; }
         public Long getId() { return id; }
+        public String getUsername() { return username; }
         public String getEmail() { return email; }
         public String getRole() { return role; }
         public String getFullName() { return fullName; }

@@ -24,7 +24,7 @@ import java.util.*;
 
 @RestController
 @RequestMapping("/api/v1/admin")
-@PreAuthorize("hasRole('SUPER_ADMIN')")
+@PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
 public class SuperAdminController {
 
     private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SuperAdminController.class);
@@ -105,15 +105,30 @@ public class SuperAdminController {
     @PostMapping("/users")
     @Transactional
     public ResponseEntity<?> createUser(@RequestBody CreateUserRequest req) {
-        if (userRepository.findByEmailIgnoreCase(req.getEmail()).isPresent()) {
-            return ResponseEntity.badRequest().body("Email already registered.");
+        String rawUsername = req.getUsername();
+        if (rawUsername == null || rawUsername.trim().isEmpty()) {
+            if (req.getEmail() != null && req.getEmail().contains("@")) {
+                rawUsername = req.getEmail().split("@")[0];
+            } else {
+                return ResponseEntity.badRequest().body("Username is required.");
+            }
+        }
+        String username = rawUsername.trim().toLowerCase();
+        if (userRepository.existsByUsernameIgnoreCase(username)) {
+            return ResponseEntity.badRequest().body("Username already registered: " + username);
+        }
+        if (req.getEmail() != null && !req.getEmail().trim().isEmpty()) {
+            if (userRepository.findByEmailIgnoreCase(req.getEmail().trim()).isPresent()) {
+                return ResponseEntity.badRequest().body("Email already registered: " + req.getEmail());
+            }
         }
         UserRole role = UserRole.valueOf(req.getRole().toUpperCase());
         User user = new User();
-        user.setEmail(req.getEmail());
+        user.setUsername(username);
+        user.setEmail(req.getEmail() != null && !req.getEmail().trim().isEmpty() ? req.getEmail().trim() : null);
         user.setFullName(req.getFullName());
         user.setMobileNumber(req.getMobileNumber());
-        user.setPassword(passwordEncoder.encode(req.getPassword() != null ? req.getPassword() : "password"));
+        user.setPassword(passwordEncoder.encode(req.getPassword() != null && !req.getPassword().isBlank() ? req.getPassword() : "password"));
         user.setRole(role);
         user.setAcceptedTcVersion("v1.0");
         user.setCreatedAt(LocalDateTime.now());
@@ -127,8 +142,8 @@ public class SuperAdminController {
         }
 
         auditLogService.log(actorId(), actorEmail(), "SUPER_ADMIN", "USER_CREATE", "USER",
-                String.valueOf(saved.getId()), null, req.getEmail(),
-                "Created user " + req.getEmail() + " with role " + role);
+                String.valueOf(saved.getId()), null, saved.getUsername(),
+                "Created user " + saved.getUsername() + " with role " + role);
         return ResponseEntity.ok(saved);
     }
 
@@ -136,14 +151,26 @@ public class SuperAdminController {
     @Transactional
     public ResponseEntity<?> updateUser(@PathVariable Long id, @RequestBody UpdateUserRequest req) {
         return userRepository.findById(id).map(user -> {
-            String old = user.getEmail() + "|" + user.getRole() + "|" + user.getFullName();
-            if (req.getEmail() != null) user.setEmail(req.getEmail());
+            String old = user.getUsername() + "|" + user.getRole() + "|" + user.getFullName();
+            if (req.getUsername() != null && !req.getUsername().trim().isEmpty()) {
+                String newUsername = req.getUsername().trim().toLowerCase();
+                if (!newUsername.equalsIgnoreCase(user.getUsername())) {
+                    if ("admin".equalsIgnoreCase(user.getUsername())) {
+                        return ResponseEntity.badRequest().body("Master 'admin' username cannot be changed.");
+                    }
+                    if (userRepository.existsByUsernameIgnoreCase(newUsername)) {
+                        return ResponseEntity.badRequest().body("Username already registered: " + newUsername);
+                    }
+                    user.setUsername(newUsername);
+                }
+            }
+            if (req.getEmail() != null) user.setEmail(req.getEmail().trim().isEmpty() ? null : req.getEmail().trim());
             if (req.getFullName() != null) user.setFullName(req.getFullName());
             if (req.getMobileNumber() != null) user.setMobileNumber(req.getMobileNumber());
             user.setUpdatedAt(LocalDateTime.now());
             User saved = userRepository.save(user);
             auditLogService.log(actorId(), actorEmail(), "SUPER_ADMIN", "USER_UPDATE", "USER",
-                    String.valueOf(id), old, req.getEmail() + "|" + user.getRole(), "Updated user profile");
+                    String.valueOf(id), old, saved.getUsername() + "|" + user.getRole(), "Updated user profile");
             return ResponseEntity.ok(saved);
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -152,6 +179,9 @@ public class SuperAdminController {
     @Transactional
     public ResponseEntity<?> lockUser(@PathVariable Long id) {
         return userRepository.findById(id).map(user -> {
+            if ("admin".equalsIgnoreCase(user.getUsername())) {
+                return ResponseEntity.badRequest().body("The master 'admin' account cannot be locked or deactivated.");
+            }
             user.setLocked(true);
             user.setUpdatedAt(LocalDateTime.now());
             userRepository.save(user);
@@ -179,12 +209,15 @@ public class SuperAdminController {
     public ResponseEntity<?> softDeleteUser(@PathVariable Long id) {
         if (id.equals(actorId())) return ResponseEntity.badRequest().body("Cannot delete your own account.");
         return userRepository.findById(id).map(user -> {
+            if ("admin".equalsIgnoreCase(user.getUsername())) {
+                return ResponseEntity.badRequest().body("The master 'admin' account cannot be deleted.");
+            }
             user.setDeleted(true);
             user.setDeletedAt(LocalDateTime.now());
             user.setUpdatedAt(LocalDateTime.now());
             userRepository.save(user);
             auditLogService.log(actorId(), actorEmail(), "SUPER_ADMIN", "USER_DELETE", "USER",
-                    String.valueOf(id), user.getEmail(), "deleted", "Soft-deleted user (7-day restore window)");
+                    String.valueOf(id), user.getUsername(), "deleted", "Soft-deleted user (7-day restore window)");
             return ResponseEntity.ok("User soft-deleted. Restore available for 7 days.");
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -194,7 +227,10 @@ public class SuperAdminController {
     public ResponseEntity<?> hardDeleteUser(@PathVariable Long id) {
         if (id.equals(actorId())) return ResponseEntity.badRequest().body("Cannot hard-delete your own account.");
         return userRepository.findById(id).map(user -> {
-            String userEmail = user.getEmail();
+            if ("admin".equalsIgnoreCase(user.getUsername())) {
+                return ResponseEntity.badRequest().body("The master 'admin' account cannot be permanently deleted.");
+            }
+            String username = user.getUsername();
 
             // 1. Cascade: remove order inputs for all orders belonging to this user
             List<Order> userOrders = orderRepository.findAllByClientId(id);
@@ -213,7 +249,7 @@ public class SuperAdminController {
 
             // 5. Write final audit event BEFORE deleting user (using current admin as actor)
             auditLogService.log(actorId(), actorEmail(), "SUPER_ADMIN", "USER_HARD_DELETE", "USER",
-                    String.valueOf(id), userEmail, "PURGED",
+                    String.valueOf(id), username, "PURGED",
                     "PERMANENT hard-delete executed by SUPER_ADMIN — all cascaded records purged");
 
             // 6. Permanently remove the user
@@ -242,6 +278,9 @@ public class SuperAdminController {
     @Transactional
     public ResponseEntity<?> changeUserRole(@PathVariable Long id, @RequestBody RoleChangeRequest req) {
         return userRepository.findById(id).map(user -> {
+            if ("admin".equalsIgnoreCase(user.getUsername())) {
+                return ResponseEntity.badRequest().body("Master 'admin' account role cannot be changed.");
+            }
             String oldRole = user.getRole().name();
             UserRole newRole = UserRole.valueOf(req.getRole().toUpperCase());
             user.setRole(newRole);
@@ -250,6 +289,22 @@ public class SuperAdminController {
             auditLogService.log(actorId(), actorEmail(), "SUPER_ADMIN", "ROLE_CHANGE", "USER",
                     String.valueOf(id), oldRole, newRole.name(), "Role changed by SUPER_ADMIN");
             return ResponseEntity.ok("Role updated to " + newRole.name());
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/users/{id}/reset-password")
+    @Transactional
+    public ResponseEntity<?> resetUserPassword(@PathVariable Long id, @RequestBody ResetPasswordRequest req) {
+        if (req.getNewPassword() == null || req.getNewPassword().trim().length() < 4) {
+            return ResponseEntity.badRequest().body("Password must be at least 4 characters.");
+        }
+        return userRepository.findById(id).map(user -> {
+            user.setPassword(passwordEncoder.encode(req.getNewPassword().trim()));
+            user.setUpdatedAt(LocalDateTime.now());
+            userRepository.save(user);
+            auditLogService.log(actorId(), actorEmail(), "SUPER_ADMIN", "PASSWORD_RESET", "USER",
+                    String.valueOf(id), null, null, "Password reset by SUPER_ADMIN for user: " + user.getUsername());
+            return ResponseEntity.ok("Password reset successfully for user: " + user.getUsername());
         }).orElse(ResponseEntity.notFound().build());
     }
 
@@ -702,7 +757,9 @@ public class SuperAdminController {
     }
 
     public static class CreateUserRequest {
-        private String email, fullName, mobileNumber, password, role;
+        private String username, email, fullName, mobileNumber, password, role;
+        public String getUsername() { return username; }
+        public void setUsername(String username) { this.username = username; }
         public String getEmail() { return email; }
         public void setEmail(String email) { this.email = email; }
         public String getFullName() { return fullName; }
@@ -716,13 +773,21 @@ public class SuperAdminController {
     }
 
     public static class UpdateUserRequest {
-        private String email, fullName, mobileNumber;
+        private String username, email, fullName, mobileNumber;
+        public String getUsername() { return username; }
+        public void setUsername(String username) { this.username = username; }
         public String getEmail() { return email; }
         public void setEmail(String email) { this.email = email; }
         public String getFullName() { return fullName; }
         public void setFullName(String fullName) { this.fullName = fullName; }
         public String getMobileNumber() { return mobileNumber; }
         public void setMobileNumber(String mobileNumber) { this.mobileNumber = mobileNumber; }
+    }
+
+    public static class ResetPasswordRequest {
+        private String newPassword;
+        public String getNewPassword() { return newPassword; }
+        public void setNewPassword(String newPassword) { this.newPassword = newPassword; }
     }
 
     public static class RoleChangeRequest {

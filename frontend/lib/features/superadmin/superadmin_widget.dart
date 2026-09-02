@@ -263,6 +263,379 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
     );
   }
 
+  void _showCreateUserDialog() {
+    final usernameCtrl = TextEditingController();
+    final nameCtrl = TextEditingController();
+    final passwordCtrl = TextEditingController(text: 'password');
+    final mobileCtrl = TextEditingController();
+    final emailCtrl = TextEditingController();
+    String selectedRole = 'PA';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, ss) => AlertDialog(
+          backgroundColor: AppColors.canvas,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppColors.hairlineSoft),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.person_add_outlined, color: AppColors.primary, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Create New User', style: AppTypography.heading4().copyWith(color: AppColors.ink)),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: 440,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Username *', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: usernameCtrl,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. mallik, poojitha, ravi',
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text('Full Name *', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: InputDecoration(
+                      hintText: 'Full display name',
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text('Role *', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    value: selectedRole,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'PA', child: Text('PA — Property Analyst')),
+                      DropdownMenuItem(value: 'SPA', child: Text('SPA — Senior Property Analyst')),
+                      DropdownMenuItem(value: 'CLIENT', child: Text('CLIENT — Standard Client')),
+                      DropdownMenuItem(value: 'SUPER_ADMIN', child: Text('ADMIN — Administrator')),
+                    ],
+                    onChanged: (v) {
+                      if (v != null) ss(() => selectedRole = v);
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                  Text('Password *', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: passwordCtrl,
+                    decoration: InputDecoration(
+                      hintText: 'Initial password',
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text('Mobile Number', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: mobileCtrl,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. 9876543210',
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text('Contact Email (Optional)', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: emailCtrl,
+                    decoration: InputDecoration(
+                      hintText: 'e.g. name@domain.com',
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel', style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontWeight: FontWeight.w600)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                final uname = usernameCtrl.text.trim();
+                final fname = nameCtrl.text.trim();
+                final pass = passwordCtrl.text.trim();
+                if (uname.isEmpty || fname.isEmpty || pass.isEmpty) {
+                  _showSnack('Username, Full Name and Password are required.', AppColors.brandRedDark);
+                  return;
+                }
+                Navigator.pop(ctx);
+                try {
+                  await _api.dio.post('/api/v1/admin/users', data: {
+                    'username': uname,
+                    'fullName': fname,
+                    'password': pass,
+                    'role': selectedRole,
+                    'mobileNumber': mobileCtrl.text.trim().isNotEmpty ? mobileCtrl.text.trim() : null,
+                    'email': emailCtrl.text.trim().isNotEmpty ? emailCtrl.text.trim() : null,
+                  });
+                  _showSnack('User @$uname created successfully.', AppColors.success);
+                  _loadUsers();
+                } catch (e) {
+                  _showSnack('Failed to create user. Verify uniqueness.', AppColors.brandRedDark);
+                }
+              },
+              style: AppComponents.primaryButtonStyle(),
+              child: const Text('Create User'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showEditUserDialog(dynamic user) {
+    final nameCtrl = TextEditingController(text: user['fullName'] ?? '');
+    final mobileCtrl = TextEditingController(text: user['mobileNumber'] ?? '');
+    final emailCtrl = TextEditingController(text: user['email'] ?? '');
+    String selectedRole = user['role'] ?? 'CLIENT';
+    final isMasterAdmin = user['username'] == 'admin';
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, ss) => AlertDialog(
+          backgroundColor: AppColors.canvas,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: AppColors.hairlineSoft),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.edit_outlined, color: AppColors.primary, size: 18),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Edit User: @${user['username'] ?? user['email']}', style: AppTypography.heading4().copyWith(color: AppColors.ink)),
+              ),
+            ],
+          ),
+          content: SingleChildScrollView(
+            child: SizedBox(
+              width: 440,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Full Name', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: nameCtrl,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text('Role', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
+                  const SizedBox(height: 6),
+                  DropdownButtonFormField<String>(
+                    value: selectedRole,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    items: const [
+                      DropdownMenuItem(value: 'PA', child: Text('PA — Property Analyst')),
+                      DropdownMenuItem(value: 'SPA', child: Text('SPA — Senior Property Analyst')),
+                      DropdownMenuItem(value: 'CLIENT', child: Text('CLIENT — Standard Client')),
+                      DropdownMenuItem(value: 'SUPER_ADMIN', child: Text('ADMIN — Administrator')),
+                    ],
+                    onChanged: isMasterAdmin ? null : (v) {
+                      if (v != null) ss(() => selectedRole = v);
+                    },
+                  ),
+                  if (isMasterAdmin) ...[
+                    const SizedBox(height: 4),
+                    Text('Master admin role is permanent and cannot be changed.', style: AppTypography.caption(color: AppColors.muted)),
+                  ],
+                  const SizedBox(height: 12),
+                  Text('Mobile Number', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: mobileCtrl,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  Text('Contact Email (Optional)', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: emailCtrl,
+                    decoration: InputDecoration(
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Cancel', style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontWeight: FontWeight.w600)),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                try {
+                  await _api.dio.put('/api/v1/admin/users/${user['id']}', data: {
+                    'fullName': nameCtrl.text.trim(),
+                    'mobileNumber': mobileCtrl.text.trim(),
+                    'email': emailCtrl.text.trim(),
+                  });
+                  if (!isMasterAdmin && selectedRole != user['role']) {
+                    await _api.dio.put('/api/v1/admin/users/${user['id']}/role', data: {
+                      'role': selectedRole,
+                    });
+                  }
+                  _showSnack('User profile updated.', AppColors.success);
+                  _loadUsers();
+                } catch (e) {
+                  _showSnack('Failed to update user.', AppColors.brandRedDark);
+                }
+              },
+              style: AppComponents.primaryButtonStyle(),
+              child: const Text('Save Changes'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showResetPasswordDialog(dynamic user) {
+    final passCtrl = TextEditingController();
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.canvas,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.hairlineSoft),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.vpn_key_outlined, color: AppColors.primary, size: 18),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text('Reset Password: @${user['username'] ?? user['email']}', style: AppTypography.heading4().copyWith(color: AppColors.ink)),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Enter a new password for this user (minimum 4 characters):', style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: passCtrl,
+              autofocus: true,
+              obscureText: false,
+              decoration: InputDecoration(
+                hintText: 'New password...',
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Cancel', style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontWeight: FontWeight.w600)),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              final newPass = passCtrl.text.trim();
+              if (newPass.length < 4) {
+                _showSnack('Password must be at least 4 characters.', AppColors.brandRedDark);
+                return;
+              }
+              Navigator.pop(ctx);
+              try {
+                await _api.dio.post('/api/v1/admin/users/${user['id']}/reset-password', data: {
+                  'newPassword': newPass,
+                });
+                _showSnack('Password successfully reset for @${user['username'] ?? user['email']}.', AppColors.success);
+              } catch (e) {
+                _showSnack('Failed to reset password.', AppColors.brandRedDark);
+              }
+            },
+            style: AppComponents.primaryButtonStyle(),
+            child: const Text('Reset Password'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // ─── Sidebar ─────────────────────────────────────────────
   static const _menuItems = [
     {'key': 'overview', 'label': 'Overview', 'icon': Icons.dashboard_outlined},
@@ -550,6 +923,13 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                 ),
               ),
               ElevatedButton.icon(
+                onPressed: _showCreateUserDialog,
+                icon: const Icon(Icons.person_add_outlined, size: 16),
+                label: const Text('Add User'),
+                style: AppComponents.primaryButtonStyle(),
+              ),
+              const SizedBox(width: 8),
+              ElevatedButton.icon(
                 onPressed: _loadUsers,
                 icon: const Icon(Icons.refresh, size: 16),
                 label: const Text('Refresh'),
@@ -613,7 +993,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                     child: Row(
                       children: [
                         SizedBox(
-                          width: 60,
+                          width: 50,
                           child: Text(
                             'ID',
                             style: AppTypography.captionBold().copyWith(color: AppColors.slate),
@@ -622,19 +1002,26 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                         Expanded(
                           flex: 3,
                           child: Text(
-                            'Name / Email',
+                            'User (Username / Name)',
                             style: AppTypography.captionBold().copyWith(color: AppColors.slate),
                           ),
                         ),
                         Expanded(
                           flex: 2,
                           child: Text(
+                            'Contact (Mobile / Email)',
+                            style: AppTypography.captionBold().copyWith(color: AppColors.slate),
+                          ),
+                        ),
+                        SizedBox(
+                          width: 100,
+                          child: Text(
                             'Role',
                             style: AppTypography.captionBold().copyWith(color: AppColors.slate),
                           ),
                         ),
                         SizedBox(
-                          width: 90,
+                          width: 80,
                           child: Text(
                             'Status',
                             style: AppTypography.captionBold().copyWith(color: AppColors.slate),
@@ -642,7 +1029,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                           ),
                         ),
                         SizedBox(
-                          width: 240,
+                          width: 290,
                           child: Text(
                             'Actions',
                             style: AppTypography.captionBold().copyWith(color: AppColors.slate),
@@ -663,6 +1050,8 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
 
   Widget _userRow(dynamic u) {
     final isLocked = u['locked'] == true;
+    final isMasterAdmin = u['username'] == 'admin';
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: const BoxDecoration(
@@ -676,7 +1065,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
       child: Row(
         children: [
           SizedBox(
-            width: 60,
+            width: 50,
             child: Text(
               '#${u['id']}',
               style: AppTypography.bodySm().copyWith(color: AppColors.muted, fontSize: 13),
@@ -687,15 +1076,31 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  '${u['fullName'] ?? '—'}',
-                  style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 14, fontWeight: FontWeight.w600),
-                  overflow: TextOverflow.ellipsis,
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '@${u['username'] ?? u['email']}',
+                      style: AppTypography.bodySm().copyWith(color: AppColors.primary, fontSize: 13, fontWeight: FontWeight.bold),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    if (isMasterAdmin) ...[
+                      const SizedBox(width: 6),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.primary.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: const Text('MASTER', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                      ),
+                    ],
+                  ],
                 ),
                 const SizedBox(height: 2),
                 Text(
-                  '${u['email'] ?? '—'}',
-                  style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 12),
+                  '${u['fullName'] ?? '—'}',
+                  style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 13),
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
@@ -703,28 +1108,42 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
           ),
           Expanded(
             flex: 2,
-            child: Container(
-              margin: const EdgeInsets.only(right: 16),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                    child: Text(
-                      '${u['role']}'.replaceAll('_', ' '),
-                      style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 11, fontWeight: FontWeight.w600),
-                    ),
-                  ),
-                ],
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  '${u['mobileNumber'] ?? '—'}',
+                  style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 12),
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  '${u['email'] ?? 'No contact email'}',
+                  style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 11),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(
+            width: 100,
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '${u['role']}'.replaceAll('_', ' '),
+                  style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 11, fontWeight: FontWeight.w600),
+                ),
               ),
             ),
           ),
           SizedBox(
-            width: 90,
+            width: 80,
             child: Center(
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -744,33 +1163,67 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
             ),
           ),
           SizedBox(
-            width: 240,
+            width: 290,
             child: Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
                 _actionBtn(
-                  isLocked ? 'Unlock' : 'Lock',
-                  isLocked ? Icons.lock_open_outlined : Icons.lock_outline,
+                  'Edit',
+                  Icons.edit_outlined,
                   AppColors.primary,
-                  () => _toggleLock(u),
+                  () => _showEditUserDialog(u),
                   true,
                 ),
-                const SizedBox(width: 6),
+                const SizedBox(width: 4),
                 _actionBtn(
-                  'Archive',
-                  Icons.archive_outlined,
-                  AppColors.yellowDark,
-                  () => _showSoftDeleteDialog(u),
+                  'Reset',
+                  Icons.vpn_key_outlined,
+                  AppColors.slate,
+                  () => _showResetPasswordDialog(u),
                   true,
                 ),
-                const SizedBox(width: 6),
-                _actionBtn(
-                  'Erase',
-                  Icons.delete_forever_outlined,
-                  AppColors.brandRedDark,
-                  () => _showHardDeleteDialog(u),
-                  false,
-                ),
+                const SizedBox(width: 4),
+                if (isMasterAdmin)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.shield_outlined, size: 14, color: AppColors.slate),
+                        SizedBox(width: 4),
+                        Text('Protected', style: TextStyle(fontSize: 11, color: AppColors.slate, fontWeight: FontWeight.w500)),
+                      ],
+                    ),
+                  )
+                else ...[
+                  _actionBtn(
+                    isLocked ? 'Unlock' : 'Lock',
+                    isLocked ? Icons.lock_open_outlined : Icons.lock_outline,
+                    AppColors.primary,
+                    () => _toggleLock(u),
+                    true,
+                  ),
+                  const SizedBox(width: 4),
+                  _actionBtn(
+                    'Archive',
+                    Icons.archive_outlined,
+                    AppColors.yellowDark,
+                    () => _showSoftDeleteDialog(u),
+                    true,
+                  ),
+                  const SizedBox(width: 4),
+                  _actionBtn(
+                    'Erase',
+                    Icons.delete_forever_outlined,
+                    AppColors.brandRedDark,
+                    () => _showHardDeleteDialog(u),
+                    false,
+                  ),
+                ],
               ],
             ),
           ),

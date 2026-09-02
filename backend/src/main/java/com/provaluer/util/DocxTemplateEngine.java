@@ -753,10 +753,10 @@ public class DocxTemplateEngine {
         String sayLandVal = "₹ " + formatIndian(rawSayLand);
 
         List<Map.Entry<String, String>> totals = List.of(
-                Map.entry("TOTAL LAND VALUE", totalLandVal),
-                Map.entry("SAY LAND VALUE", sayLandVal)
+                Map.entry("Total Land Value", totalLandVal),
+                Map.entry("Say Land Value", sayLandVal)
         );
-        return createDocxTableWithMultipleMergedTotals(headers, colWidths, rows, totals, 18, alignments);
+        return createDocxTableWithMultipleMergedTotals("Value Of Land", headers, colWidths, rows, totals, 18, alignments);
     }
 
     private Tbl buildDynamicBuildingTable(Map<String, String> inputs) {
@@ -821,14 +821,14 @@ public class DocxTemplateEngine {
         String sayBldgVal = "₹ " + formatIndian(rawSayBldg);
 
         List<Map.Entry<String, String>> totals = List.of(
-                Map.entry("TOTAL BUILDING VALUE", totalBldgVal),
-                Map.entry("SAY BUILDING VALUE", sayBldgVal)
+                Map.entry("Total Building Value", totalBldgVal),
+                Map.entry("Say Building Value", sayBldgVal)
         );
-        return createDocxTableWithMultipleMergedTotals(headers, colWidths, rows, totals, 17, alignments);
+        return createDocxTableWithMultipleMergedTotals("Value Of Buildings", headers, colWidths, rows, totals, 17, alignments);
     }
 
     private Tbl buildDynamicValuationSummaryTable(Map<String, String> inputs) {
-        List<String> headers = List.of("VALUATION PARAMETER", "LAND (₹)", "BUILDING (₹)", "TOTAL (₹)");
+        List<String> headers = List.of("Valuation Parameter", "Land (₹)", "Building (₹)", "Total (₹)");
         List<Integer> colWidths = List.of(3600, 2000, 2000, 2000);
         List<JcEnumeration> alignments = List.of(JcEnumeration.LEFT, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.RIGHT);
         List<List<String>> rows = new ArrayList<>();
@@ -925,16 +925,17 @@ public class DocxTemplateEngine {
     }
 
     /**
-     * Phase 5: Property Value Table
-     * Structure:
-     * PROPERTY VALUE COMPONENT | AMOUNT (₹)
-     * Value of Land           | ₹ <Say Land Value>
-     * Value of Building       | ₹ <Say Building Value>
+     * Property Value Table
+     * Title: Value Of The Property
+     * Header: Property Value Component | Amount (₹)
+     * Data:
+     * Value Of Land           | ₹ <Say Land Value>
+     * Value Of Building       | ₹ <Say Building Value>
+     * [Blank Separator Row]
      * Total Property Value    | ₹ <Fair Value>
-     * (Say row removed completely)
      */
     private Tbl buildDynamicPropertyValueTable(Map<String, String> inputs) {
-        List<String> headers = List.of("PROPERTY VALUE COMPONENT", "AMOUNT (₹)");
+        List<String> headers = List.of("Property Value Component", "Amount (₹)");
         List<Integer> colWidths = List.of(5600, 4000);
         List<JcEnumeration> alignments = List.of(JcEnumeration.LEFT, JcEnumeration.RIGHT);
         List<List<String>> rows = new ArrayList<>();
@@ -982,51 +983,91 @@ public class DocxTemplateEngine {
         String bldgVal = formatIndian(rawBldgVal);
         String fairVal = formatIndian(rawFairVal);
 
-        rows.add(List.of("Value of Land", "₹ " + landVal));
-        rows.add(List.of("Value of Building", "₹ " + bldgVal));
-        rows.add(List.of("Total Property Value", "₹ " + fairVal));
+        rows.add(List.of("Value Of Land", "₹ " + landVal));
+        rows.add(List.of("Value Of Building", "₹ " + bldgVal));
 
-        return createDocxTable(headers, colWidths, rows, null, 20, alignments);
+        List<Map.Entry<String, String>> totals = List.of(
+                Map.entry("Total Property Value", "₹ " + fairVal)
+        );
+
+        return createDocxTableWithMultipleMergedTotals("Value Of The Property", headers, colWidths, rows, totals, 20, alignments);
     }
 
     private Tbl createDocxTableWithMergedTotal(List<String> headers, List<Integer> colWidths, List<List<String>> dataRows, String totalLabel, String totalValue, int fontSizeHalfPts, List<JcEnumeration> alignments) {
-        return createDocxTableWithMultipleMergedTotals(headers, colWidths, dataRows, List.of(Map.entry(totalLabel, totalValue)), fontSizeHalfPts, alignments);
+        return createDocxTableWithMultipleMergedTotals(null, headers, colWidths, dataRows, List.of(Map.entry(totalLabel, totalValue)), fontSizeHalfPts, alignments);
     }
 
     private Tbl createDocxTableWithMultipleMergedTotals(List<String> headers, List<Integer> colWidths, List<List<String>> dataRows, List<Map.Entry<String, String>> totals, int fontSizeHalfPts, List<JcEnumeration> alignments) {
+        return createDocxTableWithMultipleMergedTotals(null, headers, colWidths, dataRows, totals, fontSizeHalfPts, alignments);
+    }
+
+    private Tbl createDocxTableWithMultipleMergedTotals(String tableTitle, List<String> headers, List<Integer> colWidths, List<List<String>> dataRows, List<Map.Entry<String, String>> totals, int fontSizeHalfPts, List<JcEnumeration> alignments) {
         ObjectFactory factory = new ObjectFactory();
-        Tbl tbl = createDocxTable(headers, colWidths, dataRows, null, fontSizeHalfPts, alignments);
+        Tbl tbl = createDocxTable(tableTitle, headers, colWidths, dataRows, null, fontSizeHalfPts, alignments);
 
         int totalCols = (colWidths != null) ? colWidths.size() : (headers != null ? headers.size() : 6);
 
         // 1. Insert blank separator row before totals
+        // Rule: Merge all cells in the blank row except the final numeric value column
         Tr blankTr = factory.createTr();
         TrPr blankTrPr = factory.createTrPr();
         blankTrPr.getCnfStyleOrDivIdOrGridBefore().add(factory.createCTTrPrBaseCantSplit(factory.createBooleanDefaultTrue()));
         blankTr.setTrPr(blankTrPr);
 
-        for (int colIdx = 0; colIdx < totalCols; colIdx++) {
-            int w = (colWidths != null && colIdx < colWidths.size()) ? colWidths.get(colIdx) : 1200;
-            Tc tc = factory.createTc();
-            TcPr tcPr = factory.createTcPr();
-            TblWidth tcW = factory.createTblWidth();
-            tcW.setType("dxa");
-            tcW.setW(BigInteger.valueOf(w));
-            tcPr.setTcW(tcW);
-            tc.setTcPr(tcPr);
-
-            P p = factory.createP();
-            PPr ppr = factory.createPPr();
-            PPrBase.Spacing sp = factory.createPPrBaseSpacing();
-            sp.setBefore(BigInteger.valueOf(60));
-            sp.setAfter(BigInteger.valueOf(60));
-            ppr.setSpacing(sp);
-            p.setPPr(ppr);
-            tc.getContent().add(p);
-            blankTr.getContent().add(tc);
+        int mergedColCount = totalCols - 1;
+        int mergedWidth = 0;
+        for (int c = 0; c < mergedColCount; c++) {
+            mergedWidth += (colWidths != null && c < colWidths.size()) ? colWidths.get(c) : 1200;
         }
+
+        // Cell 1: Merged across (totalCols - 1)
+        Tc blankMergedTc = factory.createTc();
+        TcPr blankMergedTcPr = factory.createTcPr();
+        TblWidth blankMergedW = factory.createTblWidth();
+        blankMergedW.setType("dxa");
+        blankMergedW.setW(BigInteger.valueOf(mergedWidth));
+        blankMergedTcPr.setTcW(blankMergedW);
+
+        if (mergedColCount > 1) {
+            TcPrInner.GridSpan gridSpan = factory.createTcPrInnerGridSpan();
+            gridSpan.setVal(BigInteger.valueOf(mergedColCount));
+            blankMergedTcPr.setGridSpan(gridSpan);
+        }
+        blankMergedTc.setTcPr(blankMergedTcPr);
+
+        P blankP1 = factory.createP();
+        PPr blankPPr1 = factory.createPPr();
+        PPrBase.Spacing sp1 = factory.createPPrBaseSpacing();
+        sp1.setBefore(BigInteger.valueOf(60));
+        sp1.setAfter(BigInteger.valueOf(60));
+        blankPPr1.setSpacing(sp1);
+        blankP1.setPPr(blankPPr1);
+        blankMergedTc.getContent().add(blankP1);
+        blankTr.getContent().add(blankMergedTc);
+
+        // Cell 2: Final numeric column
+        int lastColWidth = (colWidths != null && !colWidths.isEmpty()) ? colWidths.get(colWidths.size() - 1) : 1600;
+        Tc blankLastTc = factory.createTc();
+        TcPr blankLastTcPr = factory.createTcPr();
+        TblWidth blankLastW = factory.createTblWidth();
+        blankLastW.setType("dxa");
+        blankLastW.setW(BigInteger.valueOf(lastColWidth));
+        blankLastTcPr.setTcW(blankLastW);
+        blankLastTc.setTcPr(blankLastTcPr);
+
+        P blankP2 = factory.createP();
+        PPr blankPPr2 = factory.createPPr();
+        PPrBase.Spacing sp2 = factory.createPPrBaseSpacing();
+        sp2.setBefore(BigInteger.valueOf(60));
+        sp2.setAfter(BigInteger.valueOf(60));
+        blankPPr2.setSpacing(sp2);
+        blankP2.setPPr(blankPPr2);
+        blankLastTc.getContent().add(blankP2);
+        blankTr.getContent().add(blankLastTc);
+
         tbl.getContent().add(blankTr);
 
+        // 2. Total rows
         if (totals != null) {
             for (Map.Entry<String, String> entry : totals) {
                 String totalLabel = entry.getKey();
@@ -1038,12 +1079,6 @@ public class DocxTemplateEngine {
                 totalTr.setTrPr(totalTrPr);
 
                 // Cell 1: Merged (totalCols - 1)
-                int mergedColCount = totalCols - 1;
-                int mergedWidth = 0;
-                for (int c = 0; c < mergedColCount; c++) {
-                    mergedWidth += (colWidths != null && c < colWidths.size()) ? colWidths.get(c) : 1200;
-                }
-
                 Tc tcLabel = factory.createTc();
                 TcPr tcPrLabel = factory.createTcPr();
                 TblWidth tcWLabel = factory.createTblWidth();
@@ -1051,16 +1086,13 @@ public class DocxTemplateEngine {
                 tcWLabel.setW(BigInteger.valueOf(mergedWidth));
                 tcPrLabel.setTcW(tcWLabel);
 
-                TcPrInner.GridSpan gridSpan = factory.createTcPrInnerGridSpan();
-                gridSpan.setVal(BigInteger.valueOf(mergedColCount));
-                tcPrLabel.setGridSpan(gridSpan);
+                if (mergedColCount > 1) {
+                    TcPrInner.GridSpan gridSpan = factory.createTcPrInnerGridSpan();
+                    gridSpan.setVal(BigInteger.valueOf(mergedColCount));
+                    tcPrLabel.setGridSpan(gridSpan);
+                }
 
-                CTShd shdTotal = factory.createCTShd();
-                shdTotal.setVal(STShd.CLEAR);
-                shdTotal.setColor("auto");
-                shdTotal.setFill("EBF2F7");
-                tcPrLabel.setShd(shdTotal);
-
+                // Phase 3: REMOVE TOTAL ROW COLOURING - No background colour!
                 CTVerticalJc vAlign = factory.createCTVerticalJc();
                 vAlign.setVal(STVerticalJc.CENTER);
                 tcPrLabel.setVAlign(vAlign);
@@ -1084,7 +1116,7 @@ public class DocxTemplateEngine {
                 szLabel.setVal(BigInteger.valueOf(fontSizeHalfPts));
                 rprLabel.setSz(szLabel);
                 Color colLabel = factory.createColor();
-                colLabel.setVal("0070C0");
+                colLabel.setVal("000000"); // Phase 3: No blue font, standard black!
                 rprLabel.setColor(colLabel);
                 rLabel.setRPr(rprLabel);
 
@@ -1096,14 +1128,13 @@ public class DocxTemplateEngine {
                 totalTr.getContent().add(tcLabel);
 
                 // Cell 2: Amount cell (last column)
-                int lastColWidth = (colWidths != null && colWidths.size() > 0) ? colWidths.get(colWidths.size() - 1) : 1600;
                 Tc tcVal = factory.createTc();
                 TcPr tcPrVal = factory.createTcPr();
                 TblWidth tcWVal = factory.createTblWidth();
                 tcWVal.setType("dxa");
                 tcWVal.setW(BigInteger.valueOf(lastColWidth));
                 tcPrVal.setTcW(tcWVal);
-                tcPrVal.setShd(shdTotal);
+                // Phase 3: No background colour!
                 tcPrVal.setVAlign(vAlign);
                 tcVal.setTcPr(tcPrVal);
 
@@ -1119,7 +1150,7 @@ public class DocxTemplateEngine {
                 rprVal.setB(factory.createBooleanDefaultTrue());
                 rprVal.setRFonts(fontsLabel);
                 rprVal.setSz(szLabel);
-                rprVal.setColor(colLabel);
+                rprVal.setColor(colLabel); // Phase 3: standard black!
                 rVal.setRPr(rprVal);
 
                 Text textVal = factory.createText();
@@ -1133,10 +1164,17 @@ public class DocxTemplateEngine {
             }
         }
 
+        // Apply Phase 4 pagination rules after all rows are assembled!
+        applyTablePaginationRules(tbl);
+
         return tbl;
     }
 
     private Tbl createDocxTable(List<String> headers, List<Integer> colWidths, List<List<String>> dataRows, List<String> footerRow, int fontSizeHalfPts, List<JcEnumeration> alignments) {
+        return createDocxTable(null, headers, colWidths, dataRows, footerRow, fontSizeHalfPts, alignments);
+    }
+
+    private Tbl createDocxTable(String tableTitle, List<String> headers, List<Integer> colWidths, List<List<String>> dataRows, List<String> footerRow, int fontSizeHalfPts, List<JcEnumeration> alignments) {
         ObjectFactory factory = new ObjectFactory();
         Tbl tbl = factory.createTbl();
 
@@ -1204,6 +1242,72 @@ public class DocxTemplateEngine {
                 tblGrid.getGridCol().add(col);
             }
             tbl.setTblGrid(tblGrid);
+        }
+
+        int totalCols = (colWidths != null) ? colWidths.size() : (headers != null ? headers.size() : 6);
+
+        // Phase 1: STANDARD TABLE TITLE ROW (Merge across table width, Center aligned, Bold, No background color)
+        if (tableTitle != null && !tableTitle.trim().isEmpty()) {
+            Tr titleTr = factory.createTr();
+            TrPr titleTrPr = factory.createTrPr();
+            titleTrPr.getCnfStyleOrDivIdOrGridBefore().add(factory.createCTTrPrBaseCantSplit(factory.createBooleanDefaultTrue()));
+            titleTr.setTrPr(titleTrPr);
+
+            Tc titleTc = factory.createTc();
+            TcPr titleTcPr = factory.createTcPr();
+            TblWidth titleTcW = factory.createTblWidth();
+            titleTcW.setType("dxa");
+            titleTcW.setW(BigInteger.valueOf(totalWidth));
+            titleTcPr.setTcW(titleTcW);
+
+            if (totalCols > 1) {
+                TcPrInner.GridSpan titleGridSpan = factory.createTcPrInnerGridSpan();
+                titleGridSpan.setVal(BigInteger.valueOf(totalCols));
+                titleTcPr.setGridSpan(titleGridSpan);
+            }
+
+            CTVerticalJc vAlign = factory.createCTVerticalJc();
+            vAlign.setVal(STVerticalJc.CENTER);
+            titleTcPr.setVAlign(vAlign);
+            titleTc.setTcPr(titleTcPr);
+
+            P titleP = factory.createP();
+            PPr titlePPr = factory.createPPr();
+            Jc titlePjc = factory.createJc();
+            titlePjc.setVal(JcEnumeration.CENTER);
+            titlePPr.setJc(titlePjc);
+
+            PPrBase.Spacing titleSp = factory.createPPrBaseSpacing();
+            titleSp.setBefore(BigInteger.valueOf(120));
+            titleSp.setAfter(BigInteger.valueOf(120));
+            titlePPr.setSpacing(titleSp);
+            titleP.setPPr(titlePPr);
+
+            R titleR = factory.createR();
+            RPr titleRpr = factory.createRPr();
+            titleRpr.setB(factory.createBooleanDefaultTrue());
+            RFonts titleFonts = factory.createRFonts();
+            titleFonts.setAscii("Book Antiqua");
+            titleFonts.setHAnsi("Book Antiqua");
+            titleRpr.setRFonts(titleFonts);
+
+            HpsMeasure titleSz = factory.createHpsMeasure();
+            titleSz.setVal(BigInteger.valueOf(fontSizeHalfPts));
+            titleRpr.setSz(titleSz);
+
+            Color titleColor = factory.createColor();
+            titleColor.setVal("000000"); // Standard black, no special highlight
+            titleRpr.setColor(titleColor);
+            titleR.setRPr(titleRpr);
+
+            Text titleText = factory.createText();
+            titleText.setValue(tableTitle);
+            titleR.getContent().add(titleText);
+            titleP.getContent().add(titleR);
+            titleTc.getContent().add(titleP);
+
+            titleTr.getContent().add(titleTc);
+            tbl.getContent().add(titleTr);
         }
 
         // 3. Header Row (3494BA Shading, White Bold Book Antiqua Text, NoWrap)
@@ -1303,14 +1407,8 @@ public class DocxTemplateEngine {
                     tcW.setW(BigInteger.valueOf(w));
                     tcPr.setTcW(tcW);
 
-                    // Row shading
-                    if (isTotalOrSayRow) {
-                        CTShd shd = factory.createCTShd();
-                        shd.setVal(STShd.CLEAR);
-                        shd.setColor("auto");
-                        shd.setFill("F0F5F8");
-                        tcPr.setShd(shd);
-                    } else if (rIdx % 2 == 1) {
+                    // Row shading: Phase 3 - NO special background for total/say rows
+                    if (!isTotalOrSayRow && rIdx % 2 == 1) {
                         CTShd shd = factory.createCTShd();
                         shd.setVal(STShd.CLEAR);
                         shd.setColor("auto");
@@ -1346,7 +1444,7 @@ public class DocxTemplateEngine {
                     rpr.setSz(sz);
 
                     Color color = factory.createColor();
-                    color.setVal(isTotalOrSayRow ? "0070C0" : "000000");
+                    color.setVal("000000"); // Phase 3: Standard black, no blue font
                     rpr.setColor(color);
                     r.setRPr(rpr);
 
@@ -1382,12 +1480,7 @@ public class DocxTemplateEngine {
                 tcW.setW(BigInteger.valueOf(w));
                 tcPr.setTcW(tcW);
 
-                CTShd shd = factory.createCTShd();
-                shd.setVal(STShd.CLEAR);
-                shd.setColor("auto");
-                shd.setFill("EBF2F7");
-                tcPr.setShd(shd);
-
+                // Phase 3: No special background shading on footer total row
                 CTVerticalJc vAlign = factory.createCTVerticalJc();
                 vAlign.setVal(STVerticalJc.CENTER);
                 tcPr.setVAlign(vAlign);
@@ -1413,7 +1506,7 @@ public class DocxTemplateEngine {
                 rpr.setSz(sz);
 
                 Color color = factory.createColor();
-                color.setVal("0070C0");
+                color.setVal("000000"); // Phase 3: Standard black
                 rpr.setColor(color);
                 r.setRPr(rpr);
 
@@ -1428,7 +1521,83 @@ public class DocxTemplateEngine {
             tbl.getContent().add(footerTr);
         }
 
+        applyTablePaginationRules(tbl);
+
         return tbl;
+    }
+
+    /**
+     * Phase 4: TABLE PAGINATION RULE
+     * Any table with fewer than 7 rows must not split across pages.
+     * Applies:
+     * - CantSplit (on every row)
+     * - Keep Together (keepLines on paragraphs)
+     * - Keep With Next (keepNext on all rows except the final row)
+     */
+    private void applyTablePaginationRules(Tbl tbl) {
+        if (tbl == null) return;
+        ObjectFactory factory = new ObjectFactory();
+        List<Tr> trList = new ArrayList<>();
+        for (Object obj : tbl.getContent()) {
+            Object unwrapped = unwrap(obj);
+            if (unwrapped instanceof Tr) {
+                trList.add((Tr) unwrapped);
+            }
+        }
+        int totalRowCount = trList.size();
+        boolean keepWholeTableTogether = totalRowCount < 7;
+
+        for (int rIdx = 0; rIdx < totalRowCount; rIdx++) {
+            Tr tr = trList.get(rIdx);
+            TrPr trPr = tr.getTrPr();
+            if (trPr == null) {
+                trPr = factory.createTrPr();
+                tr.setTrPr(trPr);
+            }
+
+            // Phase 4: CantSplit applied to prevent row from splitting across pages
+            boolean hasCantSplit = false;
+            for (Object jcObj : trPr.getCnfStyleOrDivIdOrGridBefore()) {
+                if (jcObj instanceof jakarta.xml.bind.JAXBElement) {
+                    jakarta.xml.bind.JAXBElement<?> elem = (jakarta.xml.bind.JAXBElement<?>) jcObj;
+                    if ("cantSplit".equalsIgnoreCase(elem.getName().getLocalPart())) {
+                        hasCantSplit = true;
+                        break;
+                    }
+                }
+            }
+            if (!hasCantSplit) {
+                trPr.getCnfStyleOrDivIdOrGridBefore().add(factory.createCTTrPrBaseCantSplit(factory.createBooleanDefaultTrue()));
+            }
+
+            boolean applyKeepNext = keepWholeTableTogether ? (rIdx < totalRowCount - 1) : (rIdx == 0);
+
+            for (Object cObj : tr.getContent()) {
+                Object unwrappedCell = unwrap(cObj);
+                if (unwrappedCell instanceof Tc) {
+                    Tc tc = (Tc) unwrappedCell;
+                    for (Object pObj : tc.getContent()) {
+                        Object unwrappedP = unwrap(pObj);
+                        if (unwrappedP instanceof P) {
+                            P p = (P) unwrappedP;
+                            PPr ppr = p.getPPr();
+                            if (ppr == null) {
+                                ppr = factory.createPPr();
+                                p.setPPr(ppr);
+                            }
+                            if (keepWholeTableTogether) {
+                                // Phase 4: Keep Together (keepLines)
+                                ppr.setKeepLines(factory.createBooleanDefaultTrue());
+                            }
+                            if (applyKeepNext) {
+                                // Phase 4: Keep With Next (keepNext)
+                                ppr.setKeepNext(factory.createBooleanDefaultTrue());
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private String extractImageKey(org.docx4j.dml.CTNonVisualDrawingProps docPr) {

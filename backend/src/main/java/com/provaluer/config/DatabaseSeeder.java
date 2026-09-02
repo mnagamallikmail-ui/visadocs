@@ -35,24 +35,24 @@ public class DatabaseSeeder {
         if (userRepository.count() == 0) {
             String encodedPassword = passwordEncoder.encode("password");
 
-            User superAdmin = new User("superadmin@provaluer.com", encodedPassword, UserRole.SUPER_ADMIN, "9000000000", "v1.0");
-            superAdmin.setFullName("System Super Administrator");
+            User superAdmin = new User("admin", "admin@provaluer.com", encodedPassword, UserRole.SUPER_ADMIN, "9000000000", "v1.0");
+            superAdmin.setFullName("Master System Administrator");
 
-            User pa = new User("pa@provaluer.com", encodedPassword, UserRole.PA, "9876543211", "v1.0");
-            pa.setFullName("Demo Property Analyst");
+            User pa = new User("poojitha", "poojitha@provaluer.com", encodedPassword, UserRole.PA, "9876543211", "v1.0");
+            pa.setFullName("Poojitha Property Analyst");
 
-            User spa = new User("spa@provaluer.com", encodedPassword, UserRole.SPA, "9876543212", "v1.0");
-            spa.setFullName("Demo Senior Property Analyst");
+            User spa = new User("divya", "divya@provaluer.com", encodedPassword, UserRole.SPA, "9876543212", "v1.0");
+            spa.setFullName("Divya Senior Property Analyst");
 
-            User client = new User("client@provaluer.com", encodedPassword, UserRole.CLIENT, "9876543213", "v1.0");
-            client.setFullName("Demo Client User");
+            User client = new User("naga", "naga@provaluer.com", encodedPassword, UserRole.CLIENT, "9876543213", "v1.0");
+            client.setFullName("Naga Client");
 
             userRepository.saveAll(Arrays.asList(superAdmin, pa, spa, client));
 
             // Seed performance ledger for PA and SPA
             // Reload from repo to get generated IDs
-            User savedPa = userRepository.findByEmailIgnoreCase("pa@provaluer.com").orElse(null);
-            User savedSpa = userRepository.findByEmailIgnoreCase("spa@provaluer.com").orElse(null);
+            User savedPa = userRepository.findByUsernameIgnoreCase("poojitha").orElse(null);
+            User savedSpa = userRepository.findByUsernameIgnoreCase("divya").orElse(null);
 
             if (savedPa != null) {
                 performanceLedgerRepository.save(new PerformanceLedger(savedPa.getId()));

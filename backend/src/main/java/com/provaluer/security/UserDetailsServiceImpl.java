@@ -14,11 +14,12 @@ public class UserDetailsServiceImpl implements UserDetailsService {
 
     @Override
     @Transactional
-    public UserDetails loadUserByUsername(String email) throws UsernameNotFoundException {
-        User user = userRepository.findByEmailIgnoreCase(email)
-                .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
+    public UserDetails loadUserByUsername(String usernameOrEmail) throws UsernameNotFoundException {
+        User user = userRepository.findByUsernameIgnoreCase(usernameOrEmail)
+                .or(() -> userRepository.findByEmailIgnoreCase(usernameOrEmail))
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + usernameOrEmail));
         if (user.isDeleted()) {
-            throw new UsernameNotFoundException("Account has been deactivated: " + email);
+            throw new UsernameNotFoundException("Account has been deactivated: " + usernameOrEmail);
         }
         return UserDetailsImpl.build(user);
     }
