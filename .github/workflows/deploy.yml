@@ -33,8 +33,9 @@ jobs:
             # This rebuilds only changed services and keeps database volumes intact
             docker compose up -d --build
 
-            # Remove dangling images to reclaim disk space
             docker image prune -f
+
+            docker builder prune -f --keep-storage 2GB
 
             # Reload host nginx to pick up any config changes
             nginx -t && systemctl reload nginx || true
