@@ -12,4 +12,5 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, Long> {
     Page<AuditLog> findAllByOrderByTimestampDesc(Pageable pageable);
     List<AuditLog> findTop50ByOrderByTimestampDesc();
     void deleteByActorId(Long actorId);
+    boolean existsByEntityTypeAndEntityIdAndActionTypeAndActorRole(String entityType, String entityId, String actionType, String actorRole);
 }

@@ -83,6 +83,12 @@ public class Order {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    @Transient
+    private Boolean adminCreated = false;
+
+    public Boolean getAdminCreated() { return adminCreated != null && adminCreated; }
+    public void setAdminCreated(Boolean adminCreated) { this.adminCreated = adminCreated; }
+
     public Order() {}
 
     public Long getId() { return id; }

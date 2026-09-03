@@ -18,6 +18,8 @@ import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/app_components.dart';
 import '../../theme/app_spacing.dart';
+import '../../providers/auth_provider.dart';
+import '../../utils/report_list_helper.dart';
 import '../document_workspace/document_workspace_screen.dart';
 
 class ValuationPortalWidget extends StatefulWidget {
@@ -70,6 +72,11 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
     "Electricity Bill"
   ];
 
+  // Directory Search and Sort State
+  final TextEditingController _portalSearchController = TextEditingController();
+  String _portalSearchQuery = '';
+  String _portalSortBy = 'date_desc';
+
   @override
   void initState() {
     super.initState();
@@ -88,6 +95,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
 
   @override
   void dispose() {
+    _portalSearchController.dispose();
     _customPropertyTypeController.dispose();
     _estimatedValueController.dispose();
     _disposeEntryControllers();
@@ -179,7 +187,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
 
     try {
       final api = ApiService();
-      await api.dio.delete('/api/v1/admin/orders/${order['id']}');
+      await api.dio.delete('/api/v1/orders/${order['id']}');
       setState(() {
         if (_selectedProject?['id'] == order['id']) {
           _selectedProject = null;
@@ -2545,6 +2553,9 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
   }
 
   Widget _buildDirectoryList({required String title, required List<dynamic> orders}) {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final displayOrders = ReportListHelper.filterAndSortReports(orders, _portalSearchQuery, _portalSortBy);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -2560,26 +2571,43 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
             ),
           ),
         ),
+        ReportSearchSortBar(
+          searchController: _portalSearchController,
+          searchQuery: _portalSearchQuery,
+          sortBy: _portalSortBy,
+          onSearchChanged: (val) => setState(() => _portalSearchQuery = val),
+          onSearchCleared: () => setState(() {
+            _portalSearchController.clear();
+            _portalSearchQuery = '';
+          }),
+          onSortChanged: (val) {
+            if (val != null) setState(() => _portalSortBy = val);
+          },
+        ),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 24.0),
           child: Divider(height: 8),
         ),
         Expanded(
-          child: orders.isEmpty
+          child: displayOrders.isEmpty
               ? Center(
                   child: Text(
-                    "No project records available.",
+                    _portalSearchQuery.isNotEmpty
+                        ? "No reports match '$_portalSearchQuery'."
+                        : "No project records available.",
                     style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 13),
                   ),
                 )
               : ListView.builder(
                   padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
-                  itemCount: orders.length,
+                  itemCount: displayOrders.length,
                   itemBuilder: (context, idx) {
-                    final order = orders[idx];
+                    final order = displayOrders[idx];
                     final isSelected = _selectedProject?['id'] == order['id'];
                     final reportNum = order['reportNumber'] ?? 'PV-${order['id']}';
                     final String statusStr = order['status'] ?? 'PENDING';
+                    final reportDateStr = ReportListHelper.formatReportDate(order['createdAt']);
+                    final canDelete = ReportListHelper.canDeleteReport(order, authProvider);
 
                     return Consumer<OrderProvider>(
                       builder: (context, provider, _) {
@@ -2636,7 +2664,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                                       ),
                                       const SizedBox(width: 16),
                                       Expanded(
-                                        flex: 5,
+                                        flex: 4,
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
@@ -2644,94 +2672,82 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                                               reportNum,
                                               style: GoogleFonts.montserrat(
                                                 color: DesignSystem.textPrimary,
-                                                fontSize: 12.5,
+                                                fontSize: 13,
                                                 fontWeight: FontWeight.bold,
                                               ),
                                             ),
-                                            const SizedBox(height: 2),
+                                            const SizedBox(height: 3),
                                             Text(
-                                              "Project #${order['id']}",
-                                              style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 10.5),
+                                              "Date: $reportDateStr",
+                                              style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 11),
                                             ),
-                                            if (order['clientName'] != null || order['bankName'] != null) ...[
-                                              const SizedBox(height: 4),
-                                              Text(
-                                                "Client: ${order['clientName'] ?? '—'}  |  Bank: ${order['bankName'] ?? '—'}",
-                                                style: GoogleFonts.montserrat(
-                                                  color: DesignSystem.primary,
-                                                  fontSize: 9.5,
-                                                  fontWeight: FontWeight.bold,
-                                                ),
-                                                overflow: TextOverflow.ellipsis,
-                                              ),
-                                            ],
                                           ],
                                         ),
                                       ),
+                                      const SizedBox(width: 12),
                                       Expanded(
-                                        flex: 3,
+                                        flex: 5,
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              order['propertyCategory'] ?? 'Valuation Request',
-                                              style: DesignSystem.body(color: DesignSystem.textPrimary, fontSize: 11, fontWeight: FontWeight.bold),
+                                              "Client: ${order['clientName'] ?? '—'}",
+                                              style: GoogleFonts.montserrat(
+                                                color: DesignSystem.textPrimary,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                              ),
                                               overflow: TextOverflow.ellipsis,
                                             ),
-                                            const SizedBox(height: 2),
+                                            const SizedBox(height: 3),
                                             Text(
-                                              order['purpose'] ?? 'General Valuation',
-                                              style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 10),
+                                              "Bank: ${order['bankName'] ?? '—'}",
+                                              style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 11),
                                               overflow: TextOverflow.ellipsis,
                                             ),
                                           ],
                                         ),
                                       ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        order['estimatedValue'] != null ? _formatCurrency(order['estimatedValue']) : "",
-                                        style: GoogleFonts.montserrat(color: DesignSystem.textPrimary, fontSize: 11.5, fontWeight: FontWeight.bold),
-                                      ),
                                       const SizedBox(width: 12),
-                                      if (widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN') ...[
-                                        InkWell(
-                                          onTap: () {
-                                            if (order['templateId'] != null) {
-                                              Navigator.push(
-                                                context,
-                                                MaterialPageRoute(
-                                                  builder: (context) => DocumentWorkspaceScreen(
-                                                    orderId: order['id'],
-                                                    reportNumber: reportNum,
-                                                    role: widget.role,
-                                                  ),
+                                      InkWell(
+                                        onTap: () {
+                                          if (order['templateId'] != null) {
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (context) => DocumentWorkspaceScreen(
+                                                  orderId: order['id'],
+                                                  reportNumber: reportNum,
+                                                  role: widget.role,
                                                 ),
-                                              ).then((_) => _refreshData());
-                                            } else {
-                                              _openPopulateReportFullScreen(order, provider);
-                                            }
-                                          },
-                                          borderRadius: BorderRadius.circular(4),
-                                          child: Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.tealLight,
-                                              borderRadius: BorderRadius.circular(4),
-                                              border: Border.all(color: AppColors.deepTeal.withOpacity(0.3)),
-                                            ),
-                                            child: Row(
-                                              mainAxisSize: MainAxisSize.min,
-                                              children: [
-                                                const Icon(Icons.open_in_new_rounded, size: 12, color: AppColors.deepTeal),
-                                                const SizedBox(width: 4),
-                                                Text(
-                                                  'Open',
-                                                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.deepTeal),
-                                                ),
-                                              ],
-                                            ),
+                                              ),
+                                            ).then((_) => _refreshData());
+                                          } else {
+                                            _openPopulateReportFullScreen(order, provider);
+                                          }
+                                        },
+                                        borderRadius: BorderRadius.circular(4),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                          decoration: BoxDecoration(
+                                            color: AppColors.tealLight,
+                                            borderRadius: BorderRadius.circular(4),
+                                            border: Border.all(color: AppColors.deepTeal.withOpacity(0.3)),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(Icons.open_in_new_rounded, size: 12, color: AppColors.deepTeal),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                'Open',
+                                                style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.deepTeal),
+                                              ),
+                                            ],
                                           ),
                                         ),
+                                      ),
+                                      if (canDelete) ...[
                                         const SizedBox(width: 6),
                                         InkWell(
                                           onTap: () => _deleteOrder(order),
@@ -2756,8 +2772,8 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                                             ),
                                           ),
                                         ),
-                                        const SizedBox(width: 10),
                                       ],
+                                      const SizedBox(width: 10),
                                       Icon(
                                         isSelected ? Icons.keyboard_arrow_down : Icons.chevron_right,
                                         size: 16,
@@ -2777,7 +2793,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                             ],
                           ),
                         );
-                      }
+                      },
                     );
                   },
                 ),

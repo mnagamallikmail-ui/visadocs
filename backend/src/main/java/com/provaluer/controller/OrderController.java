@@ -31,6 +31,9 @@ public class OrderController {
     private OrderRepository orderRepository;
 
     @Autowired
+    private AuditLogRepository auditLogRepository;
+
+    @Autowired
     private OrderInputRepository orderInputRepository;
 
     @Autowired
@@ -126,6 +129,54 @@ public class OrderController {
         return ResponseEntity.ok("Draft order deleted successfully");
     }
 
+    @DeleteMapping("/{id}")
+    @Transactional
+    public ResponseEntity<?> deleteOrder(@PathVariable Long id) {
+        UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Optional<Order> orderOpt = orderRepository.findById(id);
+        if (!orderOpt.isPresent()) {
+            return ResponseEntity.notFound().build();
+        }
+        Order order = orderOpt.get();
+
+        boolean isSuperAdmin = principal.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+
+        boolean isFinalized = "FINALIZED".equalsIgnoreCase(order.getValuationStatus())
+                || "LOCKED".equalsIgnoreCase(order.getValuationStatus())
+                || "SPA_CONFIRMED".equalsIgnoreCase(order.getStatus())
+                || "FINAL_DELIVERY".equalsIgnoreCase(order.getStatus());
+
+        if (isFinalized) {
+            if (!isSuperAdmin) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(Map.of("error", "Only Super Admin can delete finalized reports"));
+            }
+        } else {
+            boolean isAdminCreated = auditLogRepository.existsByEntityTypeAndEntityIdAndActionTypeAndActorRole(
+                    "ORDER", String.valueOf(order.getId()), "ORDER_CREATE", "SUPER_ADMIN");
+
+            if (isAdminCreated) {
+                if (!isSuperAdmin) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(Map.of("error", "This report was initiated by Administration and can only be deleted by Super Admin"));
+                }
+            } else {
+                boolean isCreator = order.getClientId() != null && order.getClientId().equals(principal.getId());
+                if (!isCreator && !isSuperAdmin) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(Map.of("error", "You can only delete reports created by yourself"));
+                }
+            }
+        }
+
+        order.setDeleted(true);
+        order.setDeletedAt(LocalDateTime.now());
+        order.setDeletedBy(principal.getId());
+        orderRepository.save(order);
+        return ResponseEntity.ok(Map.of("status", "SUCCESS", "message", "Report deleted successfully"));
+    }
+
     @PostMapping("/{id}/submit")
     @Transactional
     public ResponseEntity<?> submitIntake(@PathVariable Long id) {
@@ -157,7 +208,13 @@ public class OrderController {
     @GetMapping("/client")
     public ResponseEntity<List<Order>> getClientOrders() {
         UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return ResponseEntity.ok(orderRepository.findAllByClientId(principal.getId()));
+        List<Order> orders = orderRepository.findAllByClientId(principal.getId());
+        for (Order o : orders) {
+            boolean isAdminCreated = auditLogRepository.existsByEntityTypeAndEntityIdAndActionTypeAndActorRole(
+                    "ORDER", String.valueOf(o.getId()), "ORDER_CREATE", "SUPER_ADMIN");
+            o.setAdminCreated(isAdminCreated);
+        }
+        return ResponseEntity.ok(orders);
     }
 
     @GetMapping("/unassigned")

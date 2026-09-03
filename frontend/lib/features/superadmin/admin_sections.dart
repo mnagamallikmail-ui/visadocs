@@ -16,6 +16,7 @@ import '../../services/api_service.dart';
 import '../document_studio/document_studio_screen.dart';
 import 'placeholder_catalog_screen.dart';
 import '../../utils/indian_number_formatter.dart';
+import '../../utils/report_list_helper.dart';
 
 // ─── Shared helpers ───────────────────────────────────────────
 
@@ -314,6 +315,15 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
   final _api = ApiService();
   List<dynamic> _orders = [];
   bool _loading = true;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _sortBy = 'date_desc';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -380,7 +390,7 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
     if (confirm != true) return;
 
     try {
-      await _api.dio.delete('/api/v1/admin/orders/${order['id']}');
+      await _api.dio.delete('/api/v1/orders/${order['id']}');
       _load();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
@@ -547,106 +557,163 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
             ],
           ),
         ),
+        ReportSearchSortBar(
+          searchController: _searchController,
+          searchQuery: _searchQuery,
+          sortBy: _sortBy,
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+          onSearchChanged: (val) => setState(() => _searchQuery = val),
+          onSearchCleared: () => setState(() {
+            _searchController.clear();
+            _searchQuery = '';
+          }),
+          onSortChanged: (val) {
+            if (val != null) setState(() => _sortBy = val);
+          },
+        ),
         if (_loading)
           const Expanded(child: Center(child: CircularProgressIndicator()))
         else if (_orders.isEmpty)
           Expanded(child: _placeholderSection('📦', 'No Orders Found', 'There are no active orders in the system queue.'))
         else
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: const BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.only(topLeft: Radius.circular(8), topRight: Radius.circular(8)),
+            child: Builder(
+              builder: (ctx) {
+                final authProvider = Provider.of<AuthProvider>(ctx, listen: false);
+                final displayOrders = ReportListHelper.filterAndSortReports(_orders, _searchQuery, _sortBy);
+
+                if (displayOrders.isEmpty) {
+                  return Center(
+                    child: Text(
+                      _searchQuery.isNotEmpty ? "No reports match '$_searchQuery'." : "No orders found.",
+                      style: AppTypography.bodySm(color: AppColors.slate),
                     ),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 80,
-                          child: Text('ID', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Text('Status', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
-                        ),
-                        Expanded(
-                          flex: 4,
-                          child: Text('Purpose', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
-                        ),
-                        SizedBox(
-                          width: 220,
-                          child: Text('Actions', style: AppTypography.captionBold().copyWith(color: AppColors.slate), textAlign: TextAlign.right),
-                        ),
-                      ],
-                    ),
-                  ),
-                  ..._orders.map((o) => Container(
+                  );
+                }
+
+                return SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+                  child: Column(
+                    children: [
+                      Container(
                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         decoration: const BoxDecoration(
-                          color: Colors.white,
-                          border: Border(
-                            bottom: BorderSide(color: AppColors.hairlineSoft),
-                            left: BorderSide(color: AppColors.hairlineSoft),
-                            right: BorderSide(color: AppColors.hairlineSoft),
-                          ),
+                          color: AppColors.surface,
+                          borderRadius: BorderRadius.only(topLeft: Radius.circular(8), topRight: Radius.circular(8)),
                         ),
                         child: Row(
                           children: [
                             SizedBox(
-                              width: 80,
-                              child: Text(
-                                '#${o['id']}',
-                                style: AppTypography.bodySm().copyWith(color: AppColors.muted, fontSize: 13, fontWeight: FontWeight.w500),
-                              ),
+                              width: 140,
+                              child: Text('Report # / Date', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
                             ),
                             Expanded(
-                              flex: 2,
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.surface,
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      '${o['status']}'.replaceAll('_', ' '),
-                                      style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 11, fontWeight: FontWeight.w600),
-                                    ),
-                                  ),
-                                ],
-                              ),
+                              flex: 3,
+                              child: Text('Client Name', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
                             ),
                             Expanded(
-                              flex: 4,
-                              child: Text(
-                                '${o['purpose'] ?? '—'}',
-                                style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 13, fontWeight: FontWeight.w500),
-                                overflow: TextOverflow.ellipsis,
-                              ),
+                              flex: 3,
+                              child: Text('Bank Name', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
                             ),
                             SizedBox(
-                              width: 300,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: [
-                                  _queueBtn('Release', Icons.send_outlined, AppColors.primary, () => _forceRelease(o)),
-                                  const SizedBox(width: 6),
-                                  _queueBtn('Waive', Icons.money_off_outlined, AppColors.success, () => _waivePayment(o)),
-                                  const SizedBox(width: 6),
-                                  _queueBtn('Delete', Icons.delete_outline_rounded, AppColors.brandRedDark, () => _deleteOrder(o)),
-                                ],
-                              ),
+                              width: 120,
+                              child: Text('Status', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
+                            ),
+                            SizedBox(
+                              width: 220,
+                              child: Text('Actions', style: AppTypography.captionBold().copyWith(color: AppColors.slate), textAlign: TextAlign.right),
                             ),
                           ],
                         ),
-                      )),
-                ],
-              ),
+                      ),
+                      ...displayOrders.map((o) {
+                        final canDelete = ReportListHelper.canDeleteReport(o, authProvider);
+                        final reportNum = o['reportNumber'] ?? 'PV-${o['id']}';
+                        final dateStr = ReportListHelper.formatReportDate(o['createdAt']);
+
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            border: Border(
+                              bottom: BorderSide(color: AppColors.hairlineSoft),
+                              left: BorderSide(color: AppColors.hairlineSoft),
+                              right: BorderSide(color: AppColors.hairlineSoft),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 140,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      reportNum,
+                                      style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 13, fontWeight: FontWeight.bold),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      dateStr,
+                                      style: AppTypography.caption(color: AppColors.slate),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              Expanded(
+                                flex: 3,
+                                child: Text(
+                                  o['clientName'] ?? '—',
+                                  style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 13, fontWeight: FontWeight.w500),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              Expanded(
+                                flex: 3,
+                                child: Text(
+                                  o['bankName'] ?? '—',
+                                  style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 13, fontWeight: FontWeight.w500),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                              SizedBox(
+                                width: 120,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surface,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    '${o['status']}'.replaceAll('_', ' '),
+                                    style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 11, fontWeight: FontWeight.w600),
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ),
+                              ),
+                              SizedBox(
+                                width: 220,
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.end,
+                                  children: [
+                                    _queueBtn('Release', Icons.send_outlined, AppColors.primary, () => _forceRelease(o)),
+                                    const SizedBox(width: 6),
+                                    _queueBtn('Waive', Icons.money_off_outlined, AppColors.success, () => _waivePayment(o)),
+                                    if (canDelete) ...[
+                                      const SizedBox(width: 6),
+                                      _queueBtn('Delete', Icons.delete_outline_rounded, AppColors.brandRedDark, () => _deleteOrder(o)),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
+                  ),
+                );
+              },
             ),
           ),
       ],
@@ -2137,6 +2204,15 @@ class _AdminReportSectionState extends State<AdminReportSection> {
   final _api = ApiService();
   List<dynamic> _orders = [];
   bool _loading = true;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _sortBy = 'date_desc';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -2232,7 +2308,7 @@ class _AdminReportSectionState extends State<AdminReportSection> {
     if (confirm != true) return;
 
     try {
-      await _api.dio.delete('/api/v1/admin/orders/${o['id']}');
+      await _api.dio.delete('/api/v1/orders/${o['id']}');
       _load();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -2278,69 +2354,149 @@ class _AdminReportSectionState extends State<AdminReportSection> {
             ),
           ),
         ),
+        ReportSearchSortBar(
+          searchController: _searchController,
+          searchQuery: _searchQuery,
+          sortBy: _sortBy,
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+          onSearchChanged: (val) => setState(() => _searchQuery = val),
+          onSearchCleared: () => setState(() {
+            _searchController.clear();
+            _searchQuery = '';
+          }),
+          onSortChanged: (val) {
+            if (val != null) setState(() => _sortBy = val);
+          },
+        ),
         if (_loading)
           const Expanded(child: Center(child: CircularProgressIndicator()))
         else if (_orders.isEmpty)
           Expanded(child: _placeholderSection('📊', 'No Reports Found', 'Workflow queue is empty.'))
         else
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(24),
-              itemCount: _orders.length,
-              itemBuilder: (_, i) {
-                final o = _orders[i];
-                final hasLock = o['status'] == 'PAYMENT_LOCK';
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 12),
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(color: AppColors.surface, borderRadius: AppRadius.brXl, border: Border.all(color: AppColors.hairlineSoft)),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Order #${o['id']}', style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 14, fontWeight: FontWeight.bold)),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Purpose: ${o['purpose'] ?? '—'}  |  Category: ${o['propertyCategory'] ?? '—'}',
-                              style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 12),
-                            ),
-                            const SizedBox(height: 6),
-                            Row(
+            child: Builder(
+              builder: (ctx) {
+                final authProvider = Provider.of<AuthProvider>(ctx, listen: false);
+                final displayOrders = ReportListHelper.filterAndSortReports(_orders, _searchQuery, _sortBy);
+
+                if (displayOrders.isEmpty) {
+                  return Center(
+                    child: Text(
+                      _searchQuery.isNotEmpty ? "No reports match '$_searchQuery'." : "Workflow queue is empty.",
+                      style: AppTypography.bodySm(color: AppColors.slate),
+                    ),
+                  );
+                }
+
+                return ListView.builder(
+                  padding: const EdgeInsets.all(24),
+                  itemCount: displayOrders.length,
+                  itemBuilder: (_, i) {
+                    final o = displayOrders[i];
+                    final hasLock = o['status'] == 'PAYMENT_LOCK';
+                    final canDelete = ReportListHelper.canDeleteReport(o, authProvider);
+                    final reportNum = o['reportNumber'] ?? 'PV-${o['id']}';
+                    final dateStr = ReportListHelper.formatReportDate(o['createdAt']);
+
+                    return Container(
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: AppColors.surface,
+                        borderRadius: AppRadius.brXl,
+                        border: Border.all(color: AppColors.hairlineSoft),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Row(
                               children: [
-                                Text('Workflow Status: ', style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 12)),
+                                Expanded(
+                                  flex: 3,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        reportNum,
+                                        style: AppTypography.bodySm().copyWith(
+                                          color: AppColors.ink,
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Date: $dateStr',
+                                        style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 12),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  flex: 4,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Client: ${o['clientName'] ?? '—'}',
+                                        style: AppTypography.bodySm().copyWith(
+                                          color: AppColors.ink,
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 4),
+                                      Text(
+                                        'Bank: ${o['bankName'] ?? '—'}',
+                                        style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 12),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                  decoration: BoxDecoration(color: AppColors.primary.withOpacity(0.08), borderRadius: BorderRadius.circular(4)),
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
                                   child: Text(
                                     '${o['status']}',
-                                    style: AppTypography.bodySm().copyWith(color: AppColors.primary, fontSize: 10, fontWeight: FontWeight.bold),
+                                    style: AppTypography.bodySm().copyWith(
+                                      color: AppColors.primary,
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                    ),
                                   ),
                                 ),
                               ],
                             ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Row(
-                        children: [
-                          if (hasLock) ...[
-                            _overrideBtn('Release Delivery', AppColors.success, () => _forceStatus(o, 'FINAL_DELIVERY')),
-                            const SizedBox(width: 8),
-                          ],
-                          _overrideBtn('Force SPA Gate', AppColors.brandBlue, () => _forceStatus(o, 'SPA_GATE')),
-                          const SizedBox(width: 8),
-                          _overrideBtn('Reset Draft', AppColors.slate, () => _forceStatus(o, 'DRAFT')),
-                          const SizedBox(width: 8),
-                          Container(width: 1, height: 24, color: AppColors.hairlineSoft),
-                          const SizedBox(width: 8),
-                          _overrideBtn('Delete', AppColors.brandRedDark, () => _deleteOrder(o)),
+                          ),
+                          const SizedBox(width: 16),
+                          Row(
+                            children: [
+                              if (hasLock) ...[
+                                _overrideBtn('Release Delivery', AppColors.success, () => _forceStatus(o, 'FINAL_DELIVERY')),
+                                const SizedBox(width: 8),
+                              ],
+                              _overrideBtn('Force SPA Gate', AppColors.brandBlue, () => _forceStatus(o, 'SPA_GATE')),
+                              const SizedBox(width: 8),
+                              _overrideBtn('Reset Draft', AppColors.slate, () => _forceStatus(o, 'DRAFT')),
+                              if (canDelete) ...[
+                                const SizedBox(width: 8),
+                                Container(width: 1, height: 24, color: AppColors.hairlineSoft),
+                                const SizedBox(width: 8),
+                                _overrideBtn('Delete', AppColors.brandRedDark, () => _deleteOrder(o)),
+                              ],
+                            ],
+                          ),
                         ],
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 );
               },
             ),
@@ -3029,6 +3185,15 @@ class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
   final _api = ApiService();
   List<dynamic> _deletedOrders = [];
   bool _loading = true;
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+  String _sortBy = 'date_desc';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   void initState() {
@@ -3158,6 +3323,20 @@ class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
             ],
           ),
         ),
+        ReportSearchSortBar(
+          searchController: _searchController,
+          searchQuery: _searchQuery,
+          sortBy: _sortBy,
+          padding: const EdgeInsets.fromLTRB(28, 16, 28, 8),
+          onSearchChanged: (val) => setState(() => _searchQuery = val),
+          onSearchCleared: () => setState(() {
+            _searchController.clear();
+            _searchQuery = '';
+          }),
+          onSortChanged: (val) {
+            if (val != null) setState(() => _sortBy = val);
+          },
+        ),
         Expanded(
           child: _loading
               ? const Center(child: CircularProgressIndicator())
@@ -3172,49 +3351,115 @@ class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
                         ],
                       ),
                     )
-                  : ListView.builder(
-                      padding: const EdgeInsets.all(28),
-                      itemCount: _deletedOrders.length,
-                      itemBuilder: (context, idx) {
-                        final o = _deletedOrders[idx];
-                        return Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.all(16),
-                          decoration: AppComponents.cardBase(),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(10),
-                                decoration: BoxDecoration(
-                                  color: AppColors.brandRedDark.withValues(alpha: 0.1),
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(Icons.delete_outline_rounded, color: AppColors.brandRedDark, size: 24),
+                  : Builder(
+                      builder: (context) {
+                        final displayOrders = ReportListHelper.filterAndSortReports(_deletedOrders, _searchQuery, _sortBy);
+
+                        if (displayOrders.isEmpty) {
+                          return Center(
+                            child: Text(
+                              _searchQuery.isNotEmpty ? "No deleted reports match '$_searchQuery'." : "No deleted reports in trash bin.",
+                              style: AppTypography.bodySm(color: AppColors.slate),
+                            ),
+                          );
+                        }
+
+                        return ListView.builder(
+                          padding: const EdgeInsets.all(28),
+                          itemCount: displayOrders.length,
+                          itemBuilder: (context, idx) {
+                            final o = displayOrders[idx];
+                            final reportNum = o['reportNumber'] ?? 'PV-${o['id']}';
+                            final dateStr = ReportListHelper.formatReportDate(o['createdAt']);
+
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              padding: const EdgeInsets.all(16),
+                              decoration: AppComponents.cardBase(),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.brandRedDark.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                    child: const Icon(Icons.delete_outline_rounded, color: AppColors.brandRedDark, size: 24),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    flex: 3,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          reportNum,
+                                          style: AppTypography.bodySm().copyWith(fontWeight: FontWeight.bold, fontSize: 14),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Date: $dateStr',
+                                          style: AppTypography.caption(color: AppColors.slate),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    flex: 4,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Client: ${o['clientName'] ?? '—'}',
+                                          style: AppTypography.bodySm().copyWith(
+                                            color: AppColors.ink,
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          'Bank: ${o['bankName'] ?? '—'}',
+                                          style: AppTypography.caption(color: AppColors.slate),
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.brandRedDark.withValues(alpha: 0.1),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text(
+                                      'TRASH',
+                                      style: AppTypography.bodySm().copyWith(
+                                        color: AppColors.brandRedDark,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 16),
+                                  OutlinedButton.icon(
+                                    icon: const Icon(Icons.restore_from_trash_rounded, size: 16, color: AppColors.success),
+                                    label: const Text('Restore', style: TextStyle(color: AppColors.success)),
+                                    onPressed: () => _restore(o['id'] as int),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete_forever_rounded, color: AppColors.brandRedDark, size: 20),
+                                    tooltip: 'Permanently Purge',
+                                    onPressed: () => _purge(o['id'] as int),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(o['reportNumber'] ?? 'Order #${o['id']}', style: AppTypography.bodySm().copyWith(fontWeight: FontWeight.bold, fontSize: 14)),
-                                    const SizedBox(height: 4),
-                                    Text('Client: ${o['clientName'] ?? '—'} | Bank: ${o['bankName'] ?? '—'} | Deleted: ${o['deletedAt'] ?? '—'}', style: AppTypography.caption(color: AppColors.slate)),
-                                  ],
-                                ),
-                              ),
-                              OutlinedButton.icon(
-                                icon: const Icon(Icons.restore_from_trash_rounded, size: 16, color: AppColors.success),
-                                label: const Text('Restore', style: TextStyle(color: AppColors.success)),
-                                onPressed: () => _restore(o['id'] as int),
-                              ),
-                              const SizedBox(width: 8),
-                              IconButton(
-                                icon: const Icon(Icons.delete_forever_rounded, color: AppColors.brandRedDark, size: 20),
-                                tooltip: 'Permanently Purge',
-                                onPressed: () => _purge(o['id'] as int),
-                              ),
-                            ],
-                          ),
+                            );
+                          },
                         );
                       },
                     ),
