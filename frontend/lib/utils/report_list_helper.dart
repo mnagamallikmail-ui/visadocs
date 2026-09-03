@@ -114,8 +114,12 @@ class ReportListHelper {
     if (isFinalized) {
       return isSuperAdmin;
     } else {
-      final clientId = report['clientId'];
-      final isCreator = clientId != null && auth.userId != null && clientId == auth.userId;
+      final rawClientId = report['clientId'] ?? report['client_id'];
+      final bool isClientRole = auth.role == 'CLIENT';
+      final isCreator = (rawClientId != null &&
+              auth.userId != null &&
+              rawClientId.toString() == auth.userId.toString()) ||
+          (isClientRole && !isAdminCreated);
       return isCreator || isSuperAdmin;
     }
   }

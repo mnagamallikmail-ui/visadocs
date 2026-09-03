@@ -92,8 +92,10 @@ public class OrderController {
         List<OrderInput> existingInputs = orderInputRepository.findAllByOrderId(savedOrder.getId());
         orderInputRepository.deleteAll(existingInputs);
 
-        for (Map.Entry<String, String> entry : request.getInputs().entrySet()) {
-            saveOrUpdateInput(savedOrder.getId(), entry.getKey(), entry.getValue());
+        if (request.getInputs() != null) {
+            for (Map.Entry<String, String> entry : request.getInputs().entrySet()) {
+                saveOrUpdateInput(savedOrder.getId(), entry.getKey(), entry.getValue());
+            }
         }
 
         return ResponseEntity.ok(savedOrder);

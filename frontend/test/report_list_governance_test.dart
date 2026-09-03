@@ -202,5 +202,38 @@ void main() {
       final saAuth = MockAuthProvider(userId: 1, role: 'SUPER_ADMIN');
       expect(ReportListHelper.canDeleteReport(adminCreatedReport, saAuth), true);
     });
+
+    final clientCreatedReport = {
+      'id': 601,
+      'clientId': 4,
+      'adminCreated': false,
+      'status': 'DRAFT',
+      'valuationStatus': 'DRAFT',
+    };
+
+    test('Client CAN delete their own client-created report', () {
+      final clientAuth = MockAuthProvider(userId: 4, role: 'CLIENT');
+      expect(ReportListHelper.canDeleteReport(clientCreatedReport, clientAuth), true);
+    });
+
+    test('Client CAN delete their own report even if userId is null in AuthProvider', () {
+      final clientAuth = MockAuthProvider(userId: null, role: 'CLIENT');
+      expect(ReportListHelper.canDeleteReport(clientCreatedReport, clientAuth), true);
+    });
+
+    test('PA CANNOT delete client-created report', () {
+      final paAuth = MockAuthProvider(userId: 2, role: 'PA');
+      expect(ReportListHelper.canDeleteReport(clientCreatedReport, paAuth), false);
+    });
+
+    test('SPA CANNOT delete client-created report', () {
+      final spaAuth = MockAuthProvider(userId: 3, role: 'SPA');
+      expect(ReportListHelper.canDeleteReport(clientCreatedReport, spaAuth), false);
+    });
+
+    test('Super Admin CAN delete client-created report', () {
+      final saAuth = MockAuthProvider(userId: 1, role: 'SUPER_ADMIN');
+      expect(ReportListHelper.canDeleteReport(clientCreatedReport, saAuth), true);
+    });
   });
 }

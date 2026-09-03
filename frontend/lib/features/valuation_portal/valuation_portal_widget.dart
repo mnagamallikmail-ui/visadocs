@@ -2485,13 +2485,13 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
       builder: (context, provider, _) {
         List<dynamic> list = [];
         if (widget.role == 'CLIENT') {
-          list = provider.clientOrders.where((o) => o['status'] != 'FINAL_DELIVERY' && o['status'] != 'DRAFT').toList();
+          list = provider.clientOrders.where((o) => o['status'] != 'FINAL_DELIVERY').toList();
         } else if (widget.role == 'PA') {
           list = provider.paOrders.where((o) => o['status'] == 'ASSIGNED' || o['status'] == 'ACTION_NEEDED' || o['status'] == 'SPA_GATE' || o['status'] == 'SPA_CONFIRMED' || o['status'] == 'FINAL_DELIVERY').toList();
         } else if (widget.role == 'SPA') {
           list = provider.allOrders.where((o) => o['status'] == 'SPA_GATE' || o['status'] == 'SPA_CONFIRMED').toList();
         } else {
-          list = provider.allOrders.where((o) => o['status'] != 'FINAL_DELIVERY' && o['status'] != 'DRAFT').toList();
+          list = provider.allOrders.where((o) => o['status'] != 'FINAL_DELIVERY').toList();
         }
         return _buildDirectoryList(
           title: "IN-PROGRESS PIPELINE RECORDS",
