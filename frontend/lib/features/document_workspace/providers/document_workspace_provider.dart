@@ -36,6 +36,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   List<ValuationLandItemModel> _landItems = [];
   List<ValuationBuildingItemModel> _buildingItems = [];
   List<ValuationComparableSaleModel> _comparables = [];
+  List<ValuationCompositeItemModel> _compositeItems = [];
 
   int _activeSectionIndex = 0;
   final ValueNotifier<int?> scrollToSectionRequested = ValueNotifier<int?>(null);
@@ -70,6 +71,16 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   List<ValuationLandItemModel> get landItems => _landItems;
   List<ValuationBuildingItemModel> get buildingItems => _buildingItems;
   List<ValuationComparableSaleModel> get comparables => _comparables;
+  List<ValuationCompositeItemModel> get compositeItems => _compositeItems;
+
+  bool get isCompositeProperty {
+    final meth = _valuationData?.valuationMethodology ?? _activeValues['VALUATION_METHODOLOGY'] ?? '';
+    if (meth == 'COMPOSITE') return true;
+    if (_compositeItems.isNotEmpty) return true;
+    final cat = (_activeValues['PROPERTY_CATEGORY'] ?? _activeValues['property_category'] ?? _activeValues['PROPERTY_TYPE'] ?? '').toLowerCase();
+    return cat.contains('flat') || cat.contains('apartment') || cat.contains('commercial space') ||
+           cat.contains('office') || cat.contains('retail') || cat.contains('shop') || cat.contains('commercial unit');
+  }
   int get activeSectionIndex => _activeSectionIndex;
   Map<String, String> get activeValues => _activeValues;
   Map<String, String> get deltaValues => _deltaValues;
@@ -194,6 +205,15 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       } catch (_) {}
     }
 
+    // 3b. Composite Items
+    final rawCompItems = _activeValues['RAW_COMPOSITE_ITEMS_JSON'];
+    if (rawCompItems != null && rawCompItems.trim().isNotEmpty) {
+      try {
+        final List<dynamic> decoded = jsonDecode(rawCompItems);
+        _compositeItems = decoded.map((j) => ValuationCompositeItemModel.fromJson(j as Map<String, dynamic>)).toList();
+      } catch (_) {}
+    }
+
     // 4. Percentages & Overrides
     final landRealStr = _activeValues['LAND_REALIZABLE_PERCENTAGE'];
     if (landRealStr != null) {
@@ -219,71 +239,209 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       _valuationData!.governmentValue = double.tryParse(cleanGovt) ?? 0.0;
     }
 
-    ValuationCalculator.recalculateSummary(_valuationData!, _landItems, _buildingItems);
-    final initialPlaceholders = ValuationCalculator.generatePlaceholders(
-      orderInfo: {
-        'id': _workspaceModel?.orderId ?? orderId,
-        'clientName': _activeValues['CLIENT_NAME'] ?? _activeValues['client_name'] ?? '',
-        'bankName': _activeValues['BANK_NAME'] ?? _activeValues['bank_name'] ?? '',
-        'branchName': _activeValues['BRANCH_NAME'] ?? _activeValues['branch_name'] ?? '',
-      },
-      data: _valuationData!,
-      landItems: _landItems,
-      buildingItems: _buildingItems,
-      comparables: _comparables,
-    );
-    _activeValues.addAll(initialPlaceholders);
+    if (isCompositeProperty) {
+      _valuationData!.valuationMethodology = 'COMPOSITE';
+
+      final govtCompRateStr = _activeValues['COMPOSITE_GOVERNMENT_RATE'];
+      if (govtCompRateStr != null) {
+        _valuationData!.compositeGovernmentRate = double.tryParse(govtCompRateStr.replaceAll(',', '')) ?? 0.0;
+      }
+      final constCostStr = _activeValues['COMPOSITE_CONSTRUCTION_COST'];
+      if (constCostStr != null) {
+        _valuationData!.compositeConstructionCost = double.tryParse(constCostStr.replaceAll(',', '')) ?? 2000.0;
+      }
+
+      final realStr = _activeValues['REALIZABLE_PERCENTAGE'];
+      if (realStr != null) {
+        _valuationData!.realizablePercentage = double.tryParse(realStr) ?? 85.0;
+      }
+      final distStr = _activeValues['DISTRESS_SALE_PERCENTAGE'];
+      if (distStr != null) {
+        _valuationData!.distressSalePercentage = double.tryParse(distStr) ?? 75.0;
+      }
+
+      if (_compositeItems.isEmpty) {
+        final subType = _activeValues['PROPERTY_SUB_TYPE'] ?? _activeValues['PROPERTY_TYPE'] ?? 'Main Unit';
+        final areaVal = double.tryParse((_activeValues['SUPER_BUILT_UP_AREA'] ?? _activeValues['PROPERTY_AREA_SFT'] ?? '1000').replaceAll(',', '')) ?? 1000.0;
+        final compRate = double.tryParse((_activeValues['COMPOSITE_RATE'] ?? '0').replaceAll(',', '')) ?? 0.0;
+        final constCost = _valuationData!.compositeConstructionCost > 0 ? _valuationData!.compositeConstructionCost : 2000.0;
+        final age = double.tryParse((_activeValues['COMPOSITE_BUILDING_AGE'] ?? '0').replaceAll(',', '')) ?? 0.0;
+        final life = double.tryParse((_activeValues['COMPOSITE_BUILDING_TOTAL_LIFE'] ?? '60').replaceAll(',', '')) ?? 60.0;
+
+        _compositeItems = [
+          ValuationCompositeItemModel(
+            orderId: orderId,
+            itemCategory: 'MAIN_UNIT',
+            description: subType,
+            enteredUnit: _activeValues['SUPER_BUILT_UP_AREA_UNIT'] ?? 'Sq.Ft',
+            quantity: areaVal,
+            rate: compRate,
+            constructionCost: constCost,
+            buildingAge: age,
+            totalLife: life,
+            sortOrder: 0,
+          ),
+          ValuationCompositeItemModel(
+            orderId: orderId,
+            itemCategory: 'INTERIOR_WORK',
+            description: 'Interior Works & Improvements',
+            enteredUnit: 'LS',
+            quantity: 1.0,
+            rate: 0.0,
+            depreciationMode: 'DIRECT_AMOUNT',
+            depreciationAmount: 0.0,
+            isInsurable: true,
+            sortOrder: 1,
+          ),
+        ];
+      }
+
+      ValuationCalculator.recalculateCompositeSummary(_valuationData!, _compositeItems);
+      final initialPlaceholders = ValuationCalculator.generatePlaceholders(
+        orderInfo: {
+          'id': _workspaceModel?.orderId ?? orderId,
+          'clientName': _activeValues['CLIENT_NAME'] ?? _activeValues['client_name'] ?? '',
+          'bankName': _activeValues['BANK_NAME'] ?? _activeValues['bank_name'] ?? '',
+          'branchName': _activeValues['BRANCH_NAME'] ?? _activeValues['branch_name'] ?? '',
+          'propertyCategory': _activeValues['PROPERTY_CATEGORY'] ?? _activeValues['property_category'] ?? '',
+        },
+        data: _valuationData!,
+        landItems: _landItems,
+        buildingItems: _buildingItems,
+        comparables: _comparables,
+        compositeItems: _compositeItems,
+      );
+      _activeValues.addAll(initialPlaceholders);
+    } else {
+      ValuationCalculator.recalculateSummary(_valuationData!, _landItems, _buildingItems);
+      final initialPlaceholders = ValuationCalculator.generatePlaceholders(
+        orderInfo: {
+          'id': _workspaceModel?.orderId ?? orderId,
+          'clientName': _activeValues['CLIENT_NAME'] ?? _activeValues['client_name'] ?? '',
+          'bankName': _activeValues['BANK_NAME'] ?? _activeValues['bank_name'] ?? '',
+          'branchName': _activeValues['BRANCH_NAME'] ?? _activeValues['branch_name'] ?? '',
+        },
+        data: _valuationData!,
+        landItems: _landItems,
+        buildingItems: _buildingItems,
+        comparables: _comparables,
+      );
+      _activeValues.addAll(initialPlaceholders);
+    }
   }
 
   void recalculateValuation() {
     if (_valuationData == null) return;
-    ValuationCalculator.recalculateSummary(_valuationData!, _landItems, _buildingItems);
-    final placeholders = ValuationCalculator.generatePlaceholders(
-      orderInfo: {
-        'id': _workspaceModel?.orderId ?? 0,
-        'clientName': _activeValues['CLIENT_NAME'] ?? _activeValues['client_name'] ?? '',
-        'bankName': _activeValues['BANK_NAME'] ?? _activeValues['bank_name'] ?? '',
-        'branchName': _activeValues['BRANCH_NAME'] ?? _activeValues['branch_name'] ?? '',
-      },
-      data: _valuationData!,
-      landItems: _landItems,
-      buildingItems: _buildingItems,
-      comparables: _comparables,
-    );
 
-    _activeValues.addAll(placeholders);
-    _deltaValues.addAll(placeholders);
+    if (isCompositeProperty) {
+      _valuationData!.valuationMethodology = 'COMPOSITE';
+      ValuationCalculator.recalculateCompositeSummary(_valuationData!, _compositeItems);
+      final placeholders = ValuationCalculator.generatePlaceholders(
+        orderInfo: {
+          'id': _workspaceModel?.orderId ?? 0,
+          'clientName': _activeValues['CLIENT_NAME'] ?? _activeValues['client_name'] ?? '',
+          'bankName': _activeValues['BANK_NAME'] ?? _activeValues['bank_name'] ?? '',
+          'branchName': _activeValues['BRANCH_NAME'] ?? _activeValues['branch_name'] ?? '',
+          'propertyCategory': _activeValues['PROPERTY_CATEGORY'] ?? _activeValues['property_category'] ?? '',
+        },
+        data: _valuationData!,
+        landItems: _landItems,
+        buildingItems: _buildingItems,
+        comparables: _comparables,
+        compositeItems: _compositeItems,
+      );
 
-    try {
-      final landJson = jsonEncode(_landItems.map((i) => i.toJson()).toList());
-      final bldgJson = jsonEncode(_buildingItems.map((i) => i.toJson()).toList());
-      final compJson = jsonEncode(_comparables.map((i) => i.toJson()).toList());
-      _activeValues['RAW_LAND_ITEMS_JSON'] = landJson;
-      _deltaValues['RAW_LAND_ITEMS_JSON'] = landJson;
-      _activeValues['RAW_BUILDING_ITEMS_JSON'] = bldgJson;
-      _deltaValues['RAW_BUILDING_ITEMS_JSON'] = bldgJson;
-      _activeValues['RAW_COMPARABLES_JSON'] = compJson;
-      _deltaValues['RAW_COMPARABLES_JSON'] = compJson;
+      _activeValues.addAll(placeholders);
+      _deltaValues.addAll(placeholders);
 
-      if (_valuationData != null) {
-        _activeValues['LAND_REALIZABLE_PERCENTAGE'] = _valuationData!.landRealizablePercentage.toString();
-        _deltaValues['LAND_REALIZABLE_PERCENTAGE'] = _valuationData!.landRealizablePercentage.toString();
-        _activeValues['BUILDING_REALIZABLE_PERCENTAGE'] = _valuationData!.buildingRealizablePercentage.toString();
-        _deltaValues['BUILDING_REALIZABLE_PERCENTAGE'] = _valuationData!.buildingRealizablePercentage.toString();
-        _activeValues['LAND_DISTRESS_PERCENTAGE'] = _valuationData!.landDistressPercentage.toString();
-        _deltaValues['LAND_DISTRESS_PERCENTAGE'] = _valuationData!.landDistressPercentage.toString();
-        _activeValues['BUILDING_DISTRESS_PERCENTAGE'] = _valuationData!.buildingDistressPercentage.toString();
-        _deltaValues['BUILDING_DISTRESS_PERCENTAGE'] = _valuationData!.buildingDistressPercentage.toString();
-        _activeValues['GOVERNMENT_VALUE'] = _valuationData!.governmentValue.toString();
-        _deltaValues['GOVERNMENT_VALUE'] = _valuationData!.governmentValue.toString();
-      }
-    } catch (_) {}
+      try {
+        final compJson = jsonEncode(_compositeItems.map((i) => i.toJson()).toList());
+        _activeValues['RAW_COMPOSITE_ITEMS_JSON'] = compJson;
+        _deltaValues['RAW_COMPOSITE_ITEMS_JSON'] = compJson;
+
+        _activeValues['COMPOSITE_GOVERNMENT_RATE'] = _valuationData!.compositeGovernmentRate.toString();
+        _deltaValues['COMPOSITE_GOVERNMENT_RATE'] = _valuationData!.compositeGovernmentRate.toString();
+        _activeValues['COMPOSITE_CONSTRUCTION_COST'] = _valuationData!.compositeConstructionCost.toString();
+        _deltaValues['COMPOSITE_CONSTRUCTION_COST'] = _valuationData!.compositeConstructionCost.toString();
+        _activeValues['REALIZABLE_PERCENTAGE'] = _valuationData!.realizablePercentage.toString();
+        _deltaValues['REALIZABLE_PERCENTAGE'] = _valuationData!.realizablePercentage.toString();
+        _activeValues['DISTRESS_SALE_PERCENTAGE'] = _valuationData!.distressSalePercentage.toString();
+        _deltaValues['DISTRESS_SALE_PERCENTAGE'] = _valuationData!.distressSalePercentage.toString();
+      } catch (_) {}
+    } else {
+      ValuationCalculator.recalculateSummary(_valuationData!, _landItems, _buildingItems);
+      final placeholders = ValuationCalculator.generatePlaceholders(
+        orderInfo: {
+          'id': _workspaceModel?.orderId ?? 0,
+          'clientName': _activeValues['CLIENT_NAME'] ?? _activeValues['client_name'] ?? '',
+          'bankName': _activeValues['BANK_NAME'] ?? _activeValues['bank_name'] ?? '',
+          'branchName': _activeValues['BRANCH_NAME'] ?? _activeValues['branch_name'] ?? '',
+        },
+        data: _valuationData!,
+        landItems: _landItems,
+        buildingItems: _buildingItems,
+        comparables: _comparables,
+      );
+
+      _activeValues.addAll(placeholders);
+      _deltaValues.addAll(placeholders);
+
+      try {
+        final landJson = jsonEncode(_landItems.map((i) => i.toJson()).toList());
+        final bldgJson = jsonEncode(_buildingItems.map((i) => i.toJson()).toList());
+        final compJson = jsonEncode(_comparables.map((i) => i.toJson()).toList());
+        _activeValues['RAW_LAND_ITEMS_JSON'] = landJson;
+        _deltaValues['RAW_LAND_ITEMS_JSON'] = landJson;
+        _activeValues['RAW_BUILDING_ITEMS_JSON'] = bldgJson;
+        _deltaValues['RAW_BUILDING_ITEMS_JSON'] = bldgJson;
+        _activeValues['RAW_COMPARABLES_JSON'] = compJson;
+        _deltaValues['RAW_COMPARABLES_JSON'] = compJson;
+
+        if (_valuationData != null) {
+          _activeValues['LAND_REALIZABLE_PERCENTAGE'] = _valuationData!.landRealizablePercentage.toString();
+          _deltaValues['LAND_REALIZABLE_PERCENTAGE'] = _valuationData!.landRealizablePercentage.toString();
+          _activeValues['BUILDING_REALIZABLE_PERCENTAGE'] = _valuationData!.buildingRealizablePercentage.toString();
+          _deltaValues['BUILDING_REALIZABLE_PERCENTAGE'] = _valuationData!.buildingRealizablePercentage.toString();
+          _activeValues['LAND_DISTRESS_PERCENTAGE'] = _valuationData!.landDistressPercentage.toString();
+          _deltaValues['LAND_DISTRESS_PERCENTAGE'] = _valuationData!.landDistressPercentage.toString();
+          _activeValues['BUILDING_DISTRESS_PERCENTAGE'] = _valuationData!.buildingDistressPercentage.toString();
+          _deltaValues['BUILDING_DISTRESS_PERCENTAGE'] = _valuationData!.buildingDistressPercentage.toString();
+          _activeValues['GOVERNMENT_VALUE'] = _valuationData!.governmentValue.toString();
+          _deltaValues['GOVERNMENT_VALUE'] = _valuationData!.governmentValue.toString();
+        }
+      } catch (_) {}
+    }
 
     _isDirty = true;
     if (_workspaceModel?.documentDom != null) {
       _workspaceVm = DocumentWorkspaceVm.fromDocumentDom(_workspaceModel!.documentDom!, _activeValues);
     }
     notifyListeners();
+  }
+
+  void addCompositeInteriorItem() {
+    final orderId = _workspaceModel?.orderId ?? 0;
+    final breakupCount = _compositeItems.where((i) => i.itemCategory == 'INTERIOR_WORK').length;
+    _compositeItems.add(ValuationCompositeItemModel(
+      orderId: orderId,
+      itemCategory: 'INTERIOR_WORK',
+      description: 'Interior Improvement #$breakupCount',
+      enteredUnit: 'LS',
+      quantity: 1.0,
+      rate: 0.0,
+      depreciationMode: 'DIRECT_AMOUNT',
+      depreciationAmount: 0.0,
+      isInsurable: true,
+      sortOrder: _compositeItems.length,
+    ));
+    recalculateValuation();
+  }
+
+  void removeCompositeItem(int index) {
+    if (index > 0 && index < _compositeItems.length) {
+      _compositeItems.removeAt(index);
+      recalculateValuation();
+    }
   }
 
   void addLandItem() {
@@ -386,6 +544,39 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   void setGovernmentValue(double val) {
     if (_valuationData != null) {
       _valuationData!.governmentValue = val;
+      recalculateValuation();
+    }
+  }
+
+  void setRealizablePercentage(double val) {
+    if (_valuationData != null) {
+      _valuationData!.realizablePercentage = val;
+      recalculateValuation();
+    }
+  }
+
+  void setDistressSalePercentage(double val) {
+    if (_valuationData != null) {
+      _valuationData!.distressSalePercentage = val;
+      recalculateValuation();
+    }
+  }
+
+  void setCompositeGovernmentRate(double val) {
+    if (_valuationData != null) {
+      _valuationData!.compositeGovernmentRate = val;
+      recalculateValuation();
+    }
+  }
+
+  void setCompositeConstructionCost(double val) {
+    if (_valuationData != null) {
+      _valuationData!.compositeConstructionCost = val;
+      for (final item in _compositeItems) {
+        if (item.itemCategory == 'MAIN_UNIT') {
+          item.constructionCost = val;
+        }
+      }
       recalculateValuation();
     }
   }

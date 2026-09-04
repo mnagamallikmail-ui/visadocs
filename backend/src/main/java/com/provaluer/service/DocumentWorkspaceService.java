@@ -776,6 +776,9 @@ public class DocumentWorkspaceService {
                 if (valBundle.getComparableSales() != null && !valBundle.getComparableSales().isEmpty()) {
                     map.put("RAW_COMPARABLES_JSON", objectMapper.writeValueAsString(valBundle.getComparableSales()));
                 }
+                if (valBundle.getCompositeItems() != null && !valBundle.getCompositeItems().isEmpty()) {
+                    map.put("RAW_COMPOSITE_ITEMS_JSON", objectMapper.writeValueAsString(valBundle.getCompositeItems()));
+                }
             }
         } catch (Exception e) {
             log.warn("Could not merge valuation bundle into consolidated values for order #{}: {}", orderId, e.getMessage());

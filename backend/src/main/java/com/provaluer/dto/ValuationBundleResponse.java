@@ -10,6 +10,7 @@ public class ValuationBundleResponse {
     private List<ValuationLandItem> landItems;
     private List<ValuationBuildingItem> buildingItems;
     private List<ValuationComparableSale> comparableSales;
+    private List<ValuationCompositeItem> compositeItems;
     private List<ValuationSnapshot> snapshots;
     private Map<String, String> placeholders;
     private boolean isLocked;
@@ -19,10 +20,18 @@ public class ValuationBundleResponse {
     public ValuationBundleResponse(ValuationData valuationData, List<ValuationLandItem> landItems,
                                    List<ValuationBuildingItem> buildingItems, List<ValuationComparableSale> comparableSales,
                                    List<ValuationSnapshot> snapshots, Map<String, String> placeholders, boolean isLocked) {
+        this(valuationData, landItems, buildingItems, comparableSales, null, snapshots, placeholders, isLocked);
+    }
+
+    public ValuationBundleResponse(ValuationData valuationData, List<ValuationLandItem> landItems,
+                                   List<ValuationBuildingItem> buildingItems, List<ValuationComparableSale> comparableSales,
+                                   List<ValuationCompositeItem> compositeItems,
+                                   List<ValuationSnapshot> snapshots, Map<String, String> placeholders, boolean isLocked) {
         this.valuationData = valuationData;
         this.landItems = landItems;
         this.buildingItems = buildingItems;
         this.comparableSales = comparableSales;
+        this.compositeItems = compositeItems;
         this.snapshots = snapshots;
         this.placeholders = placeholders;
         this.isLocked = isLocked;
@@ -39,6 +48,9 @@ public class ValuationBundleResponse {
 
     public List<ValuationComparableSale> getComparableSales() { return comparableSales; }
     public void setComparableSales(List<ValuationComparableSale> comparableSales) { this.comparableSales = comparableSales; }
+
+    public List<ValuationCompositeItem> getCompositeItems() { return compositeItems; }
+    public void setCompositeItems(List<ValuationCompositeItem> compositeItems) { this.compositeItems = compositeItems; }
 
     public List<ValuationSnapshot> getSnapshots() { return snapshots; }
     public void setSnapshots(List<ValuationSnapshot> snapshots) { this.snapshots = snapshots; }

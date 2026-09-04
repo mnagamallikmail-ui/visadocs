@@ -43,6 +43,15 @@ class DocumentWorkspaceVm {
 
     final List<SectionVm> parsedSections = [];
 
+    final meth = values['VALUATION_METHODOLOGY'] ?? '';
+    final cat = (values['PROPERTY_CATEGORY'] ?? values['property_category'] ?? values['PROPERTY_TYPE'] ?? '').toLowerCase();
+    final isComposite = meth == 'COMPOSITE' ||
+        cat.contains('flat') || cat.contains('apartment') || cat.contains('commercial space') ||
+        cat.contains('office') || cat.contains('retail') || cat.contains('shop') || cat.contains('commercial unit') ||
+        (values['RAW_COMPOSITE_ITEMS_JSON'] != null && values['RAW_COMPOSITE_ITEMS_JSON']!.trim().isNotEmpty && values['RAW_COMPOSITE_ITEMS_JSON'] != '[]');
+
+    bool compositeBlockAdded = false;
+
     for (final s in dom.sections) {
       final List<TableVm> tables = [];
       final List<StudioParagraph> paragraphs = [];
@@ -93,6 +102,27 @@ class DocumentWorkspaceVm {
 
           // Check if this paragraph is a dynamic valuation table directive
           final upperPKeys = pKeys.map((k) => k.toUpperCase().trim()).toList();
+          if (upperPKeys.contains('COMPOSITE_PROPERTY_TABLE') || upperPKeys.contains('DYNAMIC_COMPOSITE_PROPERTY_TABLE') || upperPKeys.contains('COMPOSITE_TABLE')) {
+            orderedBlocks.add(ValuationCompositeBlockVm(el.id));
+            compositeBlockAdded = true;
+            continue;
+          }
+
+          if (isComposite) {
+            if (upperPKeys.contains('LAND_TABLE') || upperPKeys.contains('DYNAMIC_LAND_TABLE') ||
+                upperPKeys.contains('BUILDING_TABLE') || upperPKeys.contains('DYNAMIC_BUILDING_TABLE') ||
+                upperPKeys.contains('VALUATION_SUMMARY_TABLE') || upperPKeys.contains('DYNAMIC_VALUATION_SUMMARY_TABLE') ||
+                upperPKeys.contains('PROPERTY_VALUE_TABLE') || upperPKeys.contains('VALUE_OF_THE_PROPERTY') ||
+                upperPKeys.contains('VALUE_OF_THE_PROPERTY_TABLE') ||
+                (upperPKeys.contains('TOTAL_LAND_VALUE') && upperPKeys.contains('FAIR_VALUE') && upperPKeys.contains('SAY_VALUE'))) {
+              if (!compositeBlockAdded) {
+                orderedBlocks.add(ValuationCompositeBlockVm(el.id));
+                compositeBlockAdded = true;
+              }
+              continue;
+            }
+          }
+
           if (upperPKeys.contains('LAND_TABLE') || upperPKeys.contains('DYNAMIC_LAND_TABLE')) {
             orderedBlocks.add(ValuationLandBlockVm(el.id));
             continue;
@@ -304,6 +334,11 @@ class ValuationComparableBlockVm extends SectionBlockVm {
   ValuationComparableBlockVm(this.id);
 }
 
+class ValuationCompositeBlockVm extends SectionBlockVm {
+  final String id;
+  ValuationCompositeBlockVm(this.id);
+}
+
 bool isCalculatedValuationKey(String key) {
   final upper = key.toUpperCase().trim();
   return upper == 'TOTAL_LAND_VALUE' ||
@@ -318,6 +353,10 @@ bool isCalculatedValuationKey(String key) {
       upper == 'TOTAL_SALVAGE_VALUE_WORDS' ||
       upper == 'FAIR_VALUE' ||
       upper == 'FAIR_VALUE_WORDS' ||
+      upper == 'RAW_FAIR_VALUE' ||
+      upper == 'RAW_FAIR_VALUE_WORDS' ||
+      upper == 'SAY_FAIR_VALUE' ||
+      upper == 'SAY_FAIR_VALUE_WORDS' ||
       upper == 'SAY_VALUE' ||
       upper == 'SAY_VALUE_WORDS' ||
       upper == 'REALIZABLE_VALUE' ||
@@ -330,6 +369,9 @@ bool isCalculatedValuationKey(String key) {
       upper == 'GOVERNMENT_VALUE_WORDS' ||
       upper == 'REALIZABLE_PERCENTAGE' ||
       upper == 'DISTRESS_SALE_PERCENTAGE' ||
+      upper == 'TOTAL_INTERIOR_AMOUNT' ||
+      upper == 'TOTAL_INTERIOR_DEPRECIATION' ||
+      upper == 'TOTAL_INTERIOR_FAIR_VALUE' ||
       upper == 'LAND_TABLE' ||
       upper == 'DYNAMIC_LAND_TABLE' ||
       upper == 'BUILDING_TABLE' ||
@@ -341,7 +383,10 @@ bool isCalculatedValuationKey(String key) {
       upper == 'VALUE_OF_THE_PROPERTY' ||
       upper == 'VALUE_OF_THE_PROPERTY_TABLE' ||
       upper == 'COMPARABLES_TABLE' ||
-      upper == 'DYNAMIC_COMPARABLES_TABLE';
+      upper == 'DYNAMIC_COMPARABLES_TABLE' ||
+      upper == 'COMPOSITE_PROPERTY_TABLE' ||
+      upper == 'DYNAMIC_COMPOSITE_PROPERTY_TABLE' ||
+      upper == 'COMPOSITE_TABLE';
 }
 
 /// ViewModel for a paragraph block containing static text or interactive input fields.

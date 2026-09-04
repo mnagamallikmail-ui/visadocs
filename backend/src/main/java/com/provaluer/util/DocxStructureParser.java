@@ -865,6 +865,9 @@ public class DocxStructureParser {
         if (upper.equals("COMPARABLES_TABLE") || upper.equals("DYNAMIC_COMPARABLES_TABLE")) {
             return "DYNAMIC_COMPARABLES_TABLE";
         }
+        if (upper.equals("COMPOSITE_PROPERTY_TABLE") || upper.equals("DYNAMIC_COMPOSITE_PROPERTY_TABLE") || upper.equals("COMPOSITE_TABLE")) {
+            return "DYNAMIC_COMPOSITE_PROPERTY_TABLE";
+        }
         if (isCalculatedValuationKey(upper)) {
             return "CALCULATED";
         }
@@ -891,6 +894,9 @@ public class DocxStructureParser {
                 || upper.equals("TOTAL_DEPRECIATION_AMOUNT") || upper.equals("TOTAL_DEPRECIATION_AMOUNT_WORDS")
                 || upper.equals("TOTAL_SALVAGE_VALUE") || upper.equals("TOTAL_SALVAGE_VALUE_WORDS")
                 || upper.equals("FAIR_VALUE") || upper.equals("FAIR_VALUE_WORDS")
+                || upper.equals("RAW_FAIR_VALUE") || upper.equals("RAW_FAIR_VALUE_WORDS")
+                || upper.equals("SAY_FAIR_VALUE") || upper.equals("SAY_FAIR_VALUE_WORDS")
+                || upper.equals("TOTAL_INTERIOR_VALUE") || upper.equals("TOTAL_INTERIOR_VALUE_WORDS")
                 || upper.equals("SAY_VALUE") || upper.equals("SAY_VALUE_WORDS")
                 || upper.equals("REALIZABLE_VALUE") || upper.equals("REALIZABLE_VALUE_WORDS")
                 || upper.equals("DISTRESS_SALE_VALUE") || upper.equals("DISTRESS_SALE_VALUE_WORDS")
@@ -906,6 +912,7 @@ public class DocxStructureParser {
         KNOWN_HUMANIZED_LABELS.put("VALUATION_SUMMARY_TABLE", "Consolidated Valuation Summary Certificate");
         KNOWN_HUMANIZED_LABELS.put("PROPERTY_VALUE_TABLE", "Value of the Property Assessment");
         KNOWN_HUMANIZED_LABELS.put("COMPARABLES_TABLE", "Market Comparable Sales Analysis");
+        KNOWN_HUMANIZED_LABELS.put("COMPOSITE_PROPERTY_TABLE", "Assessment of Property Value (Composite Rate Method)");
         KNOWN_HUMANIZED_LABELS.put("VRIN", "Valuer Registration Identification Number");
         KNOWN_HUMANIZED_LABELS.put("REPORT_REF_NO", "Report Reference Number");
         KNOWN_HUMANIZED_LABELS.put("REF_NO", "Reference Number");

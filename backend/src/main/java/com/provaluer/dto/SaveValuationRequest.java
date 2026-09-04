@@ -2,6 +2,7 @@ package com.provaluer.dto;
 
 import com.provaluer.model.ValuationBuildingItem;
 import com.provaluer.model.ValuationComparableSale;
+import com.provaluer.model.ValuationCompositeItem;
 import com.provaluer.model.ValuationLandItem;
 
 import java.math.BigDecimal;
@@ -21,6 +22,13 @@ public class SaveValuationRequest {
     private List<ValuationLandItem> landItems;
     private List<ValuationBuildingItem> buildingItems;
     private List<ValuationComparableSale> comparableSales;
+    private List<ValuationCompositeItem> compositeItems;
+    private String valuationMethodology;
+    private BigDecimal compositeGovernmentRate;
+    private BigDecimal compositeConstructionCost;
+    private BigDecimal compositeBuildingAge;
+    private Integer compositeBuildingTotalLife;
+    private BigDecimal compositeBuildingDepreciationPct;
     private String reason; // for audit logging
 
     public SaveValuationRequest() {}
@@ -63,6 +71,27 @@ public class SaveValuationRequest {
 
     public List<ValuationComparableSale> getComparableSales() { return comparableSales; }
     public void setComparableSales(List<ValuationComparableSale> comparableSales) { this.comparableSales = comparableSales; }
+
+    public List<ValuationCompositeItem> getCompositeItems() { return compositeItems; }
+    public void setCompositeItems(List<ValuationCompositeItem> compositeItems) { this.compositeItems = compositeItems; }
+
+    public String getValuationMethodology() { return valuationMethodology; }
+    public void setValuationMethodology(String valuationMethodology) { this.valuationMethodology = valuationMethodology; }
+
+    public BigDecimal getCompositeGovernmentRate() { return compositeGovernmentRate; }
+    public void setCompositeGovernmentRate(BigDecimal compositeGovernmentRate) { this.compositeGovernmentRate = compositeGovernmentRate; }
+
+    public BigDecimal getCompositeConstructionCost() { return compositeConstructionCost; }
+    public void setCompositeConstructionCost(BigDecimal compositeConstructionCost) { this.compositeConstructionCost = compositeConstructionCost; }
+
+    public BigDecimal getCompositeBuildingAge() { return compositeBuildingAge; }
+    public void setCompositeBuildingAge(BigDecimal compositeBuildingAge) { this.compositeBuildingAge = compositeBuildingAge; }
+
+    public Integer getCompositeBuildingTotalLife() { return compositeBuildingTotalLife; }
+    public void setCompositeBuildingTotalLife(Integer compositeBuildingTotalLife) { this.compositeBuildingTotalLife = compositeBuildingTotalLife; }
+
+    public BigDecimal getCompositeBuildingDepreciationPct() { return compositeBuildingDepreciationPct; }
+    public void setCompositeBuildingDepreciationPct(BigDecimal compositeBuildingDepreciationPct) { this.compositeBuildingDepreciationPct = compositeBuildingDepreciationPct; }
 
     public String getReason() { return reason; }
     public void setReason(String reason) { this.reason = reason; }

@@ -28,6 +28,17 @@ class ValuationDataModel {
   double insurableValue;
   String valuationStatus;
   int currentVersion;
+  String valuationMethodology;
+  double compositeGovernmentRate;
+  double compositeConstructionCost;
+  double compositeBuildingAge;
+  double compositeBuildingTotalLife;
+  double compositeBuildingDepreciationPct;
+  double rawFairValue;
+  double sayFairValue;
+  double totalInteriorAmount;
+  double totalInteriorDepreciation;
+  double totalInteriorFairValue;
 
   ValuationDataModel({
     this.id,
@@ -59,6 +70,17 @@ class ValuationDataModel {
     this.insurableValue = 0,
     this.valuationStatus = 'DRAFT',
     this.currentVersion = 1,
+    this.valuationMethodology = 'LAND_AND_BUILDING',
+    this.compositeGovernmentRate = 0,
+    this.compositeConstructionCost = 2000.0,
+    this.compositeBuildingAge = 0,
+    this.compositeBuildingTotalLife = 60.0,
+    this.compositeBuildingDepreciationPct = 0,
+    this.rawFairValue = 0,
+    this.sayFairValue = 0,
+    this.totalInteriorAmount = 0,
+    this.totalInteriorDepreciation = 0,
+    this.totalInteriorFairValue = 0,
   });
 
   factory ValuationDataModel.fromJson(Map<String, dynamic> json) {
@@ -97,6 +119,17 @@ class ValuationDataModel {
       insurableValue: (json['insurableValue'] as num?)?.toDouble() ?? (json['totalReplacementCost'] as num?)?.toDouble() ?? 0,
       valuationStatus: json['valuationStatus']?.toString() ?? 'DRAFT',
       currentVersion: (json['currentVersion'] as num?)?.toInt() ?? 1,
+      valuationMethodology: json['valuationMethodology']?.toString() ?? 'LAND_AND_BUILDING',
+      compositeGovernmentRate: (json['compositeGovernmentRate'] as num?)?.toDouble() ?? 0,
+      compositeConstructionCost: (json['compositeConstructionCost'] as num?)?.toDouble() ?? 2000.0,
+      compositeBuildingAge: (json['compositeBuildingAge'] as num?)?.toDouble() ?? 0,
+      compositeBuildingTotalLife: (json['compositeBuildingTotalLife'] as num?)?.toDouble() ?? 60.0,
+      compositeBuildingDepreciationPct: (json['compositeBuildingDepreciationPct'] as num?)?.toDouble() ?? 0,
+      rawFairValue: (json['rawFairValue'] as num?)?.toDouble() ?? 0,
+      sayFairValue: (json['sayFairValue'] as num?)?.toDouble() ?? 0,
+      totalInteriorAmount: (json['totalInteriorAmount'] as num?)?.toDouble() ?? 0,
+      totalInteriorDepreciation: (json['totalInteriorDepreciation'] as num?)?.toDouble() ?? 0,
+      totalInteriorFairValue: (json['totalInteriorFairValue'] as num?)?.toDouble() ?? 0,
     );
   }
 
@@ -130,6 +163,17 @@ class ValuationDataModel {
     'insurableValue': insurableValue,
     'valuationStatus': valuationStatus,
     'currentVersion': currentVersion,
+    'valuationMethodology': valuationMethodology,
+    'compositeGovernmentRate': compositeGovernmentRate,
+    'compositeConstructionCost': compositeConstructionCost,
+    'compositeBuildingAge': compositeBuildingAge,
+    'compositeBuildingTotalLife': compositeBuildingTotalLife,
+    'compositeBuildingDepreciationPct': compositeBuildingDepreciationPct,
+    'rawFairValue': rawFairValue,
+    'sayFairValue': sayFairValue,
+    'totalInteriorAmount': totalInteriorAmount,
+    'totalInteriorDepreciation': totalInteriorDepreciation,
+    'totalInteriorFairValue': totalInteriorFairValue,
   };
 }
 
@@ -344,6 +388,7 @@ class ValuationBundleModel {
   List<ValuationLandItemModel> landItems;
   List<ValuationBuildingItemModel> buildingItems;
   List<ValuationComparableSaleModel> comparableSales;
+  List<ValuationCompositeItemModel> compositeItems;
   Map<String, String> placeholders;
   bool isLocked;
 
@@ -352,6 +397,7 @@ class ValuationBundleModel {
     required this.landItems,
     required this.buildingItems,
     required this.comparableSales,
+    this.compositeItems = const [],
     required this.placeholders,
     this.isLocked = false,
   });
@@ -371,10 +417,96 @@ class ValuationBundleModel {
               ?.map((e) => ValuationComparableSaleModel.fromJson(e as Map<String, dynamic>))
               .toList() ??
           [],
+      compositeItems: (json['compositeItems'] as List<dynamic>?)
+              ?.map((e) => ValuationCompositeItemModel.fromJson(e as Map<String, dynamic>))
+              .toList() ??
+          [],
       placeholders: (json['placeholders'] as Map<String, dynamic>?)
               ?.map((k, v) => MapEntry(k, v?.toString() ?? '')) ??
           {},
       isLocked: json['locked'] == true || json['isLocked'] == true,
     );
   }
+}
+
+class ValuationCompositeItemModel {
+  int? id;
+  int? orderId;
+  String itemCategory; // 'MAIN_UNIT' or 'INTERIOR_WORK'
+  String description;
+  String enteredUnit;
+  double quantity;
+  double rate;
+  double amount;
+  double constructionCost;
+  double buildingAge;
+  double totalLife;
+  String depreciationMode; // 'PERCENTAGE' or 'DIRECT_AMOUNT'
+  double depreciationPercentage;
+  double depreciationAmount;
+  bool isInsurable;
+  double fairValue;
+  int sortOrder;
+
+  ValuationCompositeItemModel({
+    this.id,
+    this.orderId,
+    this.itemCategory = 'INTERIOR_WORK',
+    this.description = '',
+    this.enteredUnit = 'LS',
+    this.quantity = 1.0,
+    this.rate = 0.0,
+    this.amount = 0.0,
+    this.constructionCost = 2000.0,
+    this.buildingAge = 0.0,
+    this.totalLife = 60.0,
+    this.depreciationMode = 'PERCENTAGE',
+    this.depreciationPercentage = 0.0,
+    this.depreciationAmount = 0.0,
+    this.isInsurable = true,
+    this.fairValue = 0.0,
+    this.sortOrder = 0,
+  });
+
+  factory ValuationCompositeItemModel.fromJson(Map<String, dynamic> json) {
+    return ValuationCompositeItemModel(
+      id: json['id'] as int?,
+      orderId: json['orderId'] as int?,
+      itemCategory: json['itemCategory']?.toString() ?? 'INTERIOR_WORK',
+      description: json['description']?.toString() ?? '',
+      enteredUnit: json['enteredUnit']?.toString() ?? 'LS',
+      quantity: (json['quantity'] as num?)?.toDouble() ?? 1.0,
+      rate: (json['rate'] as num?)?.toDouble() ?? 0.0,
+      amount: (json['amount'] as num?)?.toDouble() ?? 0.0,
+      constructionCost: (json['constructionCost'] as num?)?.toDouble() ?? 2000.0,
+      buildingAge: (json['buildingAge'] as num?)?.toDouble() ?? 0.0,
+      totalLife: (json['totalLife'] as num?)?.toDouble() ?? 60.0,
+      depreciationMode: json['depreciationMode']?.toString() ?? 'DIRECT_AMOUNT',
+      depreciationPercentage: (json['depreciationPercentage'] as num?)?.toDouble() ?? 0.0,
+      depreciationAmount: (json['depreciationAmount'] as num?)?.toDouble() ?? 0.0,
+      isInsurable: json['insurable'] == true || json['isInsurable'] == true,
+      fairValue: (json['fairValue'] as num?)?.toDouble() ?? 0.0,
+      sortOrder: (json['sortOrder'] as num?)?.toInt() ?? 0,
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'id': id,
+    'orderId': orderId,
+    'itemCategory': itemCategory,
+    'description': description,
+    'enteredUnit': enteredUnit,
+    'quantity': quantity,
+    'rate': rate,
+    'amount': amount,
+    'constructionCost': constructionCost,
+    'buildingAge': buildingAge,
+    'totalLife': totalLife,
+    'depreciationMode': depreciationMode,
+    'depreciationPercentage': depreciationPercentage,
+    'depreciationAmount': depreciationAmount,
+    'isInsurable': isInsurable,
+    'fairValue': fairValue,
+    'sortOrder': sortOrder,
+  };
 }

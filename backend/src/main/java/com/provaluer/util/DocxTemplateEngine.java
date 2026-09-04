@@ -16,6 +16,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.provaluer.repository.TemplateQuestionRepository;
 import com.provaluer.model.TemplateQuestion;
+import com.provaluer.service.ValuationCalculationFormulaService;
 
 
 import java.io.ByteArrayInputStream;
@@ -588,6 +589,9 @@ public class DocxTemplateEngine {
     }
 
     private void generateElements(WordprocessingMLPackage wordMLPackage, List<Object> elements, Map<String, String> inputs, Map<String, byte[]> images) throws Exception {
+        boolean isComposite = isCompositeProperty(inputs);
+        boolean compositeTableRendered = false;
+
         for (int i = 0; i < elements.size(); i++) {
             Object elem = elements.get(i);
             Object unwrapped = unwrap(elem);
@@ -598,6 +602,49 @@ public class DocxTemplateEngine {
                 String norm = pText.replaceAll("[\\s_<>]+", "").toUpperCase();
                 
                 // Dynamic Table Generation with Two Blank Paragraphs Spacing
+                if (norm.contains("COMPOSITEPROPERTYTABLE") || norm.contains("COMPOSITETABLE")) {
+                    Tbl compTable = buildDynamicCompositePropertyTable(inputs);
+                    Tbl summaryTable = buildDynamicCompositeSummaryTable(inputs);
+                    if (compTable != null) {
+                        elements.set(i, compTable);
+                        elements.add(i + 1, createBlankParagraph());
+                        elements.add(i + 2, summaryTable);
+                        elements.add(i + 3, createBlankParagraph());
+                        elements.add(i + 4, createBlankParagraph());
+                        i += 4;
+                        compositeTableRendered = true;
+                        continue;
+                    }
+                }
+
+                if (isComposite) {
+                    if (norm.contains("LANDTABLE") || norm.contains("BUILDINGTABLE") 
+                            || norm.contains("VALUATIONSUMMARYTABLE") || (norm.contains("VALUATIONSUMMARY") && norm.contains("TABLE"))
+                            || norm.contains("PROPERTYVALUETABLE") || norm.contains("VALUEOFTHEPROPERTYTABLE") 
+                            || norm.contains("VALUEOFPROPERTYTABLE") || norm.contains("PROPERTYVALUE")
+                            || norm.contains("VALUEOFTHEPROPERTY") || norm.contains("VALUEOFPROPERTY")
+                            || norm.contains("PROPERTYVALUES")) {
+                        if (!compositeTableRendered) {
+                            Tbl compTable = buildDynamicCompositePropertyTable(inputs);
+                            Tbl summaryTable = buildDynamicCompositeSummaryTable(inputs);
+                            if (compTable != null) {
+                                elements.set(i, compTable);
+                                elements.add(i + 1, createBlankParagraph());
+                                elements.add(i + 2, summaryTable);
+                                elements.add(i + 3, createBlankParagraph());
+                                elements.add(i + 4, createBlankParagraph());
+                                i += 4;
+                                compositeTableRendered = true;
+                                continue;
+                            }
+                        } else {
+                            // Suppress subsequent legacy tables for composite properties
+                            elements.set(i, new ObjectFactory().createP());
+                            continue;
+                        }
+                    }
+                }
+
                 if (norm.contains("LANDTABLE")) {
                     Tbl landTable = buildDynamicLandTable(inputs);
                     if (landTable != null) {
@@ -696,6 +743,137 @@ public class DocxTemplateEngine {
         } catch (Exception e) {
             return raw;
         }
+    }
+
+    private boolean isCompositeProperty(Map<String, String> inputs) {
+        if (inputs == null) return false;
+        String meth = inputs.getOrDefault("VALUATION_METHODOLOGY", inputs.getOrDefault("valuation_methodology", ""));
+        if ("COMPOSITE".equalsIgnoreCase(meth)) return true;
+
+        String compJson = inputs.get("RAW_COMPOSITE_ITEMS_JSON");
+        if (compJson != null && !compJson.trim().isEmpty() && !compJson.trim().equals("[]")) {
+            return true;
+        }
+
+        String cat = inputs.getOrDefault("PROPERTY_CATEGORY", inputs.getOrDefault("property_category", ""));
+        if (cat.isEmpty()) {
+            cat = inputs.getOrDefault("PROPERTY_TYPE", inputs.getOrDefault("property_type", ""));
+        }
+        String cLower = cat.trim().toLowerCase();
+        return cLower.contains("flat") || cLower.contains("apartment") || cLower.contains("commercial space")
+                || cLower.contains("office") || cLower.contains("retail") || cLower.contains("shop")
+                || cLower.contains("commercial unit");
+    }
+
+    private Tbl buildDynamicCompositePropertyTable(Map<String, String> inputs) {
+        List<String> headers = List.of("S.No", "Description", "Unit", "Quantity", "Rate (₹)", "Amount (₹)", "Depreciation (₹)", "Fair Value (₹)");
+        List<Integer> colWidths = List.of(700, 2700, 800, 900, 1100, 1100, 1100, 1200);
+        List<JcEnumeration> alignments = List.of(
+                JcEnumeration.CENTER, JcEnumeration.LEFT, JcEnumeration.CENTER,
+                JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.RIGHT,
+                JcEnumeration.RIGHT, JcEnumeration.RIGHT
+        );
+        List<List<String>> rows = new ArrayList<>();
+
+        String compJson = inputs != null ? inputs.get("RAW_COMPOSITE_ITEMS_JSON") : null;
+        BigDecimal calculatedRawFairValue = BigDecimal.ZERO;
+
+        if (compJson != null && !compJson.trim().isEmpty()) {
+            try {
+                JsonNode root = objectMapper.readTree(compJson);
+                if (root.isArray()) {
+                    int sNo = 1;
+                    for (JsonNode n : root) {
+                        String sNoStr = String.valueOf(sNo++);
+                        String desc = n.path("description").asText("Item");
+                        String unit = n.path("enteredUnit").asText("Sq.Ft");
+                        String qty = formatIndian(n.path("quantity").asText("0"));
+                        String rate = "₹ " + formatIndian(n.path("rate").asText("0"));
+                        String amount = "₹ " + formatIndian(n.path("amount").asText("0"));
+                        String dep = "₹ " + formatIndian(n.path("depreciationAmount").asText("0"));
+                        String fv = "₹ " + formatIndian(n.path("fairValue").asText("0"));
+
+                        try {
+                            calculatedRawFairValue = calculatedRawFairValue.add(new BigDecimal(n.path("fairValue").asText("0")));
+                        } catch (Exception ignored) {}
+
+                        rows.add(List.of(sNoStr, desc, unit, qty, rate, amount, dep, fv));
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        if (rows.isEmpty()) {
+            String subType = inputs != null ? inputs.getOrDefault("PROPERTY_SUB_TYPE", inputs.getOrDefault("PROPERTY_TYPE", "Main Unit")) : "Main Unit";
+            String area = inputs != null ? inputs.getOrDefault("SUPER_BUILT_UP_AREA", inputs.getOrDefault("PROPERTY_AREA_SFT", "1000")) : "1000";
+            String rate = inputs != null ? inputs.getOrDefault("COMPOSITE_RATE", "0") : "0";
+            String amt = inputs != null ? inputs.getOrDefault("COMPOSITE_AMOUNT", "0") : "0";
+            String dep = inputs != null ? inputs.getOrDefault("COMPOSITE_DEPRECIATION", "0") : "0";
+            String fv = inputs != null ? inputs.getOrDefault("COMPOSITE_FAIR_VALUE", inputs.getOrDefault("FAIR_VALUE", "0")) : "0";
+
+            rows.add(List.of("1", subType, "Sq.Ft", formatIndian(area), "₹ " + formatIndian(rate), "₹ " + formatIndian(amt), "₹ " + formatIndian(dep), "₹ " + formatIndian(fv)));
+            rows.add(List.of("2", "Interior Works & Improvements", "LS", "1", "₹ 0", "₹ 0", "₹ 0", "₹ 0"));
+            try {
+                calculatedRawFairValue = new BigDecimal(fv.replaceAll("[^0-9.-]", ""));
+            } catch (Exception ignored) {}
+        }
+
+        String rawFairValStr = inputs != null ? inputs.getOrDefault("RAW_FAIR_VALUE", inputs.getOrDefault("raw_fair_value", "")) : "";
+        if (rawFairValStr.trim().isEmpty() || rawFairValStr.equals("0")) {
+            rawFairValStr = calculatedRawFairValue.compareTo(BigDecimal.ZERO) > 0 ? calculatedRawFairValue.toPlainString() : (inputs != null ? inputs.getOrDefault("FAIR_VALUE", inputs.getOrDefault("fair_value", "0")) : "0");
+        }
+
+        BigDecimal rawFairValBd = BigDecimal.ZERO;
+        try {
+            rawFairValBd = new BigDecimal(rawFairValStr.replaceAll("[^0-9.-]", ""));
+        } catch (Exception ignored) {}
+
+        String sayFairValStr = inputs != null ? inputs.getOrDefault("SAY_FAIR_VALUE", inputs.getOrDefault("say_fair_value", inputs.getOrDefault("FAIR_VALUE", inputs.getOrDefault("fair_value", "")))) : "";
+        BigDecimal sayFairValBd = BigDecimal.ZERO;
+        try {
+            if (!sayFairValStr.trim().isEmpty() && !sayFairValStr.equals("0")) {
+                sayFairValBd = new BigDecimal(sayFairValStr.replaceAll("[^0-9.-]", ""));
+            } else {
+                sayFairValBd = ValuationCalculationFormulaService.computeSayValue(rawFairValBd);
+            }
+        } catch (Exception e) {
+            sayFairValBd = ValuationCalculationFormulaService.computeSayValue(rawFairValBd);
+        }
+
+        List<Map.Entry<String, String>> totals = new ArrayList<>();
+        totals.add(Map.entry("Fair Value Of Property", "₹ " + formatIndian(rawFairValBd.toPlainString())));
+
+        if (sayFairValBd.compareTo(BigDecimal.ZERO) > 0 && sayFairValBd.compareTo(rawFairValBd) != 0) {
+            totals.add(Map.entry("Say", "₹ " + formatIndian(sayFairValBd.toPlainString())));
+        }
+
+        return createDocxTableWithMultipleMergedTotals("Valuation of Property (Composite Rate Method)", headers, colWidths, rows, totals, 17, alignments);
+    }
+
+    private Tbl buildDynamicCompositeSummaryTable(Map<String, String> inputs) {
+        List<String> headers = List.of("Valuation Parameter", "Amount (₹)");
+        List<Integer> colWidths = List.of(5600, 4000);
+        List<JcEnumeration> alignments = List.of(JcEnumeration.LEFT, JcEnumeration.RIGHT);
+        List<List<String>> rows = new ArrayList<>();
+
+        if (inputs != null) {
+            String sayFairValStr = inputs.getOrDefault("SAY_FAIR_VALUE", inputs.getOrDefault("say_fair_value", inputs.getOrDefault("FAIR_VALUE", inputs.getOrDefault("fair_value", "0"))));
+            rows.add(List.of("Fair Value", "₹ " + formatIndian(sayFairValStr)));
+
+            String realizable = inputs.getOrDefault("REALIZABLE_VALUE", inputs.getOrDefault("realizable_value", "0"));
+            rows.add(List.of("Realizable Value", "₹ " + formatIndian(realizable)));
+
+            String distress = inputs.getOrDefault("DISTRESS_SALE_VALUE", inputs.getOrDefault("distress_sale_value", "0"));
+            rows.add(List.of("Distress Sale Value", "₹ " + formatIndian(distress)));
+
+            String govt = inputs.getOrDefault("GOVERNMENT_VALUE", inputs.getOrDefault("government_value", "0"));
+            rows.add(List.of("Government Value", "₹ " + formatIndian(govt)));
+
+            String insurable = inputs.getOrDefault("INSURABLE_VALUE", inputs.getOrDefault("insurable_value", "0"));
+            rows.add(List.of("Insurable Value", "₹ " + formatIndian(insurable)));
+        }
+
+        return createDocxTable("Valuation Parameters Summary", headers, colWidths, rows, null, 18, alignments);
     }
 
     private Tbl buildDynamicLandTable(Map<String, String> inputs) {

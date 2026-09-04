@@ -41,6 +41,9 @@ public class ValuationEngineService {
     private ValuationComparableSaleRepository comparableSaleRepository;
 
     @Autowired
+    private ValuationCompositeItemRepository compositeItemRepository;
+
+    @Autowired
     private ValuationSnapshotRepository snapshotRepository;
 
     @Autowired
@@ -57,6 +60,18 @@ public class ValuationEngineService {
 
     private final ObjectMapper objectMapper = new ObjectMapper().findAndRegisterModules();
 
+    public static boolean isCompositeProperty(Order order, ValuationData data) {
+        if (data != null && "COMPOSITE_RATE".equalsIgnoreCase(data.getValuationMethodology())) {
+            return true;
+        }
+        if (order != null && order.getPropertyCategory() != null) {
+            String cat = order.getPropertyCategory().toLowerCase().trim();
+            return cat.contains("flat") || cat.contains("apartment") || cat.contains("commercial space")
+                    || cat.contains("office") || cat.contains("retail") || cat.contains("shop") || cat.contains("commercial unit");
+        }
+        return false;
+    }
+
     /**
      * Retrieves or creates default ValuationData and child items for an order.
      */
@@ -71,15 +86,53 @@ public class ValuationEngineService {
         List<ValuationLandItem> landItems = landItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
         List<ValuationBuildingItem> buildingItems = buildingItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
         List<ValuationComparableSale> comparables = comparableSaleRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
+        List<ValuationCompositeItem> compositeItems = compositeItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
         List<ValuationSnapshot> snapshots = snapshotRepository.findByOrderIdOrderByVersionNumberDesc(orderId);
 
-        // Always ensure live formula calculation
-        formulaService.calculateSummary(data, landItems, buildingItems);
+        boolean isComposite = isCompositeProperty(order, data) || (compositeItems != null && !compositeItems.isEmpty());
+        if (isComposite) {
+            data.setValuationMethodology("COMPOSITE_RATE");
+            if (compositeItems == null || compositeItems.isEmpty()) {
+                ValuationCompositeItem mainUnit = new ValuationCompositeItem();
+                mainUnit.setOrderId(orderId);
+                mainUnit.setItemCategory("MAIN_UNIT");
+                mainUnit.setDescription(order.getPropertyCategory() != null ? order.getPropertyCategory() : "Commercial Flat/Unit");
+                mainUnit.setEnteredUnit("Sq.Ft");
+                mainUnit.setQuantity(BigDecimal.ZERO);
+                mainUnit.setRate(BigDecimal.ZERO);
+                mainUnit.setAmount(BigDecimal.ZERO);
+                mainUnit.setConstructionCost(data.getCompositeConstructionCost() != null ? data.getCompositeConstructionCost() : new BigDecimal("2000.00"));
+                mainUnit.setTotalLife(60);
+                mainUnit.setBuildingAge(BigDecimal.ZERO);
+                mainUnit.setSortOrder(1);
+                compositeItemRepository.save(mainUnit);
 
-        Map<String, String> placeholders = generatePlaceholders(order, data, landItems, buildingItems, comparables);
+                ValuationCompositeItem interior = new ValuationCompositeItem();
+                interior.setOrderId(orderId);
+                interior.setItemCategory("INTERIOR_WORK");
+                interior.setDescription("Interior Works & Improvements");
+                interior.setEnteredUnit("LS");
+                interior.setQuantity(BigDecimal.ONE);
+                interior.setRate(BigDecimal.ZERO);
+                interior.setAmount(BigDecimal.ZERO);
+                interior.setDepreciationMode("PERCENTAGE");
+                interior.setDepreciationPercentage(BigDecimal.ZERO);
+                interior.setDepreciationAmount(BigDecimal.ZERO);
+                interior.setSortOrder(2);
+                compositeItemRepository.save(interior);
+
+                compositeItems = compositeItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
+            }
+            formulaService.calculateCompositeSummary(data, compositeItems);
+        } else {
+            // Always ensure live formula calculation for land and buildings
+            formulaService.calculateSummary(data, landItems, buildingItems);
+        }
+
+        Map<String, String> placeholders = generatePlaceholders(order, data, landItems, buildingItems, comparables, compositeItems);
         boolean isLocked = "LOCKED".equalsIgnoreCase(data.getValuationStatus()) || "LOCKED".equalsIgnoreCase(order.getValuationStatus());
 
-        return new ValuationBundleResponse(data, landItems, buildingItems, comparables, snapshots, placeholders, isLocked);
+        return new ValuationBundleResponse(data, landItems, buildingItems, comparables, compositeItems, snapshots, placeholders, isLocked);
     }
 
     private ValuationData initializeDefaultValuationData(Order order) {
@@ -160,6 +213,25 @@ public class ValuationEngineService {
             data.setGovernmentValue(request.getGovernmentValue());
         }
 
+        if (request.getValuationMethodology() != null) {
+            data.setValuationMethodology(request.getValuationMethodology());
+        }
+        if (request.getCompositeGovernmentRate() != null) {
+            data.setCompositeGovernmentRate(request.getCompositeGovernmentRate());
+        }
+        if (request.getCompositeConstructionCost() != null) {
+            data.setCompositeConstructionCost(request.getCompositeConstructionCost());
+        }
+        if (request.getCompositeBuildingAge() != null) {
+            data.setCompositeBuildingAge(request.getCompositeBuildingAge());
+        }
+        if (request.getCompositeBuildingTotalLife() != null) {
+            data.setCompositeBuildingTotalLife(request.getCompositeBuildingTotalLife());
+        }
+        if (request.getCompositeBuildingDepreciationPct() != null) {
+            data.setCompositeBuildingDepreciationPct(request.getCompositeBuildingDepreciationPct());
+        }
+
         // 1. Replace Land Items
         if (request.getLandItems() != null) {
             landItemRepository.deleteByOrderId(orderId);
@@ -201,12 +273,32 @@ public class ValuationEngineService {
             }
         }
 
+        // 4. Replace Composite Items
+        if (request.getCompositeItems() != null) {
+            compositeItemRepository.deleteByOrderId(orderId);
+            int compIdx = 1;
+            for (ValuationCompositeItem item : request.getCompositeItems()) {
+                item.setId(null);
+                item.setOrderId(orderId);
+                item.setSortOrder(compIdx++);
+                formulaService.calculateCompositeItem(item);
+                compositeItemRepository.save(item);
+            }
+        }
+
         List<ValuationLandItem> landItems = landItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
         List<ValuationBuildingItem> buildingItems = buildingItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
         List<ValuationComparableSale> comparables = comparableSaleRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
+        List<ValuationCompositeItem> compositeItems = compositeItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
 
-        // 4. Run calculation summary
-        formulaService.calculateSummary(data, landItems, buildingItems);
+        // 5. Run calculation summary
+        boolean isComposite = isCompositeProperty(order, data) || (compositeItems != null && !compositeItems.isEmpty());
+        if (isComposite) {
+            data.setValuationMethodology("COMPOSITE_RATE");
+            formulaService.calculateCompositeSummary(data, compositeItems);
+        } else {
+            formulaService.calculateSummary(data, landItems, buildingItems);
+        }
         data.setUpdatedAt(LocalDateTime.now());
         valuationDataRepository.save(data);
 
@@ -244,10 +336,10 @@ public class ValuationEngineService {
             ));
         }
 
-        Map<String, String> placeholders = generatePlaceholders(order, data, landItems, buildingItems, comparables);
+        Map<String, String> placeholders = generatePlaceholders(order, data, landItems, buildingItems, comparables, compositeItems);
         List<ValuationSnapshot> snapshots = snapshotRepository.findByOrderIdOrderByVersionNumberDesc(orderId);
 
-        return new ValuationBundleResponse(data, landItems, buildingItems, comparables, snapshots, placeholders, false);
+        return new ValuationBundleResponse(data, landItems, buildingItems, comparables, compositeItems, snapshots, placeholders, false);
     }
 
     /**
@@ -269,7 +361,7 @@ public class ValuationEngineService {
         orderRepository.save(order);
 
         // Create Immutable Snapshot
-        createSnapshot(order, data, bundle.getLandItems(), bundle.getBuildingItems(), bundle.getComparableSales(),
+        createSnapshot(order, data, bundle.getLandItems(), bundle.getBuildingItems(), bundle.getComparableSales(), bundle.getCompositeItems(),
                 bundle.getPlaceholders(), "REPORT_FINALIZED", nextVersion, versionNotes, user, docxBytes, pdfBytes);
 
         auditLogRepository.save(new ValuationAuditLog(
@@ -332,6 +424,7 @@ public class ValuationEngineService {
 
     private void createSnapshot(Order order, ValuationData data, List<ValuationLandItem> landItems,
                                 List<ValuationBuildingItem> buildingItems, List<ValuationComparableSale> comparables,
+                                List<ValuationCompositeItem> compositeItems,
                                 Map<String, String> placeholders, String trigger, int versionNumber, String notes,
                                 UserDetailsImpl user, byte[] docxBytes, byte[] pdfBytes) {
         try {
@@ -340,6 +433,7 @@ public class ValuationEngineService {
             snapshotMap.put("landItems", landItems);
             snapshotMap.put("buildingItems", buildingItems);
             snapshotMap.put("comparableSales", comparables);
+            snapshotMap.put("compositeItems", compositeItems);
             snapshotMap.put("placeholders", placeholders);
             snapshotMap.put("order", Map.of(
                     "id", order.getId(),
@@ -394,6 +488,14 @@ public class ValuationEngineService {
                                                     List<ValuationLandItem> landItems,
                                                     List<ValuationBuildingItem> buildingItems,
                                                     List<ValuationComparableSale> comparables) {
+        return generatePlaceholders(order, data, landItems, buildingItems, comparables, Collections.emptyList());
+    }
+
+    public Map<String, String> generatePlaceholders(Order order, ValuationData data,
+                                                    List<ValuationLandItem> landItems,
+                                                    List<ValuationBuildingItem> buildingItems,
+                                                    List<ValuationComparableSale> comparables,
+                                                    List<ValuationCompositeItem> compositeItems) {
         Map<String, String> map = new LinkedHashMap<>();
 
         // Property Metadata
@@ -410,135 +512,183 @@ public class ValuationEngineService {
         map.put("property_type", order.getPropertyCategory() != null ? order.getPropertyCategory() : "Commercial Property");
         map.put("property_address", "");
 
-        // Land Values
-        map.put("total_land_value", IndianNumberFormatter.format(data.getTotalLandValue()));
-        map.put("total_land_value_words", IndianCurrencyToWords.convertToWords(data.getTotalLandValue()));
-        BigDecimal sayLand = data.getSayLandValue() != null && data.getSayLandValue().compareTo(BigDecimal.ZERO) > 0
-                ? data.getSayLandValue()
-                : computeSayValue(data.getTotalLandValue());
-        map.put("say_land_value", IndianNumberFormatter.format(sayLand));
-        map.put("say_land_value_words", IndianCurrencyToWords.convertToWords(sayLand));
+        boolean isComposite = isCompositeProperty(order, data) || (compositeItems != null && !compositeItems.isEmpty());
 
-        // Building Values
-        map.put("total_replacement_cost", IndianNumberFormatter.format(data.getTotalReplacementCost()));
-        map.put("total_replacement_cost_words", IndianCurrencyToWords.convertToWords(data.getTotalReplacementCost()));
-        map.put("total_depreciation_amount", IndianNumberFormatter.format(data.getTotalDepreciationAmount()));
-        map.put("total_depreciation_amount_words", IndianCurrencyToWords.convertToWords(data.getTotalDepreciationAmount()));
-        map.put("total_salvage_value", IndianNumberFormatter.format(data.getTotalSalvageValue()));
-        map.put("total_salvage_value_words", IndianCurrencyToWords.convertToWords(data.getTotalSalvageValue()));
-        map.put("total_building_value", IndianNumberFormatter.format(data.getTotalBuildingValue()));
-        map.put("total_building_value_words", IndianCurrencyToWords.convertToWords(data.getTotalBuildingValue()));
-        BigDecimal sayBldg = data.getSayBuildingValue() != null && data.getSayBuildingValue().compareTo(BigDecimal.ZERO) > 0
-                ? data.getSayBuildingValue()
-                : computeSayValue(data.getTotalBuildingValue());
-        map.put("say_building_value", IndianNumberFormatter.format(sayBldg));
-        map.put("say_building_value_words", IndianCurrencyToWords.convertToWords(sayBldg));
+        if (isComposite) {
+            // Composite Specific Placeholders
+            BigDecimal fairVal = data.getFairValue() != null ? data.getFairValue() : BigDecimal.ZERO;
+            BigDecimal rawFairVal = data.getRawFairValue() != null ? data.getRawFairValue() : fairVal;
+            BigDecimal sayFairVal = data.getSayFairValue() != null ? data.getSayFairValue() : fairVal;
 
-        // Valuation Summary
-        BigDecimal fairVal = sayLand.add(sayBldg);
-        map.put("fair_value", IndianNumberFormatter.format(fairVal));
-        map.put("fair_value_words", IndianCurrencyToWords.convertToWords(fairVal));
+            map.put("raw_fair_value", IndianNumberFormatter.format(rawFairVal));
+            map.put("raw_fair_value_words", IndianCurrencyToWords.convertToWords(rawFairVal));
+            map.put("say_fair_value", IndianNumberFormatter.format(sayFairVal));
+            map.put("say_fair_value_words", IndianCurrencyToWords.convertToWords(sayFairVal));
+            map.put("say_value", IndianNumberFormatter.format(sayFairVal));
+            map.put("say_value_words", IndianCurrencyToWords.convertToWords(sayFairVal));
+            map.put("fair_value", IndianNumberFormatter.format(sayFairVal));
+            map.put("fair_value_words", IndianCurrencyToWords.convertToWords(sayFairVal));
 
-        // Separate Realizable
-        BigDecimal landRealPct = data.getLandRealizablePercentage() != null ? data.getLandRealizablePercentage() : new BigDecimal("85.00");
-        BigDecimal bldgRealPct = data.getBuildingRealizablePercentage() != null ? data.getBuildingRealizablePercentage() : new BigDecimal("85.00");
-        BigDecimal landRealVal = data.getLandRealizableValue() != null && data.getLandRealizableValue().compareTo(BigDecimal.ZERO) > 0
-                ? data.getLandRealizableValue()
-                : sayLand.multiply(landRealPct).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
-        BigDecimal bldgRealVal = data.getBuildingRealizableValue() != null && data.getBuildingRealizableValue().compareTo(BigDecimal.ZERO) > 0
-                ? data.getBuildingRealizableValue()
-                : sayBldg.multiply(bldgRealPct).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
-        BigDecimal totalRealVal = landRealVal.add(bldgRealVal);
+            map.put("realizable_value", IndianNumberFormatter.format(data.getRealizableValue()));
+            map.put("realizable_value_words", IndianCurrencyToWords.convertToWords(data.getRealizableValue()));
+            map.put("realizable_percentage", (data.getRealizablePercentage() != null ? data.getRealizablePercentage() : new BigDecimal("85.00")) + "%");
+            map.put("distress_sale_value", IndianNumberFormatter.format(data.getDistressSaleValue()));
+            map.put("distress_sale_value_words", IndianCurrencyToWords.convertToWords(data.getDistressSaleValue()));
+            map.put("distress_sale_percentage", (data.getDistressSalePercentage() != null ? data.getDistressSalePercentage() : new BigDecimal("75.00")) + "%");
 
-        map.put("land_realizable_percentage", landRealPct + "%");
-        map.put("land_realizable_value", IndianNumberFormatter.format(landRealVal));
-        map.put("land_realizable_value_words", IndianCurrencyToWords.convertToWords(landRealVal));
-        map.put("building_realizable_percentage", bldgRealPct + "%");
-        map.put("building_realizable_value", IndianNumberFormatter.format(bldgRealVal));
-        map.put("building_realizable_value_words", IndianCurrencyToWords.convertToWords(bldgRealVal));
-        map.put("realizable_percentage", landRealPct + "%");
-        map.put("realizable_value", IndianNumberFormatter.format(totalRealVal));
-        map.put("realizable_value_words", IndianCurrencyToWords.convertToWords(totalRealVal));
+            map.put("government_value", IndianNumberFormatter.format(data.getGovernmentValue()));
+            map.put("government_value_words", IndianCurrencyToWords.convertToWords(data.getGovernmentValue()));
+            map.put("composite_government_rate", IndianNumberFormatter.format(data.getCompositeGovernmentRate()));
 
-        // Separate Distress
-        BigDecimal landDistPct = data.getLandDistressPercentage() != null ? data.getLandDistressPercentage() : new BigDecimal("75.00");
-        BigDecimal bldgDistPct = data.getBuildingDistressPercentage() != null ? data.getBuildingDistressPercentage() : new BigDecimal("75.00");
-        BigDecimal landDistVal = data.getLandDistressValue() != null && data.getLandDistressValue().compareTo(BigDecimal.ZERO) > 0
-                ? data.getLandDistressValue()
-                : sayLand.multiply(landDistPct).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
-        BigDecimal bldgDistVal = data.getBuildingDistressValue() != null && data.getBuildingDistressValue().compareTo(BigDecimal.ZERO) > 0
-                ? data.getBuildingDistressValue()
-                : sayBldg.multiply(bldgDistPct).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
-        BigDecimal totalDistVal = landDistVal.add(bldgDistVal);
+            map.put("insurable_value", IndianNumberFormatter.format(data.getInsurableValue()));
+            map.put("insurable_value_words", IndianCurrencyToWords.convertToWords(data.getInsurableValue()));
 
-        map.put("land_distress_percentage", landDistPct + "%");
-        map.put("land_distress_value", IndianNumberFormatter.format(landDistVal));
-        map.put("land_distress_value_words", IndianCurrencyToWords.convertToWords(landDistVal));
-        map.put("building_distress_percentage", bldgDistPct + "%");
-        map.put("building_distress_value", IndianNumberFormatter.format(bldgDistVal));
-        map.put("building_distress_value_words", IndianCurrencyToWords.convertToWords(bldgDistVal));
-        map.put("distress_sale_percentage", landDistPct + "%");
-        map.put("distress_sale_value", IndianNumberFormatter.format(totalDistVal));
-        map.put("distress_sale_value_words", IndianCurrencyToWords.convertToWords(totalDistVal));
+            map.put("total_interior_value", IndianNumberFormatter.format(data.getTotalInteriorFairValue()));
+            map.put("total_interior_amount", IndianNumberFormatter.format(data.getTotalInteriorAmount()));
+            map.put("total_interior_depreciation", IndianNumberFormatter.format(data.getTotalInteriorDepreciation()));
 
-        // Insurable Value (Business Rule: Insurable Value = Total Replacement Cost of Buildings)
-        BigDecimal insurableVal = (data.getInsurableValue() != null && data.getInsurableValue().signum() > 0)
-                ? data.getInsurableValue()
-                : (data.getTotalReplacementCost() != null ? data.getTotalReplacementCost() : BigDecimal.ZERO);
-        map.put("insurable_value", IndianNumberFormatter.format(insurableVal));
-        map.put("insurable_value_words", IndianCurrencyToWords.convertToWords(insurableVal));
-
-        // Government Value (Independent Guideline / Statutory Value)
-        BigDecimal landGovt = data.getLandGovernmentValue() != null && data.getLandGovernmentValue().compareTo(BigDecimal.ZERO) > 0
-                ? data.getLandGovernmentValue()
-                : formulaService.calculateLandGovernmentValue(landItems, new BigDecimal("5500"));
-        BigDecimal bldgGovt = data.getBuildingGovernmentValue() != null && data.getBuildingGovernmentValue().compareTo(BigDecimal.ZERO) > 0
-                ? data.getBuildingGovernmentValue()
-                : formulaService.calculateBuildingGovernmentValue(buildingItems, new BigDecimal("2400"), new BigDecimal("1900"));
-        BigDecimal totalGovt = (data.getGovernmentValue() != null && data.getGovernmentValue().compareTo(BigDecimal.ZERO) > 0)
-                ? data.getGovernmentValue()
-                : landGovt.add(bldgGovt);
-
-        map.put("land_government_value", IndianNumberFormatter.format(landGovt));
-        map.put("land_government_value_words", IndianCurrencyToWords.convertToWords(landGovt));
-        map.put("building_government_value", IndianNumberFormatter.format(bldgGovt));
-        map.put("building_government_value_words", IndianCurrencyToWords.convertToWords(bldgGovt));
-        map.put("government_value", IndianNumberFormatter.format(totalGovt));
-        map.put("government_value_words", IndianCurrencyToWords.convertToWords(totalGovt));
-
-        // Say Value
-        BigDecimal sayVal = computeSayValue(fairVal);
-        map.put("say_value", IndianNumberFormatter.format(sayVal));
-        map.put("say_value_words", IndianCurrencyToWords.convertToWords(sayVal));
-
-        // Backward compatibility for single land / building placeholders
-        if (landItems != null && !landItems.isEmpty()) {
-            ValuationLandItem firstLand = landItems.get(0);
-            map.put("land_area", firstLand.getEnteredArea() + " " + firstLand.getEnteredUnit());
-            map.put("land_rate", IndianNumberFormatter.format(firstLand.getRate()));
-            map.put("land_value", IndianNumberFormatter.format(firstLand.getValue()));
-            map.put("land_value_words", IndianCurrencyToWords.convertToWords(firstLand.getValue()));
+            if (compositeItems != null && !compositeItems.isEmpty()) {
+                ValuationCompositeItem mainUnit = compositeItems.stream()
+                        .filter(i -> "MAIN_UNIT".equalsIgnoreCase(i.getItemCategory()))
+                        .findFirst().orElse(compositeItems.get(0));
+                map.put("composite_area", mainUnit.getQuantity() + " " + mainUnit.getEnteredUnit());
+                map.put("composite_rate", IndianNumberFormatter.format(mainUnit.getRate()));
+                map.put("composite_amount", IndianNumberFormatter.format(mainUnit.getAmount()));
+                map.put("composite_depreciation", IndianNumberFormatter.format(mainUnit.getDepreciationAmount()));
+                map.put("composite_construction_cost", IndianNumberFormatter.format(mainUnit.getConstructionCost()));
+                map.put("composite_building_age", mainUnit.getBuildingAge() + " Years");
+            }
         } else {
-            map.put("land_area", "0 Sq.Ft");
-            map.put("land_rate", "0");
-            map.put("land_value", "0");
-            map.put("land_value_words", "Rupees Zero Only");
-        }
+            // Land Values
+            map.put("total_land_value", IndianNumberFormatter.format(data.getTotalLandValue()));
+            map.put("total_land_value_words", IndianCurrencyToWords.convertToWords(data.getTotalLandValue()));
+            BigDecimal sayLand = data.getSayLandValue() != null && data.getSayLandValue().compareTo(BigDecimal.ZERO) > 0
+                    ? data.getSayLandValue()
+                    : computeSayValue(data.getTotalLandValue());
+            map.put("say_land_value", IndianNumberFormatter.format(sayLand));
+            map.put("say_land_value_words", IndianCurrencyToWords.convertToWords(sayLand));
 
-        if (buildingItems != null && !buildingItems.isEmpty()) {
-            ValuationBuildingItem firstBldg = buildingItems.get(0);
-            map.put("building_type", firstBldg.getBuildingType());
-            map.put("building_area", firstBldg.getEnteredArea() + " " + firstBldg.getEnteredUnit());
-            map.put("replacement_rate", IndianNumberFormatter.format(firstBldg.getReplacementRate()));
-            map.put("replacement_cost", IndianNumberFormatter.format(firstBldg.getReplacementCost()));
-            map.put("replacement_cost_words", IndianCurrencyToWords.convertToWords(firstBldg.getReplacementCost()));
-            map.put("building_age", firstBldg.getBuildingAge().toString() + " Years");
-            map.put("building_useful_life", firstBldg.getBuildingUsefulLife() + " Years");
-            map.put("depreciation_percent", firstBldg.getDepreciationPercentage().toString() + "%");
-            map.put("depreciation_amount", IndianNumberFormatter.format(firstBldg.getDepreciationAmount()));
-            map.put("depreciation_amount_words", IndianCurrencyToWords.convertToWords(firstBldg.getDepreciationAmount()));
-            map.put("building_value", IndianNumberFormatter.format(firstBldg.getBuildingValue()));
-            map.put("building_value_words", IndianCurrencyToWords.convertToWords(firstBldg.getBuildingValue()));
+            // Building Values
+            map.put("total_replacement_cost", IndianNumberFormatter.format(data.getTotalReplacementCost()));
+            map.put("total_replacement_cost_words", IndianCurrencyToWords.convertToWords(data.getTotalReplacementCost()));
+            map.put("total_depreciation_amount", IndianNumberFormatter.format(data.getTotalDepreciationAmount()));
+            map.put("total_depreciation_amount_words", IndianCurrencyToWords.convertToWords(data.getTotalDepreciationAmount()));
+            map.put("total_salvage_value", IndianNumberFormatter.format(data.getTotalSalvageValue()));
+            map.put("total_salvage_value_words", IndianCurrencyToWords.convertToWords(data.getTotalSalvageValue()));
+            map.put("total_building_value", IndianNumberFormatter.format(data.getTotalBuildingValue()));
+            map.put("total_building_value_words", IndianCurrencyToWords.convertToWords(data.getTotalBuildingValue()));
+            BigDecimal sayBldg = data.getSayBuildingValue() != null && data.getSayBuildingValue().compareTo(BigDecimal.ZERO) > 0
+                    ? data.getSayBuildingValue()
+                    : computeSayValue(data.getTotalBuildingValue());
+            map.put("say_building_value", IndianNumberFormatter.format(sayBldg));
+            map.put("say_building_value_words", IndianCurrencyToWords.convertToWords(sayBldg));
+
+            // Valuation Summary
+            BigDecimal fairVal = sayLand.add(sayBldg);
+            map.put("fair_value", IndianNumberFormatter.format(fairVal));
+            map.put("fair_value_words", IndianCurrencyToWords.convertToWords(fairVal));
+
+            // Separate Realizable
+            BigDecimal landRealPct = data.getLandRealizablePercentage() != null ? data.getLandRealizablePercentage() : new BigDecimal("85.00");
+            BigDecimal bldgRealPct = data.getBuildingRealizablePercentage() != null ? data.getBuildingRealizablePercentage() : new BigDecimal("85.00");
+            BigDecimal landRealVal = data.getLandRealizableValue() != null && data.getLandRealizableValue().compareTo(BigDecimal.ZERO) > 0
+                    ? data.getLandRealizableValue()
+                    : sayLand.multiply(landRealPct).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+            BigDecimal bldgRealVal = data.getBuildingRealizableValue() != null && data.getBuildingRealizableValue().compareTo(BigDecimal.ZERO) > 0
+                    ? data.getBuildingRealizableValue()
+                    : sayBldg.multiply(bldgRealPct).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+            BigDecimal totalRealVal = landRealVal.add(bldgRealVal);
+
+            map.put("land_realizable_percentage", landRealPct + "%");
+            map.put("land_realizable_value", IndianNumberFormatter.format(landRealVal));
+            map.put("land_realizable_value_words", IndianCurrencyToWords.convertToWords(landRealVal));
+            map.put("building_realizable_percentage", bldgRealPct + "%");
+            map.put("building_realizable_value", IndianNumberFormatter.format(bldgRealVal));
+            map.put("building_realizable_value_words", IndianCurrencyToWords.convertToWords(bldgRealVal));
+            map.put("realizable_percentage", landRealPct + "%");
+            map.put("realizable_value", IndianNumberFormatter.format(totalRealVal));
+            map.put("realizable_value_words", IndianCurrencyToWords.convertToWords(totalRealVal));
+
+            // Separate Distress
+            BigDecimal landDistPct = data.getLandDistressPercentage() != null ? data.getLandDistressPercentage() : new BigDecimal("75.00");
+            BigDecimal bldgDistPct = data.getBuildingDistressPercentage() != null ? data.getBuildingDistressPercentage() : new BigDecimal("75.00");
+            BigDecimal landDistVal = data.getLandDistressValue() != null && data.getLandDistressValue().compareTo(BigDecimal.ZERO) > 0
+                    ? data.getLandDistressValue()
+                    : sayLand.multiply(landDistPct).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+            BigDecimal bldgDistVal = data.getBuildingDistressValue() != null && data.getBuildingDistressValue().compareTo(BigDecimal.ZERO) > 0
+                    ? data.getBuildingDistressValue()
+                    : sayBldg.multiply(bldgDistPct).divide(BigDecimal.valueOf(100), 2, java.math.RoundingMode.HALF_UP);
+            BigDecimal totalDistVal = landDistVal.add(bldgDistVal);
+
+            map.put("land_distress_percentage", landDistPct + "%");
+            map.put("land_distress_value", IndianNumberFormatter.format(landDistVal));
+            map.put("land_distress_value_words", IndianCurrencyToWords.convertToWords(landDistVal));
+            map.put("building_distress_percentage", bldgDistPct + "%");
+            map.put("building_distress_value", IndianNumberFormatter.format(bldgDistVal));
+            map.put("building_distress_value_words", IndianCurrencyToWords.convertToWords(bldgDistVal));
+            map.put("distress_sale_percentage", landDistPct + "%");
+            map.put("distress_sale_value", IndianNumberFormatter.format(totalDistVal));
+            map.put("distress_sale_value_words", IndianCurrencyToWords.convertToWords(totalDistVal));
+
+            // Insurable Value (Business Rule: Insurable Value = Total Replacement Cost of Buildings)
+            BigDecimal insurableVal = (data.getInsurableValue() != null && data.getInsurableValue().signum() > 0)
+                    ? data.getInsurableValue()
+                    : (data.getTotalReplacementCost() != null ? data.getTotalReplacementCost() : BigDecimal.ZERO);
+            map.put("insurable_value", IndianNumberFormatter.format(insurableVal));
+            map.put("insurable_value_words", IndianCurrencyToWords.convertToWords(insurableVal));
+
+            // Government Value (Independent Guideline / Statutory Value)
+            BigDecimal landGovt = data.getLandGovernmentValue() != null && data.getLandGovernmentValue().compareTo(BigDecimal.ZERO) > 0
+                    ? data.getLandGovernmentValue()
+                    : formulaService.calculateLandGovernmentValue(landItems, new BigDecimal("5500"));
+            BigDecimal bldgGovt = data.getBuildingGovernmentValue() != null && data.getBuildingGovernmentValue().compareTo(BigDecimal.ZERO) > 0
+                    ? data.getBuildingGovernmentValue()
+                    : formulaService.calculateBuildingGovernmentValue(buildingItems, new BigDecimal("2400"), new BigDecimal("1900"));
+            BigDecimal totalGovt = (data.getGovernmentValue() != null && data.getGovernmentValue().compareTo(BigDecimal.ZERO) > 0)
+                    ? data.getGovernmentValue()
+                    : landGovt.add(bldgGovt);
+
+            map.put("land_government_value", IndianNumberFormatter.format(landGovt));
+            map.put("land_government_value_words", IndianCurrencyToWords.convertToWords(landGovt));
+            map.put("building_government_value", IndianNumberFormatter.format(bldgGovt));
+            map.put("building_government_value_words", IndianCurrencyToWords.convertToWords(bldgGovt));
+            map.put("government_value", IndianNumberFormatter.format(totalGovt));
+            map.put("government_value_words", IndianCurrencyToWords.convertToWords(totalGovt));
+
+            // Say Value
+            BigDecimal sayVal = computeSayValue(fairVal);
+            map.put("say_value", IndianNumberFormatter.format(sayVal));
+            map.put("say_value_words", IndianCurrencyToWords.convertToWords(sayVal));
+
+            // Backward compatibility for single land / building placeholders
+            if (landItems != null && !landItems.isEmpty()) {
+                ValuationLandItem firstLand = landItems.get(0);
+                map.put("land_area", firstLand.getEnteredArea() + " " + firstLand.getEnteredUnit());
+                map.put("land_rate", IndianNumberFormatter.format(firstLand.getRate()));
+                map.put("land_value", IndianNumberFormatter.format(firstLand.getValue()));
+                map.put("land_value_words", IndianCurrencyToWords.convertToWords(firstLand.getValue()));
+            } else {
+                map.put("land_area", "0 Sq.Ft");
+                map.put("land_rate", "0");
+                map.put("land_value", "0");
+                map.put("land_value_words", "Rupees Zero Only");
+            }
+
+            if (buildingItems != null && !buildingItems.isEmpty()) {
+                ValuationBuildingItem firstBldg = buildingItems.get(0);
+                map.put("building_type", firstBldg.getBuildingType());
+                map.put("building_area", firstBldg.getEnteredArea() + " " + firstBldg.getEnteredUnit());
+                map.put("replacement_rate", IndianNumberFormatter.format(firstBldg.getReplacementRate()));
+                map.put("replacement_cost", IndianNumberFormatter.format(firstBldg.getReplacementCost()));
+                map.put("replacement_cost_words", IndianCurrencyToWords.convertToWords(firstBldg.getReplacementCost()));
+                map.put("building_age", firstBldg.getBuildingAge().toString() + " Years");
+                map.put("building_useful_life", firstBldg.getBuildingUsefulLife() + " Years");
+                map.put("depreciation_percent", firstBldg.getDepreciationPercentage().toString() + "%");
+                map.put("depreciation_amount", IndianNumberFormatter.format(firstBldg.getDepreciationAmount()));
+                map.put("depreciation_amount_words", IndianCurrencyToWords.convertToWords(firstBldg.getDepreciationAmount()));
+                map.put("building_value", IndianNumberFormatter.format(firstBldg.getBuildingValue()));
+                map.put("building_value_words", IndianCurrencyToWords.convertToWords(firstBldg.getBuildingValue()));
+            }
         }
 
         // Add uppercase alias keys for flexible template authoring (e.g. <<FAIR_VALUE>>)
@@ -605,6 +755,7 @@ public class ValuationEngineService {
         catalog.add(new PlaceholderCatalogItemDTO("<<PROPERTY_VALUE_TABLE>>", "Dynamic Property Value Component Table", "Generated Property Value Table", "Dynamic Tables", "Renders Value of Land, Value of Building, Total, Say"));
         catalog.add(new PlaceholderCatalogItemDTO("<<VALUATION_SUMMARY_TABLE>>", "Dynamic Valuation Summary Table", "Generated Summary Table", "Dynamic Tables", "Complete financial breakdown table"));
         catalog.add(new PlaceholderCatalogItemDTO("<<COMPARABLES_TABLE>>", "Market Comparable Sales Table", "Generated Comparables Table", "Dynamic Tables", "Comparable transactions matrix"));
+        catalog.add(new PlaceholderCatalogItemDTO("<<COMPOSITE_PROPERTY_TABLE>>", "Dynamic Composite Property Assessment Table", "Generated Composite Table", "Dynamic Tables", "Auto-expands unit, interior breakdown, depreciation, raw & say totals"));
 
         return catalog;
     }

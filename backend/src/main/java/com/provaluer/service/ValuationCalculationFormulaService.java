@@ -1,6 +1,7 @@
 package com.provaluer.service;
 
 import com.provaluer.model.ValuationBuildingItem;
+import com.provaluer.model.ValuationCompositeItem;
 import com.provaluer.model.ValuationData;
 import com.provaluer.model.ValuationLandItem;
 import com.provaluer.util.UnitConversionEngine;
@@ -232,6 +233,137 @@ public class ValuationCalculationFormulaService {
         BigDecimal landGovt = calculateLandGovernmentValue(landItems, govtLandRate);
         BigDecimal bldgGovt = calculateBuildingGovernmentValue(buildingItems, govtRccRate, govtSteelRate);
         return landGovt.add(bldgGovt).setScale(2, RoundingMode.HALF_UP);
+    }
+
+    /**
+     * Calculates values for a single composite item (Main Unit or Interior Work).
+     * Main Unit: Amount = Area * Composite Rate.
+     * Depreciation = Area * Construction Cost * 90% * Age / Total Life.
+     * Fair Value = Amount - Depreciation.
+     * Interior Work: Supports Option A (Depreciation %) or Option B (Direct Depreciation Amount in ₹).
+     */
+    public void calculateCompositeItem(ValuationCompositeItem item) {
+        if (item == null) return;
+        BigDecimal qty = item.getQuantity() != null ? item.getQuantity() : BigDecimal.ZERO;
+        BigDecimal rate = item.getRate() != null ? item.getRate() : BigDecimal.ZERO;
+
+        BigDecimal amount = qty.multiply(rate).setScale(2, RoundingMode.HALF_UP);
+        item.setAmount(amount);
+
+        String cat = item.getItemCategory() != null ? item.getItemCategory().toUpperCase() : "INTERIOR_WORK";
+        if ("MAIN_UNIT".equals(cat)) {
+            BigDecimal cost = item.getConstructionCost() != null ? item.getConstructionCost() : new BigDecimal("2000.00");
+            BigDecimal age = item.getBuildingAge() != null ? item.getBuildingAge() : BigDecimal.ZERO;
+            int usefulLife = item.getTotalLife() > 0 ? item.getTotalLife() : 60;
+            BigDecimal usefulLifeBd = BigDecimal.valueOf(usefulLife);
+
+            // Depreciation = Area * Construction Cost * 90% * Age / Total Life
+            BigDecimal deprFactor = new BigDecimal("0.90");
+            BigDecimal deprPct = age.divide(usefulLifeBd, 6, RoundingMode.HALF_UP)
+                    .multiply(deprFactor).multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
+            item.setDepreciationPercentage(deprPct);
+
+            BigDecimal deprAmount = qty.multiply(cost).multiply(deprFactor).multiply(age)
+                    .divide(usefulLifeBd, 2, RoundingMode.HALF_UP);
+            item.setDepreciationAmount(deprAmount);
+
+            BigDecimal fairVal = amount.subtract(deprAmount).setScale(2, RoundingMode.HALF_UP);
+            item.setFairValue(fairVal);
+        } else {
+            // Interior Work: Option A (%) vs Option B (Direct Amount)
+            String mode = item.getDepreciationMode() != null ? item.getDepreciationMode().toUpperCase() : "PERCENTAGE";
+            BigDecimal deprAmount;
+            if ("DIRECT_AMOUNT".equals(mode)) {
+                deprAmount = item.getDepreciationAmount() != null ? item.getDepreciationAmount() : BigDecimal.ZERO;
+                if (amount.compareTo(BigDecimal.ZERO) > 0) {
+                    BigDecimal pct = deprAmount.multiply(BigDecimal.valueOf(100)).divide(amount, 2, RoundingMode.HALF_UP);
+                    item.setDepreciationPercentage(pct);
+                } else {
+                    item.setDepreciationPercentage(BigDecimal.ZERO);
+                }
+            } else {
+                BigDecimal pct = item.getDepreciationPercentage() != null ? item.getDepreciationPercentage() : BigDecimal.ZERO;
+                deprAmount = amount.multiply(pct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                item.setDepreciationAmount(deprAmount);
+            }
+
+            BigDecimal fairVal = amount.subtract(deprAmount).setScale(2, RoundingMode.HALF_UP);
+            item.setFairValue(fairVal);
+        }
+    }
+
+    /**
+     * Aggregates composite items, applies ProValuer Say Value tiered rounding,
+     * and updates ValuationData summary parameters.
+     * Downstream realizable and distress calculations consume the Say Fair Value.
+     */
+    public void calculateCompositeSummary(ValuationData data, List<ValuationCompositeItem> compositeItems) {
+        if (data == null) return;
+
+        BigDecimal mainUnitFairVal = BigDecimal.ZERO;
+        BigDecimal mainUnitArea = BigDecimal.ZERO;
+        BigDecimal mainUnitCost = data.getCompositeConstructionCost() != null ? data.getCompositeConstructionCost() : new BigDecimal("2000.00");
+
+        BigDecimal totalInteriorAmt = BigDecimal.ZERO;
+        BigDecimal totalInteriorDepr = BigDecimal.ZERO;
+        BigDecimal totalInteriorFairVal = BigDecimal.ZERO;
+        BigDecimal totalInsurableInteriors = BigDecimal.ZERO;
+
+        if (compositeItems != null) {
+            for (ValuationCompositeItem item : compositeItems) {
+                calculateCompositeItem(item);
+                String cat = item.getItemCategory() != null ? item.getItemCategory().toUpperCase() : "INTERIOR_WORK";
+                if ("MAIN_UNIT".equals(cat)) {
+                    mainUnitFairVal = mainUnitFairVal.add(item.getFairValue() != null ? item.getFairValue() : BigDecimal.ZERO);
+                    mainUnitArea = mainUnitArea.add(item.getQuantity() != null ? item.getQuantity() : BigDecimal.ZERO);
+                    if (item.getConstructionCost() != null && item.getConstructionCost().compareTo(BigDecimal.ZERO) > 0) {
+                        mainUnitCost = item.getConstructionCost();
+                    }
+                } else {
+                    totalInteriorAmt = totalInteriorAmt.add(item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO);
+                    totalInteriorDepr = totalInteriorDepr.add(item.getDepreciationAmount() != null ? item.getDepreciationAmount() : BigDecimal.ZERO);
+                    totalInteriorFairVal = totalInteriorFairVal.add(item.getFairValue() != null ? item.getFairValue() : BigDecimal.ZERO);
+                    if (Boolean.TRUE.equals(item.getIsInsurable())) {
+                        totalInsurableInteriors = totalInsurableInteriors.add(item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO);
+                    }
+                }
+            }
+        }
+
+        data.setTotalInteriorAmount(totalInteriorAmt.setScale(2, RoundingMode.HALF_UP));
+        data.setTotalInteriorDepreciation(totalInteriorDepr.setScale(2, RoundingMode.HALF_UP));
+        data.setTotalInteriorFairValue(totalInteriorFairVal.setScale(2, RoundingMode.HALF_UP));
+
+        // 1. Raw Fair Value = Main Unit Fair Value + Sum(Interior Works Fair Values)
+        BigDecimal rawFairValue = mainUnitFairVal.add(totalInteriorFairVal).setScale(2, RoundingMode.HALF_UP);
+        data.setRawFairValue(rawFairValue);
+
+        // 2. Say Fair Value = computeSayValue(rawFairValue)
+        BigDecimal sayFairValue = computeSayValue(rawFairValue);
+        data.setSayFairValue(sayFairValue);
+
+        // 3. Fair Value in summary displays Say Fair Value
+        data.setFairValue(sayFairValue);
+
+        // 4. Downstream Realizable & Distress Sale Values consume Say Fair Value
+        BigDecimal realPct = data.getRealizablePercentage() != null ? data.getRealizablePercentage() : new BigDecimal("85.00");
+        BigDecimal distPct = data.getDistressSalePercentage() != null ? data.getDistressSalePercentage() : new BigDecimal("75.00");
+        data.setRealizablePercentage(realPct);
+        data.setDistressSalePercentage(distPct);
+
+        BigDecimal realizableVal = sayFairValue.multiply(realPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal distressVal = sayFairValue.multiply(distPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        data.setRealizableValue(realizableVal);
+        data.setDistressSaleValue(distressVal);
+
+        // 5. Government Value = Area * Government Composite Rate
+        BigDecimal govtRate = data.getCompositeGovernmentRate() != null ? data.getCompositeGovernmentRate() : BigDecimal.ZERO;
+        BigDecimal govtVal = mainUnitArea.multiply(govtRate).setScale(2, RoundingMode.HALF_UP);
+        data.setGovernmentValue(govtVal);
+
+        // 6. Insurable Value = Area * Construction Cost + Insurable Interior Improvements
+        BigDecimal insurableVal = mainUnitArea.multiply(mainUnitCost).add(totalInsurableInteriors).setScale(2, RoundingMode.HALF_UP);
+        data.setInsurableValue(insurableVal);
     }
 
     /**

@@ -90,6 +90,39 @@ public class ValuationData {
     @Column(name = "building_government_value", precision = 19, scale = 2, nullable = false)
     private BigDecimal buildingGovernmentValue = BigDecimal.ZERO;
 
+    @Column(name = "valuation_methodology", nullable = false)
+    private String valuationMethodology = "LAND_BUILDING"; // LAND_BUILDING or COMPOSITE_RATE
+
+    @Column(name = "composite_government_rate", precision = 19, scale = 2, nullable = false)
+    private BigDecimal compositeGovernmentRate = BigDecimal.ZERO;
+
+    @Column(name = "composite_construction_cost", precision = 19, scale = 2, nullable = false)
+    private BigDecimal compositeConstructionCost = new BigDecimal("2000.00");
+
+    @Column(name = "composite_building_age", precision = 6, scale = 2, nullable = false)
+    private BigDecimal compositeBuildingAge = BigDecimal.ZERO;
+
+    @Column(name = "composite_building_total_life", nullable = false)
+    private int compositeBuildingTotalLife = 60;
+
+    @Column(name = "composite_building_depreciation_pct", precision = 6, scale = 2, nullable = false)
+    private BigDecimal compositeBuildingDepreciationPct = BigDecimal.ZERO;
+
+    @Column(name = "raw_fair_value", precision = 19, scale = 2, nullable = false)
+    private BigDecimal rawFairValue = BigDecimal.ZERO;
+
+    @Column(name = "say_fair_value", precision = 19, scale = 2, nullable = false)
+    private BigDecimal sayFairValue = BigDecimal.ZERO;
+
+    @Column(name = "total_interior_amount", precision = 19, scale = 2, nullable = false)
+    private BigDecimal totalInteriorAmount = BigDecimal.ZERO;
+
+    @Column(name = "total_interior_depreciation", precision = 19, scale = 2, nullable = false)
+    private BigDecimal totalInteriorDepreciation = BigDecimal.ZERO;
+
+    @Column(name = "total_interior_fair_value", precision = 19, scale = 2, nullable = false)
+    private BigDecimal totalInteriorFairValue = BigDecimal.ZERO;
+
     @Column(name = "valuation_status", nullable = false)
     private String valuationStatus = "DRAFT"; // DRAFT, FINALIZED, LOCKED, ARCHIVED
 
@@ -190,6 +223,39 @@ public class ValuationData {
 
     public BigDecimal getBuildingGovernmentValue() { return buildingGovernmentValue; }
     public void setBuildingGovernmentValue(BigDecimal buildingGovernmentValue) { this.buildingGovernmentValue = buildingGovernmentValue; }
+
+    public String getValuationMethodology() { return valuationMethodology; }
+    public void setValuationMethodology(String valuationMethodology) { this.valuationMethodology = valuationMethodology; }
+
+    public BigDecimal getCompositeGovernmentRate() { return compositeGovernmentRate; }
+    public void setCompositeGovernmentRate(BigDecimal compositeGovernmentRate) { this.compositeGovernmentRate = compositeGovernmentRate; }
+
+    public BigDecimal getCompositeConstructionCost() { return compositeConstructionCost; }
+    public void setCompositeConstructionCost(BigDecimal compositeConstructionCost) { this.compositeConstructionCost = compositeConstructionCost; }
+
+    public BigDecimal getCompositeBuildingAge() { return compositeBuildingAge; }
+    public void setCompositeBuildingAge(BigDecimal compositeBuildingAge) { this.compositeBuildingAge = compositeBuildingAge; }
+
+    public int getCompositeBuildingTotalLife() { return compositeBuildingTotalLife; }
+    public void setCompositeBuildingTotalLife(int compositeBuildingTotalLife) { this.compositeBuildingTotalLife = compositeBuildingTotalLife; }
+
+    public BigDecimal getCompositeBuildingDepreciationPct() { return compositeBuildingDepreciationPct; }
+    public void setCompositeBuildingDepreciationPct(BigDecimal compositeBuildingDepreciationPct) { this.compositeBuildingDepreciationPct = compositeBuildingDepreciationPct; }
+
+    public BigDecimal getRawFairValue() { return rawFairValue; }
+    public void setRawFairValue(BigDecimal rawFairValue) { this.rawFairValue = rawFairValue; }
+
+    public BigDecimal getSayFairValue() { return sayFairValue; }
+    public void setSayFairValue(BigDecimal sayFairValue) { this.sayFairValue = sayFairValue; }
+
+    public BigDecimal getTotalInteriorAmount() { return totalInteriorAmount; }
+    public void setTotalInteriorAmount(BigDecimal totalInteriorAmount) { this.totalInteriorAmount = totalInteriorAmount; }
+
+    public BigDecimal getTotalInteriorDepreciation() { return totalInteriorDepreciation; }
+    public void setTotalInteriorDepreciation(BigDecimal totalInteriorDepreciation) { this.totalInteriorDepreciation = totalInteriorDepreciation; }
+
+    public BigDecimal getTotalInteriorFairValue() { return totalInteriorFairValue; }
+    public void setTotalInteriorFairValue(BigDecimal totalInteriorFairValue) { this.totalInteriorFairValue = totalInteriorFairValue; }
 
     public String getValuationStatus() { return valuationStatus; }
     public void setValuationStatus(String valuationStatus) { this.valuationStatus = valuationStatus; }
