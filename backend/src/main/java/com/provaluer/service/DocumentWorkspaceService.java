@@ -59,6 +59,9 @@ public class DocumentWorkspaceService {
     private PricingService pricingService;
 
     @Autowired
+    private AuditLogService auditLogService;
+
+    @Autowired
     private PerformanceLedgerRepository performanceLedgerRepository;
 
     @Autowired
@@ -139,10 +142,24 @@ public class DocumentWorkspaceService {
             if ("VIEW".equalsIgnoreCase(action)) {
                 return;
             }
-            if (order.getPaId() != null && order.getPaId().equals(principal.getId())) {
-                return;
+            if (order.getPaId() == null || !order.getPaId().equals(principal.getId())) {
+                throw new AccessDeniedException("Access denied: You are not the assigned Property Analyst for Order #" + order.getId());
             }
-            throw new AccessDeniedException("Access denied: You are not the assigned Property Analyst for Order #" + order.getId());
+
+            // Strict Locking Rule:
+            // PA editing/resubmit rights are available ONLY until SPA approval/finalization.
+            // If report reaches any of: SPA_CONFIRMED, FINALIZED, LOCKED, FINAL_DELIVERY
+            // PA must NOT be able to: Edit, Save, Revise, Resubmit.
+            boolean isLockedOrFinalized = "SPA_CONFIRMED".equalsIgnoreCase(order.getStatus())
+                    || "FINAL_DELIVERY".equalsIgnoreCase(order.getStatus())
+                    || "FINALIZED".equalsIgnoreCase(order.getValuationStatus())
+                    || "LOCKED".equalsIgnoreCase(order.getValuationStatus());
+
+            if (isLockedOrFinalized && ("SAVE".equalsIgnoreCase(action) || "SUBMIT_TO_SPA".equalsIgnoreCase(action))) {
+                throw new AccessDeniedException("Report is finalized/locked (" + order.getStatus() + "/" + order.getValuationStatus() + ") and cannot be modified or resubmitted by Property Analyst");
+            }
+
+            return;
         }
 
         // SPA Validation: May inspect, save, live-preview, and approve orders
@@ -254,9 +271,14 @@ public class DocumentWorkspaceService {
         boolean isSpaOrAdmin = principal.getAuthorities().stream().anyMatch(
                 a -> a.getAuthority().equals("ROLE_SPA") || a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
         boolean readOnly = false;
-        if ("FINAL_DELIVERY".equals(order.getStatus())) {
+        boolean isLockedOrFinalized = "FINAL_DELIVERY".equalsIgnoreCase(order.getStatus())
+                || "SPA_CONFIRMED".equalsIgnoreCase(order.getStatus())
+                || "FINALIZED".equalsIgnoreCase(order.getValuationStatus())
+                || "LOCKED".equalsIgnoreCase(order.getValuationStatus());
+
+        if (isLockedOrFinalized && !isSpaOrAdmin) {
             readOnly = true;
-        } else if ("SPA_CONFIRMED".equals(order.getStatus()) && !isSpaOrAdmin) {
+        } else if ("FINAL_DELIVERY".equalsIgnoreCase(order.getStatus())) {
             readOnly = true;
         }
 
@@ -487,8 +509,31 @@ public class DocumentWorkspaceService {
 
         validateOrderAccess(order, principal, "SUBMIT_TO_SPA");
 
+        boolean wasAlreadyInSpaGate = "SPA_GATE".equalsIgnoreCase(order.getStatus());
         order.setStatus("SPA_GATE");
+        order.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(order);
+
+        // Audit Logging for submission / resubmission
+        String actionType = wasAlreadyInSpaGate ? "PA_RESUBMITTED" : "PA_SUBMITTED";
+        String description = wasAlreadyInSpaGate
+                ? "PA resubmitted updated report draft to SPA review queue"
+                : "PA submitted report draft to SPA review queue";
+        try {
+            Long actorId = principal != null ? principal.getId() : null;
+            String actorEmail = principal != null ? principal.getEmail() : "PA";
+            auditLogService.log(
+                    actorId,
+                    actorEmail,
+                    "ROLE_PA",
+                    actionType,
+                    "ORDER",
+                    String.valueOf(orderId),
+                    description
+            );
+        } catch (Exception e) {
+            log.warn("Failed to create audit log for order #{}: {}", orderId, e.getMessage());
+        }
 
         return Map.of("status", "SPA_GATE");
     }

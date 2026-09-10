@@ -2806,7 +2806,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
     final String status = order['status'] ?? 'PENDING';
     final isCompleted = status == "FINAL_DELIVERY";
     final isUnassigned = status == "PAID_INTAKE";
-    final isAssignedToMe = status == "ASSIGNED" && order['paId'] != null;
+    final isAssignedToMe = (status == "ASSIGNED" || status == "SPA_GATE") && order['paId'] != null;
 
     final String reportNum = order['reportNumber'] ?? 'PV-${order['id']}';
 

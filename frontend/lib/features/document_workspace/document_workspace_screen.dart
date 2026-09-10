@@ -14,12 +14,14 @@ class DocumentWorkspaceScreen extends StatefulWidget {
   final int orderId;
   final String? reportNumber;
   final String role; // 'PA', 'SPA', 'SUPER_ADMIN', 'ADMIN', 'CLIENT'
+  final DocumentWorkspaceProvider? provider;
 
   const DocumentWorkspaceScreen({
     super.key,
     required this.orderId,
     this.reportNumber,
     required this.role,
+    this.provider,
   });
 
   @override
@@ -32,13 +34,17 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
   @override
   void initState() {
     super.initState();
-    _provider = DocumentWorkspaceProvider();
-    _provider.loadWorkspace(widget.orderId);
+    _provider = widget.provider ?? DocumentWorkspaceProvider();
+    if (widget.provider == null) {
+      _provider.loadWorkspace(widget.orderId);
+    }
   }
 
   @override
   void dispose() {
-    _provider.dispose();
+    if (widget.provider == null) {
+      _provider.dispose();
+    }
     super.dispose();
   }
 
@@ -87,6 +93,9 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
   }
 
   Future<void> _handleSubmitToSpa() async {
+    final status = _provider.workspaceModel?.status ?? '';
+    final isResubmit = status == 'SPA_GATE';
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
@@ -97,11 +106,13 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
           children: [
             const Icon(Icons.send_rounded, color: AppColors.deepTeal, size: 20),
             const SizedBox(width: 8),
-            Text('Submit Report to SPA?', style: AppTypography.heading4().copyWith(color: AppColors.ink)),
+            Text(isResubmit ? 'Resubmit Report to SPA?' : 'Submit Report to SPA?', style: AppTypography.heading4().copyWith(color: AppColors.ink)),
           ],
         ),
         content: Text(
-          'This will save all in-document inputs and transfer the valuation file to Senior Property Analyst (SPA) review queue.',
+          isResubmit
+              ? 'This will save all updated document inputs and alert the Senior Property Analyst (SPA) to review the latest changes.'
+              : 'This will save all in-document inputs and transfer the valuation file to Senior Property Analyst (SPA) review queue.',
           style: AppTypography.bodySm().copyWith(color: AppColors.slate),
         ),
         actions: [
@@ -115,7 +126,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
               backgroundColor: AppColors.deepTeal,
               foregroundColor: Colors.white,
             ),
-            child: const Text('Submit to SPA'),
+            child: Text(isResubmit ? 'Resubmit to SPA' : 'Submit to SPA'),
           ),
         ],
       ),
@@ -128,10 +139,12 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Document report submitted to SPA for review'),
+        SnackBar(
+          content: Text(isResubmit
+              ? 'Updated document report resubmitted to SPA for review'
+              : 'Document report submitted to SPA for review'),
           backgroundColor: AppColors.successAccent,
-          duration: Duration(seconds: 2),
+          duration: const Duration(seconds: 2),
         ),
       );
       Navigator.of(context).pop(true);
@@ -388,8 +401,8 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
         ),
         const SizedBox(width: 10),
 
-        // SINGLE DOMINANT PRIMARY ACTION: PA Submit to SPA
-        if ((isPa || isAdmin) && (status == 'ASSIGNED' || status == 'ACTION_NEEDED')) ...[
+        // SINGLE DOMINANT PRIMARY ACTION: PA Submit / Resubmit to SPA
+        if ((isPa || isAdmin) && (status == 'ASSIGNED' || status == 'ACTION_NEEDED' || status == 'SPA_GATE')) ...[
           ElevatedButton.icon(
             icon: provider.isSubmitting
                 ? const SizedBox(
@@ -399,7 +412,9 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
                   )
                 : const Icon(Icons.send_rounded, size: 14),
             label: Text(
-              provider.isSubmitting ? 'Submitting...' : 'SUBMIT TO SPA',
+              provider.isSubmitting
+                  ? 'Submitting...'
+                  : (status == 'SPA_GATE' ? 'RESUBMIT TO SPA' : 'SUBMIT TO SPA'),
               style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.3),
             ),
             onPressed: provider.isSubmitting ? null : _handleSubmitToSpa,

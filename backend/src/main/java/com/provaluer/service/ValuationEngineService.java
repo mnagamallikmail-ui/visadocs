@@ -174,6 +174,19 @@ public class ValuationEngineService {
             throw new IllegalStateException("Valuation is LOCKED. Super Admin unlock required before editing.");
         }
 
+        boolean isPa = user != null && user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PA"));
+        if (isPa) {
+            boolean isLockedOrFinalized = "SPA_CONFIRMED".equalsIgnoreCase(order.getStatus())
+                    || "FINAL_DELIVERY".equalsIgnoreCase(order.getStatus())
+                    || "FINALIZED".equalsIgnoreCase(data.getValuationStatus())
+                    || "LOCKED".equalsIgnoreCase(data.getValuationStatus())
+                    || "FINALIZED".equalsIgnoreCase(order.getValuationStatus())
+                    || "LOCKED".equalsIgnoreCase(order.getValuationStatus());
+            if (isLockedOrFinalized) {
+                throw new org.springframework.security.access.AccessDeniedException("Report is finalized/locked (" + order.getStatus() + "/" + data.getValuationStatus() + ") and valuation inputs cannot be modified by Property Analyst");
+            }
+        }
+
         // Record Old Values for Audit Log
         BigDecimal oldFairValue = data.getFairValue();
         BigDecimal oldRealizableValue = data.getRealizableValue();

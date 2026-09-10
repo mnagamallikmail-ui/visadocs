@@ -583,6 +583,16 @@ public class DocxTemplateEngine {
             }
         }
 
+        // 3. AST Cleanup Pass: Eliminates blank pages by pruning orphaned empty paragraphs,
+        // collapsing consecutive blank paragraphs, and removing empty paragraphs adjacent to page breaks.
+        cleanupEmptyParagraphsAndBreaks(wordMLPackage.getMainDocumentPart().getContent());
+
+        // 4. Synchronize Table of Contents (TOC) / Index page numbers
+        synchronizeTableOfContents(wordMLPackage.getMainDocumentPart().getContent());
+
+        // 5. Ensure MS Word dynamic field updating is enabled in settings.xml
+        enableUpdateFields(wordMLPackage);
+
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         wordMLPackage.save(out);
         return out.toByteArray();
@@ -601,17 +611,16 @@ public class DocxTemplateEngine {
                 // Normalize paragraph text for ultra-robust placeholder matching
                 String norm = pText.replaceAll("[\\s_<>]+", "").toUpperCase();
                 
-                // Dynamic Table Generation with Two Blank Paragraphs Spacing
+                // Dynamic Table Generation
                 if (norm.contains("COMPOSITEPROPERTYTABLE") || norm.contains("COMPOSITETABLE")) {
                     Tbl compTable = buildDynamicCompositePropertyTable(inputs);
                     Tbl summaryTable = buildDynamicCompositeSummaryTable(inputs);
                     if (compTable != null) {
                         elements.set(i, compTable);
-                        elements.add(i + 1, createBlankParagraph());
-                        elements.add(i + 2, summaryTable);
-                        elements.add(i + 3, createBlankParagraph());
-                        elements.add(i + 4, createBlankParagraph());
-                        i += 4;
+                        if (summaryTable != null) {
+                            elements.add(i + 1, summaryTable);
+                            i += 1;
+                        }
                         compositeTableRendered = true;
                         continue;
                     }
@@ -629,17 +638,17 @@ public class DocxTemplateEngine {
                             Tbl summaryTable = buildDynamicCompositeSummaryTable(inputs);
                             if (compTable != null) {
                                 elements.set(i, compTable);
-                                elements.add(i + 1, createBlankParagraph());
-                                elements.add(i + 2, summaryTable);
-                                elements.add(i + 3, createBlankParagraph());
-                                elements.add(i + 4, createBlankParagraph());
-                                i += 4;
+                                if (summaryTable != null) {
+                                    elements.add(i + 1, summaryTable);
+                                    i += 1;
+                                }
                                 compositeTableRendered = true;
                                 continue;
                             }
                         } else {
-                            // Suppress subsequent legacy tables for composite properties
-                            elements.set(i, new ObjectFactory().createP());
+                            // Suppress subsequent legacy tables for composite properties completely
+                            elements.remove(i);
+                            i--;
                             continue;
                         }
                     }
@@ -649,36 +658,24 @@ public class DocxTemplateEngine {
                     Tbl landTable = buildDynamicLandTable(inputs);
                     if (landTable != null) {
                         elements.set(i, landTable);
-                        elements.add(i + 1, createBlankParagraph());
-                        elements.add(i + 2, createBlankParagraph());
-                        i += 2;
                         continue;
                     }
                 } else if (norm.contains("BUILDINGTABLE")) {
                     Tbl buildingTable = buildDynamicBuildingTable(inputs);
                     if (buildingTable != null) {
                         elements.set(i, buildingTable);
-                        elements.add(i + 1, createBlankParagraph());
-                        elements.add(i + 2, createBlankParagraph());
-                        i += 2;
                         continue;
                     }
                 } else if (norm.contains("VALUATIONSUMMARYTABLE") || (norm.contains("VALUATIONSUMMARY") && norm.contains("TABLE"))) {
                     Tbl summaryTable = buildDynamicValuationSummaryTable(inputs);
                     if (summaryTable != null) {
                         elements.set(i, summaryTable);
-                        elements.add(i + 1, createBlankParagraph());
-                        elements.add(i + 2, createBlankParagraph());
-                        i += 2;
                         continue;
                     }
                 } else if (norm.contains("COMPARABLESTABLE") || norm.contains("COMPARABLETABLE")) {
                     Tbl compTable = buildDynamicComparablesTable(inputs);
                     if (compTable != null) {
                         elements.set(i, compTable);
-                        elements.add(i + 1, createBlankParagraph());
-                        elements.add(i + 2, createBlankParagraph());
-                        i += 2;
                         continue;
                     }
                 } else if (norm.contains("PROPERTYVALUETABLE") || norm.contains("VALUEOFTHEPROPERTYTABLE") 
@@ -688,9 +685,6 @@ public class DocxTemplateEngine {
                     Tbl propTable = buildDynamicPropertyValueTable(inputs);
                     if (propTable != null) {
                         elements.set(i, propTable);
-                        elements.add(i + 1, createBlankParagraph());
-                        elements.add(i + 2, createBlankParagraph());
-                        i += 2;
                         continue;
                     }
                 }
@@ -2152,10 +2146,284 @@ public class DocxTemplateEngine {
     }
 
     public byte[] convertDocxToPdf(byte[] docxBytes) throws Exception {
+        // 1. Try LibreOffice headless CLI if available on the system
+        byte[] librePdf = convertWithLibreOfficeHeadless(docxBytes);
+        if (librePdf != null && librePdf.length > 0) {
+            return librePdf;
+        }
+
+        // 2. High-fidelity Docx4J export-fo PDF generation with cleaned AST and synced TOC
         WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(new ByteArrayInputStream(docxBytes));
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Docx4J.toPDF(wordMLPackage, out);
         return out.toByteArray();
+    }
+
+    private byte[] convertWithLibreOfficeHeadless(byte[] docxBytes) {
+        String[] candidates = {
+                "libreoffice",
+                "soffice",
+                "/usr/bin/libreoffice",
+                "/usr/bin/soffice",
+                "/usr/local/bin/libreoffice",
+                "C:\\Program Files\\LibreOffice\\program\\soffice.exe",
+                "C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe"
+        };
+        String sofficeCmd = null;
+        for (String candidate : candidates) {
+            try {
+                Process p = new ProcessBuilder(candidate, "--version").start();
+                if (p.waitFor(2, java.util.concurrent.TimeUnit.SECONDS) && p.exitValue() == 0) {
+                    sofficeCmd = candidate;
+                    break;
+                }
+            } catch (Exception ignored) {}
+        }
+        if (sofficeCmd == null) return null;
+
+        try {
+            java.nio.file.Path tempDir = java.nio.file.Files.createTempDirectory("provaluer_pdf_");
+            java.nio.file.Path tempDocx = tempDir.resolve("report.docx");
+            java.nio.file.Path tempPdf = tempDir.resolve("report.pdf");
+
+            try {
+                java.nio.file.Files.write(tempDocx, docxBytes);
+                ProcessBuilder pb = new ProcessBuilder(
+                        sofficeCmd,
+                        "--headless",
+                        "--convert-to", "pdf",
+                        "--outdir", tempDir.toAbsolutePath().toString(),
+                        tempDocx.toAbsolutePath().toString()
+                );
+                pb.redirectErrorStream(true);
+                Process process = pb.start();
+                boolean finished = process.waitFor(45, java.util.concurrent.TimeUnit.SECONDS);
+                if (finished && process.exitValue() == 0 && java.nio.file.Files.exists(tempPdf)) {
+                    return java.nio.file.Files.readAllBytes(tempPdf);
+                }
+            } finally {
+                try {
+                    java.nio.file.Files.deleteIfExists(tempDocx);
+                    java.nio.file.Files.deleteIfExists(tempPdf);
+                    java.nio.file.Files.deleteIfExists(tempDir);
+                } catch (Exception ignored) {}
+            }
+        } catch (Exception ignored) {}
+        return null;
+    }
+
+    /**
+     * AST Cleanup Pass: Eliminates blank pages by pruning orphaned empty paragraphs,
+     * collapsing consecutive blank paragraphs, and removing empty paragraphs adjacent to page breaks.
+     */
+    public void cleanupEmptyParagraphsAndBreaks(List<Object> elements) {
+        if (elements == null || elements.isEmpty()) return;
+
+        // Pass 1: Remove empty paragraphs directly preceding or directly following a Page Break
+        for (int i = 0; i < elements.size(); i++) {
+            Object unwrapped = unwrap(elements.get(i));
+            if (unwrapped instanceof P p && containsPageBreak(p)) {
+                // Remove empty paragraphs immediately before this page break
+                int prev = i - 1;
+                while (prev >= 0 && isParagraphEmpty(unwrap(elements.get(prev)))) {
+                    elements.remove(prev);
+                    i--;
+                    prev--;
+                }
+                // Remove empty paragraphs immediately after this page break
+                int next = i + 1;
+                while (next < elements.size() && isParagraphEmpty(unwrap(elements.get(next)))) {
+                    elements.remove(next);
+                }
+            }
+        }
+
+        // Pass 2: Collapse consecutive empty paragraphs down to zero if adjacent to a table or heading,
+        // or collapse multiple consecutive empty paragraphs down to at most 1.
+        for (int i = 0; i < elements.size(); i++) {
+            Object currentUnwrapped = unwrap(elements.get(i));
+            if (isParagraphEmpty(currentUnwrapped)) {
+                boolean nextIsTableOrBreak = (i + 1 < elements.size()) && 
+                        (unwrap(elements.get(i + 1)) instanceof Tbl || containsPageBreak(unwrap(elements.get(i + 1))));
+                boolean prevIsTableOrBreak = (i - 1 >= 0) && 
+                        (unwrap(elements.get(i - 1)) instanceof Tbl || containsPageBreak(unwrap(elements.get(i - 1))));
+
+                if (nextIsTableOrBreak || prevIsTableOrBreak) {
+                    elements.remove(i);
+                    i--;
+                    continue;
+                }
+
+                // If followed by another empty paragraph, remove subsequent empty paragraphs
+                while (i + 1 < elements.size() && isParagraphEmpty(unwrap(elements.get(i + 1)))) {
+                    elements.remove(i + 1);
+                }
+            }
+        }
+
+        // Pass 3: Remove trailing empty paragraphs at the end of the document
+        while (!elements.isEmpty() && isParagraphEmpty(unwrap(elements.get(elements.size() - 1)))) {
+            elements.remove(elements.size() - 1);
+        }
+    }
+
+    public boolean containsPageBreak(Object obj) {
+        if (obj == null) return false;
+        Object unwrapped = unwrap(obj);
+        if (!(unwrapped instanceof P p)) return false;
+        for (Object rObj : p.getContent()) {
+            Object unwrappedR = unwrap(rObj);
+            if (unwrappedR instanceof R r) {
+                for (Object c : r.getContent()) {
+                    Object unwrappedC = unwrap(c);
+                    if (unwrappedC instanceof Br br) {
+                        if (br.getType() == STBrType.PAGE || "page".equalsIgnoreCase(String.valueOf(br.getType()))) {
+                            return true;
+                        }
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    public boolean isParagraphEmpty(Object obj) {
+        if (obj == null) return false;
+        Object unwrapped = unwrap(obj);
+        if (!(unwrapped instanceof P p)) return false;
+        
+        if (containsPageBreak(p)) return false;
+        if (p.getPPr() != null && p.getPPr().getSectPr() != null) return false;
+
+        ClassFinder drawingFinder = new ClassFinder(org.docx4j.wml.Drawing.class);
+        new TraversalUtil(p, drawingFinder);
+        if (!drawingFinder.results.isEmpty()) return false;
+
+        ClassFinder inlineFinder = new ClassFinder(Inline.class);
+        new TraversalUtil(p, inlineFinder);
+        if (!inlineFinder.results.isEmpty()) return false;
+
+        ClassFinder anchorFinder = new ClassFinder(Anchor.class);
+        new TraversalUtil(p, anchorFinder);
+        if (!anchorFinder.results.isEmpty()) return false;
+
+        String text = getParagraphText(p).trim();
+        return text.isEmpty();
+    }
+
+    /**
+     * Ensures Table of Contents (TOC) page numbers are resolved by the actual layout engine
+     * (Microsoft Word for DOCX via updateFields, and Apache FOP for PDF via fo:page-number-citation).
+     * Converts complex TOC PAGEREF run sequences into CTSimpleField elements so that Docx4J's
+     * PagerefHandler generates <fo:page-number-citation ref-id="..."/> for the real PDF layout engine.
+     */
+    public void synchronizeTableOfContents(List<Object> elements) {
+        if (elements == null || elements.isEmpty()) return;
+        ObjectFactory factory = new ObjectFactory();
+
+        for (Object elem : elements) {
+            Object unwrapped = unwrap(elem);
+            if (unwrapped instanceof P p) {
+                for (Object child : p.getContent()) {
+                    Object unwrappedChild = unwrap(child);
+                    if (unwrappedChild instanceof P.Hyperlink hyperlink) {
+                        String anchor = hyperlink.getAnchor();
+                        if (anchor != null && (anchor.startsWith("_Toc") || anchor.startsWith("Toc") || anchor.startsWith("_"))) {
+                            convertHyperlinkPagerefToSimpleField(hyperlink, anchor, factory);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void convertHyperlinkPagerefToSimpleField(P.Hyperlink hyperlink, String anchor, ObjectFactory factory) {
+        boolean hasPageref = false;
+        String existingText = "";
+
+        for (Object rObj : hyperlink.getContent()) {
+            Object unwrappedR = unwrap(rObj);
+            if (unwrappedR instanceof R r) {
+                for (Object c : r.getContent()) {
+                    Object unwrappedC = unwrap(c);
+                    if (unwrappedC instanceof Text t) {
+                        String val = t.getValue();
+                        if (val != null && val.matches("\\d+")) {
+                            existingText = val;
+                        }
+                    }
+                }
+                String rText = getRunText(r);
+                if (rText.contains("PAGEREF")) {
+                    hasPageref = true;
+                }
+            }
+        }
+
+        if (hasPageref) {
+            // Remove complex field markers and replace with clean CTSimpleField
+            hyperlink.getContent().removeIf(obj -> {
+                Object u = unwrap(obj);
+                if (u instanceof R r) {
+                    for (Object c : r.getContent()) {
+                        Object uc = unwrap(c);
+                        if (uc instanceof FldChar) {
+                            return true;
+                        }
+                    }
+                    String rt = getRunText(r);
+                    return rt.contains("PAGEREF");
+                }
+                return false;
+            });
+
+            // Add CTSimpleField for Apache FOP and MS Word layout resolution
+            CTSimpleField simpleField = factory.createCTSimpleField();
+            simpleField.setInstr("PAGEREF " + anchor + " \\h");
+            R textRun = factory.createR();
+            Text textNode = factory.createText();
+            textNode.setValue(existingText.isEmpty() ? "1" : existingText);
+            textRun.getContent().add(textNode);
+            simpleField.getContent().add(textRun);
+
+            hyperlink.getContent().add(factory.createPFldSimple(simpleField));
+        }
+    }
+
+    private String getRunText(R run) {
+        StringBuilder sb = new StringBuilder();
+        for (Object runElem : run.getContent()) {
+            Object unwrappedElem = unwrap(runElem);
+            if (unwrappedElem instanceof Text) {
+                sb.append(((Text) unwrappedElem).getValue());
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Enables automatic dynamic field updating (TOC, PAGEREF) when opened in Microsoft Word.
+     */
+    public void enableUpdateFields(WordprocessingMLPackage wordMLPackage) {
+        try {
+            org.docx4j.openpackaging.parts.WordprocessingML.DocumentSettingsPart settingsPart = 
+                    wordMLPackage.getMainDocumentPart().getDocumentSettingsPart();
+            if (settingsPart == null) {
+                settingsPart = new org.docx4j.openpackaging.parts.WordprocessingML.DocumentSettingsPart();
+                wordMLPackage.getMainDocumentPart().addTargetPart(settingsPart);
+            }
+            CTSettings settings = settingsPart.getJaxbElement();
+            if (settings == null) {
+                ObjectFactory factory = new ObjectFactory();
+                settings = factory.createCTSettings();
+                settingsPart.setJaxbElement(settings);
+            }
+            BooleanDefaultTrue updateFields = new BooleanDefaultTrue();
+            updateFields.setVal(Boolean.TRUE);
+            settings.setUpdateFields(updateFields);
+        } catch (Exception e) {
+            // Log warning and proceed
+        }
     }
 
     public byte[] stampDigitalSignature(byte[] docxBytes, String signerName, String timestamp) throws Exception {
