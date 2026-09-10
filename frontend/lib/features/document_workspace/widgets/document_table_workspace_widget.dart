@@ -2793,11 +2793,12 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Expanded(
-          child: Text.rich(
-            TextSpan(
-              children: [
-                TextSpan(
-                  text: text,
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Flexible(
+                child: Text(
+                  text,
                   style: GoogleFonts.montserrat(
                     fontSize: 12.5,
                     fontWeight: isRequired ? FontWeight.w600 : FontWeight.w500,
@@ -2805,17 +2806,17 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                     height: 1.25,
                   ),
                 ),
-                if (isRequired)
-                  TextSpan(
-                    text: ' *',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.workspaceErrorText,
-                    ),
+              ),
+              if (isRequired)
+                Text(
+                  ' *',
+                  style: GoogleFonts.montserrat(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.workspaceErrorText,
                   ),
-              ],
-            ),
+                ),
+            ],
           ),
         ),
         if (isRequired) ...[

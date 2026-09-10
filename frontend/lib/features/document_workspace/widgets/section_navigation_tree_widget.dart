@@ -342,13 +342,17 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      'Report Progress',
-                      style: AppTypography.workspaceSidebarItem(
-                        color: AppColors.workspacePrimaryText,
-                        isActive: true,
-                      ).copyWith(fontSize: 12),
+                    Expanded(
+                      child: Text(
+                        'Report Progress',
+                        style: AppTypography.workspaceSidebarItem(
+                          color: AppColors.workspacePrimaryText,
+                          isActive: true,
+                        ).copyWith(fontSize: 12),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                       decoration: BoxDecoration(
@@ -381,10 +385,14 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text(
-                      '$completedFields / $totalFields fields filled',
-                      style: AppTypography.workspaceMicro(color: AppColors.workspaceSecondaryText),
+                    Expanded(
+                      child: Text(
+                        '$completedFields / $totalFields fields filled',
+                        style: AppTypography.workspaceMicro(color: AppColors.workspaceSecondaryText),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       '${vm.sections.where((s) => s.isCompleted(provider.activeValues)).length} / ${vm.sections.length} sections',
                       style: AppTypography.workspaceMicro(color: AppColors.workspaceSecondaryText, weight: FontWeight.w700),
