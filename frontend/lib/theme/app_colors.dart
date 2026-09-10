@@ -17,30 +17,45 @@ class AppColors {
   static const Color surface      = Color(0xFFFFFFFF);
 
   // ── Borders ──────────────────────────────────────────────────────────────
-  /// Default borders — clean neutral gray-200 #E5E7EB
-  static const Color hairline       = Color(0xFFE5E7EB);
-  /// Soft inner dividers — #F3F4F6
-  static const Color hairlineSoft   = Color(0xFFF3F4F6);
-  /// Stronger borders for inputs — defined gray-300 #D1D5DB
-  static const Color hairlineStrong = Color(0xFFD1D5DB);
+  /// Default borders — clean neutral slate-200 #E2E8F0
+  static const Color hairline       = Color(0xFFE2E8F0);
+  /// Soft inner dividers — #F1F5F9
+  static const Color hairlineSoft   = Color(0xFFF1F5F9);
+  /// Stronger borders for inputs — defined slate-300 #CBD5E1
+  static const Color hairlineStrong = Color(0xFFCBD5E1);
 
   // ── Text ─────────────────────────────────────────────────────────────────
-  /// Primary — high contrast near black #111827
-  static const Color ink            = Color(0xFF111827);
-  /// Secondary — readable slate #4B5563
-  static const Color textSecondary  = Color(0xFF4B5563);
+  /// Primary — high contrast near black / slate-900 #0F172A
+  static const Color ink            = Color(0xFF0F172A);
+  /// Secondary — readable slate #64748B
+  static const Color textSecondary  = Color(0xFF64748B);
   /// Muted — medium gray #6B7280
-  static const Color textMuted      = Color(0xFF6B7280);
+  static const Color textMuted      = Color(0xFF64748B);
   /// Slate — medium grey for captions/labels
-  static const Color slate          = Color(0xFF4B5563);
-  /// Steel — lighter muted text #6B7280
-  static const Color steel          = Color(0xFF6B7280);
-  /// Stone — disabled / hint text #9CA3AF
-  static const Color stone          = Color(0xFF9CA3AF);
+  static const Color slate          = Color(0xFF64748B);
+  /// Steel — lighter muted text #94A3B8
+  static const Color steel          = Color(0xFF94A3B8);
+  /// Stone — disabled / hint text #94A3B8
+  static const Color stone          = Color(0xFF94A3B8);
   /// On dark — white for dark backgrounds
   static const Color onDark         = Color(0xFFFFFFFF);
   /// Muted on dark
-  static const Color onDarkMuted    = Color(0xFF9CA3AF);
+  static const Color onDarkMuted    = Color(0xFF94A3B8);
+
+  // ── Document Workspace Design System (Approved Modernization Directive) ──
+  static const Color workspaceCanvas           = Color(0xFFF8FAFC);
+  static const Color workspacePanel            = Color(0xFFFFFFFF);
+  static const Color workspacePrimaryText      = Color(0xFF0F172A);
+  static const Color workspaceSecondaryText    = Color(0xFF64748B);
+  static const Color workspaceBorder           = Color(0xFFE2E8F0);
+  static const Color workspaceSegmentBg        = Color(0xFFF1F5F9);
+  static const Color workspaceSuccess          = Color(0xFF16A34A);
+  static const Color workspaceWarning          = Color(0xFFF59E0B);
+  static const Color workspaceErrorSurface     = Color(0xFFFEF2F2);
+  static const Color workspaceErrorText        = Color(0xFF9F1239);
+  static const Color workspaceCorporateNavy    = Color(0xFF0F172A);
+  static const Color workspaceCorporateNavyHover = Color(0xFF1E293B);
+  static const Color workspaceFocusGlow        = Color(0x1F2563EB); // 3px rgba(37, 99, 235, 0.12)
 
   // ── Brand Accents — Professional Appraisal Workstation ───────────────────
   /// Dominant Primary Action Blue — #2563EB (Tailwind Blue-600)

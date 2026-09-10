@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../theme/app_colors.dart';
+import '../../../theme/app_spacing.dart';
 import '../../../theme/app_typography.dart';
 import '../../../utils/indian_number_formatter.dart';
 import '../../document_studio/models/visual_preview_model.dart';
@@ -113,22 +114,23 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
 
             // Floating Card Anchored via CompositedTransformFollower
             Positioned(
-              width: math.max(size.width, 280.0).clamp(220.0, 480.0),
+              width: width,
               child: CompositedTransformFollower(
                 link: _layerLink,
                 showWhenUnlinked: false,
                 offset: Offset(0, size.height + 4),
                 child: Material(
-                  elevation: 8,
-                  shadowColor: Colors.black.withValues(alpha: 0.25),
+                  elevation: 0,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
-                  color: AppColors.surface,
                   child: Container(
+                    width: width,
                     padding: const EdgeInsets.all(12),
                     decoration: BoxDecoration(
-                      color: AppColors.surface,
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: AppColors.deepTeal, width: 1.5),
+                      border: Border.all(color: AppColors.workspaceBorder),
+                      boxShadow: AppShadows.subtleElevated,
                     ),
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -139,21 +141,20 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                               decoration: BoxDecoration(
-                                color: AppColors.tealLight,
-                                borderRadius: BorderRadius.circular(4),
+                                color: AppColors.workspaceSegmentBg,
+                                borderRadius: BorderRadius.circular(8),
                               ),
                               child: Text(
                                 widget.placeholder.key,
-                                style: GoogleFonts.robotoMono(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  color: AppColors.deepTeal,
+                                style: AppTypography.workspaceMicro(
+                                  color: AppColors.workspaceCorporateNavy,
+                                  weight: FontWeight.w700,
                                 ),
                               ),
                             ),
                             const Spacer(),
                             IconButton(
-                              icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.slate),
+                              icon: const Icon(Icons.close_rounded, size: 16, color: AppColors.workspaceSecondaryText),
                               padding: EdgeInsets.zero,
                               constraints: const BoxConstraints(),
                               onPressed: _commitAndCloseFloating,
@@ -168,7 +169,7 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
                           children: [
                             Text(
                               'Press outside or checkmark to commit',
-                              style: AppTypography.caption(color: AppColors.slate),
+                              style: AppTypography.workspaceMicro(color: AppColors.workspaceSecondaryText),
                             ),
                             const SizedBox(width: 8),
                             InkWell(
@@ -176,15 +177,18 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: AppColors.deepTeal,
-                                  borderRadius: BorderRadius.circular(4),
+                                  color: AppColors.workspaceCorporateNavy,
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
-                                child: const Row(
+                                child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Icon(Icons.check_rounded, size: 14, color: Colors.white),
-                                    SizedBox(width: 4),
-                                    Text('Done', style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
+                                    const Icon(Icons.check_rounded, size: 14, color: Colors.white),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      'Done',
+                                      style: AppTypography.workspaceButton(color: Colors.white, weight: FontWeight.w700).copyWith(fontSize: 11),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -232,35 +236,28 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
   }
 
   Widget _buildFloatingFieldInput(DocumentWorkspaceProvider provider) {
-    final type = _inferFieldType(widget.placeholder.key);
-    final isNumber = type == 'NUMBER';
-
-    return TextField(
+    final isMultiline = widget.placeholder.type == 'TEXT' && (widget.placeholder.label.toLowerCase().contains('remark') || widget.placeholder.label.toLowerCase().contains('description') || widget.placeholder.label.toLowerCase().contains('address'));
+    return TextFormField(
       controller: _controller,
       autofocus: true,
-      maxLines: isNumber ? 1 : 4,
-      minLines: 1,
-      keyboardType: isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.multiline,
-      style: GoogleFonts.inter(
-        fontSize: 13,
-        fontWeight: FontWeight.w600,
-        color: AppColors.ink,
-      ),
+      minLines: isMultiline ? 3 : 1,
+      maxLines: isMultiline ? 6 : 1,
+      style: AppTypography.workspaceInput(),
       decoration: InputDecoration(
         isDense: true,
         filled: true,
-        fillColor: AppColors.surfaceSoft,
+        fillColor: AppColors.workspaceSegmentBg,
         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
-          borderSide: const BorderSide(color: AppColors.hairline),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.workspaceBorder),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(6),
-          borderSide: const BorderSide(color: AppColors.deepTeal, width: 1.5),
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.0),
         ),
         hintText: 'Enter value for ${widget.placeholder.key}...',
-        hintStyle: AppTypography.bodySm().copyWith(color: AppColors.slate),
+        hintStyle: AppTypography.workspaceHint(),
       ),
       onChanged: (val) {
         provider.updateValue(widget.placeholder.key, val);
@@ -313,20 +310,20 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
                     ? Colors.transparent
                     : (isFocused
                         ? Colors.white
-                        : (isHovered ? AppColors.surfaceSoft : Colors.white.withValues(alpha: 0.95))),
-                borderRadius: BorderRadius.circular(4),
+                        : (isHovered ? AppColors.workspaceSegmentBg : AppColors.workspaceCanvas)),
+                borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isFocused
-                      ? AppColors.deepTeal
-                      : (isHovered ? AppColors.deepTeal.withValues(alpha: 0.6) : AppColors.hairlineSoft),
-                  width: isFocused ? 1.5 : 1.0,
+                      ? AppColors.primaryBlue
+                      : (isHovered ? AppColors.workspaceBorder : AppColors.workspaceBorder),
+                  width: 1.0,
                 ),
                 boxShadow: isFocused
-                    ? [
+                    ? const [
                         BoxShadow(
-                          color: AppColors.deepTeal.withValues(alpha: 0.15),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
+                          color: AppColors.workspaceFocusGlow,
+                          blurRadius: 3,
+                          spreadRadius: 2,
                         ),
                       ]
                     : null,

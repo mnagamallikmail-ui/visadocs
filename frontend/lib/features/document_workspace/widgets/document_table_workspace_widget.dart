@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../theme/app_colors.dart';
+import '../../../theme/app_spacing.dart';
 import '../../../theme/app_typography.dart';
 import '../../../utils/indian_number_formatter.dart';
 import '../../../utils/indian_currency_to_words.dart';
@@ -302,16 +303,10 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.3), width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppColors.workspacePanel,
+        borderRadius: AppRadius.br8,
+        border: Border.all(color: AppColors.workspaceBorder),
+        boxShadow: AppShadows.subtleElevated,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -319,39 +314,41 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           // Section Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.deepTeal.withValues(alpha: 0.08),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(9)),
+            decoration: const BoxDecoration(
+              color: AppColors.workspaceSegmentBg,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(7.5)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.landscape_rounded, color: AppColors.deepTeal, size: 20),
+                    const Icon(Icons.landscape_rounded, color: AppColors.workspaceCorporateNavy, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       'VALUE OF LAND',
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink),
+                      style: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.workspacePrimaryText),
                     ),
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AppColors.deepTeal.withValues(alpha: 0.12),
+                        color: AppColors.workspaceCanvas,
                         borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: AppColors.workspaceBorder),
                       ),
-                      child: const Text('<<LAND_TABLE>>', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.deepTeal)),
+                      child: Text('<<LAND_TABLE>>', style: GoogleFonts.montserrat(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText)),
                     ),
                   ],
                 ),
                 if (!isReadOnly)
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.deepTeal,
+                      backgroundColor: AppColors.workspaceCorporateNavy,
                       foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: AppRadius.br8),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      textStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
+                      textStyle: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                     icon: const Icon(Icons.add_rounded, size: 16),
                     label: const Text('+ Add Parcel'),
@@ -569,16 +566,10 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.3), width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppColors.workspacePanel,
+        borderRadius: AppRadius.br8,
+        border: Border.all(color: AppColors.workspaceBorder),
+        boxShadow: AppShadows.subtleElevated,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -586,39 +577,41 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           // Section Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.deepTeal.withValues(alpha: 0.08),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(9)),
+            decoration: const BoxDecoration(
+              color: AppColors.workspaceSegmentBg,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(7.5)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.apartment_rounded, color: AppColors.deepTeal, size: 20),
+                    const Icon(Icons.apartment_rounded, color: AppColors.workspaceCorporateNavy, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       'VALUE OF BUILDING',
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink),
+                      style: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.workspacePrimaryText),
                     ),
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AppColors.deepTeal.withValues(alpha: 0.12),
+                        color: AppColors.workspaceCanvas,
                         borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: AppColors.workspaceBorder),
                       ),
-                      child: const Text('<<BUILDING_TABLE>>', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.deepTeal)),
+                      child: const Text('<<BUILDING_TABLE>>', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.workspaceSecondaryText)),
                     ),
                   ],
                 ),
                 if (!isReadOnly)
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.deepTeal,
+                      backgroundColor: AppColors.workspaceCorporateNavy,
                       foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: AppRadius.br8),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      textStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
+                      textStyle: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                     icon: const Icon(Icons.add_rounded, size: 16),
                     label: const Text('+ Add Structure'),
@@ -893,55 +886,51 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.3), width: 1.2),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppColors.workspacePanel,
+        borderRadius: AppRadius.br8,
+        border: Border.all(color: AppColors.workspaceBorder),
+        boxShadow: AppShadows.subtleElevated,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.deepTeal.withValues(alpha: 0.08),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(9)),
+            decoration: const BoxDecoration(
+              color: AppColors.workspaceSegmentBg,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(7.5)),
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.compare_arrows_rounded, color: AppColors.deepTeal, size: 20),
+                    const Icon(Icons.compare_arrows_rounded, color: AppColors.workspaceCorporateNavy, size: 20),
                     const SizedBox(width: 8),
                     Text(
                       'COMPARABLE SALES GRID',
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink),
+                      style: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.workspacePrimaryText),
                     ),
                     const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: AppColors.deepTeal.withValues(alpha: 0.12),
+                        color: AppColors.workspaceCanvas,
                         borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: AppColors.workspaceBorder),
                       ),
-                      child: const Text('<<COMPARABLES_TABLE>>', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.deepTeal)),
+                      child: Text('<<COMPARABLES_TABLE>>', style: GoogleFonts.montserrat(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText)),
                     ),
                   ],
                 ),
                 if (!isReadOnly)
                   ElevatedButton.icon(
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.deepTeal,
+                      backgroundColor: AppColors.workspaceCorporateNavy,
                       foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: AppRadius.br8),
                       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      textStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
+                      textStyle: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w600),
                     ),
                     icon: const Icon(Icons.add_rounded, size: 16),
                     label: const Text('+ Add Comparable'),
@@ -1090,42 +1079,37 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.3), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        color: AppColors.workspacePanel,
+        borderRadius: AppRadius.br8,
+        border: Border.all(color: AppColors.workspaceBorder),
+        boxShadow: AppShadows.subtleElevated,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.primary.withValues(alpha: 0.08),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(9)),
+            decoration: const BoxDecoration(
+              color: AppColors.workspaceSegmentBg,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(7.5)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.account_balance_wallet_rounded, color: AppColors.primary, size: 20),
+                const Icon(Icons.account_balance_wallet_rounded, color: AppColors.workspaceCorporateNavy, size: 20),
                 const SizedBox(width: 8),
                 Text(
                   'VALUE OF THE PROPERTY',
-                  style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink),
+                  style: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.workspacePrimaryText),
                 ),
                 const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                   decoration: BoxDecoration(
-                    color: AppColors.primary.withValues(alpha: 0.12),
+                    color: AppColors.workspaceCanvas,
                     borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: AppColors.workspaceBorder),
                   ),
-                  child: const Text('<<PROPERTY_VALUE_TABLE>>', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.primary)),
+                  child: Text('<<PROPERTY_VALUE_TABLE>>', style: GoogleFonts.montserrat(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText)),
                 ),
               ],
             ),
@@ -1192,12 +1176,10 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.3), width: 1.5),
-        boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2)),
-        ],
+        color: AppColors.workspacePanel,
+        borderRadius: AppRadius.br8,
+        border: Border.all(color: AppColors.workspaceBorder),
+        boxShadow: AppShadows.subtleElevated,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1205,29 +1187,30 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           // Section Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: AppColors.deepTeal.withValues(alpha: 0.08),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(9)),
+            decoration: const BoxDecoration(
+              color: AppColors.workspaceSegmentBg,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(7.5)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.verified_rounded, color: AppColors.successAccent, size: 22),
+                const Icon(Icons.verified_rounded, color: AppColors.workspaceSuccess, size: 22),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Row(
                     children: [
                       Text(
                         'SUMMARY OF VALUATION',
-                        style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink),
+                        style: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.workspacePrimaryText),
                       ),
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: AppColors.deepTeal.withValues(alpha: 0.12),
+                          color: AppColors.workspaceCanvas,
                           borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: AppColors.workspaceBorder),
                         ),
-                        child: const Text('<<VALUATION_SUMMARY_TABLE>>', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.deepTeal)),
+                        child: Text('<<VALUATION_SUMMARY_TABLE>>', style: GoogleFonts.montserrat(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText)),
                       ),
                     ],
                   ),
@@ -1470,16 +1453,10 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: const Color(0xFF3494BA).withValues(alpha: 0.35), width: 1.5),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 10,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        color: AppColors.workspacePanel,
+        borderRadius: AppRadius.br8,
+        border: Border.all(color: AppColors.workspaceBorder),
+        boxShadow: AppShadows.subtleElevated,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1487,31 +1464,32 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           // Section Header
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF3494BA).withValues(alpha: 0.08),
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(9)),
+            decoration: const BoxDecoration(
+              color: AppColors.workspaceSegmentBg,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(7.5)),
             ),
             child: Row(
               children: [
-                const Icon(Icons.apartment_rounded, color: Color(0xFF3494BA), size: 22),
+                const Icon(Icons.apartment_rounded, color: AppColors.workspaceCorporateNavy, size: 22),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Row(
                     children: [
                       Text(
                         'COMPOSITE PROPERTY VALUATION',
-                        style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink),
+                        style: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.workspacePrimaryText),
                       ),
                       const SizedBox(width: 8),
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF3494BA).withValues(alpha: 0.15),
+                          color: AppColors.workspaceCanvas,
                           borderRadius: BorderRadius.circular(4),
+                          border: Border.all(color: AppColors.workspaceBorder),
                         ),
-                        child: const Text(
+                        child: Text(
                           '<<COMPOSITE_PROPERTY_TABLE>>',
-                          style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: Color(0xFF3494BA)),
+                          style: GoogleFonts.montserrat(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
                         ),
                       ),
                     ],
@@ -2379,33 +2357,27 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
       margin: EdgeInsets.only(bottom: isContinuous ? 6 : 10, top: isContinuous ? 6 : 12),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.hairlineStrong),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          ),
-        ],
+        color: AppColors.workspacePanel,
+        borderRadius: AppRadius.br8,
+        border: Border.all(color: AppColors.workspaceBorder),
+        boxShadow: AppShadows.subtleElevated,
       ),
       child: Row(
         children: [
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
             decoration: BoxDecoration(
-              color: AppColors.tealLight,
+              color: AppColors.workspaceSegmentBg,
               borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.25)),
+              border: Border.all(color: AppColors.workspaceBorder),
             ),
             child: Text(
               'SECTION ${section.sectionIndex + 1}',
-              style: GoogleFonts.inter(
+              style: GoogleFonts.montserrat(
                 fontSize: 10.5,
-                fontWeight: FontWeight.w700,
-                color: AppColors.deepTeal,
-                letterSpacing: 0.4,
+                fontWeight: FontWeight.w600,
+                color: AppColors.workspaceSecondaryText,
+                letterSpacing: 0.8,
               ),
             ),
           ),
@@ -2413,23 +2385,19 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           Expanded(
             child: Text(
               cleanTitle.isNotEmpty ? cleanTitle : rawTitle,
-              style: GoogleFonts.inter(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: AppColors.ink,
-              ),
+              style: AppTypography.workspaceSectionTitle(),
             ),
           ),
           if (isReadOnly)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
               decoration: BoxDecoration(
-                color: AppColors.surfaceSoft,
+                color: AppColors.workspaceSegmentBg,
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
                 'READ-ONLY',
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.steel),
+                style: GoogleFonts.montserrat(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
               ),
             ),
         ],
@@ -2444,7 +2412,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
         child: Center(
           child: Text(
             'No editable elements in this section',
-            style: AppTypography.bodySm().copyWith(color: AppColors.slate),
+            style: GoogleFonts.montserrat(fontSize: 13, color: AppColors.workspaceSecondaryText),
           ),
         ),
       ),
@@ -2465,15 +2433,16 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           width: double.infinity,
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: AppColors.hairline),
+            color: AppColors.workspacePanel,
+            borderRadius: AppRadius.br8,
+            border: Border.all(color: AppColors.workspaceBorder),
+            boxShadow: AppShadows.subtleElevated,
           ),
           child: Text(
             text,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.montserrat(
               fontSize: 13,
-              color: AppColors.slate,
+              color: AppColors.workspaceSecondaryText,
               height: 1.45,
             ),
           ),
@@ -2486,16 +2455,10 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
       margin: const EdgeInsets.only(bottom: 20),
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.hairline),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
+        color: AppColors.workspacePanel,
+        borderRadius: AppRadius.br8,
+        border: Border.all(color: AppColors.workspaceBorder),
+        boxShadow: AppShadows.subtleElevated,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -2506,21 +2469,21 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
               Row(
                 children: [
                   Container(
-                    width: 3,
+                    width: 2,
                     height: 14,
                     decoration: BoxDecoration(
-                      color: AppColors.deepTeal,
-                      borderRadius: BorderRadius.circular(2),
+                      color: AppColors.workspaceCorporateNavy,
+                      borderRadius: BorderRadius.circular(1),
                     ),
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       block.inputFields[i].questionText,
-                      style: GoogleFonts.inter(
+                      style: GoogleFonts.montserrat(
                         fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.ink,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.workspacePrimaryText,
                       ),
                     ),
                   ),
@@ -2542,16 +2505,10 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: AppColors.hairline),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 8,
-            offset: const Offset(0, 3),
-          ),
-        ],
+        color: AppColors.workspacePanel,
+        borderRadius: AppRadius.br8,
+        border: Border.all(color: AppColors.workspaceBorder),
+        boxShadow: AppShadows.subtleElevated,
       ),
       clipBehavior: Clip.antiAlias,
       child: Column(
@@ -2573,20 +2530,20 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFFF1F5F9),
-          border: Border(bottom: BorderSide(color: AppColors.hairline, width: isLast ? 0 : 1)),
+          color: AppColors.workspaceSegmentBg,
+          border: Border(bottom: BorderSide(color: AppColors.workspaceBorder, width: isLast ? 0 : 1)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.bookmark_outline_rounded, size: 15, color: AppColors.deepTeal),
+            const Icon(Icons.bookmark_outline_rounded, size: 15, color: AppColors.workspaceCorporateNavy),
             const SizedBox(width: 8),
             Expanded(
               child: Text(
                 title,
-                style: GoogleFonts.inter(
+                style: GoogleFonts.montserrat(
                   fontSize: 12.5,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.ink,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.workspacePrimaryText,
                   letterSpacing: 0.2,
                 ),
               ),
@@ -2602,8 +2559,8 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFFF8FAFC),
-          border: Border(bottom: BorderSide(color: AppColors.hairlineStrong, width: isLast ? 0 : 1.2)),
+          color: AppColors.workspaceCanvas,
+          border: Border(bottom: BorderSide(color: AppColors.workspaceBorder, width: isLast ? 0 : 1.2)),
         ),
         child: Row(
           children: [
@@ -2613,7 +2570,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 child: Text(
                   cells[0].plainText.isNotEmpty ? cells[0].plainText : 'S.No',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.slate),
+                  style: GoogleFonts.montserrat(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
                 ),
               ),
               const SizedBox(width: 12),
@@ -2621,7 +2578,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 flex: 5,
                 child: Text(
                   cells[1].plainText.isNotEmpty ? cells[1].plainText : 'Particulars',
-                  style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.slate),
+                  style: GoogleFonts.montserrat(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
                 ),
               ),
               const SizedBox(width: 12),
@@ -2629,7 +2586,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 flex: 6,
                 child: Text(
                   cells[2].plainText.isNotEmpty ? cells[2].plainText : 'Observed Details / Input',
-                  style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.slate),
+                  style: GoogleFonts.montserrat(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
                 ),
               ),
             ] else if (cells.length == 2) ...[
@@ -2637,7 +2594,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 flex: 5,
                 child: Text(
                   cells[0].plainText.isNotEmpty ? cells[0].plainText : 'Particulars',
-                  style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.slate),
+                  style: GoogleFonts.montserrat(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
                 ),
               ),
               const SizedBox(width: 12),
@@ -2645,7 +2602,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 flex: 6,
                 child: Text(
                   cells[1].plainText.isNotEmpty ? cells[1].plainText : 'Details / Input',
-                  style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.slate),
+                  style: GoogleFonts.montserrat(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
                 ),
               ),
             ] else ...[
@@ -2653,7 +2610,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 Expanded(
                   child: Text(
                     c.plainText,
-                    style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w700, color: AppColors.slate),
+                    style: GoogleFonts.montserrat(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
                   ),
                 ),
             ],
@@ -2667,7 +2624,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.hairline, width: isLast ? 0 : 1)),
+          border: Border(bottom: BorderSide(color: AppColors.workspaceBorder, width: isLast ? 0 : 1)),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -2679,16 +2636,16 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 alignment: Alignment.center,
                 padding: const EdgeInsets.symmetric(vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.surfaceSoft,
+                  color: AppColors.workspaceSegmentBg,
                   borderRadius: BorderRadius.circular(4),
                 ),
                 child: Text(
                   rowVm.serialNo ?? '',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.montserrat(
                     fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.slate,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.workspaceSecondaryText,
                   ),
                 ),
               ),
@@ -2725,7 +2682,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.hairline, width: isLast ? 0 : 1)),
+          border: Border(bottom: BorderSide(color: AppColors.workspaceBorder, width: isLast ? 0 : 1)),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -2759,8 +2716,8 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
       decoration: BoxDecoration(
-        color: AppColors.surfaceSoft.withValues(alpha: 0.4),
-        border: Border(bottom: BorderSide(color: AppColors.hairline, width: isLast ? 0 : 1)),
+        color: AppColors.workspaceCanvas.withValues(alpha: 0.6),
+        border: Border(bottom: BorderSide(color: AppColors.workspaceBorder, width: isLast ? 0 : 1)),
       ),
       child: Row(
         children: [
@@ -2770,7 +2727,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 padding: const EdgeInsets.symmetric(horizontal: 4),
                 child: Text(
                   cell.plainText,
-                  style: GoogleFonts.inter(fontSize: 11.5, color: AppColors.slate, fontStyle: FontStyle.italic),
+                  style: GoogleFonts.montserrat(fontSize: 11.5, color: AppColors.workspaceSecondaryText, fontStyle: FontStyle.italic),
                 ),
               ),
             ),
@@ -2841,20 +2798,20 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
               children: [
                 TextSpan(
                   text: text,
-                  style: GoogleFonts.inter(
+                  style: GoogleFonts.montserrat(
                     fontSize: 12.5,
                     fontWeight: isRequired ? FontWeight.w600 : FontWeight.w500,
-                    color: AppColors.ink,
+                    color: AppColors.workspacePrimaryText,
                     height: 1.25,
                   ),
                 ),
                 if (isRequired)
                   TextSpan(
                     text: ' *',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.montserrat(
                       fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.brandRedDark,
+                      color: AppColors.workspaceErrorText,
                     ),
                   ),
               ],
@@ -2866,16 +2823,16 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
             decoration: BoxDecoration(
-              color: const Color(0xFFFEE2E2),
-              borderRadius: BorderRadius.circular(3),
+              color: AppColors.workspaceErrorSurface,
+              borderRadius: BorderRadius.circular(4),
               border: Border.all(color: const Color(0xFFFECACA), width: 0.8),
             ),
             child: Text(
               'REQUIRED',
-              style: GoogleFonts.inter(
+              style: GoogleFonts.montserrat(
                 fontSize: 8.5,
                 fontWeight: FontWeight.w700,
-                color: AppColors.brandRedDark,
+                color: AppColors.workspaceErrorText,
                 letterSpacing: 0.3,
               ),
             ),
@@ -2884,7 +2841,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           const SizedBox(width: 4),
           const Tooltip(
             message: 'Key appraisal parameter',
-            child: Icon(Icons.info_outline_rounded, size: 13, color: AppColors.steel),
+            child: Icon(Icons.info_outline_rounded, size: 13, color: AppColors.workspaceSecondaryText),
           ),
         ],
       ],

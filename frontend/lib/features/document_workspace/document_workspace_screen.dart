@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../theme/app_colors.dart';
+import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
 import 'models/document_workspace_model.dart';
 import 'providers/document_workspace_provider.dart';
@@ -56,26 +57,28 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text('Unsaved Modifications', style: AppTypography.heading4().copyWith(color: AppColors.ink)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        title: Text('Unsaved Modifications', style: AppTypography.workspaceSectionTitle()),
         content: Text(
           'You have pending in-document changes that have not been saved to the server. How would you like to proceed?',
-          style: AppTypography.bodySm().copyWith(color: AppColors.slate),
+          style: AppTypography.workspaceBody(color: AppColors.workspaceSecondaryText),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop('CANCEL'),
-            child: Text('Cancel', style: AppTypography.bodyMdMedium(color: AppColors.slate)),
+            child: Text('Cancel', style: AppTypography.workspaceButton(color: AppColors.workspaceSecondaryText)),
           ),
           TextButton(
             onPressed: () => Navigator.of(ctx).pop('DISCARD'),
-            child: Text('Discard & Leave', style: AppTypography.bodyMdMedium(color: AppColors.brandRedDark)),
+            child: Text('Discard & Leave', style: AppTypography.workspaceButton(color: AppColors.workspaceErrorText)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop('SAVE'),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.deepTeal,
+              backgroundColor: AppColors.workspaceCorporateNavy,
               foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: const Text('Save & Leave'),
           ),
@@ -101,30 +104,32 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
         title: Row(
           children: [
-            const Icon(Icons.send_rounded, color: AppColors.deepTeal, size: 20),
+            const Icon(Icons.send_rounded, color: AppColors.workspaceCorporateNavy, size: 20),
             const SizedBox(width: 8),
-            Text(isResubmit ? 'Resubmit Report to SPA?' : 'Submit Report to SPA?', style: AppTypography.heading4().copyWith(color: AppColors.ink)),
+            Text(isResubmit ? 'Resubmit Report to SPA?' : 'Submit Report to SPA?', style: AppTypography.workspaceSectionTitle()),
           ],
         ),
         content: Text(
           isResubmit
               ? 'This will save all updated document inputs and alert the Senior Property Analyst (SPA) to review the latest changes.'
               : 'This will save all in-document inputs and transfer the valuation file to Senior Property Analyst (SPA) review queue.',
-          style: AppTypography.bodySm().copyWith(color: AppColors.slate),
+          style: AppTypography.workspaceBody(color: AppColors.workspaceSecondaryText),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(false),
-            child: Text('Cancel', style: AppTypography.bodyMdMedium(color: AppColors.slate)),
+            child: Text('Cancel', style: AppTypography.workspaceButton(color: AppColors.workspaceSecondaryText)),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(ctx).pop(true),
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.deepTeal,
+              backgroundColor: AppColors.workspaceCorporateNavy,
               foregroundColor: Colors.white,
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
             child: Text(isResubmit ? 'Resubmit to SPA' : 'Submit to SPA'),
           ),
@@ -143,7 +148,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
           content: Text(isResubmit
               ? 'Updated document report resubmitted to SPA for review'
               : 'Document report submitted to SPA for review'),
-          backgroundColor: AppColors.successAccent,
+          backgroundColor: AppColors.workspaceSuccess,
           duration: const Duration(seconds: 2),
         ),
       );
@@ -152,7 +157,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_provider.errorMessage ?? 'Failed to submit to SPA'),
-          backgroundColor: AppColors.brandRedDark,
+          backgroundColor: AppColors.workspaceErrorText,
         ),
       );
     }
@@ -167,7 +172,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Valuation report approved and compiled successfully!'),
-          backgroundColor: AppColors.successAccent,
+          backgroundColor: AppColors.workspaceSuccess,
           duration: Duration(seconds: 3),
         ),
       );
@@ -176,7 +181,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(_provider.errorMessage ?? 'Failed to approve valuation report'),
-          backgroundColor: AppColors.brandRedDark,
+          backgroundColor: AppColors.workspaceErrorText,
         ),
       );
     }
@@ -198,7 +203,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
               }
             },
             child: Scaffold(
-              backgroundColor: AppColors.canvas,
+              backgroundColor: AppColors.workspaceCanvas,
               appBar: _buildAppBar(context, provider),
               body: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -209,7 +214,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
                   Expanded(
                     child: provider.isLoading
                         ? const Center(
-                            child: CircularProgressIndicator(color: AppColors.deepTeal),
+                            child: CircularProgressIndicator(color: AppColors.workspaceCorporateNavy),
                           )
                         : AnimatedSwitcher(
                             duration: const Duration(milliseconds: 250),
@@ -255,15 +260,15 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
     final isAdmin = widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN';
 
     return AppBar(
-      backgroundColor: AppColors.surface,
+      backgroundColor: AppColors.workspacePanel,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
       bottom: PreferredSize(
         preferredSize: const Size.fromHeight(1),
-        child: Container(color: AppColors.hairline, height: 1),
+        child: Container(color: AppColors.workspaceBorder, height: 1),
       ),
       leading: IconButton(
-        icon: const Icon(Icons.arrow_back_rounded, color: AppColors.ink),
+        icon: const Icon(Icons.arrow_back_rounded, color: AppColors.workspacePrimaryText),
         tooltip: 'Back to Orders',
         onPressed: () async {
           final shouldPop = await _onWillPop();
@@ -277,33 +282,23 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
           // Platform Title & Reference
           Text(
             'ProValuer Workspace',
-            style: GoogleFonts.inter(
-              fontSize: 14,
-              fontWeight: FontWeight.w700,
-              color: AppColors.ink,
-              letterSpacing: -0.2,
-            ),
+            style: AppTypography.workspaceSectionTitle().copyWith(fontSize: 14),
           ),
           const SizedBox(width: 8),
           Text(
             '•  $reportNum',
-            style: GoogleFonts.inter(
-              fontSize: 12.5,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
-            ),
+            style: AppTypography.workspaceMetadataValue(color: AppColors.workspaceSecondaryText).copyWith(fontSize: 12.5),
           ),
           const SizedBox(width: 12),
-          Container(width: 1, height: 18, color: AppColors.hairline),
+          Container(width: 1, height: 18, color: AppColors.workspaceBorder),
           const SizedBox(width: 12),
 
           // Segmented View Mode Toggle
           Container(
-            padding: const EdgeInsets.all(2),
+            padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
-              color: AppColors.surfaceSoft,
+              color: AppColors.workspaceSegmentBg,
               borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.hairline),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
@@ -346,57 +341,51 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
                   child: CircularProgressIndicator(strokeWidth: 1.8, color: AppColors.primaryBlue),
                 ),
                 const SizedBox(width: 6),
-                Text('Auto-saving...', style: GoogleFonts.inter(fontSize: 11, color: AppColors.slate)),
+                Text('Auto-saving...', style: AppTypography.workspaceMicro(color: AppColors.workspaceSecondaryText)),
               ] else if (provider.isDirty) ...[
                 Container(
                   width: 7,
                   height: 7,
-                  decoration: const BoxDecoration(color: AppColors.warning, shape: BoxShape.circle),
+                  decoration: const BoxDecoration(color: AppColors.workspaceWarning, shape: BoxShape.circle),
                 ),
                 const SizedBox(width: 6),
-                Text('Unsaved edits', style: GoogleFonts.inter(fontSize: 11, color: AppColors.warning, fontWeight: FontWeight.w600)),
+                Text('Unsaved edits', style: AppTypography.workspaceMicro(color: AppColors.workspaceWarning, weight: FontWeight.w700)),
               ] else if (provider.lastSavedAt != null) ...[
-                const Icon(Icons.check_circle_rounded, size: 14, color: AppColors.successAccent),
+                const Icon(Icons.check_circle_rounded, size: 14, color: AppColors.workspaceSuccess),
                 const SizedBox(width: 5),
-                Text('Auto-saved', style: GoogleFonts.inter(fontSize: 11, color: AppColors.slate)),
+                Text('Auto-saved', style: AppTypography.workspaceMicro(color: AppColors.workspaceSecondaryText)),
               ],
             ],
           ),
         ),
 
-        // Subordinate Save Draft Button (Neutral outline, only active if dirty)
-        OutlinedButton.icon(
+        // Subordinate Save Draft Button (Ghost-style appearance)
+        TextButton.icon(
           icon: provider.isSaving
               ? const SizedBox(
                   width: 12,
                   height: 12,
-                  child: CircularProgressIndicator(strokeWidth: 1.8, color: AppColors.slate),
+                  child: CircularProgressIndicator(strokeWidth: 1.8, color: AppColors.workspaceSecondaryText),
                 )
               : Icon(
                   Icons.save_outlined,
                   size: 14,
-                  color: provider.isDirty ? AppColors.ink : AppColors.stone,
+                  color: provider.isDirty ? AppColors.workspacePrimaryText : AppColors.steel,
                 ),
           label: Text(
             provider.isSaving ? 'Saving...' : 'Save Draft',
-            style: GoogleFonts.inter(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: provider.isDirty ? AppColors.ink : AppColors.stone,
+            style: AppTypography.workspaceButton(
+              color: provider.isDirty ? AppColors.workspacePrimaryText : AppColors.steel,
+              weight: FontWeight.w600,
             ),
           ),
           onPressed: (provider.isDirty && !provider.isSaving && !provider.isReadOnly)
               ? () => provider.saveChanges()
               : null,
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.ink,
-            disabledForegroundColor: AppColors.stone,
-            side: BorderSide(
-              color: provider.isDirty ? AppColors.hairlineStrong : AppColors.hairline,
-              width: 1.2,
-            ),
+          style: TextButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            backgroundColor: Colors.transparent,
           ),
         ),
         const SizedBox(width: 10),
@@ -415,15 +404,19 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
               provider.isSubmitting
                   ? 'Submitting...'
                   : (status == 'SPA_GATE' ? 'RESUBMIT TO SPA' : 'SUBMIT TO SPA'),
-              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.3),
+              style: AppTypography.workspaceButton(
+                color: Colors.white,
+                weight: FontWeight.w700,
+                letterSpacing: 0.3,
+              ),
             ),
             onPressed: provider.isSubmitting ? null : _handleSubmitToSpa,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryBlue,
+              backgroundColor: AppColors.workspaceCorporateNavy,
               foregroundColor: Colors.white,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
           const SizedBox(width: 10),
@@ -441,22 +434,26 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
                 : const Icon(Icons.verified_rounded, size: 14),
             label: Text(
               provider.isSubmitting ? 'Approving...' : 'APPROVE & COMPILE',
-              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, letterSpacing: 0.3),
+              style: AppTypography.workspaceButton(
+                color: Colors.white,
+                weight: FontWeight.w700,
+                letterSpacing: 0.3,
+              ),
             ),
             onPressed: provider.isSubmitting ? null : _handleSpaApprove,
             style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.successAccent,
+              backgroundColor: AppColors.workspaceSuccess,
               foregroundColor: Colors.white,
               elevation: 0,
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),
           const SizedBox(width: 10),
         ],
 
         IconButton(
-          icon: const Icon(Icons.refresh_rounded, color: AppColors.slate, size: 20),
+          icon: const Icon(Icons.refresh_rounded, color: AppColors.workspaceSecondaryText, size: 20),
           tooltip: 'Reload Document Data',
           onPressed: () => provider.loadWorkspace(widget.orderId),
         ),
@@ -492,8 +489,8 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
       height: 42,
       padding: const EdgeInsets.symmetric(horizontal: 16),
       decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(bottom: BorderSide(color: AppColors.hairline, width: 1.2)),
+        color: AppColors.workspacePanel,
+        border: Border(bottom: BorderSide(color: AppColors.workspaceBorder, width: 1.0)),
       ),
       child: Row(
         children: [
@@ -501,28 +498,27 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
             decoration: BoxDecoration(
-              color: AppColors.tealLight,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.25)),
+              color: AppColors.workspaceSegmentBg,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.workspaceBorder),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.apartment_rounded, color: AppColors.deepTeal, size: 13),
+                const Icon(Icons.apartment_rounded, color: AppColors.workspacePrimaryText, size: 13),
                 const SizedBox(width: 5),
                 Text(
                   propertyType,
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.deepTeal,
+                  style: AppTypography.workspaceMicro(
+                    color: AppColors.workspacePrimaryText,
+                    weight: FontWeight.w700,
                   ),
                 ),
               ],
             ),
           ),
           const SizedBox(width: 12),
-          Container(width: 1, height: 18, color: AppColors.hairline),
+          Container(width: 1, height: 18, color: AppColors.workspaceBorder),
           const SizedBox(width: 12),
 
           // Owner Metadata
@@ -532,7 +528,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
             icon: Icons.person_outline_rounded,
           ),
           const SizedBox(width: 12),
-          Container(width: 1, height: 18, color: AppColors.hairline),
+          Container(width: 1, height: 18, color: AppColors.workspaceBorder),
           const SizedBox(width: 12),
 
           // Bank Metadata
@@ -542,7 +538,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
             icon: Icons.account_balance_outlined,
           ),
           const SizedBox(width: 12),
-          Container(width: 1, height: 18, color: AppColors.hairline),
+          Container(width: 1, height: 18, color: AppColors.workspaceBorder),
           const SizedBox(width: 12),
 
           // Location Metadata
@@ -555,40 +551,38 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
           ),
 
           const SizedBox(width: 12),
-          Container(width: 1, height: 18, color: AppColors.hairline),
+          Container(width: 1, height: 18, color: AppColors.workspaceBorder),
           const SizedBox(width: 12),
 
-          // Report Identification Monospace
+          // Report Identification
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 'REPORT REF: ',
-                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: AppColors.steel),
+                style: AppTypography.workspaceMetadataLabel(),
               ),
               Text(
                 reportNum,
-                style: GoogleFonts.firaCode(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.ink),
+                style: AppTypography.workspaceMetadataValue(),
               ),
             ],
           ),
 
           const SizedBox(width: 12),
 
-          // Lifecycle Status Badge
+          // Lifecycle Status Badge (Pill shape, soft background, no hard border)
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3.5),
             decoration: BoxDecoration(
-              color: _getStatusColor(status).withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: _getStatusColor(status).withValues(alpha: 0.3)),
+              color: _getStatusColor(status).withValues(alpha: 0.10),
+              borderRadius: BorderRadius.circular(9999),
             ),
             child: Text(
               status,
-              style: TextStyle(
-                fontSize: 10,
-                fontWeight: FontWeight.bold,
+              style: AppTypography.workspaceMicro(
                 color: _getStatusColor(status),
+                weight: FontWeight.w700,
               ),
             ),
           ),
@@ -605,15 +599,11 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: 13, color: AppColors.steel),
+        Icon(icon, size: 13, color: AppColors.workspaceSecondaryText),
         const SizedBox(width: 4),
         Text(
           '$label: ',
-          style: GoogleFonts.inter(
-            fontSize: 10,
-            fontWeight: FontWeight.w700,
-            color: AppColors.steel,
-          ),
+          style: AppTypography.workspaceMetadataLabel(),
         ),
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 180),
@@ -621,11 +611,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
             value,
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
-            style: GoogleFonts.inter(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: AppColors.ink,
-            ),
+            style: AppTypography.workspaceMetadataValue(),
           ),
         ),
       ],
@@ -640,28 +626,29 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
   }) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(6),
+      borderRadius: BorderRadius.circular(8),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
         decoration: BoxDecoration(
           color: isActive ? Colors.white : Colors.transparent,
-          borderRadius: BorderRadius.circular(6),
-          boxShadow: isActive
-              ? [BoxShadow(color: Colors.black.withValues(alpha: 0.08), blurRadius: 4, offset: const Offset(0, 1))]
-              : null,
+          borderRadius: BorderRadius.circular(8),
+          boxShadow: isActive ? AppShadows.subtleElevated : null,
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, size: 14, color: isActive ? AppColors.deepTeal : AppColors.slate),
+            Icon(
+              icon,
+              size: 14,
+              color: isActive ? AppColors.workspacePrimaryText : AppColors.workspaceSecondaryText,
+            ),
             const SizedBox(width: 6),
             Text(
               title,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                color: isActive ? AppColors.deepTeal : AppColors.slate,
+              style: AppTypography.workspaceButton(
+                color: isActive ? AppColors.workspacePrimaryText : AppColors.workspaceSecondaryText,
+                weight: isActive ? FontWeight.w700 : FontWeight.w500,
               ),
             ),
           ],

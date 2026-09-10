@@ -5,6 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../theme/app_colors.dart';
+import '../../../theme/app_spacing.dart';
+import '../../../theme/app_typography.dart';
 import '../../../utils/indian_number_formatter.dart';
 import '../models/workspace_view_model.dart';
 import '../providers/document_workspace_provider.dart';
@@ -252,11 +254,11 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 140),
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(6),
+                  borderRadius: BorderRadius.circular(8),
                   boxShadow: _focusNode.hasFocus
-                      ? [
-                          const BoxShadow(
-                            color: Color(0x2E2563EB), // 3px rgba(37, 99, 235, 0.18)
+                      ? const [
+                          BoxShadow(
+                            color: AppColors.workspaceFocusGlow, // 3px rgba(37, 99, 235, 0.12)
                             blurRadius: 3,
                             spreadRadius: 2,
                           ),
@@ -273,11 +275,8 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                       : (isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text),
                   minLines: isMultiline ? 3 : 1,
                   maxLines: isMultiline ? null : 1, // Auto-growing dynamic height
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: widget.readOnly ? AppColors.slate : AppColors.ink,
-                    height: 1.35,
+                  style: AppTypography.workspaceInput(
+                    color: widget.readOnly ? AppColors.workspaceSecondaryText : AppColors.workspacePrimaryText,
                   ),
                   decoration: InputDecoration(
                     hintText: isMultiline
@@ -285,12 +284,11 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                         : (isDate
                             ? 'Select date (dd-MMM-yyyy)'
                             : 'Enter ${widget.fieldVm.questionText.isNotEmpty ? widget.fieldVm.questionText : "value"}...'),
-                    hintStyle: GoogleFonts.inter(
-                      fontSize: 12,
-                      color: AppColors.steel.withValues(alpha: 0.8),
-                    ),
+                    hintStyle: AppTypography.workspaceHint(),
                     filled: true,
-                    fillColor: widget.readOnly ? AppColors.surfaceSoft : Colors.white,
+                    fillColor: _focusNode.hasFocus
+                        ? Colors.white
+                        : (widget.readOnly ? AppColors.workspaceSegmentBg : AppColors.workspaceCanvas),
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(
                       horizontal: 11,
@@ -301,7 +299,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                             onTap: () => _pickDate(context, provider),
                             child: const Padding(
                               padding: EdgeInsets.all(8.0),
-                              child: Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.deepTeal),
+                              child: Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.workspaceCorporateNavy),
                             ),
                           )
                         : (isRepeated
@@ -309,21 +307,29 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                                 message: 'Synchronized across ${widget.fieldVm.occurrences} locations in document',
                                 child: Padding(
                                   padding: const EdgeInsets.only(right: 8),
-                                  child: Icon(Icons.sync_rounded, size: 15, color: AppColors.deepTeal.withValues(alpha: 0.7)),
+                                  child: Icon(Icons.sync_rounded, size: 15, color: AppColors.workspaceCorporateNavy.withValues(alpha: 0.7)),
                                 ),
                               )
                             : null),
                     border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      borderSide: const BorderSide(color: AppColors.hairlineStrong, width: 1.2),
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.workspaceBorder, width: 1.0),
                     ),
                     enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      borderSide: const BorderSide(color: AppColors.hairlineStrong, width: 1.2),
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.workspaceBorder, width: 1.0),
                     ),
                     focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(6),
-                      borderSide: const BorderSide(color: AppColors.primaryBlue, width: 2.0),
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.0),
+                    ),
+                    errorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.workspaceErrorText, width: 1.0),
+                    ),
+                    focusedErrorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                      borderSide: const BorderSide(color: AppColors.workspaceErrorText, width: 1.5),
                     ),
                   ),
                 ),
@@ -335,15 +341,11 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
           const SizedBox(height: 3),
           Row(
             children: [
-              const Icon(Icons.link_rounded, size: 11, color: AppColors.steel),
+              const Icon(Icons.link_rounded, size: 11, color: AppColors.workspaceSecondaryText),
               const SizedBox(width: 3),
               Text(
                 'Synced (${widget.fieldVm.occurrences}x)',
-                style: GoogleFonts.inter(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.steel,
-                ),
+                style: AppTypography.workspaceMicro(color: AppColors.workspaceSecondaryText),
               ),
             ],
           ),
@@ -353,26 +355,20 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
   }
 
   Widget _buildImageInput(BuildContext context, DocumentWorkspaceProvider provider) {
-    final value = _controller.text.trim();
+    final value = provider.getValue(widget.fieldVm.key);
     final hasValue = value.isNotEmpty;
-    final isBase64 = value.startsWith('data:image') || value.length > 200;
+    final isBase64 = value.startsWith('data:image/') || (value.length > 100 && !value.contains(' '));
 
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: hasValue ? AppColors.surfaceSoft : Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        color: hasValue ? AppColors.workspaceSegmentBg : Colors.white,
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: hasValue ? AppColors.deepTeal.withValues(alpha: 0.5) : AppColors.hairline,
-          width: 1.2,
+          color: hasValue ? AppColors.workspaceCorporateNavy.withValues(alpha: 0.4) : AppColors.workspaceBorder,
+          width: 1.0,
         ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 4,
-            offset: const Offset(0, 1),
-          ),
-        ],
+        boxShadow: AppShadows.subtleElevated,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -384,16 +380,16 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: AppColors.deepTeal.withValues(alpha: 0.08),
+                  color: AppColors.workspaceSegmentBg,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: AppColors.hairline),
+                  border: Border.all(color: AppColors.workspaceBorder),
                 ),
                 clipBehavior: Clip.antiAlias,
                 child: hasValue
                     ? (isBase64
                         ? _renderBase64Thumbnail(value)
                         : const Center(
-                            child: Icon(Icons.image_rounded, color: AppColors.deepTeal, size: 30),
+                            child: Icon(Icons.image_rounded, color: AppColors.workspaceCorporateNavy, size: 30),
                           ))
                     : const Center(
                         child: Icon(Icons.add_photo_alternate_outlined, color: AppColors.steel, size: 28),
@@ -409,25 +405,20 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                         Expanded(
                           child: Text(
                             widget.fieldVm.questionText,
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.ink,
-                            ),
+                            style: AppTypography.workspaceSectionTitle().copyWith(fontSize: 13),
                           ),
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: hasValue ? AppColors.tealLight : AppColors.surfaceSoft,
-                            borderRadius: BorderRadius.circular(4),
+                            color: hasValue ? const Color(0xFFE0F2FE) : AppColors.workspaceSegmentBg,
+                            borderRadius: BorderRadius.circular(8),
                           ),
                           child: Text(
                             hasValue ? 'IMAGE ATTACHED' : 'REQUIRED',
-                            style: GoogleFonts.inter(
-                              fontSize: 9,
-                              fontWeight: FontWeight.w700,
-                              color: hasValue ? AppColors.deepTeal : AppColors.slate,
+                            style: AppTypography.workspaceMicro(
+                              color: hasValue ? AppColors.primaryBlue : AppColors.workspaceSecondaryText,
+                              weight: FontWeight.w700,
                             ),
                           ),
                         ),
@@ -438,10 +429,9 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                       hasValue
                           ? (isBase64 ? 'Image Attached & Ready for DOCX/PDF' : 'Attached: $value')
                           : 'PNG, JPEG, WebP supported for property inspection',
-                      style: GoogleFonts.inter(
-                        fontSize: 11,
-                        color: hasValue ? AppColors.deepTeal : AppColors.slate,
-                        fontWeight: hasValue ? FontWeight.w600 : FontWeight.w400,
+                      style: AppTypography.workspaceMicro(
+                        color: hasValue ? AppColors.workspaceCorporateNavy : AppColors.workspaceSecondaryText,
+                        weight: hasValue ? FontWeight.w600 : FontWeight.w400,
                       ),
                     ),
                   ],

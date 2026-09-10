@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../theme/app_colors.dart';
+import '../../../theme/app_spacing.dart';
 import '../../../theme/app_typography.dart';
 import '../models/workspace_view_model.dart';
 import '../providers/document_workspace_provider.dart';
@@ -42,8 +43,8 @@ class SectionNavigationTreeWidget extends StatelessWidget {
     return Container(
       width: 280,
       decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(right: BorderSide(color: AppColors.hairline)),
+        color: AppColors.workspacePanel,
+        border: Border(right: BorderSide(color: AppColors.workspaceBorder)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -52,25 +53,23 @@ class SectionNavigationTreeWidget extends StatelessWidget {
           Container(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
             decoration: const BoxDecoration(
-              color: AppColors.surface,
-              border: Border(bottom: BorderSide(color: AppColors.hairline)),
+              color: AppColors.workspacePanel,
+              border: Border(bottom: BorderSide(color: AppColors.workspaceBorder)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.account_tree_outlined, size: 16, color: AppColors.deepTeal),
+                    const Icon(Icons.account_tree_outlined, size: 16, color: AppColors.workspaceCorporateNavy),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'DOCUMENT SECTIONS',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.8,
-                          color: AppColors.ink,
-                        ),
+                        style: AppTypography.workspaceSidebarItem(
+                          color: AppColors.workspacePrimaryText,
+                          isActive: true,
+                        ).copyWith(fontSize: 11, letterSpacing: 0.8),
                       ),
                     ),
                   ],
@@ -79,33 +78,26 @@ class SectionNavigationTreeWidget extends StatelessWidget {
 
                 // Dual Workspace Mode Segment Control
                 Container(
-                  padding: const EdgeInsets.all(2),
+                  padding: const EdgeInsets.all(4),
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceSoft,
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: AppColors.hairline),
+                    color: AppColors.workspaceSegmentBg,
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Row(
                     children: [
                       Expanded(
                         child: InkWell(
                           onTap: () => provider.setScrollMode(DocumentScrollMode.continuous),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(8),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                            padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
                             decoration: BoxDecoration(
                               color: provider.scrollMode == DocumentScrollMode.continuous
                                   ? Colors.white
                                   : Colors.transparent,
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(8),
                               boxShadow: provider.scrollMode == DocumentScrollMode.continuous
-                                  ? [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.05),
-                                        blurRadius: 2,
-                                        offset: const Offset(0, 1),
-                                      ),
-                                    ]
+                                  ? AppShadows.subtleElevated
                                   : null,
                             ),
                             child: Row(
@@ -114,26 +106,25 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                               children: [
                                 Icon(
                                   Icons.menu_book_rounded,
-                                  size: 12,
+                                  size: 13,
                                   color: provider.scrollMode == DocumentScrollMode.continuous
-                                      ? AppColors.deepTeal
-                                      : AppColors.slate,
+                                      ? AppColors.workspacePrimaryText
+                                      : AppColors.workspaceSecondaryText,
                                 ),
-                                const SizedBox(width: 3),
+                                const SizedBox(width: 4),
                                 Flexible(
                                   child: Text(
                                     'Continuous',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.inter(
-                                      fontSize: 10,
-                                      fontWeight: provider.scrollMode == DocumentScrollMode.continuous
+                                    style: AppTypography.workspaceButton(
+                                      color: provider.scrollMode == DocumentScrollMode.continuous
+                                          ? AppColors.workspacePrimaryText
+                                          : AppColors.workspaceSecondaryText,
+                                      weight: provider.scrollMode == DocumentScrollMode.continuous
                                           ? FontWeight.w700
                                           : FontWeight.w500,
-                                      color: provider.scrollMode == DocumentScrollMode.continuous
-                                          ? AppColors.deepTeal
-                                          : AppColors.slate,
-                                    ),
+                                    ).copyWith(fontSize: 10.5),
                                   ),
                                 ),
                               ],
@@ -144,22 +135,16 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                       Expanded(
                         child: InkWell(
                           onTap: () => provider.setScrollMode(DocumentScrollMode.sectionBySection),
-                          borderRadius: BorderRadius.circular(4),
+                          borderRadius: BorderRadius.circular(8),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(vertical: 4, horizontal: 2),
+                            padding: const EdgeInsets.symmetric(vertical: 5, horizontal: 4),
                             decoration: BoxDecoration(
                               color: provider.scrollMode == DocumentScrollMode.sectionBySection
                                   ? Colors.white
                                   : Colors.transparent,
-                              borderRadius: BorderRadius.circular(4),
+                              borderRadius: BorderRadius.circular(8),
                               boxShadow: provider.scrollMode == DocumentScrollMode.sectionBySection
-                                  ? [
-                                      BoxShadow(
-                                        color: Colors.black.withValues(alpha: 0.05),
-                                        blurRadius: 2,
-                                        offset: const Offset(0, 1),
-                                      ),
-                                    ]
+                                  ? AppShadows.subtleElevated
                                   : null,
                             ),
                             child: Row(
@@ -168,26 +153,25 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                               children: [
                                 Icon(
                                   Icons.tab_rounded,
-                                  size: 12,
+                                  size: 13,
                                   color: provider.scrollMode == DocumentScrollMode.sectionBySection
-                                      ? AppColors.deepTeal
-                                      : AppColors.slate,
+                                      ? AppColors.workspacePrimaryText
+                                      : AppColors.workspaceSecondaryText,
                                 ),
-                                const SizedBox(width: 3),
+                                const SizedBox(width: 4),
                                 Flexible(
                                   child: Text(
                                     'Sections',
                                     maxLines: 1,
                                     overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.inter(
-                                      fontSize: 10,
-                                      fontWeight: provider.scrollMode == DocumentScrollMode.sectionBySection
+                                    style: AppTypography.workspaceButton(
+                                      color: provider.scrollMode == DocumentScrollMode.sectionBySection
+                                          ? AppColors.workspacePrimaryText
+                                          : AppColors.workspaceSecondaryText,
+                                      weight: provider.scrollMode == DocumentScrollMode.sectionBySection
                                           ? FontWeight.w700
                                           : FontWeight.w500,
-                                      color: provider.scrollMode == DocumentScrollMode.sectionBySection
-                                          ? AppColors.deepTeal
-                                          : AppColors.slate,
-                                    ),
+                                    ).copyWith(fontSize: 10.5),
                                   ),
                                 ),
                               ],
@@ -207,7 +191,7 @@ class SectionNavigationTreeWidget extends StatelessWidget {
             child: ListView.separated(
               padding: const EdgeInsets.symmetric(vertical: 6),
               itemCount: vm.sections.length,
-              separatorBuilder: (_, __) => const Divider(height: 1, indent: 14, endIndent: 14, color: AppColors.hairline),
+              separatorBuilder: (_, __) => const Divider(height: 1, indent: 14, endIndent: 14, color: AppColors.workspaceBorder),
               itemBuilder: (context, index) {
                 final section = vm.sections[index];
                 final isActive = provider.activeSectionIndex == index;
@@ -224,15 +208,15 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                 if (isCompleted) {
                   statusIcon = '✅';
                   statusLabel = 'Complete';
-                  statusColor = AppColors.successAccent;
+                  statusColor = AppColors.workspaceSuccess;
                 } else if (inProgress) {
                   statusIcon = '🟡';
                   statusLabel = 'In Progress';
-                  statusColor = AppColors.warning;
+                  statusColor = AppColors.workspaceWarning;
                 } else {
                   statusIcon = '⚪';
                   statusLabel = 'Not Started';
-                  statusColor = AppColors.steel;
+                  statusColor = AppColors.workspaceSecondaryText;
                 }
 
                 return InkWell(
@@ -242,13 +226,14 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                   },
                   child: Container(
                     decoration: BoxDecoration(
-                      color: isActive ? AppColors.primaryBlueLight : Colors.transparent,
+                      color: isActive ? AppColors.workspaceCanvas : Colors.transparent,
                       border: Border(
                         left: BorderSide(
-                          color: isActive ? AppColors.primaryBlue : Colors.transparent,
-                          width: 3.5,
+                          color: isActive ? AppColors.workspaceCorporateNavy : Colors.transparent,
+                          width: 2.0, // Refined 2px max left accent border
                         ),
                       ),
+                      boxShadow: isActive ? AppShadows.subtleElevated : null,
                     ),
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                     child: Row(
@@ -262,28 +247,27 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: isCompleted
-                                ? AppColors.successAccent.withValues(alpha: 0.15)
+                                ? AppColors.workspaceSuccess.withValues(alpha: 0.15)
                                 : (isActive
-                                    ? AppColors.primaryBlue
-                                    : (inProgress ? AppColors.warning.withValues(alpha: 0.15) : AppColors.surfaceSoft)),
+                                    ? AppColors.workspaceCorporateNavy
+                                    : (inProgress ? AppColors.workspaceWarning.withValues(alpha: 0.15) : AppColors.workspaceSegmentBg)),
                             border: Border.all(
                               color: isCompleted
-                                  ? AppColors.successAccent
-                                  : (isActive ? AppColors.primaryBlue : AppColors.hairlineStrong),
+                                  ? AppColors.workspaceSuccess
+                                  : (isActive ? AppColors.workspaceCorporateNavy : AppColors.workspaceBorder),
                               width: 1,
                             ),
                           ),
                           alignment: Alignment.center,
                           child: isCompleted
-                              ? const Icon(Icons.check_rounded, size: 13, color: AppColors.successAccent)
+                              ? const Icon(Icons.check_rounded, size: 13, color: AppColors.workspaceSuccess)
                               : Text(
                                   '${section.sectionIndex + 1}',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.w700,
+                                  style: AppTypography.workspaceMicro(
                                     color: isActive
                                         ? Colors.white
-                                        : (inProgress ? AppColors.warning : AppColors.steel),
+                                        : (inProgress ? AppColors.workspaceWarning : AppColors.workspaceSecondaryText),
+                                    weight: FontWeight.w700,
                                   ),
                                 ),
                         ),
@@ -298,10 +282,9 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                                 section.title,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: GoogleFonts.inter(
-                                  fontSize: 12.5,
-                                  fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                                  color: isActive ? AppColors.ink : AppColors.ink,
+                                style: AppTypography.workspaceSidebarItem(
+                                  color: AppColors.workspacePrimaryText,
+                                  isActive: isActive,
                                 ),
                               ),
                               const SizedBox(height: 2),
@@ -311,19 +294,17 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                                 children: [
                                   Text(
                                     '$statusIcon $statusLabel',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 10.5,
-                                      fontWeight: FontWeight.w600,
+                                    style: AppTypography.workspaceMicro(
                                       color: statusColor,
+                                      weight: FontWeight.w600,
                                     ),
                                   ),
                                   const SizedBox(width: 5),
                                   Text(
                                     '($completedCount / $totalCount)',
-                                    style: GoogleFonts.firaCode(
-                                      fontSize: 10,
-                                      fontWeight: FontWeight.w600,
-                                      color: isCompleted ? AppColors.successAccent : AppColors.steel,
+                                    style: AppTypography.workspaceMicro(
+                                      color: isCompleted ? AppColors.workspaceSuccess : AppColors.workspaceSecondaryText,
+                                      weight: FontWeight.w500,
                                     ),
                                   ),
                                 ],
@@ -335,7 +316,7 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                         if (isActive)
                           const Padding(
                             padding: EdgeInsets.only(top: 4),
-                            child: Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.primaryBlue),
+                            child: Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.workspaceCorporateNavy),
                           ),
                       ],
                     ),
@@ -352,8 +333,8 @@ class SectionNavigationTreeWidget extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(14),
             decoration: const BoxDecoration(
-              color: AppColors.surface,
-              border: Border(top: BorderSide(color: AppColors.hairline, width: 1.2)),
+              color: AppColors.workspacePanel,
+              border: Border(top: BorderSide(color: AppColors.workspaceBorder, width: 1.0)),
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -363,24 +344,22 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                   children: [
                     Text(
                       'Report Progress',
-                      style: GoogleFonts.inter(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.ink,
-                      ),
+                      style: AppTypography.workspaceSidebarItem(
+                        color: AppColors.workspacePrimaryText,
+                        isActive: true,
+                      ).copyWith(fontSize: 12),
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                       decoration: BoxDecoration(
-                        color: progress >= 1.0 ? AppColors.successBg : AppColors.primaryBlueLight,
-                        borderRadius: BorderRadius.circular(4),
+                        color: progress >= 1.0 ? const Color(0xFFDCFCE7) : const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
                         '${(progress * 100).round()}% Completed',
-                        style: GoogleFonts.inter(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: progress >= 1.0 ? AppColors.successAccent : AppColors.primaryBlue,
+                        style: AppTypography.workspaceMicro(
+                          color: progress >= 1.0 ? AppColors.workspaceSuccess : AppColors.primaryBlue,
+                          weight: FontWeight.w700,
                         ),
                       ),
                     ),
@@ -388,14 +367,14 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(3),
+                  borderRadius: BorderRadius.circular(8),
                   child: LinearProgressIndicator(
                     value: progress,
-                    backgroundColor: AppColors.hairline,
+                    backgroundColor: AppColors.workspaceBorder,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      progress >= 1.0 ? AppColors.successAccent : AppColors.primaryBlue,
+                      progress >= 1.0 ? AppColors.workspaceSuccess : AppColors.primaryBlue,
                     ),
-                    minHeight: 6,
+                    minHeight: 5,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -404,11 +383,11 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                   children: [
                     Text(
                       '$completedFields / $totalFields fields filled',
-                      style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.steel, fontWeight: FontWeight.w500),
+                      style: AppTypography.workspaceMicro(color: AppColors.workspaceSecondaryText),
                     ),
                     Text(
                       '${vm.sections.where((s) => s.isCompleted(provider.activeValues)).length} / ${vm.sections.length} sections',
-                      style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.steel, fontWeight: FontWeight.w600),
+                      style: AppTypography.workspaceMicro(color: AppColors.workspaceSecondaryText, weight: FontWeight.w700),
                     ),
                   ],
                 ),
@@ -457,17 +436,17 @@ class SectionNavigationTreeWidget extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
           color: const Color(0xFFF0FDF4),
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(8),
           border: Border.all(color: const Color(0xFFBBF7D0)),
         ),
         child: Row(
           children: [
-            const Icon(Icons.check_circle_rounded, size: 13, color: AppColors.successAccent),
+            const Icon(Icons.check_circle_rounded, size: 13, color: AppColors.workspaceSuccess),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
                 'Critical parameters complete',
-                style: GoogleFonts.inter(fontSize: 10.5, fontWeight: FontWeight.w600, color: const Color(0xFF166534)),
+                style: AppTypography.workspaceMicro(color: const Color(0xFF166534), weight: FontWeight.w600),
               ),
             ),
           ],
@@ -479,9 +458,9 @@ class SectionNavigationTreeWidget extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: const Color(0xFFFEF2F2), // red-50
-        borderRadius: BorderRadius.circular(6),
-        border: Border.all(color: const Color(0xFFFECACA)), // red-200
+        color: AppColors.workspaceErrorSurface, // #FEF2F2
+        borderRadius: BorderRadius.circular(8), // 8px radius
+        border: Border.all(color: const Color(0xFFFECACA)), // refined border
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -489,15 +468,14 @@ class SectionNavigationTreeWidget extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.error_outline_rounded, size: 14, color: AppColors.brandRedDark),
+              const Icon(Icons.error_outline_rounded, size: 14, color: AppColors.workspaceErrorText),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
                   'Missing Critical Fields (${missingList.length})',
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.brandRedDark,
+                  style: AppTypography.workspaceMicro(
+                    color: AppColors.workspaceErrorText,
+                    weight: FontWeight.w700,
                   ),
                 ),
               ),
@@ -514,16 +492,14 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(vertical: 2),
                 child: Row(
                   children: [
-                    const Icon(Icons.arrow_right_rounded, size: 14, color: AppColors.brandRedDark),
+                    const Icon(Icons.arrow_right_rounded, size: 14, color: AppColors.workspaceErrorText),
                     Expanded(
                       child: Text(
                         '${item.label} (Sec ${item.sectionIndex + 1})',
-                        style: GoogleFonts.inter(
-                          fontSize: 10.5,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF991B1B),
-                          decoration: TextDecoration.underline,
-                        ),
+                        style: AppTypography.workspaceMicro(
+                          color: AppColors.workspaceErrorText,
+                          weight: FontWeight.w600,
+                        ).copyWith(decoration: TextDecoration.underline),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -537,7 +513,10 @@ class SectionNavigationTreeWidget extends StatelessWidget {
               padding: const EdgeInsets.only(top: 2, left: 14),
               child: Text(
                 '+ ${missingList.length - 3} more critical fields',
-                style: GoogleFonts.inter(fontSize: 10, color: AppColors.brandRedDark, fontStyle: FontStyle.italic),
+                style: AppTypography.workspaceMicro(
+                  color: AppColors.workspaceErrorText,
+                  weight: FontWeight.w500,
+                ).copyWith(fontStyle: FontStyle.italic),
               ),
             ),
         ],

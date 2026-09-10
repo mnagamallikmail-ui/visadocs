@@ -160,4 +160,121 @@ class AppTypography {
       sectionTitle(color: color);
   static TextStyle h3({Color color = AppColors.ink}) =>
       cardTitle(color: color);
+
+  // ── Document Workspace Typography (Montserrat — Approved Directive) ──────
+
+  static TextStyle _makeMontserrat({
+    required double size,
+    required FontWeight weight,
+    required double height,
+    double letterSpacing = 0,
+    Color color = AppColors.workspacePrimaryText,
+  }) {
+    return GoogleFonts.montserrat(
+      fontSize: size,
+      fontWeight: weight,
+      height: height,
+      letterSpacing: letterSpacing,
+      color: color,
+    );
+  }
+
+  /// Metadata Labels: SemiBold, 11px–12px, #64748B, letterSpacing 1px, uppercase
+  static TextStyle workspaceMetadataLabel({Color color = AppColors.workspaceSecondaryText}) =>
+      _makeMontserrat(
+        size: 11,
+        weight: FontWeight.w600,
+        height: 1.2,
+        letterSpacing: 1.0,
+        color: color,
+      );
+
+  /// Primary Metadata Values: Medium, 13px–14px, #0F172A
+  static TextStyle workspaceMetadataValue({Color color = AppColors.workspacePrimaryText}) =>
+      _makeMontserrat(
+        size: 13,
+        weight: FontWeight.w500,
+        height: 1.3,
+        letterSpacing: -0.1,
+        color: color,
+      );
+
+  /// Section Titles: Bold, 16px, #0F172A
+  static TextStyle workspaceSectionTitle({Color color = AppColors.workspacePrimaryText}) =>
+      _makeMontserrat(
+        size: 16,
+        weight: FontWeight.w700,
+        height: 1.3,
+        letterSpacing: -0.2,
+        color: color,
+      );
+
+  /// Sidebar / Subsection Heading: SemiBold, 12.5px
+  static TextStyle workspaceSidebarItem({
+    Color color = AppColors.workspacePrimaryText,
+    bool isActive = false,
+  }) =>
+      _makeMontserrat(
+        size: 12.5,
+        weight: isActive ? FontWeight.w700 : FontWeight.w600,
+        height: 1.3,
+        color: color,
+      );
+
+  /// Input Text: Regular/Medium, 13px, #0F172A
+  static TextStyle workspaceInput({Color color = AppColors.workspacePrimaryText}) =>
+      _makeMontserrat(
+        size: 13,
+        weight: FontWeight.w500,
+        height: 1.35,
+        color: color,
+      );
+
+  /// Input Hint: 12px, #64748B
+  static TextStyle workspaceHint({Color color = AppColors.workspaceSecondaryText}) =>
+      _makeMontserrat(
+        size: 12,
+        weight: FontWeight.w400,
+        height: 1.35,
+        color: color,
+      );
+
+  /// Segment / Action Button: Medium/SemiBold, 12px
+  static TextStyle workspaceButton({
+    Color color = AppColors.workspacePrimaryText,
+    FontWeight weight = FontWeight.w600,
+    double letterSpacing = 0.2,
+  }) =>
+      _makeMontserrat(
+        size: 12,
+        weight: weight,
+        height: 1.2,
+        letterSpacing: letterSpacing,
+        color: color,
+      );
+
+  /// Micro Tag / Status: 10px–11px, SemiBold/Bold
+  static TextStyle workspaceMicro({
+    Color color = AppColors.workspaceSecondaryText,
+    FontWeight weight = FontWeight.w600,
+  }) =>
+      _makeMontserrat(
+        size: 10.5,
+        weight: weight,
+        height: 1.2,
+        letterSpacing: 0.3,
+        color: color,
+      );
+
+  /// Workspace Body: Regular/Medium, 13px, #0F172A
+  static TextStyle workspaceBody({
+    Color color = AppColors.workspacePrimaryText,
+    FontWeight weight = FontWeight.w400,
+  }) =>
+      _makeMontserrat(
+        size: 13,
+        weight: weight,
+        height: 1.4,
+        color: color,
+      );
 }

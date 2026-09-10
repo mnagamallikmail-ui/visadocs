@@ -39,6 +39,8 @@ class AppRadius {
   // Raw values
   static const double xs      = 4.0;
   static const double sm      = 6.0;
+  static const double base    = 8.0;    // Standard 8px radius (Approved UI Modernization)
+  static const double r8      = 8.0;
   static const double md      = 12.0;   // buttons, forms — 12px
   static const double lg      = 12.0;   // buttons alias
   static const double xl      = 16.0;   // cards — 16px
@@ -50,6 +52,8 @@ class AppRadius {
   // BorderRadius helpers
   static BorderRadius brXs      = BorderRadius.circular(xs);
   static BorderRadius brSm      = BorderRadius.circular(sm);
+  static BorderRadius brBase    = BorderRadius.circular(base); // 8px
+  static BorderRadius br8       = BorderRadius.circular(r8);   // 8px
   static BorderRadius brMd      = BorderRadius.circular(md);   // 12px
   static BorderRadius brLg      = BorderRadius.circular(lg);   // 12px
   static BorderRadius brXl      = BorderRadius.circular(xl);   // 16px
@@ -60,19 +64,28 @@ class AppRadius {
 }
 
 /// AppShadows — Clay Enterprise PropTech elevation model
-/// Soft, warm shadows appropriate for cream backgrounds.
+/// Soft, refined shadows adhering to the 0 1px 3px rgba(0,0,0,0.05) rule.
 class AppShadows {
   AppShadows._();
 
   /// Level 0 — flat
   static const List<BoxShadow> flat = [];
 
-  /// Level 1 — cards: very soft warm shadow
+  /// Level 1 — subtle: 0 1px 3px rgba(0,0,0,0.05)
+  static const List<BoxShadow> subtleElevated = [
+    BoxShadow(
+      color: Color(0x0D000000), // rgba(0,0,0,0.05)
+      blurRadius: 3,
+      offset: Offset(0, 1),
+    ),
+  ];
+
+  /// Level 1 — cards: refined subtle shadow
   static const List<BoxShadow> card = [
     BoxShadow(
-      color: Color(0x0A1A3A3A),
-      blurRadius: 8,
-      offset: Offset(0, 2),
+      color: Color(0x0D000000),
+      blurRadius: 3,
+      offset: Offset(0, 1),
     ),
   ];
 
