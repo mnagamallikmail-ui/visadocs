@@ -85,10 +85,13 @@ public class DocxStructureParser {
             ObjectNode pSum = placeholdersSummary.addObject();
             String key = entry.getKey();
             String humanizedLabel = toHumanizedLabel(key);
-            pSum.put("key", key);
-            pSum.put("label", humanizedLabel);
-
             String resolvedQuestion = resolveQuestionText(tracker, key);
+            String labelToUse = (tracker.tableContext != null && tracker.questionText != null && !tracker.questionText.trim().isEmpty())
+                    ? tracker.questionText.trim()
+                    : humanizedLabel;
+
+            pSum.put("key", key);
+            pSum.put("label", labelToUse);
             pSum.put("questionText", resolvedQuestion);
 
             if (tracker.serialNo != null && !tracker.serialNo.trim().isEmpty()) {

@@ -94,8 +94,11 @@ public class TemplateProcessingService {
                 // Update status to PARSING
                 updateStatus(templateId, "PARSING", null);
 
-                // Step 1: Normalize run fragments & standardize placeholders
-                byte[] normalizedBytes = templateEngine.normalizeTemplate(rawBytes);
+                // Step 1: Normalize run fragments, standardize placeholders & resolve generic <<TEXT>> placeholders
+                com.provaluer.util.GenericPlaceholderNormalizer.TemplateAnalysisReport analysisReport =
+                        new com.provaluer.util.GenericPlaceholderNormalizer.TemplateAnalysisReport();
+                byte[] normalizedBytes = templateEngine.normalizeTemplate(rawBytes, analysisReport);
+                log.info("Template ID: {} parser analysis report:{}", templateId, analysisReport.toFormattedReport());
 
                 // Step 2: Extract canonical DOM and Placeholder Registry
                 JsonNode domNode = docxStructureParser.parseDocumentStructure(normalizedBytes);

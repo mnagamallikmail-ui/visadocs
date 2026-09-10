@@ -67,12 +67,20 @@ public class DocxTemplateEngine {
      * Normalizes fragmented run strings (e.g., << VENDOR_NAME >>) inside a docx template.
      */
     public byte[] normalizeTemplate(byte[] content) throws Exception {
+        return normalizeTemplate(content, null);
+    }
+
+    /**
+     * Normalizes fragmented run strings and resolves generic placeholders (<<TEXT>>, <<NUMBER>>, etc.)
+     * into deterministic question-derived keys.
+     */
+    public byte[] normalizeTemplate(byte[] content, GenericPlaceholderNormalizer.TemplateAnalysisReport analysisReport) throws Exception {
         WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(new ByteArrayInputStream(content));
         
-        // 1. Normalize Main Document Part
+        // 1. Normalize Main Document Part text runs
         normalizeElements(wordMLPackage.getMainDocumentPart().getContent());
 
-        // 2. Normalize Headers and Footers
+        // 2. Normalize Headers and Footers text runs
         for (org.docx4j.openpackaging.parts.Part part : wordMLPackage.getParts().getParts().values()) {
             if (part instanceof org.docx4j.openpackaging.parts.WordprocessingML.HeaderPart) {
                 org.docx4j.openpackaging.parts.WordprocessingML.HeaderPart header = (org.docx4j.openpackaging.parts.WordprocessingML.HeaderPart) part;
@@ -82,6 +90,9 @@ public class DocxTemplateEngine {
                 normalizeElements(footer.getContent());
             }
         }
+
+        // 3. Normalize Generic Placeholders (<<TEXT>>, <<NUMBER>>, etc.) in Tables
+        normalizeGenericTablePlaceholders(wordMLPackage, analysisReport);
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         wordMLPackage.save(out);
@@ -183,6 +194,219 @@ public class DocxTemplateEngine {
                 if (!(unwrappedElem instanceof PPr)) {
                     p.getContent().add(elem);
                 }
+            }
+        }
+    }
+
+    /**
+     * Traverses tables across the document package, resolves question text from left-side cells,
+     * and normalizes generic placeholders (e.g., <<TEXT>>) into unique deterministic keys.
+     */
+    private void normalizeGenericTablePlaceholders(WordprocessingMLPackage wordMLPackage, GenericPlaceholderNormalizer.TemplateAnalysisReport analysisReport) {
+        Map<String, Integer> slugCounter = new LinkedHashMap<>();
+        int tableIndex = 0;
+
+        List<Object> content = wordMLPackage.getMainDocumentPart().getContent();
+        for (Object elem : content) {
+            Object unwrapped = unwrap(elem);
+            if (unwrapped instanceof Tbl) {
+                processTableForGenericPlaceholders((Tbl) unwrapped, "tbl_" + (tableIndex++), slugCounter, analysisReport);
+            }
+        }
+    }
+
+    private void processTableForGenericPlaceholders(Tbl tbl, String tableId, Map<String, Integer> slugCounter, GenericPlaceholderNormalizer.TemplateAnalysisReport analysisReport) {
+        List<Tr> rows = new ArrayList<>();
+        for (Object rowObj : tbl.getContent()) {
+            Object unwrapped = unwrap(rowObj);
+            if (unwrapped instanceof Tr) {
+                rows.add((Tr) unwrapped);
+            }
+        }
+
+        Map<Integer, String> vMergeQuestions = new HashMap<>();
+
+        for (int rIdx = 0; rIdx < rows.size(); rIdx++) {
+            Tr row = rows.get(rIdx);
+            List<Tc> cells = new ArrayList<>();
+            for (Object cellObj : row.getContent()) {
+                Object unwrapped = unwrap(cellObj);
+                if (unwrapped instanceof Tc) {
+                    cells.add((Tc) unwrapped);
+                }
+            }
+
+            int numCells = cells.size();
+            if (numCells == 0) continue;
+
+            List<String> cellTexts = new ArrayList<>(numCells);
+            List<List<String>> cellGenericTokens = new ArrayList<>(numCells);
+
+            for (int cIdx = 0; cIdx < numCells; cIdx++) {
+                Tc cell = cells.get(cIdx);
+                String plain = getCellPlainTextWithoutPlaceholders(cell);
+                cellTexts.add(plain);
+
+                String vMerge = getCellVMerge(cell);
+                if ("restart".equalsIgnoreCase(vMerge) && !plain.isEmpty()) {
+                    vMergeQuestions.put(cIdx, plain);
+                }
+
+                List<String> genericTokens = findGenericTokensInCell(cell, analysisReport);
+                cellGenericTokens.add(genericTokens);
+            }
+
+            for (int cIdx = 0; cIdx < numCells; cIdx++) {
+                List<String> genericTokens = cellGenericTokens.get(cIdx);
+                if (genericTokens.isEmpty()) continue;
+
+                Tc cell = cells.get(cIdx);
+                String questionText = resolveQuestionTextForCell(cIdx, numCells, cellTexts, vMergeQuestions, cell);
+
+                for (String genericToken : genericTokens) {
+                    String baseSlug = GenericPlaceholderNormalizer.generateBaseSlug(questionText);
+                    int occurrence = slugCounter.merge(baseSlug, 1, Integer::sum);
+                    String generatedKey = baseSlug + "_" + occurrence;
+
+                    substituteGenericTokenInCell(cell, genericToken, generatedKey);
+
+                    if (analysisReport != null) {
+                        String cellContext = tableId + "_r" + rIdx + "_c" + cIdx;
+                        GenericPlaceholderNormalizer.NormalizedField field =
+                                new GenericPlaceholderNormalizer.NormalizedField(generatedKey, questionText, genericToken, occurrence, cellContext);
+                        analysisReport.recordGeneratedField(field, baseSlug);
+                    }
+                }
+            }
+        }
+    }
+
+    private String resolveQuestionTextForCell(int cIdx, int numCells, List<String> cellTexts, Map<Integer, String> vMergeQuestions, Tc cell) {
+        String question = "";
+
+        if (numCells == 2 && cIdx == 1) {
+            question = cellTexts.get(0);
+            if (question.isEmpty() && vMergeQuestions.containsKey(0)) {
+                question = vMergeQuestions.get(0);
+            }
+        } else if (numCells == 3 && cIdx == 2) {
+            question = cellTexts.get(1);
+            if (question.isEmpty() && vMergeQuestions.containsKey(1)) {
+                question = vMergeQuestions.get(1);
+            }
+        } else if (cIdx > 0 && !cellTexts.get(cIdx - 1).isEmpty()) {
+            question = cellTexts.get(cIdx - 1);
+        } else if (!cellTexts.get(0).isEmpty()) {
+            question = cellTexts.get(0);
+        } else if (vMergeQuestions.containsKey(0)) {
+            question = vMergeQuestions.get(0);
+        }
+
+        if (question == null || question.trim().isEmpty()) {
+            question = getCellTextBeforePlaceholder(cell);
+        }
+
+        if (question == null || question.trim().isEmpty()) {
+            question = "Field";
+        }
+
+        return question.trim();
+    }
+
+    private String getCellPlainTextWithoutPlaceholders(Tc cell) {
+        StringBuilder sb = new StringBuilder();
+        for (Object pObj : cell.getContent()) {
+            Object unwrappedP = unwrap(pObj);
+            if (unwrappedP instanceof P) {
+                P p = (P) unwrappedP;
+                String pText = getParagraphText(p);
+                String cleaned = pText.replaceAll("<<[^>]+>>", " ").trim();
+                if (!cleaned.isEmpty()) {
+                    sb.append(cleaned).append(" ");
+                }
+            }
+        }
+        return sb.toString().trim();
+    }
+
+    private String getCellTextBeforePlaceholder(Tc cell) {
+        for (Object pObj : cell.getContent()) {
+            Object unwrappedP = unwrap(pObj);
+            if (unwrappedP instanceof P) {
+                String text = getParagraphText((P) unwrappedP);
+                int idx = text.indexOf("<<");
+                if (idx > 0) {
+                    String before = text.substring(0, idx).replaceAll("[^a-zA-Z0-9\\s]", " ").trim();
+                    if (!before.isEmpty()) return before;
+                }
+            }
+        }
+        return null;
+    }
+
+    private String getCellVMerge(Tc cell) {
+        if (cell.getTcPr() != null && cell.getTcPr().getVMerge() != null) {
+            String val = cell.getTcPr().getVMerge().getVal();
+            return val != null ? val : "continue";
+        }
+        return "none";
+    }
+
+    private List<String> findGenericTokensInCell(Tc cell, GenericPlaceholderNormalizer.TemplateAnalysisReport analysisReport) {
+        List<String> list = new ArrayList<>();
+        for (Object pObj : cell.getContent()) {
+            Object unwrappedP = unwrap(pObj);
+            if (unwrappedP instanceof P) {
+                P p = (P) unwrappedP;
+                String text = getParagraphText(p);
+                Matcher m = PLACEHOLDER_PATTERN.matcher(text);
+                while (m.find()) {
+                    String token = m.group(1).trim();
+                    if (GenericPlaceholderNormalizer.isMasterPlaceholder(token)) {
+                        if (analysisReport != null) {
+                            analysisReport.recordMasterPlaceholder(token.toUpperCase());
+                        }
+                    } else if (GenericPlaceholderNormalizer.isGenericPlaceholder(token)) {
+                        list.add(GenericPlaceholderNormalizer.extractGenericType(token));
+                    }
+                }
+            }
+        }
+        return list;
+    }
+
+    private void substituteGenericTokenInCell(Tc cell, String genericToken, String generatedKey) {
+        Pattern targetPattern = Pattern.compile("<<\\s*" + Pattern.quote(genericToken) + "\\s*>>", Pattern.CASE_INSENSITIVE);
+        boolean substituted = false;
+
+        for (Object pObj : cell.getContent()) {
+            Object unwrappedP = unwrap(pObj);
+            if (unwrappedP instanceof P) {
+                P p = (P) unwrappedP;
+                for (Object rObj : p.getContent()) {
+                    Object unwrappedR = unwrap(rObj);
+                    if (unwrappedR instanceof R) {
+                        R run = (R) unwrappedR;
+                        for (Object elem : run.getContent()) {
+                            Object unwrappedElem = unwrap(elem);
+                            if (unwrappedElem instanceof Text) {
+                                Text text = (Text) unwrappedElem;
+                                String val = text.getValue();
+                                if (val != null && targetPattern.matcher(val).find()) {
+                                    Matcher m = targetPattern.matcher(val);
+                                    if (m.find()) {
+                                        String replaced = m.replaceFirst("<<" + generatedKey + ">>");
+                                        text.setValue(replaced);
+                                        substituted = true;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        if (substituted) break;
+                    }
+                }
+                if (substituted) break;
             }
         }
     }
