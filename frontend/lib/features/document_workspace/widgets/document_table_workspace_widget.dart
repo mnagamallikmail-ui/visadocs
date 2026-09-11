@@ -2365,11 +2365,10 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3.5),
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
             decoration: BoxDecoration(
               color: AppColors.workspaceSegmentBg,
               borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: AppColors.workspaceBorder),
             ),
             child: Text(
               'SECTION ${section.sectionIndex + 1}',
@@ -2560,7 +2559,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
           color: AppColors.workspaceCanvas,
-          border: Border(bottom: BorderSide(color: AppColors.workspaceBorder, width: isLast ? 0 : 1.2)),
+          border: Border(bottom: BorderSide(color: AppColors.workspaceBorder.withValues(alpha: 0.7), width: isLast ? 0 : 1.0)),
         ),
         child: Row(
           children: [
@@ -2578,6 +2577,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 flex: 5,
                 child: Text(
                   cells[1].plainText.isNotEmpty ? cells[1].plainText : 'Particulars',
+                  textAlign: TextAlign.left,
                   style: GoogleFonts.montserrat(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
                 ),
               ),
@@ -2586,6 +2586,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 flex: 6,
                 child: Text(
                   cells[2].plainText.isNotEmpty ? cells[2].plainText : 'Observed Details / Input',
+                  textAlign: TextAlign.center,
                   style: GoogleFonts.montserrat(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
                 ),
               ),
@@ -2594,6 +2595,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 flex: 5,
                 child: Text(
                   cells[0].plainText.isNotEmpty ? cells[0].plainText : 'Particulars',
+                  textAlign: TextAlign.left,
                   style: GoogleFonts.montserrat(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
                 ),
               ),
@@ -2602,6 +2604,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 flex: 6,
                 child: Text(
                   cells[1].plainText.isNotEmpty ? cells[1].plainText : 'Details / Input',
+                  textAlign: TextAlign.center,
                   style: GoogleFonts.montserrat(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
                 ),
               ),
@@ -2610,6 +2613,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 Expanded(
                   child: Text(
                     c.plainText,
+                    textAlign: TextAlign.left,
                     style: GoogleFonts.montserrat(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
                   ),
                 ),
@@ -2624,21 +2628,15 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.workspaceBorder, width: isLast ? 0 : 1)),
+          border: Border(bottom: BorderSide(color: AppColors.workspaceBorder.withValues(alpha: 0.6), width: isLast ? 0 : 0.8)),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // S.No
+            // S.No — COLUMN 1: CENTERED, UNBOXED METADATA
             SizedBox(
               width: 48,
-              child: Container(
-                alignment: Alignment.center,
-                padding: const EdgeInsets.symmetric(vertical: 3),
-                decoration: BoxDecoration(
-                  color: AppColors.workspaceSegmentBg,
-                  borderRadius: BorderRadius.circular(4),
-                ),
+              child: Center(
                 child: Text(
                   rowVm.serialNo ?? '',
                   textAlign: TextAlign.center,
@@ -2652,14 +2650,14 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             ),
             const SizedBox(width: 12),
 
-            // Question Prompt with Field Priority
+            // Question Prompt — COLUMN 2: LEFT ALIGNED
             Expanded(
               flex: 5,
               child: _buildQuestionPrompt(rowVm),
             ),
             const SizedBox(width: 12),
 
-            // Answer Input(s)
+            // Answer Input(s) — COLUMN 3: VISUALLY BALANCED ANSWER REGION
             Expanded(
               flex: 6,
               child: Column(
@@ -2682,12 +2680,12 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
         decoration: BoxDecoration(
-          border: Border(bottom: BorderSide(color: AppColors.workspaceBorder, width: isLast ? 0 : 1)),
+          border: Border(bottom: BorderSide(color: AppColors.workspaceBorder.withValues(alpha: 0.6), width: isLast ? 0 : 0.8)),
         ),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Question Prompt with Field Priority
+            // Question Prompt with Field Priority — LEFT ALIGNED
             Expanded(
               flex: 5,
               child: _buildQuestionPrompt(rowVm),
@@ -2717,7 +2715,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
       decoration: BoxDecoration(
         color: AppColors.workspaceCanvas.withValues(alpha: 0.6),
-        border: Border(bottom: BorderSide(color: AppColors.workspaceBorder, width: isLast ? 0 : 1)),
+        border: Border(bottom: BorderSide(color: AppColors.workspaceBorder.withValues(alpha: 0.6), width: isLast ? 0 : 0.8)),
       ),
       child: Row(
         children: [
@@ -2736,7 +2734,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     );
   }
 
-  /// Field Priority Renderer: Required (* in red with badge), Important (info icon), or Standard
+  /// Field Priority Renderer: Required (* in red), Important (subtle info icon), or Standard
   Widget _buildQuestionPrompt(TableRowVm rowVm) {
     final text = rowVm.questionText ?? '';
     final lowerText = text.toLowerCase();
@@ -2799,6 +2797,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
               Flexible(
                 child: Text(
                   text,
+                  textAlign: TextAlign.left,
                   style: GoogleFonts.montserrat(
                     fontSize: 12.5,
                     fontWeight: isRequired ? FontWeight.w600 : FontWeight.w500,
@@ -2819,26 +2818,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             ],
           ),
         ),
-        if (isRequired) ...[
-          const SizedBox(width: 6),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-            decoration: BoxDecoration(
-              color: AppColors.workspaceErrorSurface,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(color: const Color(0xFFFECACA), width: 0.8),
-            ),
-            child: Text(
-              'REQUIRED',
-              style: GoogleFonts.montserrat(
-                fontSize: 8.5,
-                fontWeight: FontWeight.w700,
-                color: AppColors.workspaceErrorText,
-                letterSpacing: 0.3,
-              ),
-            ),
-          ),
-        ] else if (isImportant) ...[
+        if (isImportant) ...[
           const SizedBox(width: 4),
           const Tooltip(
             message: 'Key appraisal parameter',

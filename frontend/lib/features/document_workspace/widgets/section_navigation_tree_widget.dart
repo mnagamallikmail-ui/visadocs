@@ -200,25 +200,6 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                 final totalCount = section.totalFields;
                 final inProgress = completedCount > 0 && !isCompleted;
 
-                // Status label and icon
-                final String statusIcon;
-                final String statusLabel;
-                final Color statusColor;
-
-                if (isCompleted) {
-                  statusIcon = '✅';
-                  statusLabel = 'Complete';
-                  statusColor = AppColors.workspaceSuccess;
-                } else if (inProgress) {
-                  statusIcon = '🟡';
-                  statusLabel = 'In Progress';
-                  statusColor = AppColors.workspaceWarning;
-                } else {
-                  statusIcon = '⚪';
-                  statusLabel = 'Not Started';
-                  statusColor = AppColors.workspaceSecondaryText;
-                }
-
                 return InkWell(
                   onTap: () {
                     provider.requestScrollToSection(index);
@@ -235,79 +216,69 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                       ),
                       boxShadow: isActive ? AppShadows.subtleElevated : null,
                     ),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
                     child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        // Section Number Avatar / Status Icon
+                        // Section Number Avatar / Subtle Completion Check
                         Container(
-                          width: 22,
-                          height: 22,
-                          margin: const EdgeInsets.only(top: 1),
+                          width: 20,
+                          height: 20,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: isCompleted
-                                ? AppColors.workspaceSuccess.withValues(alpha: 0.15)
+                                ? AppColors.workspaceSuccess.withValues(alpha: 0.12)
                                 : (isActive
                                     ? AppColors.workspaceCorporateNavy
-                                    : (inProgress ? AppColors.workspaceWarning.withValues(alpha: 0.15) : AppColors.workspaceSegmentBg)),
+                                    : AppColors.workspaceSegmentBg),
                             border: Border.all(
                               color: isCompleted
-                                  ? AppColors.workspaceSuccess
-                                  : (isActive ? AppColors.workspaceCorporateNavy : AppColors.workspaceBorder),
+                                  ? AppColors.workspaceSuccess.withValues(alpha: 0.4)
+                                  : (isActive
+                                      ? AppColors.workspaceCorporateNavy
+                                      : (inProgress ? AppColors.warning.withValues(alpha: 0.5) : AppColors.workspaceBorder)),
                               width: 1,
                             ),
                           ),
                           alignment: Alignment.center,
                           child: isCompleted
-                              ? const Icon(Icons.check_rounded, size: 13, color: AppColors.workspaceSuccess)
+                              ? const Icon(Icons.check_rounded, size: 12, color: AppColors.workspaceSuccess)
                               : Text(
                                   '${section.sectionIndex + 1}',
                                   style: AppTypography.workspaceMicro(
                                     color: isActive
                                         ? Colors.white
-                                        : (inProgress ? AppColors.workspaceWarning : AppColors.workspaceSecondaryText),
+                                        : (inProgress ? AppColors.warning : AppColors.workspaceSecondaryText),
                                     weight: FontWeight.w700,
                                   ),
                                 ),
                         ),
                         const SizedBox(width: 10),
 
-                        // Section Title & Dual Status/Numeric Progress
+                        // Section Title & Progress Fraction
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
                                 section.title,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: AppTypography.workspaceSidebarItem(
-                                  color: AppColors.workspacePrimaryText,
+                                  color: isActive ? AppColors.workspaceCorporateNavy : AppColors.workspacePrimaryText,
                                   isActive: isActive,
                                 ),
                               ),
                               const SizedBox(height: 2),
 
-                              // Dual Indicator: [Status] + [Count / Total]
-                              Row(
-                                children: [
-                                  Text(
-                                    '$statusIcon $statusLabel',
-                                    style: AppTypography.workspaceMicro(
-                                      color: statusColor,
-                                      weight: FontWeight.w600,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 5),
-                                  Text(
-                                    '($completedCount / $totalCount)',
-                                    style: AppTypography.workspaceMicro(
-                                      color: isCompleted ? AppColors.workspaceSuccess : AppColors.workspaceSecondaryText,
-                                      weight: FontWeight.w500,
-                                    ),
-                                  ),
-                                ],
+                              // Simplified Status: Clean fractional field progress
+                              Text(
+                                '$completedCount of $totalCount fields',
+                                style: AppTypography.workspaceMicro(
+                                  color: isCompleted ? AppColors.workspaceSuccess : AppColors.workspaceSecondaryText,
+                                  weight: isCompleted ? FontWeight.w600 : FontWeight.w500,
+                                ),
                               ),
                             ],
                           ),
@@ -315,7 +286,7 @@ class SectionNavigationTreeWidget extends StatelessWidget {
 
                         if (isActive)
                           const Padding(
-                            padding: EdgeInsets.only(top: 4),
+                            padding: EdgeInsets.only(left: 4),
                             child: Icon(Icons.chevron_right_rounded, size: 16, color: AppColors.workspaceCorporateNavy),
                           ),
                       ],
@@ -356,13 +327,13 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
                       decoration: BoxDecoration(
-                        color: progress >= 1.0 ? const Color(0xFFDCFCE7) : const Color(0xFFEFF6FF),
-                        borderRadius: BorderRadius.circular(8),
+                        color: AppColors.workspaceSegmentBg,
+                        borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        '${(progress * 100).round()}% Completed',
+                        '${(progress * 100).round()}%',
                         style: AppTypography.workspaceMicro(
-                          color: progress >= 1.0 ? AppColors.workspaceSuccess : AppColors.primaryBlue,
+                          color: progress >= 1.0 ? AppColors.workspaceSuccess : AppColors.workspacePrimaryText,
                           weight: FontWeight.w700,
                         ),
                       ),
@@ -371,14 +342,14 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
+                  borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
                     value: progress,
                     backgroundColor: AppColors.workspaceBorder,
                     valueColor: AlwaysStoppedAnimation<Color>(
-                      progress >= 1.0 ? AppColors.workspaceSuccess : AppColors.primaryBlue,
+                      progress >= 1.0 ? AppColors.workspaceSuccess : AppColors.workspaceCorporateNavy,
                     ),
-                    minHeight: 5,
+                    minHeight: 4,
                   ),
                 ),
                 const SizedBox(height: 6),
@@ -395,7 +366,7 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                     const SizedBox(width: 8),
                     Text(
                       '${vm.sections.where((s) => s.isCompleted(provider.activeValues)).length} / ${vm.sections.length} sections',
-                      style: AppTypography.workspaceMicro(color: AppColors.workspaceSecondaryText, weight: FontWeight.w700),
+                      style: AppTypography.workspaceMicro(color: AppColors.workspaceSecondaryText, weight: FontWeight.w600),
                     ),
                   ],
                 ),
@@ -443,18 +414,18 @@ class SectionNavigationTreeWidget extends StatelessWidget {
         margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
         padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         decoration: BoxDecoration(
-          color: const Color(0xFFF0FDF4),
+          color: AppColors.workspaceSegmentBg,
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFBBF7D0)),
+          border: Border.all(color: AppColors.workspaceBorder),
         ),
         child: Row(
           children: [
-            const Icon(Icons.check_circle_rounded, size: 13, color: AppColors.workspaceSuccess),
+            const Icon(Icons.check_circle_outline_rounded, size: 13, color: AppColors.workspaceSuccess),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
                 'Critical parameters complete',
-                style: AppTypography.workspaceMicro(color: const Color(0xFF166534), weight: FontWeight.w600),
+                style: AppTypography.workspaceMicro(color: AppColors.workspaceSecondaryText, weight: FontWeight.w600),
               ),
             ),
           ],
@@ -466,9 +437,9 @@ class SectionNavigationTreeWidget extends StatelessWidget {
       margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: AppColors.workspaceErrorSurface, // #FEF2F2
-        borderRadius: BorderRadius.circular(8), // 8px radius
-        border: Border.all(color: const Color(0xFFFECACA)), // refined border
+        color: AppColors.workspaceSegmentBg,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: AppColors.workspaceBorder),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -476,20 +447,27 @@ class SectionNavigationTreeWidget extends StatelessWidget {
         children: [
           Row(
             children: [
-              const Icon(Icons.error_outline_rounded, size: 14, color: AppColors.workspaceErrorText),
-              const SizedBox(width: 6),
+              Container(
+                width: 6,
+                height: 6,
+                decoration: const BoxDecoration(
+                  color: AppColors.warning,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  'Missing Critical Fields (${missingList.length})',
+                  'Required Parameters (${missingList.length})',
                   style: AppTypography.workspaceMicro(
-                    color: AppColors.workspaceErrorText,
+                    color: AppColors.workspacePrimaryText,
                     weight: FontWeight.w700,
                   ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 5),
+          const SizedBox(height: 6),
           for (final item in missingList.take(3))
             InkWell(
               onTap: () {
@@ -497,17 +475,18 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                 onSectionSelected?.call();
               },
               child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 2),
+                padding: const EdgeInsets.symmetric(vertical: 2.5),
                 child: Row(
                   children: [
-                    const Icon(Icons.arrow_right_rounded, size: 14, color: AppColors.workspaceErrorText),
+                    const Icon(Icons.chevron_right_rounded, size: 14, color: AppColors.workspaceSecondaryText),
+                    const SizedBox(width: 4),
                     Expanded(
                       child: Text(
                         '${item.label} (Sec ${item.sectionIndex + 1})',
                         style: AppTypography.workspaceMicro(
-                          color: AppColors.workspaceErrorText,
-                          weight: FontWeight.w600,
-                        ).copyWith(decoration: TextDecoration.underline),
+                          color: AppColors.workspaceSecondaryText,
+                          weight: FontWeight.w500,
+                        ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -518,13 +497,13 @@ class SectionNavigationTreeWidget extends StatelessWidget {
             ),
           if (missingList.length > 3)
             Padding(
-              padding: const EdgeInsets.only(top: 2, left: 14),
+              padding: const EdgeInsets.only(top: 2, left: 18),
               child: Text(
-                '+ ${missingList.length - 3} more critical fields',
+                '+ ${missingList.length - 3} more parameters',
                 style: AppTypography.workspaceMicro(
-                  color: AppColors.workspaceErrorText,
+                  color: AppColors.steel,
                   weight: FontWeight.w500,
-                ).copyWith(fontStyle: FontStyle.italic),
+                ),
               ),
             ),
         ],

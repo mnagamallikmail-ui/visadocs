@@ -270,6 +270,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                   focusNode: _focusNode,
                   readOnly: widget.readOnly || isDate,
                   onTap: isDate ? () => _pickDate(context, provider) : null,
+                  textAlign: isMultiline ? TextAlign.left : TextAlign.center,
                   keyboardType: isMultiline
                       ? TextInputType.multiline
                       : (isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text),
@@ -305,9 +306,9 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                         : (isRepeated
                             ? Tooltip(
                                 message: 'Synchronized across ${widget.fieldVm.occurrences} locations in document',
-                                child: Padding(
-                                  padding: const EdgeInsets.only(right: 8),
-                                  child: Icon(Icons.sync_rounded, size: 15, color: AppColors.workspaceCorporateNavy.withValues(alpha: 0.7)),
+                                child: const Padding(
+                                  padding: EdgeInsets.only(right: 8),
+                                  child: Icon(Icons.sync_rounded, size: 14, color: AppColors.workspaceSecondaryText),
                                 ),
                               )
                             : null),
@@ -337,19 +338,6 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
             ),
           ],
         ),
-        if (isRepeated) ...[
-          const SizedBox(height: 3),
-          Row(
-            children: [
-              const Icon(Icons.link_rounded, size: 11, color: AppColors.workspaceSecondaryText),
-              const SizedBox(width: 3),
-              Text(
-                'Synced (${widget.fieldVm.occurrences}x)',
-                style: AppTypography.workspaceMicro(color: AppColors.workspaceSecondaryText),
-              ),
-            ],
-          ),
-        ],
       ],
     );
   }
