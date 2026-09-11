@@ -33,6 +33,26 @@ class DocumentWorkspaceVm {
   }
 
   /// Parses [StudioDocumentModel] into structured UI ViewModels in a single pass.
+  /// Helper to determine if a placeholder key or fieldType explicitly represents the composite valuation table.
+  static bool isCompositeTableKey(String? key, [String? fieldType]) {
+    if (key != null) {
+      final clean = key.replaceAll('<<', '').replaceAll('>>', '').trim().toUpperCase();
+      if (clean == 'COMPOSITE_PROPERTY_TABLE' ||
+          clean == 'DYNAMIC_COMPOSITE_PROPERTY_TABLE' ||
+          clean == 'COMPOSITE_TABLE') {
+        return true;
+      }
+    }
+    if (fieldType != null) {
+      final cleanType = fieldType.replaceAll('<<', '').replaceAll('>>', '').trim().toUpperCase();
+      if (cleanType == 'DYNAMIC_COMPOSITE_PROPERTY_TABLE' ||
+          cleanType == 'COMPOSITE_PROPERTY_TABLE') {
+        return true;
+      }
+    }
+    return false;
+  }
+
   factory DocumentWorkspaceVm.fromDocumentDom(StudioDocumentModel dom, Map<String, String> values) {
     final Map<String, int> counts = {};
     final Map<String, PlaceholderSummaryItem> summaries = {};
@@ -63,6 +83,31 @@ class DocumentWorkspaceVm {
 
       for (final el in s.elements) {
         if (el is StudioTable) {
+          // Check if this table contains the COMPOSITE_PROPERTY_TABLE directive
+          bool tableHasComposite = false;
+          for (final r in el.rows) {
+            for (final c in r.cells) {
+              for (final b in c.placeholderBindings) {
+                if (isCompositeTableKey(b.key, b.fieldType)) {
+                  tableHasComposite = true;
+                  break;
+                }
+              }
+              if (tableHasComposite) break;
+              if (isCompositeTableKey(c.plainText)) {
+                tableHasComposite = true;
+                break;
+              }
+            }
+            if (tableHasComposite) break;
+          }
+
+          if (tableHasComposite && (el.rows.length == 1 || !compositeBlockAdded)) {
+            orderedBlocks.add(ValuationCompositeBlockVm(el.id));
+            compositeBlockAdded = true;
+            continue;
+          }
+
           final List<TableRowVm> rows = [];
 
           for (final r in el.rows) {
@@ -102,13 +147,16 @@ class DocumentWorkspaceVm {
             }
           }
 
-          // Check if this paragraph is a dynamic valuation table directive
-          final upperPKeys = pKeys.map((k) => k.toUpperCase().trim()).toList();
-          if (upperPKeys.contains('COMPOSITE_PROPERTY_TABLE') || upperPKeys.contains('DYNAMIC_COMPOSITE_PROPERTY_TABLE') || upperPKeys.contains('COMPOSITE_TABLE')) {
+          // Check if this paragraph is an explicit COMPOSITE_PROPERTY_TABLE directive
+          final hasComposite = pKeys.any((k) => isCompositeTableKey(k)) ||
+              isCompositeTableKey(text);
+          if (hasComposite) {
             orderedBlocks.add(ValuationCompositeBlockVm(el.id));
             compositeBlockAdded = true;
             continue;
           }
+
+          final upperPKeys = pKeys.map((k) => k.replaceAll('<<', '').replaceAll('>>', '').toUpperCase().trim()).toList();
 
           if (isComposite) {
             if (upperPKeys.contains('LAND_TABLE') || upperPKeys.contains('DYNAMIC_LAND_TABLE') ||
@@ -174,9 +222,10 @@ class DocumentWorkspaceVm {
             String fieldType = summaryItem?.type ?? 'TEXT';
             if (fieldType.toUpperCase() == 'IMAGE' ||
                 kUpper.startsWith('IMG_') ||
-                kUpper.contains('IMAGE') ||
+                kUpper.endsWith('_IMAGE') ||
                 kUpper.contains('PHOTO') ||
-                kUpper.contains('PIC')) {
+                kUpper.contains('SELFIE') ||
+                kUpper.contains('SIGNATURE')) {
               fieldType = 'IMAGE';
             } else if (kUpper.contains('DATE') || kUpper.contains('DT')) {
               fieldType = 'DATE';
@@ -209,8 +258,10 @@ class DocumentWorkspaceVm {
               if (run.isImage ||
                   (run.placeholderKey != null &&
                       (run.placeholderKey!.toUpperCase().startsWith('IMG_') ||
+                          run.placeholderKey!.toUpperCase().endsWith('_IMAGE') ||
                           run.placeholderKey!.toUpperCase().contains('PHOTO') ||
-                          run.placeholderKey!.toUpperCase().contains('IMAGE')))) {
+                          run.placeholderKey!.toUpperCase().contains('SELFIE') ||
+                          run.placeholderKey!.toUpperCase().contains('SIGNATURE')))) {
                 final keyUpper = (run.placeholderKey ?? 'IMAGE').toUpperCase().trim();
                 final fVm = getOrCreateField(keyUpper);
                 docNodes.add(ImageRunNode(key: keyUpper, fieldVm: fVm));
@@ -664,11 +715,12 @@ class TableRowVm {
   /// ALWAYS LEFT ALIGNED, never centered.
   bool get isSectionHeadingRow =>
       isSubHeader ||
-      (inputFields.isEmpty && (questionText != null && questionText!.trim().isNotEmpty)) ||
+      (inputFields.isEmpty && !isTableHeader) ||
       (rawCells.length == 1 && !isTableHeader);
 
-  bool get is3Column => isQuestionAnswer && serialNo != null && serialNo!.isNotEmpty;
-  bool get is2Column => isQuestionAnswer && (serialNo == null || serialNo!.isEmpty);
+  bool get is3Column => inputFields.isNotEmpty && serialNo != null && serialNo!.isNotEmpty;
+  bool get is2Column => inputFields.isNotEmpty && (serialNo == null || serialNo!.isEmpty);
+  bool get hasCompositeTable => inputFields.any((f) => f.isCompositeTable);
 
 
   factory TableRowVm.fromStudioTableRow(
@@ -720,6 +772,23 @@ class TableRowVm {
       }
     }
 
+    // When no input fields exist in this row (e.g. section title rows, category headers),
+    // extract any available serial number and title text from the raw cells.
+    if (fields.isEmpty) {
+      final nonEmptyCells = cells.where((c) => c.plainText.trim().isNotEmpty).toList();
+      if (nonEmptyCells.length == 1) {
+        qText ??= nonEmptyCells.first.plainText.trim();
+      } else if (nonEmptyCells.length >= 2) {
+        final firstText = nonEmptyCells[0].plainText.trim();
+        if (RegExp(r'^\d+[\.\)]?$').hasMatch(firstText) || RegExp(r'^[a-zA-Z][\.\)]?$').hasMatch(firstText)) {
+          sNo ??= firstText;
+          qText ??= nonEmptyCells.sublist(1).map((c) => c.plainText.trim()).join(' ');
+        } else {
+          qText ??= nonEmptyCells.map((c) => c.plainText.trim()).join(' — ');
+        }
+      }
+    }
+
     return TableRowVm(
       rowIndex: row.rowIndex,
       rowType: row.rowType,
@@ -752,21 +821,38 @@ class InputFieldVm {
     this.currentValue = '',
   });
 
+  String get type => fieldType;
+
   bool get isRepeated => occurrences > 1;
+
+  /// Explicit detection for <<COMPOSITE_PROPERTY_TABLE>>
+  bool get isCompositeTable =>
+      DocumentWorkspaceVm.isCompositeTableKey(key, fieldType);
   
-  bool get isImage =>
-      fieldType.toUpperCase() == 'IMAGE' ||
-      key.toUpperCase().startsWith('IMG_') ||
-      key.toUpperCase().contains('IMAGE') ||
-      key.toUpperCase().contains('PHOTO');
+  bool get isImage {
+    if (isCompositeTable) return false;
+    final t = fieldType.toUpperCase();
+    if (t == 'IMAGE') return true;
+    final k = key.toUpperCase();
+    final isExplicitImageKey = k.startsWith('IMG_') ||
+        k.endsWith('_IMAGE') ||
+        k.contains('PHOTO') ||
+        k.contains('SELFIE') ||
+        k.contains('SIGNATURE');
+    if (isExplicitImageKey) return true;
+    if (t == 'TEXT' || t == 'MULTILINE' || t == 'NUMBER' || t == 'DATE') return false;
+    return false;
+  }
 
   bool get isDate =>
-      fieldType.toUpperCase() == 'DATE' ||
-      key.toUpperCase().contains('DATE') ||
-      key.toUpperCase().startsWith('DT_') ||
-      key.toUpperCase().endsWith('_DT');
+      !isCompositeTable &&
+      (fieldType.toUpperCase() == 'DATE' ||
+          key.toUpperCase().contains('DATE') ||
+          key.toUpperCase().startsWith('DT_') ||
+          key.toUpperCase().endsWith('_DT'));
 
   bool get isMultiline {
+    if (isCompositeTable) return false;
     if (fieldType.toUpperCase() == 'MULTILINE') return true;
     final k = key.toUpperCase();
     return k.contains('OBSERVATION') ||
@@ -783,6 +869,7 @@ class InputFieldVm {
   }
 
   bool get isNumber =>
+      !isCompositeTable &&
       !isDate &&
       !isMultiline &&
       !isImage &&

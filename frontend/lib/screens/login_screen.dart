@@ -164,6 +164,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           label: 'Username',
                           icon: Icons.person_outline_rounded,
                           keyboardType: TextInputType.text,
+                          textInputAction: TextInputAction.next,
                         ),
                         const SizedBox(height: AppSpacing.md),
                         _passwordField(),
@@ -175,6 +176,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             label: 'Full Name',
                             icon: Icons.badge_outlined,
                             keyboardType: TextInputType.name,
+                            textInputAction: TextInputAction.next,
                           ),
                           const SizedBox(height: AppSpacing.md),
                           _formField(
@@ -182,6 +184,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             label: 'Mobile Number',
                             icon: Icons.phone_outlined,
                             keyboardType: TextInputType.phone,
+                            textInputAction: TextInputAction.next,
                           ),
                           const SizedBox(height: AppSpacing.md),
                           _formField(
@@ -189,6 +192,12 @@ class _LoginScreenState extends State<LoginScreen> {
                             label: 'Contact Email (Optional)',
                             icon: Icons.mail_outline_rounded,
                             keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.done,
+                            onSubmitted: (_) {
+                              if (!_isLoading) {
+                                _handleSubmit();
+                              }
+                            },
                           ),
                         ],
                         const SizedBox(height: AppSpacing.xxl),
@@ -250,6 +259,12 @@ class _LoginScreenState extends State<LoginScreen> {
   Widget _passwordField() => TextField(
         controller: _passwordCtrl,
         obscureText: _obscurePassword,
+        textInputAction: _isLogin ? TextInputAction.done : TextInputAction.next,
+        onSubmitted: (_) {
+          if (!_isLoading) {
+            _handleSubmit();
+          }
+        },
         style: AppTypography.bodyMd(color: AppColors.ink),
         decoration: AppComponents.textInput(
           label: 'Password',
@@ -274,11 +289,15 @@ class _LoginScreenState extends State<LoginScreen> {
     required IconData icon,
     TextInputType keyboardType = TextInputType.text,
     bool obscureText = false,
+    TextInputAction? textInputAction,
+    void Function(String)? onSubmitted,
   }) =>
       TextField(
         controller: controller,
         obscureText: obscureText,
         keyboardType: keyboardType,
+        textInputAction: textInputAction,
+        onSubmitted: onSubmitted,
         style: AppTypography.bodyMd(color: AppColors.ink),
         decoration: AppComponents.textInput(
           label: label,

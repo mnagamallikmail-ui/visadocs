@@ -9,6 +9,7 @@ import '../../../theme/app_spacing.dart';
 import '../../../theme/app_typography.dart';
 import '../../../utils/indian_number_formatter.dart';
 import '../../document_studio/models/visual_preview_model.dart';
+import '../models/document_workspace_model.dart';
 import '../providers/document_workspace_provider.dart';
 
 /// Two-State Inline Document Input Widget.
@@ -35,16 +36,25 @@ class InlineOverlayInputWidget extends StatefulWidget {
 }
 
 class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
-  final LayerLink _layerLink = LayerLink();
-  OverlayEntry? _floatingOverlayEntry;
-  late final TextEditingController _controller;
   bool _isFloatingOpen = false;
+  OverlayEntry? _floatingOverlayEntry;
+  final LayerLink _layerLink = LayerLink();
+  late final TextEditingController _controller;
 
   @override
   void initState() {
     super.initState();
+    _controller = TextEditingController();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
     final provider = context.read<DocumentWorkspaceProvider>();
-    _controller = TextEditingController(text: provider.getValue(widget.placeholder.key));
+    final curVal = provider.getValue(widget.placeholder.key);
+    if (!_isFloatingOpen && curVal != _controller.text) {
+      _controller.text = curVal;
+    }
   }
 
   @override
@@ -59,29 +69,34 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
 
   @override
   void dispose() {
-    _removeFloatingOverlay();
+    _removeFloatingOverlay(updateState: false);
     _controller.dispose();
     super.dispose();
   }
 
   String _inferFieldType(String key) {
-    final upper = key.toUpperCase();
-    if (upper.startsWith('IMG_') || upper.endsWith('_IMAGE') || upper.contains('PHOTO') || upper.contains('SIGNATURE')) {
+    final clean = key.replaceAll('<<', '').replaceAll('>>', '').trim().toUpperCase();
+    if (clean == 'COMPOSITE_PROPERTY_TABLE' ||
+        clean == 'DYNAMIC_COMPOSITE_PROPERTY_TABLE' ||
+        clean == 'COMPOSITE_TABLE') {
+      return 'COMPOSITE_TABLE';
+    }
+    if (clean.startsWith('IMG_') || clean.endsWith('_IMAGE') || clean.contains('PHOTO') || clean.contains('SIGNATURE')) {
       return 'IMAGE';
     }
-    if (upper.contains('DATE')) {
+    if (clean.contains('DATE')) {
       return 'DATE';
     }
-    if (upper.contains('AREA') || upper.contains('RATE') || upper.contains('VALUE') ||
-        upper.contains('AMOUNT') || upper.contains('FEE') || upper.contains('TOTAL') ||
-        upper.contains('PRICE') || upper.contains('PERCENT') || upper.contains('RATIO') || upper.startsWith('NUM_')) {
+    if (clean.contains('AREA') || clean.contains('RATE') || clean.contains('VALUE') ||
+        clean.contains('AMOUNT') || clean.contains('FEE') || clean.contains('TOTAL') ||
+        clean.contains('PRICE') || clean.contains('PERCENT') || clean.contains('RATIO') || clean.startsWith('NUM_')) {
       return 'NUMBER';
     }
     return 'TEXT';
   }
 
   void _showFloatingOverlay() {
-    if (widget.readOnly || _isFloatingOpen) return;
+    if (widget.readOnly || _isFloatingOpen || _inferFieldType(widget.placeholder.key) == 'COMPOSITE_TABLE') return;
 
     final provider = context.read<DocumentWorkspaceProvider>();
     provider.setFocusedKey(widget.placeholder.key);
@@ -229,11 +244,13 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
     _removeFloatingOverlay();
   }
 
-  void _removeFloatingOverlay() {
+  void _removeFloatingOverlay({bool updateState = true}) {
     _floatingOverlayEntry?.remove();
     _floatingOverlayEntry = null;
-    if (mounted) {
+    if (updateState && mounted) {
       setState(() => _isFloatingOpen = false);
+    } else {
+      _isFloatingOpen = false;
     }
   }
 
@@ -306,6 +323,8 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
                 _handleDatePicker(currentValue, provider);
               } else if (fieldType == 'IMAGE') {
                 _handleImageUpload(provider);
+              } else if (fieldType == 'COMPOSITE_TABLE') {
+                provider.setViewMode(WorkspaceViewMode.tableEdit);
               } else {
                 _showFloatingOverlay();
               }
@@ -344,6 +363,41 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
 
   /// State A: Compact Inline Box
   Widget _buildCompactInlineDisplay(String fieldType, String currentValue, bool isFocused) {
+    if (fieldType == 'COMPOSITE_TABLE') {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+        child: Row(
+          children: [
+            const Icon(Icons.apartment_rounded, size: 14, color: Color(0xFF3494BA)),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Text(
+                'Composite Property Table',
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF3494BA),
+                ),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (!widget.readOnly)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF3494BA).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(3),
+                ),
+                child: const Text(
+                  'Open',
+                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF3494BA)),
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+
     if (fieldType == 'IMAGE') {
       final hasImage = currentValue.isNotEmpty;
       return Padding(

@@ -240,6 +240,12 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
     final isImage = widget.fieldVm.isImage;
     final isMultiline = widget.fieldVm.isMultiline;
     final isNumber = widget.fieldVm.isNumber;
+    final isCompositeTable = widget.fieldVm.isCompositeTable;
+
+    // Must NEVER render as generic input or image upload
+    if (isCompositeTable) {
+      return const SizedBox.shrink();
+    }
 
     if (isImage) {
       return _buildImageInput(context, provider);

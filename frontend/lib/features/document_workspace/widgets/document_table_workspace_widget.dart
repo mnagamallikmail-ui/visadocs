@@ -1440,11 +1440,20 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
 
   // ─── Inline Valuation: COMPOSITE_PROPERTY_TABLE (Interactive Editor) ────────
   Widget _buildInlineCompositeSection(BuildContext context, DocumentWorkspaceProvider provider) {
-    final compItems = provider.compositeItems;
-    final data = provider.valuationData;
+    final compItems = provider.compositeItems.isNotEmpty
+        ? provider.compositeItems
+        : [
+            ValuationCompositeItemModel(
+              itemCategory: 'MAIN_UNIT',
+              description: 'Main Unit',
+              enteredUnit: 'Sq.Ft',
+              quantity: 1000.0,
+              rate: 0.0,
+              sortOrder: 0,
+            ),
+          ];
+    final data = provider.valuationData ?? ValuationDataModel(orderId: 0, valuationMethodology: 'COMPOSITE');
     final isReadOnly = provider.isReadOnly;
-
-    if (compItems.isEmpty || data == null) return const SizedBox.shrink();
 
     final mainUnit = compItems.firstWhere((i) => i.itemCategory == 'MAIN_UNIT', orElse: () => compItems.first);
     final interiorItems = compItems.where((i) => i.itemCategory == 'INTERIOR_WORK').toList();
@@ -2452,6 +2461,16 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             ),
           ));
         } else if (node is PlaceholderRunNode) {
+          if (node.fieldVm.isCompositeTable) {
+            final provider = context.read<DocumentWorkspaceProvider>();
+            imageWidgets.add(
+              Padding(
+                padding: const EdgeInsets.symmetric(vertical: 8.0),
+                child: _buildInlineCompositeSection(context, provider),
+              ),
+            );
+            continue;
+          }
           final instanceId = '${block.id}_${node.key}_${placeholderIdx++}';
           spans.add(WidgetSpan(
             alignment: PlaceholderAlignment.middle,
@@ -2556,11 +2575,23 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
   Widget _buildTableRow(BuildContext context, TableRowVm rowVm, int rowIndex, int totalRows, bool readOnly) {
     final isLast = rowIndex == totalRows - 1;
 
-    // 1. Merged Section Sub-header / Category Heading Row (TYPE B: ALWAYS LEFT ALIGN)
+    // Dedicated Composite Table Routing:
+    // If this row contains the <<COMPOSITE_PROPERTY_TABLE>> placeholder, route directly to composite table renderer
+    if (rowVm.hasCompositeTable) {
+      final provider = context.read<DocumentWorkspaceProvider>();
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: _buildInlineCompositeSection(context, provider),
+      );
+    }
+
+    // 1. Merged Section Sub-header / Category Heading Row (STRICT: ALWAYS LEFT ALIGNED, SAME LEFT BOUNDARY)
     if (rowVm.isSectionHeadingRow) {
       final title = (rowVm.questionText != null && rowVm.questionText!.isNotEmpty)
           ? rowVm.questionText!
-          : (rowVm.rawCells.isNotEmpty ? rowVm.rawCells.first.plainText : 'Sub-section');
+          : (rowVm.rawCells.isNotEmpty
+              ? rowVm.rawCells.map((c) => c.plainText.trim()).where((t) => t.isNotEmpty).join(' ')
+              : 'Sub-section');
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
@@ -2568,13 +2599,29 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           border: Border(bottom: BorderSide(color: AppColors.workspaceBorder, width: isLast ? 0 : 1)),
         ),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            const Icon(Icons.bookmark_outline_rounded, size: 15, color: AppColors.workspaceCorporateNavy),
-            const SizedBox(width: 8),
+            if (rowVm.serialNo != null && rowVm.serialNo!.isNotEmpty) ...[
+              SizedBox(
+                width: 48,
+                child: Center(
+                  child: Text(
+                    rowVm.serialNo!,
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.montserrat(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.workspaceSecondaryText,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+            ],
             Expanded(
               child: Text(
                 title,
-                textAlign: TextAlign.left, // STRICT TYPE B RULE: ALWAYS LEFT ALIGN
+                textAlign: TextAlign.left, // STRICT: ALWAYS LEFT ALIGNED
                 style: GoogleFonts.montserrat(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
@@ -2589,9 +2636,24 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     }
 
 
-    // 2. Table Column Header Row
+    // 2. Table Column Header Row (STRICT FIXED GRID: Column 1=48, Column 2=flex 5, Column 3=flex 6)
     if (rowVm.isTableHeader) {
       final cells = rowVm.rawCells;
+      String col1Text = 'No.';
+      String col2Text = 'Description';
+      String col3Text = 'Value';
+
+      if (cells.length >= 3) {
+        if (cells[0].plainText.isNotEmpty) col1Text = cells[0].plainText;
+        if (cells[1].plainText.isNotEmpty) col2Text = cells[1].plainText;
+        if (cells[2].plainText.isNotEmpty) col3Text = cells[2].plainText;
+      } else if (cells.length == 2) {
+        if (cells[0].plainText.isNotEmpty) col2Text = cells[0].plainText;
+        if (cells[1].plainText.isNotEmpty) col3Text = cells[1].plainText;
+      } else if (cells.length == 1) {
+        if (cells[0].plainText.isNotEmpty) col2Text = cells[0].plainText;
+      }
+
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
@@ -2600,67 +2662,38 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
         ),
         child: Row(
           children: [
-            if (cells.length == 3) ...[
-              SizedBox(
-                width: 48,
-                child: Text(
-                  cells[0].plainText.isNotEmpty ? cells[0].plainText : 'S.No',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.montserrat(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
-                ),
+            SizedBox(
+              width: 48,
+              child: Text(
+                col1Text,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.montserrat(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 5,
-                child: Text(
-                  cells[1].plainText.isNotEmpty ? cells[1].plainText : 'Particulars',
-                  textAlign: TextAlign.left,
-                  style: GoogleFonts.montserrat(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
-                ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 5,
+              child: Text(
+                col2Text,
+                textAlign: TextAlign.left,
+                style: GoogleFonts.montserrat(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 6,
-                child: Text(
-                  cells[2].plainText.isNotEmpty ? cells[2].plainText : 'Observed Details / Input',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.montserrat(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
-                ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 6,
+              child: Text(
+                col3Text,
+                textAlign: TextAlign.left,
+                style: GoogleFonts.montserrat(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
               ),
-            ] else if (cells.length == 2) ...[
-              Expanded(
-                flex: 5,
-                child: Text(
-                  cells[0].plainText.isNotEmpty ? cells[0].plainText : 'Particulars',
-                  textAlign: TextAlign.left,
-                  style: GoogleFonts.montserrat(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 6,
-                child: Text(
-                  cells[1].plainText.isNotEmpty ? cells[1].plainText : 'Details / Input',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.montserrat(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
-                ),
-              ),
-            ] else ...[
-              for (final c in cells)
-                Expanded(
-                  child: Text(
-                    c.plainText,
-                    textAlign: TextAlign.left,
-                    style: GoogleFonts.montserrat(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.workspaceSecondaryText),
-                  ),
-                ),
-            ],
+            ),
           ],
         ),
       );
     }
 
-    // 3. Question-Answer Row (3-Column Layout: [INDEX] [QUESTION] [ANSWER])
+    // 3. Question-Answer Row (3-Column Layout: [INDEX: 48] [QUESTION: flex 5] [ANSWER: flex 6])
     if (rowVm.is3Column) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
@@ -2670,7 +2703,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // S.No — COLUMN 1: CENTERED, UNBOXED METADATA
+            // S.No — COLUMN 1: Fixed width 48
             SizedBox(
               width: 48,
               child: Center(
@@ -2687,14 +2720,14 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             ),
             const SizedBox(width: 12),
 
-            // Question Prompt — COLUMN 2: LEFT ALIGNED
+            // Question Prompt — COLUMN 2: Fixed flex 5, LEFT ALIGNED
             Expanded(
               flex: 5,
               child: _buildQuestionPrompt(rowVm),
             ),
             const SizedBox(width: 12),
 
-            // Answer Input(s) — COLUMN 3: VISUALLY BALANCED ANSWER REGION
+            // Answer Input(s) — COLUMN 3: Fixed flex 6
             Expanded(
               flex: 6,
               child: Column(
@@ -2712,7 +2745,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
       );
     }
 
-    // 4. Question-Answer Row (2-Column Layout: [QUESTION] [ANSWER])
+    // 4. Question-Answer Row (2-Column Layout with empty Col 1: STRICT FIXED GRID)
     if (rowVm.is2Column) {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
@@ -2722,14 +2755,18 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Question Prompt with Field Priority — LEFT ALIGNED
+            // Empty Column 1 to preserve strict fixed grid alignment across rows
+            const SizedBox(width: 48),
+            const SizedBox(width: 12),
+
+            // Question Prompt — COLUMN 2: Fixed flex 5, LEFT ALIGNED
             Expanded(
               flex: 5,
               child: _buildQuestionPrompt(rowVm),
             ),
             const SizedBox(width: 12),
 
-            // Answer Input(s)
+            // Answer Input(s) — COLUMN 3: Fixed flex 6
             Expanded(
               flex: 6,
               child: Column(
@@ -2755,17 +2792,15 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
         border: Border(bottom: BorderSide(color: AppColors.workspaceBorder.withValues(alpha: 0.6), width: isLast ? 0 : 0.8)),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          for (final cell in rowVm.rawCells)
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4),
-                child: Text(
-                  cell.plainText,
-                  style: GoogleFonts.montserrat(fontSize: 11.5, color: AppColors.workspaceSecondaryText, fontStyle: FontStyle.italic),
-                ),
-              ),
+          Expanded(
+            child: Text(
+              rowVm.rawCells.map((c) => c.plainText.trim()).where((t) => t.isNotEmpty).join('  '),
+              textAlign: TextAlign.left,
+              style: GoogleFonts.montserrat(fontSize: 11.5, color: AppColors.workspaceSecondaryText, fontStyle: FontStyle.italic),
             ),
+          ),
         ],
       ),
     );

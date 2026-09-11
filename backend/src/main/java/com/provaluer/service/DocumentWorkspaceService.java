@@ -305,6 +305,15 @@ public class DocumentWorkspaceService {
             domNode = applyTextOverridesToDom(domNode, effectiveOverrides);
         }
 
+        // Self-Healing Migration: Normalize stale COMPOSITE_PROPERTY_TABLE snapshots
+        if (domNode != null) {
+            boolean snapshotModified = normalizeCompositeTableSnapshots(domNode, orderId);
+            if (snapshotModified && order.getDocumentDomSnapshot() != null) {
+                order.setDocumentDomSnapshot(domNode.toString());
+                orderRepository.save(order);
+            }
+        }
+
         return new DocumentWorkspaceResponse(
                 order.getId(),
                 order.getStatus(),
@@ -984,6 +993,80 @@ public class DocumentWorkspaceService {
         result.put("rebuiltCount", rebuiltCount);
         result.put("orders", rows);
         return result;
+    }
+
+    private static boolean isCompositeTableKey(String key) {
+        if (key == null) return false;
+        String clean = key.replaceAll("<<", "").replaceAll(">>", "").trim().toUpperCase();
+        return clean.equals("COMPOSITE_PROPERTY_TABLE")
+                || clean.equals("DYNAMIC_COMPOSITE_PROPERTY_TABLE")
+                || clean.equals("COMPOSITE_TABLE");
+    }
+
+    private boolean normalizeCompositeTableSnapshots(JsonNode rootNode, Long orderId) {
+        if (rootNode == null) return false;
+        boolean modified = false;
+
+        List<com.fasterxml.jackson.databind.node.ObjectNode> nodesToExamine = new ArrayList<>();
+        collectAllObjectNodes(rootNode, nodesToExamine);
+
+        for (com.fasterxml.jackson.databind.node.ObjectNode node : nodesToExamine) {
+            String key = null;
+            if (node.has("key") && !node.get("key").isNull()) {
+                key = node.get("key").asText();
+            } else if (node.has("placeholderKey") && !node.get("placeholderKey").isNull()) {
+                key = node.get("placeholderKey").asText();
+            }
+
+            if (isCompositeTableKey(key)) {
+                // Normalize fieldType property (used in table cell placeholderBindings)
+                if (node.has("fieldType")) {
+                    String currentFieldType = node.get("fieldType").asText();
+                    if (!"DYNAMIC_COMPOSITE_PROPERTY_TABLE".equalsIgnoreCase(currentFieldType)) {
+                        node.put("fieldType", "DYNAMIC_COMPOSITE_PROPERTY_TABLE");
+                        modified = true;
+                        log.info(
+                                "Self-healed composite table snapshot. OrderId={}, OldType={}, NewType={}",
+                                orderId,
+                                currentFieldType,
+                                "DYNAMIC_COMPOSITE_PROPERTY_TABLE"
+                        );
+                    }
+                }
+
+                // Normalize type property (used in placeholdersSummary items)
+                if (node.has("type")) {
+                    String currentType = node.get("type").asText();
+                    if (!"DYNAMIC_COMPOSITE_PROPERTY_TABLE".equalsIgnoreCase(currentType)) {
+                        node.put("type", "DYNAMIC_COMPOSITE_PROPERTY_TABLE");
+                        modified = true;
+                        log.info(
+                                "Self-healed composite table snapshot. OrderId={}, OldType={}, NewType={}",
+                                orderId,
+                                currentType,
+                                "DYNAMIC_COMPOSITE_PROPERTY_TABLE"
+                        );
+                    }
+                }
+            }
+        }
+
+        return modified;
+    }
+
+    private void collectAllObjectNodes(JsonNode current, List<com.fasterxml.jackson.databind.node.ObjectNode> list) {
+        if (current == null) return;
+        if (current.isObject()) {
+            list.add((com.fasterxml.jackson.databind.node.ObjectNode) current);
+            Iterator<JsonNode> elements = current.elements();
+            while (elements.hasNext()) {
+                collectAllObjectNodes(elements.next(), list);
+            }
+        } else if (current.isArray()) {
+            for (JsonNode child : current) {
+                collectAllObjectNodes(child, list);
+            }
+        }
     }
 }
 
