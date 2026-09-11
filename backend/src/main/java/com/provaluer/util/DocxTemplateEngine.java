@@ -882,24 +882,36 @@ public class DocxTemplateEngine {
                     Tbl landTable = buildDynamicLandTable(inputs);
                     if (landTable != null) {
                         elements.set(i, landTable);
+                        elements.add(i + 1, createTableSpacingParagraph());
+                        elements.add(i + 2, createTableSpacingParagraph());
+                        i += 2;
                         continue;
                     }
                 } else if (norm.contains("BUILDINGTABLE")) {
                     Tbl buildingTable = buildDynamicBuildingTable(inputs);
                     if (buildingTable != null) {
                         elements.set(i, buildingTable);
+                        elements.add(i + 1, createTableSpacingParagraph());
+                        elements.add(i + 2, createTableSpacingParagraph());
+                        i += 2;
                         continue;
                     }
                 } else if (norm.contains("VALUATIONSUMMARYTABLE") || (norm.contains("VALUATIONSUMMARY") && norm.contains("TABLE"))) {
                     Tbl summaryTable = buildDynamicValuationSummaryTable(inputs);
                     if (summaryTable != null) {
                         elements.set(i, summaryTable);
+                        elements.add(i + 1, createTableSpacingParagraph());
+                        elements.add(i + 2, createTableSpacingParagraph());
+                        i += 2;
                         continue;
                     }
                 } else if (norm.contains("COMPARABLESTABLE") || norm.contains("COMPARABLETABLE")) {
                     Tbl compTable = buildDynamicComparablesTable(inputs);
                     if (compTable != null) {
                         elements.set(i, compTable);
+                        elements.add(i + 1, createTableSpacingParagraph());
+                        elements.add(i + 2, createTableSpacingParagraph());
+                        i += 2;
                         continue;
                     }
                 } else if (norm.contains("PROPERTYVALUETABLE") || norm.contains("VALUEOFTHEPROPERTYTABLE") 
@@ -909,6 +921,9 @@ public class DocxTemplateEngine {
                     Tbl propTable = buildDynamicPropertyValueTable(inputs);
                     if (propTable != null) {
                         elements.set(i, propTable);
+                        elements.add(i + 1, createTableSpacingParagraph());
+                        elements.add(i + 2, createTableSpacingParagraph());
+                        i += 2;
                         continue;
                     }
                 }
@@ -963,14 +978,42 @@ public class DocxTemplateEngine {
         }
     }
 
+    private P createTableSpacingParagraph() {
+        ObjectFactory factory = new ObjectFactory();
+        P p = factory.createP();
+        PPr ppr = factory.createPPr();
+        PPrBase.Spacing spacing = factory.createPPrBaseSpacing();
+        spacing.setBefore(BigInteger.valueOf(120));
+        spacing.setAfter(BigInteger.valueOf(120));
+        spacing.setLine(BigInteger.valueOf(240));
+        ppr.setSpacing(spacing);
+        p.setPPr(ppr);
+        return p;
+    }
+
     private boolean isCompositeProperty(Map<String, String> inputs) {
         if (inputs == null) return false;
         String meth = inputs.getOrDefault("VALUATION_METHODOLOGY", inputs.getOrDefault("valuation_methodology", ""));
-        if ("COMPOSITE".equalsIgnoreCase(meth)) return true;
+        if ("COMPOSITE".equalsIgnoreCase(meth) || "COMPOSITE_RATE".equalsIgnoreCase(meth)) return true;
+        if ("LAND_BUILDING".equalsIgnoreCase(meth)) return false;
 
         String compJson = inputs.get("RAW_COMPOSITE_ITEMS_JSON");
         if (compJson != null && !compJson.trim().isEmpty() && !compJson.trim().equals("[]")) {
             return true;
+        }
+
+        String landJson = inputs.get("RAW_LAND_ITEMS_JSON");
+        if (landJson != null && !landJson.trim().isEmpty() && !landJson.trim().equals("[]")) {
+            return false;
+        }
+        String bldgJson = inputs.get("RAW_BUILDING_ITEMS_JSON");
+        if (bldgJson != null && !bldgJson.trim().isEmpty() && !bldgJson.trim().equals("[]")) {
+            return false;
+        }
+
+        // Check if inputs contain land/building component keys
+        if (inputs.containsKey("say_land_value") || inputs.containsKey("say_building_value") || inputs.containsKey("total_land_value")) {
+            return false;
         }
 
         String cat = inputs.getOrDefault("PROPERTY_CATEGORY", inputs.getOrDefault("property_category", ""));
@@ -978,9 +1021,7 @@ public class DocxTemplateEngine {
             cat = inputs.getOrDefault("PROPERTY_TYPE", inputs.getOrDefault("property_type", ""));
         }
         String cLower = cat.trim().toLowerCase();
-        return cLower.contains("flat") || cLower.contains("apartment") || cLower.contains("commercial space")
-                || cLower.contains("office") || cLower.contains("retail") || cLower.contains("shop")
-                || cLower.contains("commercial unit");
+        return cLower.contains("flat") || cLower.contains("apartment") || cLower.contains("commercial unit");
     }
 
     private Tbl buildDynamicCompositePropertyTable(Map<String, String> inputs) {
@@ -2518,6 +2559,7 @@ public class DocxTemplateEngine {
         
         if (containsPageBreak(p)) return false;
         if (p.getPPr() != null && p.getPPr().getSectPr() != null) return false;
+        if (p.getPPr() != null && p.getPPr().getSpacing() != null) return false;
 
         ClassFinder drawingFinder = new ClassFinder(org.docx4j.wml.Drawing.class);
         new TraversalUtil(p, drawingFinder);

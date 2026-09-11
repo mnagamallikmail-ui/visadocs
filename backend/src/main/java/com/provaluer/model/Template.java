@@ -18,6 +18,14 @@ public class Template {
     @Column(name = "template_content", columnDefinition = "BYTEA", nullable = false)
     private byte[] templateContent;
 
+    public static final String STATUS_DRAFT = "DRAFT";
+    public static final String STATUS_ACTIVE = "ACTIVE";
+    public static final String STATUS_ARCHIVED = "ARCHIVED";
+    public static final String STATUS_DELETED = "DELETED";
+
+    @Column(name = "code", length = 50)
+    private String code = "COMM_VAL_STD";
+
     @Column(name = "field_mapping", nullable = false, columnDefinition = "TEXT")
     private String fieldMapping;
 
@@ -25,7 +33,10 @@ public class Template {
     private String isActive = "Y";
 
     @Column(name = "status", nullable = false)
-    private String status = "PENDING";
+    private String status = STATUS_DRAFT;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
 
     @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     @Column(name = "document_dom", columnDefinition = "JSONB")
@@ -89,6 +100,12 @@ public class Template {
 
     public String getProcessingError() { return processingError; }
     public void setProcessingError(String processingError) { this.processingError = processingError; }
+
+    public String getCode() { return code; }
+    public void setCode(String code) { this.code = code; }
+
+    public LocalDateTime getDeletedAt() { return deletedAt; }
+    public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

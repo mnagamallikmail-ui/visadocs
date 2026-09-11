@@ -145,10 +145,12 @@ public class ValuationCalculationFormulaService {
         data.setFairValue(fairValue);
 
         // 5. Separate Realizable Percentages (Phase 6 & 10)
-        BigDecimal landRealPct = data.getLandRealizablePercentage() != null ? data.getLandRealizablePercentage() : new BigDecimal("85.00");
-        BigDecimal bldgRealPct = data.getBuildingRealizablePercentage() != null ? data.getBuildingRealizablePercentage() : new BigDecimal("85.00");
+        BigDecimal defaultReal = data.getRealizablePercentage() != null ? data.getRealizablePercentage() : new BigDecimal("85.00");
+        BigDecimal landRealPct = data.getLandRealizablePercentage() != null ? data.getLandRealizablePercentage() : defaultReal;
+        BigDecimal bldgRealPct = data.getBuildingRealizablePercentage() != null ? data.getBuildingRealizablePercentage() : defaultReal;
         data.setLandRealizablePercentage(landRealPct);
         data.setBuildingRealizablePercentage(bldgRealPct);
+        data.setRealizablePercentage(defaultReal);
 
         BigDecimal landRealVal = sayLand.multiply(landRealPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         BigDecimal bldgRealVal = sayBldg.multiply(bldgRealPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
@@ -159,10 +161,12 @@ public class ValuationCalculationFormulaService {
         data.setRealizableValue(totalRealVal);
 
         // 6. Separate Distress Percentages (Phase 7 & 11)
-        BigDecimal landDistPct = data.getLandDistressPercentage() != null ? data.getLandDistressPercentage() : new BigDecimal("75.00");
-        BigDecimal bldgDistPct = data.getBuildingDistressPercentage() != null ? data.getBuildingDistressPercentage() : new BigDecimal("75.00");
+        BigDecimal defaultDist = data.getDistressSalePercentage() != null ? data.getDistressSalePercentage() : new BigDecimal("75.00");
+        BigDecimal landDistPct = data.getLandDistressPercentage() != null ? data.getLandDistressPercentage() : defaultDist;
+        BigDecimal bldgDistPct = data.getBuildingDistressPercentage() != null ? data.getBuildingDistressPercentage() : defaultDist;
         data.setLandDistressPercentage(landDistPct);
         data.setBuildingDistressPercentage(bldgDistPct);
+        data.setDistressSalePercentage(defaultDist);
 
         BigDecimal landDistVal = sayLand.multiply(landDistPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         BigDecimal bldgDistVal = sayBldg.multiply(bldgDistPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
@@ -391,4 +395,53 @@ public class ValuationCalculationFormulaService {
             return rounded.multiply(oneThousand).setScale(2, RoundingMode.HALF_UP);
         }
     }
+
+    /**
+     * Phase 4A Business Rule 6.4: 20% Statutory Variance Justification Framework
+     * Variance % = ((Fair Value - Government Value) / Government Value) * 100
+     */
+    public static class VarianceResult {
+        private final BigDecimal variancePercentage;
+        private final String justification;
+        private final boolean exceedsTwentyPercent;
+
+        public VarianceResult(BigDecimal variancePercentage, String justification, boolean exceedsTwentyPercent) {
+            this.variancePercentage = variancePercentage;
+            this.justification = justification;
+            this.exceedsTwentyPercent = exceedsTwentyPercent;
+        }
+
+        public BigDecimal getVariancePercentage() { return variancePercentage; }
+        public String getJustification() { return justification; }
+        public boolean isExceedsTwentyPercent() { return exceedsTwentyPercent; }
+    }
+
+    public static VarianceResult calculateVarianceAndJustification(BigDecimal fairValue, BigDecimal governmentValue) {
+        if (fairValue == null) fairValue = BigDecimal.ZERO;
+        if (governmentValue == null || governmentValue.compareTo(BigDecimal.ZERO) <= 0) {
+            return new VarianceResult(BigDecimal.ZERO, "Statutory guideline valuation baseline not established.", false);
+        }
+
+        BigDecimal diff = fairValue.subtract(governmentValue);
+        BigDecimal variancePct = diff.divide(governmentValue, 6, RoundingMode.HALF_UP)
+                .multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_UP);
+
+        boolean exceeds = variancePct.abs().compareTo(new BigDecimal("20.00")) >= 0;
+        String note;
+        if (variancePct.compareTo(new BigDecimal("20.00")) >= 0) {
+            note = "The assessed Fair Market Value of ₹ " + com.provaluer.util.IndianNumberFormatter.format(fairValue)
+                    + " is " + variancePct + "% higher than the Statutory Guideline Value of ₹ "
+                    + com.provaluer.util.IndianNumberFormatter.format(governmentValue)
+                    + " due to superior location advantages, commercial absorption rates, premium micro-market infrastructure, and higher prevailing transaction prices compared to historical government registration values.";
+        } else if (variancePct.compareTo(new BigDecimal("-20.00")) <= 0) {
+            note = "The assessed Fair Market Value of ₹ " + com.provaluer.util.IndianNumberFormatter.format(fairValue)
+                    + " is " + variancePct.abs() + "% lower than the Statutory Guideline Value due to physical encumbrances, shape irregularity, access constraints, or distressed localized demand.";
+        } else {
+            note = "The assessed Fair Market Value is broadly in alignment with prevailing government guideline rates with a standard variation of "
+                    + variancePct + "%.";
+        }
+
+        return new VarianceResult(variancePct, note, exceeds);
+    }
 }
+

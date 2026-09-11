@@ -38,6 +38,9 @@ public class TemplateController {
     private TemplateVersionRepository templateVersionRepository;
 
     @Autowired
+    private com.provaluer.repository.OrderRepository orderRepository;
+
+    @Autowired
     private TemplateProcessingService templateProcessingService;
 
     @Autowired
@@ -69,13 +72,18 @@ public class TemplateController {
 
     /**
      * GET /api/v1/templates
-     * Retrieves all templates (active or inactive) as lightweight DTOs for Admin management screen.
+     * Retrieves all templates (active or inactive) enriched with usage metrics for Admin management screen.
      */
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<List<TemplateListDTO>> getAllTemplates() {
         List<TemplateListDTO> dtos = templateRepository.findAll().stream()
-                .map(TemplateListDTO::new)
+                .map(t -> {
+                    long total = orderRepository.countByTemplateId(t.getId());
+                    long drafts = orderRepository.countByTemplateIdAndStatus(t.getId(), "DRAFT");
+                    long submitted = total - drafts;
+                    return new TemplateListDTO(t, total, drafts, submitted);
+                })
                 .toList();
         return ResponseEntity.ok(dtos);
     }
@@ -270,37 +278,107 @@ public class TemplateController {
     }
 
     /**
+     * GET /api/v1/templates/{id}/usage
+     * Returns usage impact metrics for a template (reports using it, active drafts, submitted).
+     */
+    @GetMapping("/{id}/usage")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> getTemplateUsage(@PathVariable Long id) {
+        try {
+            return ResponseEntity.ok(templateProcessingService.getTemplateUsage(id));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(e.getMessage());
+        }
+    }
+
+    /**
+     * POST /api/v1/templates/{id}/validate-update
+     * Pre-commit check: compares old version placeholders vs revised DOCX package.
+     */
+    @PostMapping("/{id}/validate-update")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> validateTemplateUpdate(@PathVariable Long id, @RequestParam("file") MultipartFile file) {
+        try {
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest().body("File cannot be empty");
+            }
+            com.provaluer.dto.TemplateDiffDTO diff = templateProcessingService.computeTemplateDiff(id, file.getBytes());
+            return ResponseEntity.ok(diff);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Diff calculation failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * POST /api/v1/templates/{id}/publish-version
+     * Publishes a new version under Single Active Version Governance (archives old version, updates parent).
+     */
+    @PostMapping("/{id}/publish-version")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> publishNewVersion(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam(value = "changeSummary", required = false) String changeSummary) {
+        try {
+            if (file.isEmpty()) {
+                return ResponseEntity.badRequest().body("File cannot be empty");
+            }
+            Template published = templateProcessingService.publishNewVersion(id, file.getBytes(), changeSummary, currentUserId());
+            return ResponseEntity.ok(new TemplateDetailDTO(published));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Publishing failed: " + e.getMessage());
+        }
+    }
+
+    /**
      * DELETE /api/v1/templates/{id}
-     * Deletes a template from the database after cascading dependent records.
+     * OPTION A MANDATE: Soft-deletes template metadata for future usage.
+     * Historical reports, snapshots, and version binaries remain 100% UNTOUCHED.
      */
     @DeleteMapping("/{id}")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
-    @Transactional
     public ResponseEntity<?> deleteTemplate(@PathVariable Long id) {
-        Optional<Template> optionalTemplate = templateRepository.findById(id);
-        if (optionalTemplate.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-
         try {
-            Template template = optionalTemplate.get();
-
-            // 1. Unlink orders using this template to avoid foreign key violation
-            jdbcTemplate.update("UPDATE orders SET template_id = NULL WHERE template_id = ?", id);
-
-            // 2. Delete dependent document studio configs
-            studioConfigRepository.deleteByTemplateId(id);
-
-            // 3. Delete dependent template versions
-            templateVersionRepository.deleteAllByTemplateId(id);
-
-            // 4. Delete the parent template
-            templateRepository.delete(template);
-
-            return ResponseEntity.ok(Map.of("status", "SUCCESS", "message", "Template deleted successfully."));
+            templateProcessingService.softDeleteTemplate(id);
+            return ResponseEntity.ok(Map.of(
+                    "status", "SUCCESS",
+                    "message", "Template soft-deleted successfully under Option A. Historical reports remain fully functional."
+            ));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
         } catch (Exception e) {
-            return ResponseEntity.status(org.springframework.http.HttpStatus.CONFLICT)
-                    .body(Map.of("status", "ERROR", "message", "Cannot delete template due to dependent records: " + e.getMessage()));
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("status", "ERROR", "message", e.getMessage()));
+        }
+    }
+
+    /**
+     * DELETE /api/v1/templates/{id}/permanent
+     * Permanently purges template metadata ONLY if total dependent reports is strictly 0.
+     */
+    @DeleteMapping("/{id}/permanent")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> permanentDeleteTemplate(@PathVariable Long id) {
+        try {
+            templateProcessingService.hardDeleteTemplate(id);
+            return ResponseEntity.ok(Map.of(
+                    "status", "SUCCESS",
+                    "message", "Template permanently deleted (zero dependent reports)."
+            ));
+        } catch (IllegalStateException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(Map.of("status", "ERROR", "message", e.getMessage()));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.notFound().build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("status", "ERROR", "message", e.getMessage()));
         }
     }
 

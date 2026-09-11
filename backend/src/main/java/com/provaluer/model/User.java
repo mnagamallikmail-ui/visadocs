@@ -47,6 +47,26 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    @PrePersist
+    public void prePersist() {
+        if ((username == null || username.trim().isEmpty()) && email != null && !email.trim().isEmpty()) {
+            username = email.contains("@") ? email.substring(0, email.indexOf('@')) : email;
+        } else if (username == null || username.trim().isEmpty()) {
+            username = "user_" + System.currentTimeMillis();
+        }
+        if (createdAt == null) {
+            createdAt = LocalDateTime.now();
+        }
+        if (updatedAt == null) {
+            updatedAt = LocalDateTime.now();
+        }
+    }
+
+    @PreUpdate
+    public void preUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
     public User() {}
 
     public User(String username, String email, String password, UserRole role, String mobileNumber, String acceptedTcVersion) {

@@ -28,4 +28,12 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     List<Order> findAllActiveSlaOrders();
 
     long countByReportNumberStartingWith(String prefix);
+
+    long countByTemplateId(Long templateId);
+
+    long countByTemplateIdAndStatus(Long templateId, String status);
+
+    long countByTemplateIdAndStatusIn(Long templateId, List<String> statuses);
+
+    long countByTemplateVersionId(Long templateVersionId);
 }

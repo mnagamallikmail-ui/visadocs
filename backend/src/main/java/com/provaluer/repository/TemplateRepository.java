@@ -8,4 +8,8 @@ import java.util.Optional;
 public interface TemplateRepository extends JpaRepository<Template, Long> {
     List<Template> findAllByIsActive(String isActive);
     Optional<Template> findByIdAndIsActive(Long id, String isActive);
+    List<Template> findAllByStatusNot(String status);
+    List<Template> findAllByStatus(String status);
+    List<Template> findAllByCode(String code);
+    Optional<Template> findByCodeAndStatus(String code, String status);
 }

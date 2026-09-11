@@ -183,9 +183,13 @@ public class ValuationEngineServiceTest {
         BigDecimal ex3 = new BigDecimal("1093822456.00");
         assertEquals(0, new BigDecimal("1093800000.00").compareTo(ValuationEngineService.computeSayValue(ex3)));
 
-        // Under 1 Crore: Exact Fair Value preserved (no rounding)
-        BigDecimal under1Cr = new BigDecimal("7542380.00");
-        assertEquals(0, new BigDecimal("7542380.00").compareTo(ValuationEngineService.computeSayValue(under1Cr)));
+        // Between 50 Lakhs and 1 Crore: Round to nearest 10,000
+        BigDecimal between50LAnd1Cr = new BigDecimal("7542380.00");
+        assertEquals(0, new BigDecimal("7540000.00").compareTo(ValuationEngineService.computeSayValue(between50LAnd1Cr)));
+
+        // Under 50 Lakhs: Round to nearest 1,000
+        BigDecimal under50L = new BigDecimal("2312500.00");
+        assertEquals(0, new BigDecimal("2313000.00").compareTo(ValuationEngineService.computeSayValue(under50L)));
     }
 
     @Test

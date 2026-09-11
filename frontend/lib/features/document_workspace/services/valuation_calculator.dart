@@ -2,6 +2,7 @@ import '../../../utils/indian_currency_to_words.dart';
 import '../../../utils/indian_number_formatter.dart';
 import '../../../utils/unit_conversion_engine.dart';
 import '../models/valuation_models.dart';
+import 'value_normalization_engine.dart';
 
 class ValuationCalculator {
   static void calculateLandItem(ValuationLandItemModel item) {
@@ -286,6 +287,61 @@ class ValuationCalculator {
       map['total_interior_amount'] = IndianNumberFormatter.format(data.totalInteriorAmount);
       map['total_interior_depreciation'] = IndianNumberFormatter.format(data.totalInteriorDepreciation);
       map['total_interior_fair_value'] = IndianNumberFormatter.format(data.totalInteriorFairValue);
+
+      if (compositeItems.isNotEmpty) {
+        final mainUnit = compositeItems.firstWhere(
+          (i) => i.itemCategory.toUpperCase() == 'MAIN_UNIT',
+          orElse: () => compositeItems.first,
+        );
+        final areaStr = mainUnit.quantity.toString();
+        final numericAreaStr = ValueNormalizationEngine.formatNormalizedString(mainUnit.quantity);
+        map['saleable_area'] = areaStr;
+        map['saleable_area_raw'] = areaStr;
+        map['saleable_area_numeric'] = numericAreaStr;
+        map['super_built_up_area'] = areaStr;
+        map['super_built_up_area_raw'] = areaStr;
+        map['super_built_up_area_numeric'] = numericAreaStr;
+        map['property_area_sft'] = areaStr;
+        map['property_area_sft_raw'] = areaStr;
+        map['property_area_sft_numeric'] = numericAreaStr;
+        map['sbua'] = areaStr;
+        map['sbua_raw'] = areaStr;
+        map['sbua_numeric'] = numericAreaStr;
+        map['flat_area'] = areaStr;
+        map['flat_area_raw'] = areaStr;
+        map['flat_area_numeric'] = numericAreaStr;
+        map['composite_area'] = '$areaStr ${mainUnit.enteredUnit}';
+
+        final rateStr = IndianNumberFormatter.format(mainUnit.rate);
+        final numericRateStr = ValueNormalizationEngine.formatNormalizedString(mainUnit.rate);
+        map['market_rate_flat'] = rateStr;
+        map['market_rate_flat_raw'] = rateStr;
+        map['market_rate_flat_numeric'] = numericRateStr;
+        map['composite_rate'] = rateStr;
+        map['composite_rate_raw'] = rateStr;
+        map['composite_rate_numeric'] = numericRateStr;
+        map['current_market_rate'] = rateStr;
+        map['current_market_rate_raw'] = rateStr;
+        map['current_market_rate_numeric'] = numericRateStr;
+        map['flat_market_rate'] = rateStr;
+        map['flat_market_rate_raw'] = rateStr;
+        map['flat_market_rate_numeric'] = numericRateStr;
+        map['building_market_rate'] = rateStr;
+        map['building_market_rate_raw'] = rateStr;
+        map['building_market_rate_numeric'] = numericRateStr;
+
+        final amountStr = IndianNumberFormatter.format(mainUnit.amount);
+        final numericAmountStr = ValueNormalizationEngine.formatNormalizedString(mainUnit.amount);
+        map['unit_amount'] = amountStr;
+        map['unit_amount_numeric'] = numericAmountStr;
+        map['flat_value'] = amountStr;
+        map['main_unit_amount'] = amountStr;
+        map['composite_amount'] = amountStr;
+
+        final deprStr = IndianNumberFormatter.format(mainUnit.depreciationAmount);
+        map['main_unit_depreciation'] = deprStr;
+        map['composite_depreciation'] = deprStr;
+      }
     } else {
       // Land
       map['total_land_value'] = IndianNumberFormatter.format(data.totalLandValue);
@@ -384,6 +440,40 @@ class ValuationCalculator {
       map['depreciation_amount_words'] = IndianCurrencyToWords.convertToWords(b.depreciationAmount);
       map['building_value'] = IndianNumberFormatter.format(b.buildingValue);
       map['building_value_words'] = IndianCurrencyToWords.convertToWords(b.buildingValue);
+    }
+
+    // Statutory Guideline Variance & 20% Justification (Phase 4A Deliverable 6.4)
+    final effectiveFair = isComposite
+        ? (data.sayFairValue > 0 ? data.sayFairValue : computeSayValue(data.rawFairValue))
+        : (data.sayLandValue > 0 || data.sayBuildingValue > 0
+            ? (data.sayLandValue + data.sayBuildingValue)
+            : data.fairValue);
+    final effectiveGovt = data.governmentValue > 0
+        ? data.governmentValue
+        : (data.landGovernmentValue + data.buildingGovernmentValue);
+
+    if (effectiveGovt > 0) {
+      final variancePct = ((effectiveFair - effectiveGovt) / effectiveGovt) * 100.0;
+      map['variance_percentage'] = '${variancePct.toStringAsFixed(2)}%';
+      String justification;
+      if (variancePct >= 20.0) {
+        justification = 'The assessed Fair Market Value of ₹ ${IndianNumberFormatter.format(effectiveFair)} is ${variancePct.toStringAsFixed(2)}% higher than the Statutory Guideline Value of ₹ ${IndianNumberFormatter.format(effectiveGovt)} due to superior location advantages, commercial absorption rates, premium micro-market infrastructure, and higher prevailing transaction prices compared to historical government registration values.';
+      } else if (variancePct <= -20.0) {
+        justification = 'The assessed Fair Market Value of ₹ ${IndianNumberFormatter.format(effectiveFair)} is ${variancePct.abs().toStringAsFixed(2)}% lower than the Statutory Guideline Value due to physical encumbrances, shape irregularity, access constraints, or distressed localized demand.';
+      } else {
+        justification = 'The assessed Fair Market Value is broadly in alignment with prevailing government guideline rates with a standard variation of ${variancePct.toStringAsFixed(2)}%.';
+      }
+      map['20%_more'] = justification;
+      map['20%_less'] = justification;
+      map['variance_justification'] = justification;
+      map['govt_variance_note'] = justification;
+    } else {
+      map['variance_percentage'] = '0.00%';
+      const fallbackNote = 'Statutory guideline valuation baseline not established.';
+      map['20%_more'] = fallbackNote;
+      map['20%_less'] = fallbackNote;
+      map['variance_justification'] = fallbackNote;
+      map['govt_variance_note'] = fallbackNote;
     }
 
     // Add uppercase aliases

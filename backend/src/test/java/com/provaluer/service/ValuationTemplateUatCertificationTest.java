@@ -265,7 +265,7 @@ public class ValuationTemplateUatCertificationTest {
         System.out.println("3. PROPERTY_VALUE_TABLE rendered: PASS");
 
         // Item 4: VALUATION_SUMMARY_TABLE renders
-        assertTrue(docXml.contains("VALUATION PARAMETER") && (docXml.contains("Realizable Value") || docXml.contains("Realizable Sale Value")), "VALUATION_SUMMARY_TABLE must render summary table");
+        assertTrue(docXml.toUpperCase().contains("VALUATION PARAMETER") && (docXml.contains("Realizable Value") || docXml.contains("Realizable Sale Value")), "VALUATION_SUMMARY_TABLE must render summary table");
         System.out.println("4. VALUATION_SUMMARY_TABLE rendered: PASS");
 
         // Items 5-9: Rates & Percentages

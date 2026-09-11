@@ -564,12 +564,54 @@ public class ValuationEngineService {
                 ValuationCompositeItem mainUnit = compositeItems.stream()
                         .filter(i -> "MAIN_UNIT".equalsIgnoreCase(i.getItemCategory()))
                         .findFirst().orElse(compositeItems.get(0));
-                map.put("composite_area", mainUnit.getQuantity() + " " + mainUnit.getEnteredUnit());
-                map.put("composite_rate", IndianNumberFormatter.format(mainUnit.getRate()));
-                map.put("composite_amount", IndianNumberFormatter.format(mainUnit.getAmount()));
-                map.put("composite_depreciation", IndianNumberFormatter.format(mainUnit.getDepreciationAmount()));
+                String areaStr = mainUnit.getQuantity() != null ? mainUnit.getQuantity().toString() : "0";
+                map.put("saleable_area", areaStr);
+                map.put("saleable_area_raw", areaStr);
+                map.put("saleable_area_numeric", areaStr);
+                map.put("super_built_up_area", areaStr);
+                map.put("super_built_up_area_raw", areaStr);
+                map.put("super_built_up_area_numeric", areaStr);
+                map.put("property_area_sft", areaStr);
+                map.put("property_area_sft_raw", areaStr);
+                map.put("property_area_sft_numeric", areaStr);
+                map.put("sbua", areaStr);
+                map.put("sbua_raw", areaStr);
+                map.put("sbua_numeric", areaStr);
+                map.put("flat_area", areaStr);
+                map.put("flat_area_raw", areaStr);
+                map.put("flat_area_numeric", areaStr);
+                map.put("composite_area", areaStr + " " + mainUnit.getEnteredUnit());
+
+                String rateStr = IndianNumberFormatter.format(mainUnit.getRate());
+                String numRateStr = mainUnit.getRate() != null ? mainUnit.getRate().toPlainString() : "0";
+                map.put("market_rate_flat", rateStr);
+                map.put("market_rate_flat_raw", rateStr);
+                map.put("market_rate_flat_numeric", numRateStr);
+                map.put("composite_rate", rateStr);
+                map.put("composite_rate_raw", rateStr);
+                map.put("composite_rate_numeric", numRateStr);
+                map.put("current_market_rate", rateStr);
+                map.put("current_market_rate_raw", rateStr);
+                map.put("current_market_rate_numeric", numRateStr);
+                map.put("flat_market_rate", rateStr);
+                map.put("flat_market_rate_raw", rateStr);
+                map.put("flat_market_rate_numeric", numRateStr);
+                map.put("building_market_rate", rateStr);
+                map.put("building_market_rate_raw", rateStr);
+                map.put("building_market_rate_numeric", numRateStr);
+
+                String amountStr = IndianNumberFormatter.format(mainUnit.getAmount());
+                map.put("unit_amount", amountStr);
+                map.put("flat_value", amountStr);
+                map.put("main_unit_amount", amountStr);
+                map.put("composite_amount", amountStr);
+
+                String deprStr = IndianNumberFormatter.format(mainUnit.getDepreciationAmount());
+                map.put("main_unit_depreciation", deprStr);
+                map.put("composite_depreciation", deprStr);
+
                 map.put("composite_construction_cost", IndianNumberFormatter.format(mainUnit.getConstructionCost()));
-                map.put("composite_building_age", mainUnit.getBuildingAge() + " Years");
+                map.put("composite_building_age", (mainUnit.getBuildingAge() != null ? mainUnit.getBuildingAge() : BigDecimal.ZERO) + " Years");
             }
         } else {
             // Land Values
@@ -703,6 +745,21 @@ public class ValuationEngineService {
                 map.put("building_value_words", IndianCurrencyToWords.convertToWords(firstBldg.getBuildingValue()));
             }
         }
+
+        // Statutory Guideline Variance & 20% Justification (Phase 4A Deliverable 6.4)
+        BigDecimal effectiveFair = isComposite
+                ? (data.getSayFairValue() != null ? data.getSayFairValue() : data.getFairValue())
+                : (data.getFairValue() != null ? data.getFairValue() : BigDecimal.ZERO);
+        BigDecimal effectiveGovt = data.getGovernmentValue() != null ? data.getGovernmentValue() : BigDecimal.ZERO;
+
+        ValuationCalculationFormulaService.VarianceResult varianceResult =
+                ValuationCalculationFormulaService.calculateVarianceAndJustification(effectiveFair, effectiveGovt);
+
+        map.put("variance_percentage", varianceResult.getVariancePercentage() + "%");
+        map.put("20%_more", varianceResult.getJustification());
+        map.put("20%_less", varianceResult.getJustification());
+        map.put("variance_justification", varianceResult.getJustification());
+        map.put("govt_variance_note", varianceResult.getJustification());
 
         // Add uppercase alias keys for flexible template authoring (e.g. <<FAIR_VALUE>>)
         Map<String, String> uppercaseAliases = new HashMap<>();

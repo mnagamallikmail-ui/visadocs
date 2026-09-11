@@ -465,15 +465,11 @@ public class OrderController {
                 reportBytes = signedPdfOpt.get().getFileContent();
             } else {
                 Long templateId = order.getTemplateId();
-                if (templateId == null) {
-                    return ResponseEntity.badRequest().body("No template associated with this order.");
+                Template template = templateId != null ? templateRepository.findById(templateId).orElse(null) : null;
+                byte[] templateBytes = documentWorkspaceService.resolveOrderTemplateBytes(order, template);
+                if (templateBytes == null || templateBytes.length == 0) {
+                    return ResponseEntity.badRequest().body("Template content not found for order #" + id);
                 }
-                Optional<Template> templateOpt = templateRepository.findById(templateId);
-                if (templateOpt.isEmpty()) {
-                    return ResponseEntity.badRequest().body("Template not found.");
-                }
-                Template template = templateOpt.get();
-                byte[] templateBytes = template.getTemplateContent();
 
                 Map<String, String> inputsMap = documentWorkspaceService.getConsolidatedValues(id);
                 Map<String, byte[]> imagesMap = new HashMap<>();
@@ -555,15 +551,11 @@ public class OrderController {
             }
 
             Long templateId = order.getTemplateId();
-            if (templateId == null) {
-                return ResponseEntity.badRequest().body("No template associated with this order.");
+            Template template = templateId != null ? templateRepository.findById(templateId).orElse(null) : null;
+            byte[] templateBytes = documentWorkspaceService.resolveOrderTemplateBytes(order, template);
+            if (templateBytes == null || templateBytes.length == 0) {
+                return ResponseEntity.badRequest().body("Template content not found for order #" + id);
             }
-            Optional<Template> templateOpt = templateRepository.findById(templateId);
-            if (templateOpt.isEmpty()) {
-                return ResponseEntity.badRequest().body("Template not found.");
-            }
-            Template template = templateOpt.get();
-            byte[] templateBytes = template.getTemplateContent();
 
             Map<String, String> inputsMap = documentWorkspaceService.getConsolidatedValues(id);
             Map<String, byte[]> imagesMap = new HashMap<>();

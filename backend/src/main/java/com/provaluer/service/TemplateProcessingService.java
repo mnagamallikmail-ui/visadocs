@@ -16,7 +16,10 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
-import java.util.Set;
+import com.provaluer.dto.TemplateDiffDTO;
+import com.provaluer.dto.TemplateUsageDTO;
+import java.time.LocalDateTime;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -33,6 +36,9 @@ public class TemplateProcessingService {
 
     @Autowired
     private TemplateVersionRepository templateVersionRepository;
+
+    @Autowired
+    private com.provaluer.repository.OrderRepository orderRepository;
 
     @Autowired
     private DocxTemplateEngine templateEngine;
@@ -195,5 +201,248 @@ public class TemplateProcessingService {
 
     public int getActiveJobCount() {
         return activeProcessingJobs.get();
+    }
+
+    /**
+     * Retrieves usage impact metrics for a given template.
+     */
+    public TemplateUsageDTO getTemplateUsage(Long templateId) {
+        Template template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new IllegalArgumentException("Template not found: " + templateId));
+
+        long total = orderRepository.countByTemplateId(templateId);
+        long drafts = orderRepository.countByTemplateIdAndStatus(templateId, "DRAFT");
+        long submitted = total - drafts;
+
+        List<TemplateVersion> versions = templateVersionRepository.findAllByTemplateIdOrderByVersionDesc(templateId);
+        List<Map<String, Object>> versionList = new ArrayList<>();
+        for (TemplateVersion v : versions) {
+            long verReports = orderRepository.countByTemplateVersionId(v.getId());
+            versionList.add(Map.of(
+                    "versionId", v.getId(),
+                    "version", v.getVersion(),
+                    "name", v.getName(),
+                    "status", v.getStatus() != null ? v.getStatus() : "ACTIVE",
+                    "reportCount", verReports,
+                    "createdAt", v.getCreatedAt() != null ? v.getCreatedAt().toString() : ""
+            ));
+        }
+
+        return new TemplateUsageDTO(
+                template.getId(),
+                template.getName(),
+                template.getCode(),
+                template.getVersion(),
+                template.getStatus(),
+                total,
+                drafts,
+                submitted,
+                total == 0,
+                versionList
+        );
+    }
+
+    /**
+     * Computes placeholder compatibility diff between old template version and revised DOCX package.
+     */
+    public TemplateDiffDTO computeTemplateDiff(Long templateId, byte[] newDocxBytes) throws Exception {
+        Template template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new IllegalArgumentException("Template not found: " + templateId));
+
+        TemplateDiffDTO diff = new TemplateDiffDTO();
+        diff.setOldVersion(template.getVersion());
+        diff.setProposedVersion(template.getVersion() + 1);
+
+        // 1. Extract existing placeholder keys
+        Set<String> oldKeys = new LinkedHashSet<>();
+        if (template.getPlaceholderRegistry() != null && !template.getPlaceholderRegistry().trim().isEmpty()) {
+            JsonNode regNode = objectMapper.readTree(template.getPlaceholderRegistry());
+            if (regNode.isArray()) {
+                for (JsonNode item : regNode) {
+                    if (item.has("key")) oldKeys.add(item.get("key").asText().toUpperCase().trim());
+                }
+            }
+        }
+
+        // 2. Parse new DOCX
+        byte[] normalizedNew = templateEngine.normalizeTemplate(newDocxBytes);
+        JsonNode newDom = docxStructureParser.parseDocumentStructure(normalizedNew);
+        String newRegistryJson = docxStructureParser.generatePlaceholderRegistry(newDom);
+        Set<String> newKeys = new LinkedHashSet<>();
+        JsonNode newRegNode = objectMapper.readTree(newRegistryJson);
+        if (newRegNode.isArray()) {
+            for (JsonNode item : newRegNode) {
+                if (item.has("key")) newKeys.add(item.get("key").asText().toUpperCase().trim());
+            }
+        }
+
+        // 3. Diff analysis
+        for (String k : oldKeys) {
+            if (newKeys.contains(k)) {
+                diff.getRetainedTokens().add(k);
+            } else {
+                diff.getRemovedTokens().add(k);
+            }
+        }
+        for (String k : newKeys) {
+            if (!oldKeys.contains(k)) {
+                diff.getAddedTokens().add(k);
+            }
+        }
+
+        // 4. Detect alias renames (e.g. SUPER_BUILT_UP_AREA -> SALEABLE_AREA)
+        if (diff.getRemovedTokens().contains("SUPER_BUILT_UP_AREA") && diff.getAddedTokens().contains("SALEABLE_AREA")) {
+            diff.getRenamedTokens().put("SUPER_BUILT_UP_AREA", "SALEABLE_AREA");
+        }
+        if (diff.getRemovedTokens().contains("COMPOSITE_RATE") && diff.getAddedTokens().contains("MARKET_RATE_FLAT")) {
+            diff.getRenamedTokens().put("COMPOSITE_RATE", "MARKET_RATE_FLAT");
+        }
+
+        // 5. Detect breaking changes (removal of core valuation drivers)
+        Set<String> criticalDrivers = Set.of("SALEABLE_AREA", "MARKET_RATE_FLAT", "FAIR_VALUE", "REALIZABLE_VALUE", "REPORT_NO");
+        for (String removed : diff.getRemovedTokens()) {
+            if (criticalDrivers.contains(removed) && !diff.getRenamedTokens().containsKey(removed)) {
+                diff.setHasBreakingChanges(true);
+                diff.getBreakingChangeReasons().add("Authoritative valuation driver <<" + removed + ">> has been removed without an alias.");
+            }
+        }
+
+        if (diff.isHasBreakingChanges()) {
+            diff.setCompatibilityStatus("BREAKING_CHANGE");
+        } else if (!diff.getRemovedTokens().isEmpty() || !diff.getRenamedTokens().isEmpty()) {
+            diff.setCompatibilityStatus("SAFE_WITH_NOTICE");
+        } else {
+            diff.setCompatibilityStatus("SAFE");
+        }
+
+        return diff;
+    }
+
+    /**
+     * Publishes a new version (V_next) of an existing template under Single Active Version Governance.
+     * The previous active version is archived. Existing reports remain strictly untouched.
+     */
+    @Transactional
+    public Template publishNewVersion(Long templateId, byte[] docxBytes, String changeSummary, Long actorId) throws Exception {
+        Template template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new IllegalArgumentException("Template not found: " + templateId));
+
+        validateDocxPackage(docxBytes, "revised_template.docx");
+
+        byte[] normalized = templateEngine.normalizeTemplate(docxBytes);
+        JsonNode domNode = docxStructureParser.parseDocumentStructure(normalized);
+        String documentDomJson = domNode.toString();
+        String placeholderRegistryJson = docxStructureParser.generatePlaceholderRegistry(domNode);
+        String fieldMappingJson = templateEngine.parseTemplate(normalized);
+
+        // Pre-commit diff calculation
+        TemplateDiffDTO diff = computeTemplateDiff(templateId, docxBytes);
+        String diffJson = objectMapper.writeValueAsString(diff);
+
+        // Archive previous version record in template_versions
+        List<TemplateVersion> prevVersions = templateVersionRepository.findAllByTemplateIdOrderByVersionDesc(templateId);
+        for (TemplateVersion pv : prevVersions) {
+            if ("ACTIVE".equalsIgnoreCase(pv.getStatus())) {
+                pv.setStatus("ARCHIVED");
+                templateVersionRepository.save(pv);
+            }
+        }
+
+        // Determine new sequential version number
+        int nextVersion = template.getVersion() + 1;
+        if (!prevVersions.isEmpty()) {
+            int maxV = prevVersions.get(0).getVersion();
+            if (nextVersion <= maxV) {
+                nextVersion = maxV + 1;
+            }
+        }
+
+        // Create new Version record
+        TemplateVersion newVer = new TemplateVersion();
+        newVer.setTemplateId(template.getId());
+        newVer.setVersion(nextVersion);
+        newVer.setName(template.getName());
+        newVer.setTemplateContent(normalized);
+        newVer.setFieldMapping(fieldMappingJson);
+        newVer.setDocumentDom(documentDomJson);
+        newVer.setPlaceholderRegistry(placeholderRegistryJson);
+        newVer.setChangeSummary(changeSummary != null ? changeSummary : "Published version " + nextVersion);
+        newVer.setStatus("ACTIVE");
+        newVer.setPlaceholderDiff(diffJson);
+        newVer.setCreatedBy(actorId);
+        newVer.setCreatedAt(LocalDateTime.now());
+        templateVersionRepository.save(newVer);
+
+        // Update parent Template record to new version and mark ACTIVE
+        template.setVersion(nextVersion);
+        template.setTemplateContent(normalized);
+        template.setDocumentDom(documentDomJson);
+        template.setPlaceholderRegistry(placeholderRegistryJson);
+        template.setFieldMapping(fieldMappingJson);
+        template.setStatus(Template.STATUS_ACTIVE);
+        template.setIsActive("Y");
+        template.setProcessingError(null);
+        Template saved = templateRepository.save(template);
+
+        // Single Active Version Governance: Archive other templates with identical code
+        if (template.getCode() != null) {
+            List<Template> siblings = templateRepository.findAllByCode(template.getCode());
+            for (Template s : siblings) {
+                if (!s.getId().equals(template.getId()) && Template.STATUS_ACTIVE.equals(s.getStatus())) {
+                    s.setStatus(Template.STATUS_ARCHIVED);
+                    s.setIsActive("N");
+                    templateRepository.save(s);
+                }
+            }
+        }
+
+        log.info("Template #{} published new version v{} successfully.", templateId, nextVersion);
+        return saved;
+    }
+
+    /**
+     * Soft-deletes a template (Option A).
+     * NEVER unlinks historical reports or deletes template_versions.
+     */
+    @Transactional
+    public void softDeleteTemplate(Long templateId) {
+        Template template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new IllegalArgumentException("Template not found: " + templateId));
+
+        template.setStatus(Template.STATUS_DELETED);
+        template.setIsActive("N");
+        template.setDeletedAt(LocalDateTime.now());
+        templateRepository.save(template);
+        log.info("Template #{} soft-deleted under Option A. Historical reports and version snapshots preserved.", templateId);
+    }
+
+    /**
+     * Hard-deletes template metadata ONLY if usage is strictly 0.
+     */
+    @Transactional
+    public void hardDeleteTemplate(Long templateId) {
+        Template template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new IllegalArgumentException("Template not found: " + templateId));
+
+        long count = orderRepository.countByTemplateId(templateId);
+        if (count > 0) {
+            throw new IllegalStateException("Cannot permanently delete template #" + templateId +
+                    ": " + count + " historical reports depend on it. Use soft-delete / archive instead.");
+        }
+
+        templateVersionRepository.deleteAllByTemplateId(templateId);
+        templateRepository.delete(template);
+        log.info("Template #{} permanently purged (zero dependent reports).", templateId);
+    }
+
+    /**
+     * Sandbox environment: Test-hydrates template against sample order input map without persisting.
+     */
+    public byte[] testSandboxHydration(Long templateId, Map<String, String> sampleInputs) throws Exception {
+        Template template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new IllegalArgumentException("Template not found: " + templateId));
+
+        byte[] raw = template.getTemplateContent();
+        return templateEngine.generateReport(raw, sampleInputs, Collections.emptyMap());
     }
 }

@@ -171,16 +171,15 @@ public class FormulaExpressionEngine {
             return ((Number) val).doubleValue();
         }
 
-        String str = val.toString().trim()
-                .replaceAll("[,\\s₹$€£]", ""); // Strip currency symbols, commas, and whitespace
-
+        String str = val.toString().trim();
         if (str.isEmpty()) {
             return 0.0;
         }
 
         try {
-            return Double.parseDouble(str);
-        } catch (NumberFormatException e) {
+            return com.provaluer.util.ValueNormalizationEngine.extractNumericValue(str).doubleValue();
+        } catch (Exception e) {
+            // Fallback for empty or non-numeric strings
             return 0.0;
         }
     }

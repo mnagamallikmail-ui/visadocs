@@ -1320,61 +1320,346 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
   }
 
   Future<void> _deleteTemplate(dynamic t) async {
-    final confirm = await showDialog<bool>(
+    final templateId = t['id'];
+    Map<String, dynamic>? usageData;
+    bool loadingUsage = true;
+
+    await showDialog<void>(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        surfaceTintColor: Colors.transparent,
-        title: const Text('Delete Template'),
-        content: Text('Are you sure you want to delete "${t['name']}"? All versions will be removed.'),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: AppComponents.dangerButton,
-            child: const Text('Delete'),
-          ),
-        ],
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          if (loadingUsage) {
+            _api.dio.get('/api/v1/templates/$templateId/usage').then((r) {
+              if (r.data is Map<String, dynamic>) {
+                setDialogState(() {
+                  usageData = r.data as Map<String, dynamic>;
+                  loadingUsage = false;
+                });
+              } else {
+                setDialogState(() => loadingUsage = false);
+              }
+            }).catchError((_) {
+              setDialogState(() => loadingUsage = false);
+            });
+          }
+
+          final totalBound = usageData?['totalReportsBound'] ?? t['totalReportsCount'] ?? 0;
+          final draftCount = usageData?['draftReportsCount'] ?? t['draftReportsCount'] ?? 0;
+          final submittedCount = usageData?['submittedReportsCount'] ?? t['submittedReportsCount'] ?? 0;
+
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            title: Row(
+              children: [
+                const Icon(Icons.shield_outlined, color: AppColors.primary, size: 24),
+                const SizedBox(width: 8),
+                Text('Governance & Deletion Safety', style: AppTypography.heading4().copyWith(color: AppColors.ink)),
+              ],
+            ),
+            content: SizedBox(
+              width: 500,
+              child: loadingUsage
+                  ? const SizedBox(height: 140, child: Center(child: CircularProgressIndicator()))
+                  : Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Template: "${t['name']}" (Code: ${t['code'] ?? 'COMM_VAL'})',
+                          style: AppTypography.bodyMdMedium(color: AppColors.ink),
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceSoft,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.hairlineSoft),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Usage Impact Assessment (Option A Governed):', style: AppTypography.bodySm().copyWith(fontWeight: FontWeight.bold)),
+                              const SizedBox(height: 6),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Total Historical Reports Bound:', style: AppTypography.bodySm()),
+                                  Text('$totalBound', style: AppTypography.bodySm().copyWith(fontWeight: FontWeight.bold)),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Active Draft Orders:', style: AppTypography.bodySm()),
+                                  Text('$draftCount', style: AppTypography.bodySm().copyWith(fontWeight: FontWeight.bold, color: AppColors.warning)),
+                                ],
+                              ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text('Submitted / Confirmed Reports:', style: AppTypography.bodySm()),
+                                  Text('$submittedCount', style: AppTypography.bodySm().copyWith(fontWeight: FontWeight.bold, color: AppColors.success)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            color: AppColors.tealLight.withValues(alpha: 0.5),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.3)),
+                          ),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(Icons.verified_user_outlined, size: 18, color: AppColors.deepTeal),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  'Option A Protection Guarantee: Deleting or archiving this template affects FUTURE reports only. All $totalBound historical reports remain permanently functional, editable, and bound to their immutable version snapshot.',
+                                  style: AppTypography.caption(color: AppColors.deepTeal),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              if (!loadingUsage)
+                ElevatedButton(
+                  onPressed: () async {
+                    Navigator.pop(ctx);
+                    setState(() => _loading = true);
+                    try {
+                      await _api.dio.delete('/api/v1/templates/$templateId');
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                          backgroundColor: AppColors.success,
+                          content: Text('Template soft-deleted/archived. Historical reports preserved under Option A.'),
+                        ));
+                      }
+                    } catch (e) {
+                      if (mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                          backgroundColor: AppColors.brandRedDark,
+                          content: Text(ApiService.getErrorMessage(e)),
+                        ));
+                      }
+                    } finally {
+                      _load();
+                    }
+                  },
+                  style: AppComponents.dangerButton,
+                  child: Text(totalBound > 0 ? 'Archive Template (Option A)' : 'Delete Template'),
+                ),
+            ],
+          );
+        },
       ),
     );
+  }
 
-    if (confirm != true) return;
-
-    if (mounted) {
-      final auth = Provider.of<AuthProvider>(context, listen: false);
-      if ((_api.token == null || _api.token!.isEmpty) && auth.token != null) {
-        _api.token = auth.token;
-      }
-    }
-
-    final tokenPresent = _api.token != null && _api.token!.isNotEmpty;
-    debugPrint('[TEMPLATE_DELETE] Template ID: ${t['id']}');
-    debugPrint('[TEMPLATE_DELETE] Authorization header present: $tokenPresent');
-
+  Future<void> _updateTemplateVersion(dynamic t) async {
+    final templateId = t['id'];
     try {
-      final response = await _api.dio.delete('/api/v1/templates/${t['id']}');
-      debugPrint('[TEMPLATE_DELETE] Returned HTTP status: ${response.statusCode}');
-      if (response.statusCode == 200) {
-        debugPrint('[TEMPLATE_DELETE] DELETE SUCCESS');
+      final List<int>? fileBytes;
+      final String fileName;
+
+      if (kIsWeb) {
+        final result = await WebFilePicker.pickFile(accept: '.docx');
+        if (result == null) return;
+        fileBytes = result.bytes;
+        fileName = result.name;
+      } else {
+        final result = await FilePicker.platform.pickFiles(
+          type: FileType.custom,
+          allowedExtensions: ['docx'],
+        );
+        if (result == null || result.files.isEmpty) return;
+        fileBytes = result.files.single.bytes;
+        fileName = result.files.single.name;
       }
-      if (mounted) {
-        setState(() {
-          _templates.removeWhere((item) => item['id'] == t['id']);
-        });
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-          backgroundColor: AppColors.success,
-          content: Text('Template deleted successfully.'),
-        ));
-      }
-      await _load(silent: true);
+
+      if (fileBytes == null) return;
+
+      setState(() => _loading = true);
+
+      // 1. Call Pre-Commit Diff Engine
+      final diffForm = FormData.fromMap({
+        'file': MultipartFile.fromBytes(fileBytes, filename: fileName),
+      });
+
+      final diffResponse = await _api.dio.post('/api/v1/templates/$templateId/validate-update', data: diffForm);
+      setState(() => _loading = false);
+
+      if (!mounted) return;
+      final diffData = diffResponse.data is Map ? diffResponse.data as Map<String, dynamic> : <String, dynamic>{};
+
+      final List<dynamic> added = diffData['addedPlaceholders'] ?? [];
+      final List<dynamic> removed = diffData['removedPlaceholders'] ?? [];
+      final int unchanged = diffData['unchangedPlaceholders'] ?? 0;
+      final bool isSafe = diffData['safeToPublish'] ?? true;
+      final String? warning = diffData['breakingChangesWarning'];
+
+      final changeSummaryCtrl = TextEditingController(text: 'Updated layout and placeholder definitions');
+
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: Colors.white,
+          surfaceTintColor: Colors.transparent,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          title: Row(
+            children: [
+              const Icon(Icons.rule_folder_outlined, color: AppColors.primary),
+              const SizedBox(width: 8),
+              Text('Publish Readiness & Diff Check', style: AppTypography.heading4().copyWith(color: AppColors.ink)),
+            ],
+          ),
+          content: SizedBox(
+            width: 550,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Target Template: "${t['name']}" (Current: v${t['version']})', style: AppTypography.bodyMdMedium(color: AppColors.ink)),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isSafe ? AppColors.tealLight.withValues(alpha: 0.5) : AppColors.errorBg,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: isSafe ? AppColors.deepTeal.withValues(alpha: 0.3) : AppColors.brandRedDark.withValues(alpha: 0.3)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(isSafe ? Icons.check_circle_outline : Icons.warning_amber_rounded,
+                              size: 18, color: isSafe ? AppColors.deepTeal : AppColors.brandRedDark),
+                          const SizedBox(width: 6),
+                          Text(isSafe ? 'Publish Safe – No Breaking Removals' : 'Caution: Breaking Changes Detected',
+                              style: AppTypography.bodySm().copyWith(fontWeight: FontWeight.bold, color: isSafe ? AppColors.deepTeal : AppColors.brandRedDark)),
+                        ],
+                      ),
+                      if (warning != null && warning.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text(warning, style: AppTypography.caption(color: AppColors.brandRedDark)),
+                      ],
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: AppColors.surfaceSoft, borderRadius: BorderRadius.circular(6)),
+                        child: Column(
+                          children: [
+                            Text('Added Tokens', style: AppTypography.caption(color: AppColors.slate)),
+                            Text('+${added.length}', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.success)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: AppColors.surfaceSoft, borderRadius: BorderRadius.circular(6)),
+                        child: Column(
+                          children: [
+                            Text('Removed Tokens', style: AppTypography.caption(color: AppColors.slate)),
+                            Text('-${removed.length}', style: TextStyle(fontWeight: FontWeight.bold, color: removed.isNotEmpty ? AppColors.brandRedDark : AppColors.slate)),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(color: AppColors.surfaceSoft, borderRadius: BorderRadius.circular(6)),
+                        child: Column(
+                          children: [
+                            Text('Preserved', style: AppTypography.caption(color: AppColors.slate)),
+                            Text('$unchanged', style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.ink)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                if (removed.isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  Text('Removed Placeholders: ${removed.join(', ')}',
+                      style: AppTypography.caption(color: AppColors.brandRedDark), maxLines: 2, overflow: TextOverflow.ellipsis),
+                ],
+                const SizedBox(height: 12),
+                TextField(
+                  controller: changeSummaryCtrl,
+                  style: AppTypography.bodySm().copyWith(fontSize: 12),
+                  decoration: const InputDecoration(
+                    labelText: 'Change Summary / Release Note',
+                    hintText: 'e.g. Added dynamic composite tables and updated logo',
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
+            ElevatedButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                setState(() => _loading = true);
+                try {
+                  final publishForm = FormData.fromMap({
+                    'file': MultipartFile.fromBytes(fileBytes!, filename: fileName),
+                    'changeSummary': changeSummaryCtrl.text.trim(),
+                  });
+                  await _api.dio.post('/api/v1/templates/$templateId/publish-version', data: publishForm);
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                      backgroundColor: AppColors.success,
+                      content: Text('New template version published successfully! Historical reports preserved under Option A.'),
+                    ));
+                  }
+                } catch (e) {
+                  if (mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                      backgroundColor: AppColors.brandRedDark,
+                      content: Text(ApiService.getErrorMessage(e)),
+                    ));
+                  }
+                } finally {
+                  _load();
+                }
+              },
+              style: AppComponents.primaryButton,
+              child: const Text('Confirm & Publish New Version'),
+            ),
+          ],
+        ),
+      );
     } catch (e) {
-      int? status;
-      if (e is DioException) {
-        status = e.response?.statusCode;
-      }
-      debugPrint('[TEMPLATE_DELETE] Returned HTTP status: $status');
-      debugPrint('[TEMPLATE_DELETE] DELETE FAILED with error: $e');
       if (mounted) {
+        setState(() => _loading = false);
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           backgroundColor: AppColors.brandRedDark,
           content: Text(ApiService.getErrorMessage(e)),
@@ -2115,12 +2400,30 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                                   ),
                                   child: Text('v$version', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.slate)),
                                 ),
+                                if (t['code'] != null) ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.tealLight.withValues(alpha: 0.6),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: Text('${t['code']}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.deepTeal)),
+                                  ),
+                                ],
                               ],
                             ),
                             const SizedBox(height: 4),
                             Row(
                               children: [
                                 _buildStatusBadge(t),
+                                const SizedBox(width: 12),
+                                Icon(Icons.assignment_outlined, size: 12, color: AppColors.slate.withValues(alpha: 0.8)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  '${t['totalReportsCount'] ?? 0} Reports Bound (${t['draftReportsCount'] ?? 0} drafts, ${t['submittedReportsCount'] ?? 0} final)',
+                                  style: AppTypography.caption(color: AppColors.slate),
+                                ),
                                 const SizedBox(width: 12),
                                 Text(
                                   'Updated: ${t['updatedAt'] ?? t['createdAt'] ?? '—'}',
@@ -2166,6 +2469,13 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                             ),
                             const SizedBox(width: 8),
                           ],
+                          OutlinedButton.icon(
+                            label: const Text('New Version'),
+                            icon: const Icon(Icons.upgrade_rounded, size: 16),
+                            onPressed: () => _updateTemplateVersion(t),
+                            style: AppComponents.secondaryButton,
+                          ),
+                          const SizedBox(width: 8),
                           OutlinedButton.icon(
                             label: const Text('History'),
                             icon: const Icon(Icons.history_rounded, size: 16),

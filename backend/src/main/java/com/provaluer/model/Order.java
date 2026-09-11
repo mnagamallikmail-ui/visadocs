@@ -76,6 +76,9 @@ public class Order {
     @Column(name = "template_version")
     private Integer templateVersion = 1;
 
+    @Column(name = "template_version_id")
+    private Long templateVersionId;
+
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -143,6 +146,9 @@ public class Order {
 
     public Integer getTemplateVersion() { return templateVersion; }
     public void setTemplateVersion(Integer templateVersion) { this.templateVersion = templateVersion; }
+
+    public Long getTemplateVersionId() { return templateVersionId; }
+    public void setTemplateVersionId(Long templateVersionId) { this.templateVersionId = templateVersionId; }
 
     @Column(name = "report_number")
     private String reportNumber;

@@ -120,16 +120,16 @@ public class Phase2GoLiveReadinessCertificationTest {
         ValuationLandItem l1 = new ValuationLandItem();
         l1.setDescription("Main Commercial Plot");
         l1.setSurveyNo("S.No 104/1");
-        l1.setEnteredArea(new BigDecimal("2.5"));
-        l1.setEnteredUnit("Acres"); // 2.5 * 43560 = 108,900 Sq.Ft
+        l1.setEnteredArea(new BigDecimal("108900"));
+        l1.setEnteredUnit("Sq.Ft"); // 2.5 Acres = 108,900 Sq.Ft
         l1.setRate(new BigDecimal("1000.00"));
         lands.add(l1);
 
         ValuationLandItem l2 = new ValuationLandItem();
         l2.setDescription("Adjacent Parking Parcel");
         l2.setSurveyNo("S.No 104/2");
-        l2.setEnteredArea(new BigDecimal("5.0"));
-        l2.setEnteredUnit("Grounds"); // 5 * 2400 = 12,000 Sq.Ft
+        l2.setEnteredArea(new BigDecimal("12000"));
+        l2.setEnteredUnit("Sq.Ft"); // 5.0 Grounds = 12,000 Sq.Ft
         l2.setRate(new BigDecimal("1200.00"));
         lands.add(l2);
 

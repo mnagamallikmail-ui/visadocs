@@ -35,6 +35,13 @@ public class TemplateVersion {
     @Column(name = "placeholder_registry", columnDefinition = "JSONB")
     private String placeholderRegistry;
 
+    @Column(name = "status", length = 20)
+    private String status = "ACTIVE";
+
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
+    @Column(name = "placeholder_diff", columnDefinition = "JSONB")
+    private String placeholderDiff;
+
     @Column(name = "change_summary", length = 500)
     private String changeSummary;
 
@@ -88,6 +95,12 @@ public class TemplateVersion {
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public String getStatus() { return status; }
+    public void setStatus(String status) { this.status = status; }
+
+    public String getPlaceholderDiff() { return placeholderDiff; }
+    public void setPlaceholderDiff(String placeholderDiff) { this.placeholderDiff = placeholderDiff; }
 
     public Long getCreatedBy() { return createdBy; }
     public void setCreatedBy(Long createdBy) { this.createdBy = createdBy; }

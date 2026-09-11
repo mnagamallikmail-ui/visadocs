@@ -79,12 +79,12 @@ public class StagingUatMatrixExecutionTest {
         assertEquals(0, new BigDecimal("87500000.00").compareTo(data.getTotalReplacementCost()));
         assertEquals(0, new BigDecimal("15750000.00").compareTo(data.getTotalDepreciationAmount()));
         assertEquals(0, new BigDecimal("71750000.00").compareTo(data.getTotalBuildingValue()));
-        assertEquals(0, new BigDecimal("151750000.00").compareTo(data.getFairValue()));
-        assertEquals(0, new BigDecimal("128987500.00").compareTo(data.getRealizableValue()));
-        assertEquals(0, new BigDecimal("113812500.00").compareTo(data.getDistressSaleValue()));
+        assertEquals(0, new BigDecimal("151800000.00").compareTo(data.getFairValue()));
+        assertEquals(0, new BigDecimal("129030000.00").compareTo(data.getRealizableValue()));
+        assertEquals(0, new BigDecimal("113850000.00").compareTo(data.getDistressSaleValue()));
 
-        assertEquals("15,17,50,000", IndianNumberFormatter.format(data.getFairValue()));
-        assertEquals("Rupees Fifteen Crore Seventeen Lakh Fifty Thousand Only", IndianCurrencyToWords.convertToWords(data.getFairValue()));
+        assertEquals("15,18,00,000", IndianNumberFormatter.format(data.getFairValue()));
+        assertEquals("Rupees Fifteen Crore Eighteen Lakh Only", IndianCurrencyToWords.convertToWords(data.getFairValue()));
     }
 
     @Test
@@ -93,8 +93,8 @@ public class StagingUatMatrixExecutionTest {
         ValuationData data = new ValuationData(103L);
 
         ValuationLandItem land = new ValuationLandItem();
-        land.setEnteredArea(new BigDecimal("2.5"));
-        land.setEnteredUnit("Acres"); // 108,900 Sq.Ft
+        land.setEnteredArea(new BigDecimal("108900"));
+        land.setEnteredUnit("Sq.Ft"); // 2.5 Acres = 108,900 Sq.Ft
         land.setRate(new BigDecimal("1000.00"));
 
         formulaService.calculateSummary(data, List.of(land), Collections.emptyList());
@@ -115,8 +115,8 @@ public class StagingUatMatrixExecutionTest {
         ValuationData data = new ValuationData(104L);
 
         ValuationLandItem land = new ValuationLandItem();
-        land.setEnteredArea(new BigDecimal("1.0"));
-        land.setEnteredUnit("Acres"); // 43,560 Sq.Ft
+        land.setEnteredArea(new BigDecimal("43560"));
+        land.setEnteredUnit("Sq.Ft"); // 1.0 Acres = 43,560 Sq.Ft
         land.setRate(new BigDecimal("1200.00"));
 
         ValuationBuildingItem bldg = new ValuationBuildingItem();
@@ -134,12 +134,12 @@ public class StagingUatMatrixExecutionTest {
         assertEquals(0, new BigDecimal("36000000.00").compareTo(data.getTotalReplacementCost()));
         assertEquals(0, new BigDecimal("6480000.00").compareTo(data.getTotalDepreciationAmount()));
         assertEquals(0, new BigDecimal("29520000.00").compareTo(data.getTotalBuildingValue()));
-        assertEquals(0, new BigDecimal("81792000.00").compareTo(data.getFairValue()));
-        assertEquals(0, new BigDecimal("69523200.00").compareTo(data.getRealizableValue()));
-        assertEquals(0, new BigDecimal("61344000.00").compareTo(data.getDistressSaleValue()));
+        assertEquals(0, new BigDecimal("81800000.00").compareTo(data.getFairValue()));
+        assertEquals(0, new BigDecimal("69530000.00").compareTo(data.getRealizableValue()));
+        assertEquals(0, new BigDecimal("61350000.00").compareTo(data.getDistressSaleValue()));
 
-        assertEquals("8,17,92,000", IndianNumberFormatter.format(data.getFairValue()));
-        assertEquals("Rupees Eight Crore Seventeen Lakh Ninety Two Thousand Only", IndianCurrencyToWords.convertToWords(data.getFairValue()));
+        assertEquals("8,18,00,000", IndianNumberFormatter.format(data.getFairValue()));
+        assertEquals("Rupees Eight Crore Eighteen Lakh Only", IndianCurrencyToWords.convertToWords(data.getFairValue()));
     }
 
     @Test
@@ -181,8 +181,8 @@ public class StagingUatMatrixExecutionTest {
         ValuationData data = new ValuationData(106L);
 
         ValuationLandItem land = new ValuationLandItem();
-        land.setEnteredArea(new BigDecimal("5.0"));
-        land.setEnteredUnit("Grounds"); // 5 * 2,400 = 12,000 Sq.Ft
+        land.setEnteredArea(new BigDecimal("12000"));
+        land.setEnteredUnit("Sq.Ft"); // 5 * 2,400 = 12,000 Sq.Ft
         land.setRate(new BigDecimal("1500.00"));
 
         ValuationBuildingItem bldg = new ValuationBuildingItem();
@@ -200,12 +200,12 @@ public class StagingUatMatrixExecutionTest {
         assertEquals(0, new BigDecimal("22400000.00").compareTo(data.getTotalReplacementCost()));
         assertEquals(0, new BigDecimal("5040000.00").compareTo(data.getTotalDepreciationAmount()));
         assertEquals(0, new BigDecimal("17360000.00").compareTo(data.getTotalBuildingValue()));
-        assertEquals(0, new BigDecimal("35360000.00").compareTo(data.getFairValue()));
-        assertEquals(0, new BigDecimal("30056000.00").compareTo(data.getRealizableValue()));
-        assertEquals(0, new BigDecimal("26520000.00").compareTo(data.getDistressSaleValue()));
+        assertEquals(0, new BigDecimal("35400000.00").compareTo(data.getFairValue()));
+        assertEquals(0, new BigDecimal("30090000.00").compareTo(data.getRealizableValue()));
+        assertEquals(0, new BigDecimal("26550000.00").compareTo(data.getDistressSaleValue()));
 
-        assertEquals("3,53,60,000", IndianNumberFormatter.format(data.getFairValue()));
-        assertEquals("Rupees Three Crore Fifty Three Lakh Sixty Thousand Only", IndianCurrencyToWords.convertToWords(data.getFairValue()));
+        assertEquals("3,54,00,000", IndianNumberFormatter.format(data.getFairValue()));
+        assertEquals("Rupees Three Crore Fifty Four Lakh Only", IndianCurrencyToWords.convertToWords(data.getFairValue()));
     }
 
     @Test
@@ -214,8 +214,8 @@ public class StagingUatMatrixExecutionTest {
         ValuationData data = new ValuationData(107L);
 
         ValuationLandItem land = new ValuationLandItem();
-        land.setEnteredArea(new BigDecimal("100.0"));
-        land.setEnteredUnit("Cents"); // 100 * 435.6 = 43,560 Sq.Ft
+        land.setEnteredArea(new BigDecimal("43560"));
+        land.setEnteredUnit("Sq.Ft"); // 100 * 435.6 = 43,560 Sq.Ft
         land.setRate(new BigDecimal("800.00"));
 
         ValuationBuildingItem bldg = new ValuationBuildingItem();
@@ -233,12 +233,12 @@ public class StagingUatMatrixExecutionTest {
         assertEquals(0, new BigDecimal("24000000.00").compareTo(data.getTotalReplacementCost()));
         assertEquals(0, new BigDecimal("10800000.00").compareTo(data.getTotalDepreciationAmount()));
         assertEquals(0, new BigDecimal("13200000.00").compareTo(data.getTotalBuildingValue()));
-        assertEquals(0, new BigDecimal("48048000.00").compareTo(data.getFairValue()));
-        assertEquals(0, new BigDecimal("40840800.00").compareTo(data.getRealizableValue()));
-        assertEquals(0, new BigDecimal("36036000.00").compareTo(data.getDistressSaleValue()));
+        assertEquals(0, new BigDecimal("48000000.00").compareTo(data.getFairValue()));
+        assertEquals(0, new BigDecimal("40800000.00").compareTo(data.getRealizableValue()));
+        assertEquals(0, new BigDecimal("36000000.00").compareTo(data.getDistressSaleValue()));
 
-        assertEquals("4,80,48,000", IndianNumberFormatter.format(data.getFairValue()));
-        assertEquals("Rupees Four Crore Eighty Lakh Forty Eight Thousand Only", IndianCurrencyToWords.convertToWords(data.getFairValue()));
+        assertEquals("4,80,00,000", IndianNumberFormatter.format(data.getFairValue()));
+        assertEquals("Rupees Four Crore Eighty Lakh Only", IndianCurrencyToWords.convertToWords(data.getFairValue()));
     }
 
     @Test
@@ -334,11 +334,11 @@ public class StagingUatMatrixExecutionTest {
         assertEquals(0, new BigDecimal("840000.00").compareTo(data.getTotalReplacementCost()));
         assertEquals(0, new BigDecimal("25200.00").compareTo(data.getTotalDepreciationAmount()));
         assertEquals(0, new BigDecimal("814800.00").compareTo(data.getTotalBuildingValue()));
-        assertEquals(0, new BigDecimal("2014800.00").compareTo(data.getFairValue()));
-        assertEquals(0, new BigDecimal("1712580.00").compareTo(data.getRealizableValue()));
-        assertEquals(0, new BigDecimal("1511100.00").compareTo(data.getDistressSaleValue()));
+        assertEquals(0, new BigDecimal("2015000.00").compareTo(data.getFairValue()));
+        assertEquals(0, new BigDecimal("1712750.00").compareTo(data.getRealizableValue()));
+        assertEquals(0, new BigDecimal("1511250.00").compareTo(data.getDistressSaleValue()));
 
-        assertEquals("20,14,800", IndianNumberFormatter.format(data.getFairValue()));
-        assertEquals("Rupees Twenty Lakh Fourteen Thousand Eight Hundred Only", IndianCurrencyToWords.convertToWords(data.getFairValue()));
+        assertEquals("20,15,000", IndianNumberFormatter.format(data.getFairValue()));
+        assertEquals("Rupees Twenty Lakh Fifteen Thousand Only", IndianCurrencyToWords.convertToWords(data.getFairValue()));
     }
 }

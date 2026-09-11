@@ -79,18 +79,26 @@ public class Rc1FinalBlockersVerificationTest {
         productionTemplate.setTemplateContent(docxBytes);
         productionTemplate = templateRepository.save(productionTemplate);
 
-        User spaUser = new User();
-        spaUser.setEmail("spa.lead@provaluer.com");
-        spaUser.setPassword("Password@123");
-        spaUser.setRole(UserRole.SPA);
-        spaUser = userRepository.save(spaUser);
+        User spaUser = userRepository.findByEmailIgnoreCase("spa.lead@provaluer.com")
+                .orElseGet(() -> {
+                    User u = new User();
+                    u.setUsername("spa.lead");
+                    u.setEmail("spa.lead@provaluer.com");
+                    u.setPassword("Password@123");
+                    u.setRole(UserRole.SPA);
+                    return userRepository.save(u);
+                });
         spaPrincipal = UserDetailsImpl.build(spaUser);
 
-        User superAdmin = new User();
-        superAdmin.setEmail("admin@provaluer.com");
-        superAdmin.setPassword("Password@123");
-        superAdmin.setRole(UserRole.SUPER_ADMIN);
-        superAdmin = userRepository.save(superAdmin);
+        User superAdmin = userRepository.findByEmailIgnoreCase("admin@provaluer.com")
+                .orElseGet(() -> {
+                    User u = new User();
+                    u.setUsername("admin");
+                    u.setEmail("admin@provaluer.com");
+                    u.setPassword("Password@123");
+                    u.setRole(UserRole.SUPER_ADMIN);
+                    return userRepository.save(u);
+                });
         superAdminPrincipal = UserDetailsImpl.build(superAdmin);
 
         testOrder = new Order();

@@ -168,13 +168,25 @@ public class ValuationData {
     public void setFairValue(BigDecimal fairValue) { this.fairValue = fairValue; }
 
     public BigDecimal getRealizablePercentage() { return realizablePercentage; }
-    public void setRealizablePercentage(BigDecimal realizablePercentage) { this.realizablePercentage = realizablePercentage; }
+    public void setRealizablePercentage(BigDecimal realizablePercentage) {
+        this.realizablePercentage = realizablePercentage;
+        if (realizablePercentage != null) {
+            this.landRealizablePercentage = realizablePercentage;
+            this.buildingRealizablePercentage = realizablePercentage;
+        }
+    }
 
     public BigDecimal getRealizableValue() { return realizableValue; }
     public void setRealizableValue(BigDecimal realizableValue) { this.realizableValue = realizableValue; }
 
     public BigDecimal getDistressSalePercentage() { return distressSalePercentage; }
-    public void setDistressSalePercentage(BigDecimal distressSalePercentage) { this.distressSalePercentage = distressSalePercentage; }
+    public void setDistressSalePercentage(BigDecimal distressSalePercentage) {
+        this.distressSalePercentage = distressSalePercentage;
+        if (distressSalePercentage != null) {
+            this.landDistressPercentage = distressSalePercentage;
+            this.buildingDistressPercentage = distressSalePercentage;
+        }
+    }
 
     public BigDecimal getDistressSaleValue() { return distressSaleValue; }
     public void setDistressSaleValue(BigDecimal distressSaleValue) { this.distressSaleValue = distressSaleValue; }

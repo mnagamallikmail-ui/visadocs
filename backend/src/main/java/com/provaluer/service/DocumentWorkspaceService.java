@@ -41,6 +41,9 @@ public class DocumentWorkspaceService {
     private OrderInputRepository orderInputRepository;
 
     @Autowired
+    private com.provaluer.repository.TemplateVersionRepository templateVersionRepository;
+
+    @Autowired
     private OrderDocumentRepository orderDocumentRepository;
 
     @Autowired
@@ -182,6 +185,35 @@ public class DocumentWorkspaceService {
     }
 
     /**
+     * Resolves the immutable template binary DOCX content for an order.
+     * Option A Mandate: Historical reports are bound to their version snapshot and never affected
+     * by subsequent template edits, archiving, or deletions.
+     */
+    public byte[] resolveOrderTemplateBytes(Order order, Template fallbackTemplate) {
+        if (order != null && order.getTemplateVersionId() != null) {
+            java.util.Optional<com.provaluer.model.TemplateVersion> versionOpt = templateVersionRepository.findById(order.getTemplateVersionId());
+            if (versionOpt.isPresent() && versionOpt.get().getTemplateContent() != null && versionOpt.get().getTemplateContent().length > 0) {
+                return versionOpt.get().getTemplateContent();
+            }
+        }
+        if (order != null && order.getTemplateId() != null && order.getTemplateVersion() != null) {
+            java.util.Optional<com.provaluer.model.TemplateVersion> versionOpt = templateVersionRepository.findByTemplateIdAndVersion(order.getTemplateId(), order.getTemplateVersion());
+            if (versionOpt.isPresent() && versionOpt.get().getTemplateContent() != null && versionOpt.get().getTemplateContent().length > 0) {
+                return versionOpt.get().getTemplateContent();
+            }
+        }
+        if (fallbackTemplate != null && fallbackTemplate.getTemplateContent() != null && fallbackTemplate.getTemplateContent().length > 0) {
+            return fallbackTemplate.getTemplateContent();
+        }
+        if (order != null && order.getTemplateId() != null) {
+            return templateRepository.findById(order.getTemplateId())
+                    .map(Template::getTemplateContent)
+                    .orElse(null);
+        }
+        return null;
+    }
+
+    /**
      * GET /api/v1/orders/{id}/document-workspace
      * Pure, instantaneous workspace data endpoint returning documentDom, placeholders, values, and sections.
      * Completely decoupled from PDF and visual image preview generation.
@@ -208,37 +240,38 @@ public class DocumentWorkspaceService {
         final Long effectiveTemplateId = templateId;
 
         Template template = templateRepository.findById(effectiveTemplateId)
-                .orElseThrow(() -> new NoSuchElementException("Template not found with ID: " + effectiveTemplateId));
+                .orElse(null);
 
-        byte[] docxBytes = template.getTemplateContent();
+        // 1. Template Version Snapshot Resolution (Option A Mandate):
+        //    Historical reports are permanently bound to their immutable version snapshot.
+        byte[] docxBytes = resolveOrderTemplateBytes(order, template);
         if (docxBytes == null || docxBytes.length == 0) {
-            throw new IllegalStateException("Template has no binary document content");
+            throw new IllegalStateException("Template has no binary document content for order #" + orderId);
         }
 
-        // 1. Dom Snapshot Management:
-        //    If the template has been updated (version changed), invalidate the stale cached snapshot
-        //    and force a re-parse from the live DOCX binary. This ensures new placeholders (e.g.
-        //    image placeholders like IMG_FRONT_PAGE, IMG_PIC3) are always reflected in the workspace.
-        boolean templateVersionChanged = order.getTemplateVersion() != null
-                && !order.getTemplateVersion().equals(template.getVersion());
-        if (templateVersionChanged) {
-            log.info("Template version changed for order #{}: v{} -> v{}. Invalidating stale documentDomSnapshot.",
-                    orderId, order.getTemplateVersion(), template.getVersion());
-            order.setDocumentDomSnapshot(null);
+        if (order.getTemplateVersion() == null && template != null) {
             order.setTemplateVersion(template.getVersion());
         }
-        if (order.getTemplateVersion() == null) {
-            order.setTemplateVersion(template.getVersion());
+        if (order.getTemplateVersionId() == null) {
+            List<com.provaluer.model.TemplateVersion> versions = templateVersionRepository.findAllByTemplateIdOrderByVersionDesc(effectiveTemplateId);
+            for (com.provaluer.model.TemplateVersion v : versions) {
+                if (order.getTemplateVersion() != null && v.getVersion() == order.getTemplateVersion()) {
+                    order.setTemplateVersionId(v.getId());
+                    break;
+                }
+            }
+            if (order.getTemplateVersionId() == null && !versions.isEmpty()) {
+                order.setTemplateVersionId(versions.get(0).getId());
+            }
+            orderRepository.save(order);
         }
-        if (order.getDocumentDomSnapshot() == null) {
+
+        // 2. DOM Snapshot Management (Option A Mandate):
+        //    Once created, an order's DOM snapshot is irrevocable and NEVER invalidated by subsequent template updates.
+        if (order.getDocumentDomSnapshot() == null || order.getDocumentDomSnapshot().trim().isEmpty()) {
             try {
-                // Always re-parse from live DOCX binary (not the stale template.documentDom column)
-                // so that any new placeholders added to the DOCX are captured.
                 JsonNode domNode = docxStructureParser.parseDocumentStructure(docxBytes);
                 order.setDocumentDomSnapshot(domNode.toString());
-                template.setDocumentDom(domNode.toString());
-                template.setPlaceholderRegistry(docxStructureParser.generatePlaceholderRegistry(domNode));
-                templateRepository.save(template);
                 orderRepository.save(order);
             } catch (Exception e) {
                 log.warn("Failed to generate document DOM snapshot on the fly: {}", e.getMessage());
@@ -481,8 +514,27 @@ public class DocumentWorkspaceService {
         validateOrderAccess(order, principal, "SAVE");
 
         if (request != null && request.getValues() != null) {
+            Map<String, String> expandedInputs = new HashMap<>(request.getValues());
+
+            // Phase 4B: Value Normalization Engine & Dual Value Model storage
+            for (Map.Entry<String, String> entry : request.getValues().entrySet()) {
+                String k = entry.getKey();
+                String v = entry.getValue();
+                if (v != null && !v.startsWith("data:image")) {
+                    if (com.provaluer.util.ValueNormalizationEngine.isSupported(k)) {
+                        try {
+                            com.provaluer.util.ValueNormalizationEngine.DualValueResult dual = 
+                                    com.provaluer.util.ValueNormalizationEngine.createDualValueResult(k, v);
+                            expandedInputs.putAll(dual.getValuesToStore());
+                        } catch (Exception ignored) {
+                            // Non-numeric or invalid entries remain in raw format
+                        }
+                    }
+                }
+            }
+
             Map<String, String> existingValues = getConsolidatedValues(orderId);
-            existingValues.putAll(request.getValues());
+            existingValues.putAll(expandedInputs);
 
             // 1. Update orders.input_values JSON column
             try {
@@ -500,7 +552,7 @@ public class DocumentWorkspaceService {
             orderRepository.save(order);
 
             // 2. Persist to order_inputs table for hydration & image binary persistence
-            for (Map.Entry<String, String> entry : request.getValues().entrySet()) {
+            for (Map.Entry<String, String> entry : expandedInputs.entrySet()) {
                 saveOrUpdateInput(orderId, entry.getKey(), entry.getValue());
             }
         }
@@ -577,7 +629,8 @@ public class DocumentWorkspaceService {
         Long templateId = order.getTemplateId();
         if (templateId != null) {
             Template template = templateRepository.findById(templateId).orElse(null);
-            if (template != null && template.getTemplateContent() != null) {
+            byte[] tplBytes = resolveOrderTemplateBytes(order, template);
+            if (tplBytes != null && tplBytes.length > 0) {
                 try {
                     Map<String, String> inputsMap = getConsolidatedValues(orderId);
                     Map<String, byte[]> imagesMap = new HashMap<>();
@@ -594,7 +647,7 @@ public class DocumentWorkspaceService {
                     }
 
                     // Hydrate DOCX
-                    byte[] docxBytes = docxTemplateEngine.generateReport(template.getTemplateContent(), inputsMap, imagesMap);
+                    byte[] docxBytes = docxTemplateEngine.generateReport(tplBytes, inputsMap, imagesMap);
                     
                     // Stamp digital signature and convert to PDF
                     String signerName = principal != null ? principal.getUsername() : "Senior Property Analyst (SPA)";
@@ -641,8 +694,11 @@ public class DocumentWorkspaceService {
             throw new IllegalStateException("Order has no assigned template");
         }
 
-        Template template = templateRepository.findById(templateId)
-                .orElseThrow(() -> new NoSuchElementException("Template not found with ID: " + templateId));
+        Template template = templateRepository.findById(templateId).orElse(null);
+        byte[] tplBytes = resolveOrderTemplateBytes(order, template);
+        if (tplBytes == null || tplBytes.length == 0) {
+            throw new IllegalStateException("Template has no binary document content for live preview of order #" + orderId);
+        }
 
         Map<String, String> inputsMap = getConsolidatedValues(orderId);
         Map<String, byte[]> imagesMap = new HashMap<>();
@@ -653,7 +709,7 @@ public class DocumentWorkspaceService {
             }
         }
 
-        int effectiveVersion = order.getTemplateVersion() != null ? order.getTemplateVersion() : template.getVersion();
+        int effectiveVersion = order.getTemplateVersion() != null ? order.getTemplateVersion() : (template != null ? template.getVersion() : 1);
         String contentHash = computePreviewContentHash(templateId, effectiveVersion, inputsMap, imagesMap);
 
         // 1. In-memory Cache Check
@@ -692,7 +748,7 @@ public class DocumentWorkspaceService {
         // 3. Cache Miss: Perform DOCX hydration, PDF conversion, and image rendering
         byte[] hydratedDocx;
         try {
-            hydratedDocx = docxTemplateEngine.generateReport(template.getTemplateContent(), inputsMap, imagesMap);
+            hydratedDocx = docxTemplateEngine.generateReport(tplBytes, inputsMap, imagesMap);
         } catch (Exception e) {
             log.error("Failed to hydrate template DOCX for live preview: {}", e.getMessage(), e);
             throw new IllegalStateException("Failed to generate live preview report: " + e.getMessage(), e);

@@ -5,25 +5,39 @@ import java.time.LocalDateTime;
 
 public class TemplateListDTO {
     private Long id;
+    private String code;
     private String name;
     private String status;
     private int version;
     private String isActive;
     private String processingError;
+    private long totalReportsCount;
+    private long draftReportsCount;
+    private long submittedReportsCount;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private LocalDateTime deletedAt;
 
     public TemplateListDTO() {}
 
     public TemplateListDTO(Template template) {
+        this(template, 0, 0, 0);
+    }
+
+    public TemplateListDTO(Template template, long totalReportsCount, long draftReportsCount, long submittedReportsCount) {
         this.id = template.getId();
+        this.code = template.getCode();
         this.name = template.getName();
         this.status = template.getStatus();
         this.version = template.getVersion();
         this.isActive = template.getIsActive();
         this.processingError = template.getProcessingError();
+        this.totalReportsCount = totalReportsCount;
+        this.draftReportsCount = draftReportsCount;
+        this.submittedReportsCount = submittedReportsCount;
         this.createdAt = template.getCreatedAt();
         this.updatedAt = template.getUpdatedAt();
+        this.deletedAt = template.getDeletedAt();
     }
 
     public Long getId() { return id; }
@@ -43,6 +57,21 @@ public class TemplateListDTO {
 
     public String getProcessingError() { return processingError; }
     public void setProcessingError(String processingError) { this.processingError = processingError; }
+
+    public String getCode() { return code; }
+    public void setCode(String code) { this.code = code; }
+
+    public long getTotalReportsCount() { return totalReportsCount; }
+    public void setTotalReportsCount(long totalReportsCount) { this.totalReportsCount = totalReportsCount; }
+
+    public long getDraftReportsCount() { return draftReportsCount; }
+    public void setDraftReportsCount(long draftReportsCount) { this.draftReportsCount = draftReportsCount; }
+
+    public long getSubmittedReportsCount() { return submittedReportsCount; }
+    public void setSubmittedReportsCount(long submittedReportsCount) { this.submittedReportsCount = submittedReportsCount; }
+
+    public LocalDateTime getDeletedAt() { return deletedAt; }
+    public void setDeletedAt(LocalDateTime deletedAt) { this.deletedAt = deletedAt; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }

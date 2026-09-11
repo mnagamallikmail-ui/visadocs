@@ -10,6 +10,10 @@ import '../services/document_workspace_api_service.dart';
 import '../services/placeholder_registry.dart';
 import '../services/valuation_calculator.dart';
 
+import '../services/alias_resolution_engine.dart';
+import '../services/placeholder_normalization_registry.dart';
+import '../services/value_normalization_engine.dart';
+
 enum DocumentScrollMode {
   continuous,
   sectionBySection,
@@ -17,6 +21,9 @@ enum DocumentScrollMode {
 
 class DocumentWorkspaceProvider extends ChangeNotifier {
   final DocumentWorkspaceApiService _apiService = DocumentWorkspaceApiService();
+
+  String? _validationError;
+  String? get validationError => _validationError;
 
   bool _isLoading = false;
   bool _isSaving = false;
@@ -180,6 +187,22 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   void _initValuationDataFromValues(int orderId) {
     _valuationData = ValuationDataModel(orderId: orderId);
 
+    // Pre-seed dual values for any existing area/rate/percentage inputs
+    _activeValues.keys.toList().forEach((k) {
+      final uk = k.toUpperCase();
+      final val = _activeValues[k];
+      if (val != null && val.isNotEmpty && !uk.endsWith('_RAW') && !uk.endsWith('_NUMERIC') && !uk.endsWith('_UNIT') && !uk.endsWith('_STANDARD_SQFT')) {
+        if (PlaceholderNormalizationRegistry.isAreaKey(uk) ||
+            PlaceholderNormalizationRegistry.isRateKey(uk) ||
+            PlaceholderNormalizationRegistry.isPercentageKey(uk)) {
+          final dual = ValueNormalizationEngine.createDualValueResult(uk, val);
+          dual.valuesToStore.forEach((dk, dv) {
+            _activeValues.putIfAbsent(dk, () => dv);
+          });
+        }
+      }
+    });
+
     // 1. Land Items
     final rawLand = _activeValues['RAW_LAND_ITEMS_JSON'];
     if (rawLand != null && rawLand.trim().isNotEmpty) {
@@ -264,8 +287,10 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
 
       if (_compositeItems.isEmpty) {
         final subType = _activeValues['PROPERTY_SUB_TYPE'] ?? _activeValues['PROPERTY_TYPE'] ?? 'Main Unit';
-        final areaVal = double.tryParse((_activeValues['SUPER_BUILT_UP_AREA'] ?? _activeValues['PROPERTY_AREA_SFT'] ?? '1000').replaceAll(',', '')) ?? 1000.0;
-        final compRate = double.tryParse((_activeValues['COMPOSITE_RATE'] ?? '0').replaceAll(',', '')) ?? 0.0;
+        final rawArea = _activeValues['SALEABLE_AREA'] ?? _activeValues['SUPER_BUILT_UP_AREA'] ?? _activeValues['PROPERTY_AREA_SFT'] ?? _activeValues['SBUA'] ?? _activeValues['FLAT_AREA'] ?? '1000';
+        final areaVal = ValueNormalizationEngine.tryNormalize('SALEABLE_AREA', rawArea) ?? 1000.0;
+        final rawRate = _activeValues['MARKET_RATE_FLAT'] ?? _activeValues['COMPOSITE_RATE'] ?? _activeValues['CURRENT_MARKET_RATE'] ?? _activeValues['FLAT_MARKET_RATE'] ?? _activeValues['BUILDING_MARKET_RATE'] ?? '0';
+        final compRate = ValueNormalizationEngine.tryNormalize('MARKET_RATE_FLAT', rawRate) ?? 0.0;
         final constCost = _valuationData!.compositeConstructionCost > 0 ? _valuationData!.compositeConstructionCost : 2000.0;
         final age = double.tryParse((_activeValues['COMPOSITE_BUILDING_AGE'] ?? '0').replaceAll(',', '')) ?? 0.0;
         final life = double.tryParse((_activeValues['COMPOSITE_BUILDING_TOTAL_LIFE'] ?? '60').replaceAll(',', '')) ?? 60.0;
@@ -313,7 +338,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         comparables: _comparables,
         compositeItems: _compositeItems,
       );
-      _activeValues.addAll(initialPlaceholders);
+      _mergePlaceholdersPreservingRaw(initialPlaceholders);
     } else {
       ValuationCalculator.recalculateSummary(_valuationData!, _landItems, _buildingItems);
       final initialPlaceholders = ValuationCalculator.generatePlaceholders(
@@ -328,8 +353,31 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         buildingItems: _buildingItems,
         comparables: _comparables,
       );
-      _activeValues.addAll(initialPlaceholders);
+      _mergePlaceholdersPreservingRaw(initialPlaceholders);
     }
+  }
+
+  void _mergePlaceholdersPreservingRaw(Map<String, String> placeholders) {
+    placeholders.forEach((k, v) {
+      final uk = k.toUpperCase();
+      if (uk.endsWith('_RAW') || uk.endsWith('_NUMERIC') || uk.endsWith('_UNIT') || uk.endsWith('_STANDARD_SQFT')) {
+        if (_activeValues.containsKey(uk) && _activeValues[uk]!.isNotEmpty) {
+          return;
+        }
+      }
+      final rawKey = '${uk}_RAW';
+      if (_activeValues.containsKey(rawKey) && _activeValues[rawKey]!.isNotEmpty) {
+        _activeValues[uk] = _activeValues[rawKey]!;
+        _deltaValues[uk] = _activeValues[rawKey]!;
+        _activeValues[k] = _activeValues[rawKey]!;
+        _deltaValues[k] = _activeValues[rawKey]!;
+      } else {
+        _activeValues[uk] = v;
+        _deltaValues[uk] = v;
+        _activeValues[k] = v;
+        _deltaValues[k] = v;
+      }
+    });
   }
 
   void recalculateValuation() {
@@ -353,8 +401,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         compositeItems: _compositeItems,
       );
 
-      _activeValues.addAll(placeholders);
-      _deltaValues.addAll(placeholders);
+      _mergePlaceholdersPreservingRaw(placeholders);
 
       try {
         final compJson = jsonEncode(_compositeItems.map((i) => i.toJson()).toList());
@@ -385,8 +432,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         comparables: _comparables,
       );
 
-      _activeValues.addAll(placeholders);
-      _deltaValues.addAll(placeholders);
+      _mergePlaceholdersPreservingRaw(placeholders);
 
       try {
         final landJson = jsonEncode(_landItems.map((i) => i.toJson()).toList());
@@ -660,19 +706,92 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     }
   }
 
-  /// Updates an in-document input value directly
+  /// Updates an in-document input value directly with reactive dependency cascade
+  /// and Value Normalization Engine integration.
   void updateValue(String key, String value) {
     final upperKey = key.toUpperCase();
-    if (_activeValues[upperKey] != value) {
-      _activeValues[upperKey] = value;
-      _deltaValues[upperKey] = value;
+
+    // Phase 4B: Value Normalization Engine Validation & Normalization
+    if (PlaceholderNormalizationRegistry.isAreaKey(upperKey) ||
+        PlaceholderNormalizationRegistry.isRateKey(upperKey) ||
+        PlaceholderNormalizationRegistry.isPercentageKey(upperKey) ||
+        upperKey == 'GOVERNMENT_VALUE' ||
+        upperKey == 'COMPOSITE_GOVERNMENT_RATE') {
+
+      final numericVal = ValueNormalizationEngine.tryNormalize(upperKey, value);
+      if (numericVal == null) {
+        // Validation Rule: Reject when no numeric value exists.
+        // No silent conversion to zero. Do NOT recalculate. Do NOT overwrite values.
+        _validationError = ValueNormalizationEngine.validationErrorMsg;
+        notifyListeners();
+        return;
+      }
+
+      // Input is valid: clear any prior validation error
+      _validationError = null;
+
+      final dual = ValueNormalizationEngine.createDualValueResult(upperKey, value);
+      dual.valuesToStore.forEach((k, v) {
+        _activeValues[k] = v;
+        _deltaValues[k] = v;
+      });
       _isDirty = true;
-      notifyListeners();
+
+      // Propagate authoritative area (STANDARD_SQFT) to calculation models
+      if (PlaceholderNormalizationRegistry.isAreaKey(upperKey)) {
+        for (final item in _compositeItems) {
+          if (item.itemCategory.toUpperCase() == 'MAIN_UNIT') {
+            item.quantity = dual.standardSqftValue;
+            break;
+          }
+        }
+        recalculateValuation();
+        return;
+      } else if (PlaceholderNormalizationRegistry.isRateKey(upperKey)) {
+        for (final item in _compositeItems) {
+          if (item.itemCategory.toUpperCase() == 'MAIN_UNIT') {
+            item.rate = dual.numericValue;
+            break;
+          }
+        }
+        recalculateValuation();
+        return;
+      } else if (upperKey == 'GOVERNMENT_VALUE') {
+        if (_valuationData != null) {
+          _valuationData!.governmentValue = dual.numericValue;
+          recalculateValuation();
+          return;
+        }
+      } else if (upperKey == 'COMPOSITE_GOVERNMENT_RATE') {
+        if (_valuationData != null) {
+          _valuationData!.compositeGovernmentRate = dual.numericValue;
+          recalculateValuation();
+          return;
+        }
+      } else if (PlaceholderNormalizationRegistry.isPercentageKey(upperKey)) {
+        if (_valuationData != null) {
+          if (upperKey.contains('REALIZABLE')) {
+            _valuationData!.realizablePercentage = dual.numericValue;
+          } else if (upperKey.contains('DISTRESS')) {
+            _valuationData!.distressSalePercentage = dual.numericValue;
+          }
+          recalculateValuation();
+          return;
+        }
+      }
+    } else {
+      if (_activeValues[upperKey] != value) {
+        _activeValues[upperKey] = value;
+        _deltaValues[upperKey] = value;
+        _isDirty = true;
+        _validationError = null;
+        notifyListeners();
+      }
     }
   }
 
   String getValue(String key) {
-    return _activeValues[key.toUpperCase()] ?? '';
+    return _activeValues[key.toUpperCase()] ?? _activeValues[key.toLowerCase()] ?? _activeValues[key] ?? '';
   }
 
   void updateValuesFromValuation(Map<String, String> newPlaceholders) {

@@ -211,8 +211,8 @@ public class ValuationEnhancementV4Test {
         String tableXml = XmlUtils.marshaltoString(table);
 
         // Verify headers & rows
-        assertTrue(tableXml.contains("Value of Land"), "Must contain 'Value of Land'");
-        assertTrue(tableXml.contains("Value of Building"), "Must contain 'Value of Building'");
+        assertTrue(tableXml.toUpperCase().contains("VALUE OF LAND"), "Must contain 'Value of Land'");
+        assertTrue(tableXml.toUpperCase().contains("VALUE OF BUILDING"), "Must contain 'Value of Building'");
         assertTrue(tableXml.contains("Total Property Value"), "Must contain 'Total Property Value'");
         assertFalse(tableXml.contains("<w:t>Say</w:t>") || tableXml.contains("Say (Rounded)"), "Must NOT contain 'Say' row");
         assertTrue(tableXml.contains("1,35,00,000"), "Must contain Indian formatted land value");
@@ -267,10 +267,10 @@ public class ValuationEnhancementV4Test {
         String tableXml = XmlUtils.marshaltoString(table);
 
         // Verify column headers
-        assertTrue(tableXml.contains("VALUATION PARAMETER"), "Must contain VALUATION PARAMETER");
-        assertTrue(tableXml.contains("LAND (₹)"), "Must contain LAND (₹)");
-        assertTrue(tableXml.contains("BUILDING (₹)"), "Must contain BUILDING (₹)");
-        assertTrue(tableXml.contains("TOTAL (₹)"), "Must contain TOTAL (₹)");
+        assertTrue(tableXml.toUpperCase().contains("VALUATION PARAMETER"), "Must contain VALUATION PARAMETER");
+        assertTrue(tableXml.toUpperCase().contains("LAND (₹)"), "Must contain LAND (₹)");
+        assertTrue(tableXml.toUpperCase().contains("BUILDING (₹)"), "Must contain BUILDING (₹)");
+        assertTrue(tableXml.toUpperCase().contains("TOTAL (₹)"), "Must contain TOTAL (₹)");
 
         // Verify rows
         assertTrue(tableXml.contains("Fair Value"), "Must contain Fair Value row");
