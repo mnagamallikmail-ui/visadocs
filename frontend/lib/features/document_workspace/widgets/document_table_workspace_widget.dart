@@ -11,6 +11,8 @@ import '../models/valuation_models.dart';
 import '../services/valuation_calculator.dart';
 import '../providers/document_workspace_provider.dart';
 import 'document_input_slot_widget.dart';
+import 'inline_editable_placeholder_widget.dart';
+
 
 class DocumentTableWorkspaceWidget extends StatefulWidget {
   const DocumentTableWorkspaceWidget({super.key});
@@ -2418,84 +2420,115 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     );
   }
 
+  Color _parseHexColor(String hexStr) {
+    try {
+      final clean = hexStr.replaceFirst('#', '');
+      if (clean.length == 6) {
+        return Color(int.parse('FF$clean', radix: 16));
+      } else if (clean.length == 8) {
+        return Color(int.parse(clean, radix: 16));
+      }
+    } catch (_) {}
+    return AppColors.workspacePrimaryText;
+  }
+
   Widget _buildParagraphBlock(BuildContext context, ParagraphBlockVm block, bool readOnly) {
-    // If paragraph has NO inputs, render styled static paragraph text
-    if (!block.hasInputs) {
-      final text = block.staticText ?? '';
-      if (text.isEmpty || text.length <= 1 || text == '_' || text == 'n' || text == 'r') {
+    // ── Document-Native Paragraph Rendering (WYSIWYG Inline Placeholders & Reflow) ──
+    if (block.hasNodes) {
+      final spans = <InlineSpan>[];
+      final imageWidgets = <Widget>[];
+
+      int placeholderIdx = 0;
+      for (final node in block.nodes) {
+        if (node is TextRunNode) {
+          spans.add(TextSpan(
+            text: node.text,
+            style: GoogleFonts.montserrat(
+              fontSize: node.fontSizePt,
+              fontWeight: node.isBold ? FontWeight.w700 : FontWeight.w400,
+              fontStyle: node.isItalic ? FontStyle.italic : FontStyle.normal,
+              color: node.fontColor != null ? _parseHexColor(node.fontColor!) : AppColors.workspacePrimaryText,
+              height: 1.65,
+            ),
+          ));
+        } else if (node is PlaceholderRunNode) {
+          final instanceId = '${block.id}_${node.key}_${placeholderIdx++}';
+          spans.add(WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            baseline: TextBaseline.alphabetic,
+            child: InlineEditablePlaceholderWidget(
+              instanceId: instanceId,
+              fieldVm: node.fieldVm,
+              readOnly: readOnly,
+              textStyle: GoogleFonts.montserrat(
+                fontSize: node.fontSizePt,
+                fontWeight: node.isBold ? FontWeight.w700 : FontWeight.w600,
+                fontStyle: node.isItalic ? FontStyle.italic : FontStyle.normal,
+                color: AppColors.workspaceCorporateNavy,
+              ),
+            ),
+          ));
+        } else if (node is ImageRunNode) {
+          imageWidgets.add(
+            Padding(
+              padding: const EdgeInsets.only(top: 8.0),
+              child: DocumentInputSlotWidget(fieldVm: node.fieldVm, readOnly: readOnly),
+            ),
+          );
+        }
+      }
+
+      if (spans.isEmpty && imageWidgets.isEmpty) {
         return const SizedBox.shrink();
       }
 
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 16),
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          decoration: BoxDecoration(
-            color: AppColors.workspacePanel,
-            borderRadius: AppRadius.br8,
-            border: Border.all(color: AppColors.workspaceBorder),
-            boxShadow: AppShadows.subtleElevated,
-          ),
-          child: Text(
-            text,
-            style: GoogleFonts.montserrat(
-              fontSize: 13,
-              color: AppColors.workspaceSecondaryText,
-              height: 1.45,
-            ),
-          ),
+      return Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: AppRadius.br8,
+          border: Border.all(color: AppColors.workspaceBorder),
+          boxShadow: AppShadows.subtleElevated,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (spans.isNotEmpty)
+              Text.rich(
+                TextSpan(children: spans),
+                textAlign: block.textAlign, // Preserves template alignment: LEFT, CENTER, RIGHT, JUSTIFY
+              ),
+            if (imageWidgets.isNotEmpty) ...imageWidgets,
+          ],
         ),
       );
     }
 
-    // Paragraph WITH inputs (Rendered as clean editable fields with humanized labels)
+
+    // Static text fallback
+    final text = block.staticText ?? block.rawText ?? '';
+    if (text.isEmpty || text.length <= 1 || text == '_' || text == 'n' || text == 'r') {
+      return const SizedBox.shrink();
+    }
+
     return Container(
-      margin: const EdgeInsets.only(bottom: 20),
-      padding: const EdgeInsets.all(18),
+      margin: const EdgeInsets.only(bottom: 16),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
       decoration: BoxDecoration(
-        color: AppColors.workspacePanel,
+        color: Colors.white,
         borderRadius: AppRadius.br8,
         border: Border.all(color: AppColors.workspaceBorder),
         boxShadow: AppShadows.subtleElevated,
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          for (int i = 0; i < block.inputFields.length; i++) ...[
-            if (i > 0) const SizedBox(height: 16),
-            if (block.inputFields[i].fieldType != 'IMAGE') ...[
-              Row(
-                children: [
-                  Container(
-                    width: 2,
-                    height: 14,
-                    decoration: BoxDecoration(
-                      color: AppColors.workspaceCorporateNavy,
-                      borderRadius: BorderRadius.circular(1),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      block.inputFields[i].questionText,
-                      style: GoogleFonts.montserrat(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.workspacePrimaryText,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-            ],
-            DocumentInputSlotWidget(
-              fieldVm: block.inputFields[i],
-              readOnly: readOnly,
-            ),
-          ],
-        ],
+      child: Text(
+        text,
+        textAlign: block.textAlign,
+        style: GoogleFonts.montserrat(
+          fontSize: 13,
+          color: AppColors.workspacePrimaryText,
+          height: 1.5,
+        ),
       ),
     );
   }
@@ -2523,9 +2556,11 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
   Widget _buildTableRow(BuildContext context, TableRowVm rowVm, int rowIndex, int totalRows, bool readOnly) {
     final isLast = rowIndex == totalRows - 1;
 
-    // 1. Merged Section Sub-header Row
-    if (rowVm.isSubHeader) {
-      final title = rowVm.rawCells.isNotEmpty ? rowVm.rawCells.first.plainText : 'Sub-section';
+    // 1. Merged Section Sub-header / Category Heading Row (TYPE B: ALWAYS LEFT ALIGN)
+    if (rowVm.isSectionHeadingRow) {
+      final title = (rowVm.questionText != null && rowVm.questionText!.isNotEmpty)
+          ? rowVm.questionText!
+          : (rowVm.rawCells.isNotEmpty ? rowVm.rawCells.first.plainText : 'Sub-section');
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
         decoration: BoxDecoration(
@@ -2539,6 +2574,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             Expanded(
               child: Text(
                 title,
+                textAlign: TextAlign.left, // STRICT TYPE B RULE: ALWAYS LEFT ALIGN
                 style: GoogleFonts.montserrat(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w600,
@@ -2551,6 +2587,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
         ),
       );
     }
+
 
     // 2. Table Column Header Row
     if (rowVm.isTableHeader) {

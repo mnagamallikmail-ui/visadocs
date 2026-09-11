@@ -1,4 +1,6 @@
+import 'package:flutter/material.dart';
 import '../../document_studio/models/studio_document_model.dart';
+
 
 /// Top-level ViewModel representing the full parsed Document Workspace.
 class DocumentWorkspaceVm {
@@ -149,98 +151,195 @@ class DocumentWorkspaceVm {
             continue;
           }
 
-          if (pKeys.isNotEmpty) {
-            final List<InputFieldVm> fields = [];
-            for (final rawKey in pKeys) {
-              final keyUpper = rawKey.toUpperCase().trim();
-              // Filter out calculated outputs and dynamic directives so they do NOT render as questions
-              if (isCalculatedValuationKey(keyUpper)) {
-                continue;
-              }
+          final List<DocumentRunNode> docNodes = [];
+          final List<InputFieldVm> fields = [];
+          final Map<String, InputFieldVm> fieldCache = {};
 
-              sectionKeys.add(keyUpper);
-              final occ = counts[keyUpper] ?? 1;
-              final summaryItem = summaries[keyUpper];
-              String prompt = summaryItem?.questionText ?? '';
-              if (prompt.isEmpty ||
-                  prompt.trim().length <= 1 ||
-                  prompt.toLowerCase().startsWith('rectangle') ||
-                  prompt.toLowerCase().startsWith('picture') ||
-                  prompt.toLowerCase().startsWith('textbox') ||
-                  prompt.trim() == '_') {
-                prompt = _toHumanizedLabel(keyUpper);
-              }
-
-              String fieldType = summaryItem?.type ?? 'TEXT';
-              if (fieldType.toUpperCase() == 'IMAGE' ||
-                  keyUpper.startsWith('IMG_') ||
-                  keyUpper.contains('IMAGE') ||
-                  keyUpper.contains('PHOTO') ||
-                  keyUpper.contains('PIC')) {
-                fieldType = 'IMAGE';
-              } else if (keyUpper.contains('DATE') || keyUpper.contains('DT')) {
-                fieldType = 'DATE';
-              } else if (keyUpper.contains('OBSERVATION') ||
-                  keyUpper.contains('ADVANTAGE') ||
-                  keyUpper.contains('DISADVANTAGE') ||
-                  keyUpper.contains('DOCUMENT') ||
-                  keyUpper.contains('DESCRIPTION') ||
-                  keyUpper.contains('ADDRESS')) {
-                fieldType = 'MULTILINE';
-              }
-
-              fields.add(InputFieldVm(
-                key: keyUpper,
-                questionText: prompt,
-                fieldType: fieldType,
-                occurrences: occ,
-                currentValue: values[keyUpper] ?? '',
-              ));
+          InputFieldVm getOrCreateField(String kUpper) {
+            if (fieldCache.containsKey(kUpper)) {
+              return fieldCache[kUpper]!;
+            }
+            final occ = counts[kUpper] ?? 1;
+            final summaryItem = summaries[kUpper];
+            String prompt = summaryItem?.questionText ?? '';
+            if (prompt.isEmpty ||
+                prompt.trim().length <= 1 ||
+                prompt.toLowerCase().startsWith('rectangle') ||
+                prompt.toLowerCase().startsWith('picture') ||
+                prompt.toLowerCase().startsWith('textbox') ||
+                prompt.trim() == '_') {
+              prompt = _toHumanizedLabel(kUpper);
             }
 
-            if (fields.isNotEmpty) {
-              final block = ParagraphBlockVm(
-                id: el.id,
-                inputFields: fields,
-                rawText: text,
-              );
-              paragraphBlocks.add(block);
-              orderedBlocks.add(ParagraphBlockWrapperVm(block));
-            } else {
-              final cleanText = text.trim();
-              if (cleanText.isNotEmpty &&
-                  cleanText.length > 1 &&
-                  !cleanText.startsWith('<<') &&
-                  cleanText != '_' &&
-                  cleanText != 'n' &&
-                  cleanText != 'r') {
-                final block = ParagraphBlockVm(
-                  id: el.id,
-                  staticText: cleanText,
-                  rawText: text,
-                );
-                paragraphBlocks.add(block);
-                orderedBlocks.add(ParagraphBlockWrapperVm(block));
+            String fieldType = summaryItem?.type ?? 'TEXT';
+            if (fieldType.toUpperCase() == 'IMAGE' ||
+                kUpper.startsWith('IMG_') ||
+                kUpper.contains('IMAGE') ||
+                kUpper.contains('PHOTO') ||
+                kUpper.contains('PIC')) {
+              fieldType = 'IMAGE';
+            } else if (kUpper.contains('DATE') || kUpper.contains('DT')) {
+              fieldType = 'DATE';
+            } else if (kUpper.contains('OBSERVATION') ||
+                kUpper.contains('ADVANTAGE') ||
+                kUpper.contains('DISADVANTAGE') ||
+                kUpper.contains('DOCUMENT') ||
+                kUpper.contains('DESCRIPTION') ||
+                kUpper.contains('ADDRESS')) {
+              fieldType = 'MULTILINE';
+            }
+
+            final fVm = InputFieldVm(
+              key: kUpper,
+              questionText: prompt,
+              fieldType: fieldType,
+              occurrences: occ,
+              currentValue: values[kUpper] ?? '',
+            );
+            fieldCache[kUpper] = fVm;
+            if (!fields.any((f) => f.key == kUpper)) {
+              fields.add(fVm);
+            }
+            sectionKeys.add(kUpper);
+            return fVm;
+          }
+
+          if (el.runs.isNotEmpty) {
+            for (final run in el.runs) {
+              if (run.isImage ||
+                  (run.placeholderKey != null &&
+                      (run.placeholderKey!.toUpperCase().startsWith('IMG_') ||
+                          run.placeholderKey!.toUpperCase().contains('PHOTO') ||
+                          run.placeholderKey!.toUpperCase().contains('IMAGE')))) {
+                final keyUpper = (run.placeholderKey ?? 'IMAGE').toUpperCase().trim();
+                final fVm = getOrCreateField(keyUpper);
+                docNodes.add(ImageRunNode(key: keyUpper, fieldVm: fVm));
+              } else if (run.isPlaceholder && run.placeholderKey != null) {
+                final keyUpper = run.placeholderKey!.toUpperCase().trim();
+                final fVm = getOrCreateField(keyUpper);
+                docNodes.add(PlaceholderRunNode(
+                  key: keyUpper,
+                  fieldVm: fVm,
+                  isBold: run.isBold,
+                  isItalic: run.isItalic,
+                  fontSizePt: run.fontSizePt,
+                  fontColor: run.fontColor,
+                ));
+              } else {
+                final rText = run.text;
+                final matches = RegExp(r'<<([^>]+)>>').allMatches(rText);
+                if (matches.isEmpty) {
+                  if (rText.isNotEmpty) {
+                    docNodes.add(TextRunNode(
+                      text: rText,
+                      isBold: run.isBold,
+                      isItalic: run.isItalic,
+                      fontSizePt: run.fontSizePt,
+                      fontColor: run.fontColor,
+                    ));
+                  }
+                } else {
+                  int lastIdx = 0;
+                  for (final m in matches) {
+                    if (m.start > lastIdx) {
+                      final prefix = rText.substring(lastIdx, m.start);
+                      if (prefix.isNotEmpty) {
+                        docNodes.add(TextRunNode(
+                          text: prefix,
+                          isBold: run.isBold,
+                          isItalic: run.isItalic,
+                          fontSizePt: run.fontSizePt,
+                          fontColor: run.fontColor,
+                        ));
+                      }
+                    }
+                    final rawK = m.group(1)?.trim() ?? '';
+                    final kUpper = rawK.toUpperCase();
+                    if (kUpper.isNotEmpty) {
+                      final fVm = getOrCreateField(kUpper);
+                      docNodes.add(PlaceholderRunNode(
+                        key: kUpper,
+                        fieldVm: fVm,
+                        isBold: run.isBold,
+                        isItalic: run.isItalic,
+                        fontSizePt: run.fontSizePt,
+                        fontColor: run.fontColor,
+                      ));
+                    }
+                    lastIdx = m.end;
+                  }
+                  if (lastIdx < rText.length) {
+                    final suffix = rText.substring(lastIdx);
+                    if (suffix.isNotEmpty) {
+                      docNodes.add(TextRunNode(
+                        text: suffix,
+                        isBold: run.isBold,
+                        isItalic: run.isItalic,
+                        fontSizePt: run.fontSizePt,
+                        fontColor: run.fontColor,
+                      ));
+                    }
+                  }
+                }
               }
             }
           } else {
-            final cleanText = text.trim();
-            // Orphan text cleanup: do not create paragraph blocks for single-character parser artifacts or whitespace noise
-            if (cleanText.isNotEmpty &&
-                cleanText.length > 1 &&
-                cleanText != '_' &&
-                cleanText != 'n' &&
-                cleanText != 'r') {
-              final block = ParagraphBlockVm(
-                id: el.id,
-                staticText: cleanText,
-                rawText: text,
-              );
-              paragraphBlocks.add(block);
-              orderedBlocks.add(ParagraphBlockWrapperVm(block));
+            // Fallback for paragraph with plainText but no runs
+            final pText = el.plainText;
+            final matches = RegExp(r'<<([^>]+)>>').allMatches(pText);
+            if (matches.isEmpty) {
+              if (pText.isNotEmpty) {
+                docNodes.add(TextRunNode(text: pText));
+              }
+            } else {
+              int lastIdx = 0;
+              for (final m in matches) {
+                if (m.start > lastIdx) {
+                  final prefix = pText.substring(lastIdx, m.start);
+                  if (prefix.isNotEmpty) {
+                    docNodes.add(TextRunNode(text: prefix));
+                  }
+                }
+                final rawK = m.group(1)?.trim() ?? '';
+                final kUpper = rawK.toUpperCase();
+                if (kUpper.isNotEmpty) {
+                  final fVm = getOrCreateField(kUpper);
+                  docNodes.add(PlaceholderRunNode(key: kUpper, fieldVm: fVm));
+                }
+                lastIdx = m.end;
+              }
+              if (lastIdx < pText.length) {
+                final suffix = pText.substring(lastIdx);
+                if (suffix.isNotEmpty) {
+                  docNodes.add(TextRunNode(text: suffix));
+                }
+              }
             }
           }
+
+          final cleanText = text.trim();
+          // Filter out parser noise (single character artifacts like 'n', 'r', '_')
+          final isNoise = docNodes.length == 1 &&
+              docNodes.first is TextRunNode &&
+              ((docNodes.first as TextRunNode).text.trim().length <= 1 &&
+                  ((docNodes.first as TextRunNode).text.trim() == 'n' ||
+                      (docNodes.first as TextRunNode).text.trim() == 'r' ||
+                      (docNodes.first as TextRunNode).text.trim() == '_'));
+
+          if (!isNoise && (docNodes.isNotEmpty || cleanText.isNotEmpty)) {
+            final block = ParagraphBlockVm(
+              id: el.id,
+              alignment: el.alignment,
+              inputFields: fields,
+              nodes: docNodes,
+              rawText: text,
+              staticText: fields.isEmpty ? cleanText : null,
+            );
+            paragraphBlocks.add(block);
+            orderedBlocks.add(ParagraphBlockWrapperVm(block));
+          }
         }
+
       }
 
       parsedSections.add(SectionVm(
@@ -389,22 +488,93 @@ bool isCalculatedValuationKey(String key) {
       upper == 'COMPOSITE_TABLE';
 }
 
-/// ViewModel for a paragraph block containing static text or interactive input fields.
+/// Base class for inline runs within a document-native paragraph.
+abstract class DocumentRunNode {}
+
+/// Text run with styling matching the author's original OpenXML runs.
+class TextRunNode extends DocumentRunNode {
+  final String text;
+  final bool isBold;
+  final bool isItalic;
+  final double fontSizePt;
+  final String? fontColor;
+
+  TextRunNode({
+    required this.text,
+    this.isBold = false,
+    this.isItalic = false,
+    this.fontSizePt = 11.0,
+    this.fontColor,
+  });
+}
+
+/// Inline editable placeholder run bound to an InputFieldVm.
+class PlaceholderRunNode extends DocumentRunNode {
+  final String key;
+  final InputFieldVm fieldVm;
+  final bool isBold;
+  final bool isItalic;
+  final double fontSizePt;
+  final String? fontColor;
+
+  PlaceholderRunNode({
+    required this.key,
+    required this.fieldVm,
+    this.isBold = false,
+    this.isItalic = false,
+    this.fontSizePt = 11.0,
+    this.fontColor,
+  });
+}
+
+/// Inline image slot run.
+class ImageRunNode extends DocumentRunNode {
+  final String key;
+  final InputFieldVm fieldVm;
+
+  ImageRunNode({
+    required this.key,
+    required this.fieldVm,
+  });
+}
+
+/// ViewModel for a document-native paragraph block containing rich runs and/or interactive input fields.
 class ParagraphBlockVm {
   final String id;
   final String? staticText;
   final String? rawText;
+  final String alignment; // 'LEFT', 'CENTER', 'RIGHT', 'JUSTIFY', 'BOTH'
   final List<InputFieldVm> inputFields;
+  final List<DocumentRunNode> nodes;
 
   const ParagraphBlockVm({
     required this.id,
     this.staticText,
     this.rawText,
+    this.alignment = 'LEFT',
     this.inputFields = const [],
+    this.nodes = const [],
   });
 
   bool get hasInputs => inputFields.isNotEmpty;
+  bool get hasNodes => nodes.isNotEmpty;
+
+  TextAlign get textAlign {
+    switch (alignment.toUpperCase()) {
+      case 'CENTER':
+        return TextAlign.center;
+      case 'RIGHT':
+        return TextAlign.right;
+      case 'JUSTIFY':
+      case 'BOTH':
+        return TextAlign.justify;
+      case 'LEFT':
+      default:
+        return TextAlign.left;
+    }
+  }
 }
+
 
 /// ViewModel for a logical document section.
 class SectionVm {
@@ -489,8 +659,17 @@ class TableRowVm {
   bool get isSubHeader => rowType == 'SECTION_SUBHEADER';
   bool get isStatic => rowType == 'STATIC_ROW';
 
+  /// Type B Section Header: Merged headers, group titles, category headers, chapter names.
+  /// (e.g. Application No, Property Details, Stage of Construction, Violations if any observed, Area Details of Property)
+  /// ALWAYS LEFT ALIGNED, never centered.
+  bool get isSectionHeadingRow =>
+      isSubHeader ||
+      (inputFields.isEmpty && (questionText != null && questionText!.trim().isNotEmpty)) ||
+      (rawCells.length == 1 && !isTableHeader);
+
   bool get is3Column => isQuestionAnswer && serialNo != null && serialNo!.isNotEmpty;
   bool get is2Column => isQuestionAnswer && (serialNo == null || serialNo!.isEmpty);
+
 
   factory TableRowVm.fromStudioTableRow(
     StudioTableRow row,
@@ -615,5 +794,40 @@ class InputFieldVm {
           key.toUpperCase().contains('SFT') ||
           key.toUpperCase().contains('SQFT') ||
           key.toUpperCase().contains('SQYD'));
+
+  bool get isCurrency =>
+      isNumber &&
+      (key.toUpperCase().contains('VALUE') ||
+          key.toUpperCase().contains('RATE') ||
+          key.toUpperCase().contains('AMOUNT') ||
+          key.toUpperCase().contains('COST') ||
+          key.toUpperCase().contains('PRICE') ||
+          key.toUpperCase().contains('FEE'));
+
+  /// Type A Column 3 conditional alignment:
+  /// Left align for addresses, remarks, boundary descriptions, narratives, multiline content.
+  /// Center align for short values: numbers, currency, percentages, dates, dropdowns, yes/no, approval values.
+  bool get shouldLeftAlign {
+    if (isMultiline) return true;
+    final k = key.toUpperCase();
+    final q = questionText.toUpperCase();
+    if (k.contains('ADDRESS') || q.contains('ADDRESS')) return true;
+    if (k.contains('REMARK') || q.contains('REMARK')) return true;
+    if (k.contains('DESCRIPTION') || q.contains('DESCRIPTION')) return true;
+    if (k.contains('BOUNDARY') || q.contains('BOUNDARY')) return true;
+    if (k.contains('OBSERVATION') || q.contains('OBSERVATION')) return true;
+    if (k.contains('NARRATIVE') || q.contains('NARRATIVE')) return true;
+    if (k.contains('LEGAL') || q.contains('LEGAL')) return true;
+    if (k.contains('NOTE') || q.contains('NOTE')) return true;
+    if (k.contains('VIOLATION') || q.contains('VIOLATION')) return true;
+    if (k.contains('DEVIATION') || q.contains('DEVIATION')) return true;
+    if (k.contains('SURROUNDING') || q.contains('SURROUNDING')) return true;
+    if (k.contains('LOCALITY') || q.contains('LOCALITY')) return true;
+    if (k.contains('TENURE') || q.contains('TENURE')) return true;
+    return false;
+  }
+
+  TextAlign get effectiveTextAlign => shouldLeftAlign ? TextAlign.left : TextAlign.center;
 }
+
 

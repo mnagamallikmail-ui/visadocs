@@ -98,6 +98,7 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
     final overlay = Overlay.of(context);
     final renderBox = context.findRenderObject() as RenderBox?;
     final size = renderBox?.size ?? Size.zero;
+    final cardWidth = (size.width > 280 ? size.width : 320.0).clamp(280.0, 480.0);
 
     _floatingOverlayEntry = OverlayEntry(
       builder: (context) {
@@ -114,7 +115,7 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
 
             // Floating Card Anchored via CompositedTransformFollower
             Positioned(
-              width: width,
+              width: cardWidth,
               child: CompositedTransformFollower(
                 link: _layerLink,
                 showWhenUnlinked: false,
@@ -124,8 +125,9 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(8),
                   child: Container(
-                    width: width,
+                    width: cardWidth,
                     padding: const EdgeInsets.all(12),
+
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
@@ -236,7 +238,11 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
   }
 
   Widget _buildFloatingFieldInput(DocumentWorkspaceProvider provider) {
-    final isMultiline = widget.placeholder.type == 'TEXT' && (widget.placeholder.label.toLowerCase().contains('remark') || widget.placeholder.label.toLowerCase().contains('description') || widget.placeholder.label.toLowerCase().contains('address'));
+
+    final k = widget.placeholder.key.toLowerCase();
+    final isMultiline = k.contains('remark') || k.contains('description') || k.contains('address') || k.contains('observation');
+
+
     return TextFormField(
       controller: _controller,
       autofocus: true,

@@ -175,14 +175,13 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Verify LAND_TABLE UI & Edit in Valuation Engine
+      // Verify LAND_TABLE UI & dynamic editor
       expect(find.text('VALUE OF LAND'), findsOneWidget);
-      expect(find.text('<<LAND_TABLE>>'), findsOneWidget);
-      expect(find.text('Edit in Valuation Engine'), findsWidgets);
+      expect(find.text('+ Add Parcel'), findsOneWidget);
 
       // Verify BUILDING_TABLE UI
       expect(find.text('VALUE OF BUILDING'), findsOneWidget);
-      expect(find.text('<<BUILDING_TABLE>>'), findsOneWidget);
+      expect(find.text('+ Add Structure'), findsOneWidget);
 
       // Verify VALUE OF THE PROPERTY UI
       expect(find.text('VALUE OF THE PROPERTY'), findsOneWidget);

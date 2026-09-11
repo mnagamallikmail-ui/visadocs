@@ -74,7 +74,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
       }
     }
     if (widget.fieldVm.isNumber && val.isNotEmpty) {
-      final clean = val.replaceAll(',', '').trim();
+      final clean = val.replaceAll(',', '').replaceAll('₹', '').trim();
       final numVal = num.tryParse(clean);
       if (numVal != null) {
         final hasDecimal = clean.contains('.');
@@ -82,7 +82,9 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
       }
     }
     return val;
+
   }
+
 
   @override
   void initState() {
@@ -270,7 +272,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                   focusNode: _focusNode,
                   readOnly: widget.readOnly || isDate,
                   onTap: isDate ? () => _pickDate(context, provider) : null,
-                  textAlign: isMultiline ? TextAlign.left : TextAlign.center,
+                  textAlign: widget.fieldVm.effectiveTextAlign,
                   keyboardType: isMultiline
                       ? TextInputType.multiline
                       : (isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text),
@@ -388,30 +390,33 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
                       children: [
-                        Expanded(
-                          child: Text(
-                            widget.fieldVm.questionText,
-                            style: AppTypography.workspaceSectionTitle().copyWith(fontSize: 13),
-                          ),
+                        Text(
+                          widget.fieldVm.questionText,
+                          style: AppTypography.workspaceSectionTitle().copyWith(fontSize: 13),
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: hasValue ? const Color(0xFFE0F2FE) : AppColors.workspaceSegmentBg,
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            hasValue ? 'IMAGE ATTACHED' : 'REQUIRED',
-                            style: AppTypography.workspaceMicro(
-                              color: hasValue ? AppColors.primaryBlue : AppColors.workspaceSecondaryText,
-                              weight: FontWeight.w700,
+                        if (hasValue)
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE0F2FE),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              'IMAGE ATTACHED',
+                              style: AppTypography.workspaceMicro(
+                                color: AppColors.primaryBlue,
+                                weight: FontWeight.w700,
+                              ),
                             ),
                           ),
-                        ),
                       ],
                     ),
+
                     const SizedBox(height: 4),
                     Text(
                       hasValue

@@ -8,6 +8,7 @@ import 'package:provaluer_frontend/features/document_workspace/models/workspace_
 import 'package:provaluer_frontend/features/document_workspace/providers/document_workspace_provider.dart';
 import 'package:provaluer_frontend/features/document_workspace/widgets/document_input_slot_widget.dart';
 import 'package:provaluer_frontend/features/document_workspace/widgets/document_table_workspace_widget.dart';
+import 'package:provaluer_frontend/features/document_workspace/widgets/inline_editable_placeholder_widget.dart';
 
 void main() {
   group('Post-UAT Defect Fix Verification Suite (Defects 1 to 7)', () {
@@ -97,10 +98,10 @@ void main() {
       expect(find.text('<<OBSERVATION_1>>'), findsNothing);
       expect(find.text('<<Property_Description>>'), findsNothing);
 
-      // Verify humanized labels and input slots are rendered
-      expect(find.text('Observation 1'), findsOneWidget);
-      expect(find.text('Property Description'), findsOneWidget);
-      expect(find.byType(DocumentInputSlotWidget), findsNWidgets(2));
+      // Verify Phase 3 Document-native inline placeholders are rendered
+      expect(find.byType(InlineEditablePlaceholderWidget), findsNWidgets(2));
+      expect(find.textContaining('First line observation'), findsWidgets);
+      expect(find.textContaining('Commercial Office Complex'), findsWidgets);
     });
 
     testWidgets('DEFECT 3: Image Placeholders Render Upload Control and Preview', (tester) async {

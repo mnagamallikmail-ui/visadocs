@@ -7,6 +7,7 @@ import '../models/document_workspace_model.dart';
 import '../models/valuation_models.dart';
 import '../models/workspace_view_model.dart';
 import '../services/document_workspace_api_service.dart';
+import '../services/placeholder_registry.dart';
 import '../services/valuation_calculator.dart';
 
 enum DocumentScrollMode {
@@ -31,6 +32,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   DocumentWorkspaceModel? _workspaceModel;
   DocumentWorkspaceVm? _workspaceVm;
   VisualPreviewModel? _livePreviewModel;
+  final PlaceholderRegistry placeholderRegistry = PlaceholderRegistry();
 
   ValuationDataModel? _valuationData;
   List<ValuationLandItemModel> _landItems = [];
