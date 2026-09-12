@@ -123,9 +123,9 @@ public class DocxStructureParser {
         ArrayNode runsArray = pNode.putArray("runs");
 
         // Scan for all docPr DrawingML elements within paragraph (including AlternateContent / Choice / Inline / Anchor)
-        List<org.docx4j.dml.CTNonVisualDrawingProps> docPrList = findDocPrElements(p);
-        for (org.docx4j.dml.CTNonVisualDrawingProps docPr : docPrList) {
-            parseDocPr(docPr, runsArray, trackerMap);
+        List<DocPrWithDrawing> docPrList = findDocPrElements(p);
+        for (DocPrWithDrawing item : docPrList) {
+            parseDocPr(item, runsArray, trackerMap);
         }
 
         for (Object rObj : p.getContent()) {
@@ -139,18 +139,27 @@ public class DocxStructureParser {
         return pNode;
     }
 
-    private List<org.docx4j.dml.CTNonVisualDrawingProps> findDocPrElements(Object root) {
-        List<org.docx4j.dml.CTNonVisualDrawingProps> result = new ArrayList<>();
+    private static class DocPrWithDrawing {
+        final org.docx4j.dml.CTNonVisualDrawingProps docPr;
+        final Object drawing;
+        DocPrWithDrawing(org.docx4j.dml.CTNonVisualDrawingProps docPr, Object drawing) {
+            this.docPr = docPr;
+            this.drawing = drawing;
+        }
+    }
+
+    private List<DocPrWithDrawing> findDocPrElements(Object root) {
+        List<DocPrWithDrawing> result = new ArrayList<>();
         new org.docx4j.TraversalUtil(root, new org.docx4j.TraversalUtil.Callback() {
             @Override
             public List<Object> apply(Object o) {
                 Object unwrapped = unwrap(o);
                 if (unwrapped instanceof org.docx4j.dml.CTNonVisualDrawingProps docPr) {
-                    result.add(docPr);
+                    result.add(new DocPrWithDrawing(docPr, null));
                 } else if (unwrapped instanceof org.docx4j.dml.wordprocessingDrawing.Inline inline) {
-                    if (inline.getDocPr() != null) result.add(inline.getDocPr());
+                    if (inline.getDocPr() != null) result.add(new DocPrWithDrawing(inline.getDocPr(), inline));
                 } else if (unwrapped instanceof org.docx4j.dml.wordprocessingDrawing.Anchor anchor) {
-                    if (anchor.getDocPr() != null) result.add(anchor.getDocPr());
+                    if (anchor.getDocPr() != null) result.add(new DocPrWithDrawing(anchor.getDocPr(), anchor));
                 }
                 return null;
             }
@@ -181,13 +190,17 @@ public class DocxStructureParser {
         return result;
     }
 
-    private void parseDocPr(org.docx4j.dml.CTNonVisualDrawingProps docPr, ArrayNode runsArray, Map<String, PlaceholderTracker> trackerMap) {
-        if (docPr == null) return;
+    private void parseDocPr(DocPrWithDrawing item, ArrayNode runsArray, Map<String, PlaceholderTracker> trackerMap) {
+        if (item == null || item.docPr == null) return;
+        org.docx4j.dml.CTNonVisualDrawingProps docPr = item.docPr;
         String descr = docPr.getDescr();
         String name = docPr.getName();
 
         String key = extractImageKeyFromDocPr(descr, name);
         if (key != null) {
+            boolean isImage = isExplicitImagePlaceholder(key) || (hasActualImageEmbed(item.drawing) && isLikelyImageKey(key));
+            String resolvedType = isImage ? "IMAGE" : inferFieldType(key);
+
             boolean exists = false;
             for (JsonNode rn : runsArray) {
                 if (rn.has("placeholderKey") && key.equalsIgnoreCase(rn.get("placeholderKey").asText())) {
@@ -200,15 +213,15 @@ public class DocxStructureParser {
                 runNode.put("text", "<<" + key + ">>");
                 runNode.put("isPlaceholder", true);
                 runNode.put("placeholderKey", key);
-                runNode.put("fieldType", "IMAGE");
+                runNode.put("fieldType", resolvedType);
                 runNode.put("isBold", false);
                 runNode.put("isItalic", false);
                 runNode.put("fontSizePt", 11.0);
             }
 
-            PlaceholderTracker tracker = trackerMap.computeIfAbsent(key, k -> new PlaceholderTracker(k, "IMAGE"));
+            PlaceholderTracker tracker = trackerMap.computeIfAbsent(key, k -> new PlaceholderTracker(k, resolvedType));
             tracker.occurrences++;
-            tracker.type = "IMAGE";
+            tracker.type = resolvedType;
             if (descr != null && !descr.trim().isEmpty() && !descr.equalsIgnoreCase(key)) {
                 tracker.paragraphContextText = descr.trim();
             } else if (name != null && !name.trim().isEmpty() && !name.equalsIgnoreCase(key)) {
@@ -344,6 +357,9 @@ public class DocxStructureParser {
         }
 
         if (key != null) {
+            boolean isImage = isExplicitImagePlaceholder(key) || (hasActualImageEmbed(unwrappedDrawing) && isLikelyImageKey(key));
+            String resolvedType = isImage ? "IMAGE" : inferFieldType(key);
+
             boolean exists = false;
             for (JsonNode rn : runsArray) {
                 if (rn.has("placeholderKey") && key.equalsIgnoreCase(rn.get("placeholderKey").asText())) {
@@ -356,25 +372,90 @@ public class DocxStructureParser {
                 runNode.put("text", "<<" + key + ">>");
                 runNode.put("isPlaceholder", true);
                 runNode.put("placeholderKey", key);
-                runNode.put("fieldType", "IMAGE");
+                runNode.put("fieldType", resolvedType);
                 runNode.put("isBold", false);
                 runNode.put("isItalic", false);
                 runNode.put("fontSizePt", 11.0);
             }
 
-            PlaceholderTracker tracker = trackerMap.computeIfAbsent(key, k -> new PlaceholderTracker(k, "IMAGE"));
+            PlaceholderTracker tracker = trackerMap.computeIfAbsent(key, k -> new PlaceholderTracker(k, resolvedType));
             tracker.occurrences++;
-            tracker.type = "IMAGE";
+            tracker.type = resolvedType;
             if (descr != null && !descr.trim().isEmpty() && !descr.equalsIgnoreCase(key)) {
                 tracker.paragraphContextText = descr.trim();
             } else if (name != null && !name.trim().isEmpty() && !name.equalsIgnoreCase(key)) {
                 tracker.paragraphContextText = name.trim();
             }
         } else {
-            ObjectNode imgNode = runsArray.addObject();
-            imgNode.put("type", "IMAGE");
-            imgNode.put("present", true);
+            // Check if drawing/shape contains child paragraphs with text runs (e.g. Shape Textbox)
+            List<P> shapePs = new ArrayList<>();
+            new org.docx4j.TraversalUtil(unwrappedDrawing, new org.docx4j.TraversalUtil.CallbackImpl() {
+                @Override
+                public List<Object> apply(Object o) {
+                    Object unwrapped = unwrap(o);
+                    if (unwrapped instanceof P shapeP) {
+                        shapePs.add(shapeP);
+                    }
+                    return null;
+                }
+            });
+
+            if (!shapePs.isEmpty()) {
+                for (P sp : shapePs) {
+                    for (Object rObj : sp.getContent()) {
+                        Object unwrappedR = unwrap(rObj);
+                        if (unwrappedR instanceof R r) {
+                            parseRun(r, runsArray, trackerMap);
+                        }
+                    }
+                }
+            } else {
+                ObjectNode imgNode = runsArray.addObject();
+                imgNode.put("type", "IMAGE");
+                imgNode.put("present", true);
+            }
         }
+    }
+
+    public static boolean isExplicitImagePlaceholder(String key) {
+        if (key == null) return false;
+        String upper = key.toUpperCase().trim();
+        return upper.startsWith("IMG_") || upper.startsWith("IMAGE_") || upper.startsWith("PHOTO_")
+                || upper.startsWith("PICTURE_") || upper.startsWith("MAP_")
+                || upper.startsWith("LOGO_") || upper.endsWith("_IMAGE") || upper.endsWith("_IMG")
+                || upper.endsWith("_PHOTO") || upper.contains("PHOTO") || upper.contains("SIGNATURE")
+                || upper.equals("PROPERTY_PHOTO") || upper.equals("LOCATION_MAP") || upper.equals("SITE_PLAN")
+                || upper.endsWith("_MAP") || upper.endsWith("_PLAN") || upper.contains("SITE_PHOTO");
+    }
+
+    private boolean isLikelyImageKey(String key) {
+        if (key == null) return false;
+        String upper = key.toUpperCase().trim();
+        if (isExplicitImagePlaceholder(upper)) return true;
+        // Never treat known non-image fields as image
+        if (upper.equals("OWNER_NAME") || upper.equals("BANK_NAME") || upper.equals("CLIENT_NAME")
+                || upper.equals("BRANCH_NAME") || upper.equals("TEXT") || upper.equals("REMARKS")
+                || upper.contains("NAME") || upper.contains("ADDRESS") || upper.contains("AREA")
+                || upper.contains("RATE") || upper.contains("VALUE") || upper.contains("DATE")
+                || upper.contains("DESC") || upper.contains("TYPE") || upper.contains("NUMBER")
+                || upper.contains("NO")) {
+            return false;
+        }
+        return true;
+    }
+
+    private boolean hasActualImageEmbed(Object item) {
+        if (item == null) return false;
+        try {
+            String xml = org.docx4j.XmlUtils.marshaltoString(item);
+            if (xml != null && (xml.contains("<a:blip") || xml.contains(":blip ")
+                    || xml.contains("<pic:pic") || xml.contains(":pic ")
+                    || xml.contains("<pic:blipFill") || xml.contains(":blipFill "))) {
+                return true;
+            }
+        } catch (Exception ignored) {
+        }
+        return false;
     }
 
     private String extractImageKeyFromDocPr(String descr, String name) {
@@ -390,9 +471,7 @@ public class DocxStructureParser {
             }
 
             String upper = trimmed.toUpperCase();
-            if (upper.startsWith("IMG_") || upper.startsWith("PHOTO_") || upper.startsWith("IMAGE_") || upper.startsWith("LOGO_")
-                    || upper.endsWith("_IMAGE") || upper.endsWith("_IMG") || upper.endsWith("_PHOTO")
-                    || upper.contains("IMAGE_") || upper.contains("PHOTO_") || upper.contains("SITE_PHOTO")) {
+            if (isExplicitImagePlaceholder(upper)) {
                 return trimmed.replaceAll("[<>]", "").trim();
             }
         }
@@ -713,7 +792,7 @@ public class DocxStructureParser {
     }
 
     /**
-     * Extracts concatenated plain text from all paragraphs within a cell.
+     * Extracts concatenated plain text from all paragraphs within a cell, preserving placeholder tokens.
      */
     private String extractCellPlainText(ObjectNode cellNode) {
         StringBuilder sb = new StringBuilder();
@@ -723,7 +802,7 @@ public class DocxStructureParser {
                 JsonNode runs = p.path("runs");
                 if (runs.isArray()) {
                     for (JsonNode r : runs) {
-                        if (!r.path("isPlaceholder").asBoolean(false) && r.has("text")) {
+                        if (r.has("text")) {
                             sb.append(r.path("text").asText()).append(" ");
                         }
                     }
@@ -874,7 +953,7 @@ public class DocxStructureParser {
         if (isCalculatedValuationKey(upper)) {
             return "CALCULATED";
         }
-        if (upper.startsWith("IMG_") || upper.endsWith("_IMAGE") || upper.contains("PHOTO") || upper.contains("SIGNATURE")) {
+        if (isExplicitImagePlaceholder(upper)) {
             return "IMAGE";
         }
         if (upper.contains("DATE")) {

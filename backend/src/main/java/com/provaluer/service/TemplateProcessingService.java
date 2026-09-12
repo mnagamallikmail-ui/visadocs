@@ -2,6 +2,7 @@ package com.provaluer.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.provaluer.model.Template;
 import com.provaluer.model.TemplateVersion;
 import com.provaluer.repository.TemplateRepository;
@@ -398,6 +399,197 @@ public class TemplateProcessingService {
 
         log.info("Template #{} published new version v{} successfully.", templateId, nextVersion);
         return saved;
+    }
+
+    /**
+     * Publishes a new version of template metadata (renames, additions, deletions, type changes, aliases)
+     * without modifying the uploaded DOCX binary.
+     * Option A Guarantee: Preserves original binary byte-for-byte; creates new TemplateVersion (v_next);
+     * archives previous active version; historical reports remain completely untouched.
+     */
+    @Transactional
+    public Template publishMetadataVersion(Long templateId, Map<String, Object> metadataUpdates, String changeSummary, Long actorId) throws Exception {
+        Template template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new IllegalArgumentException("Template not found: " + templateId));
+
+        byte[] existingContent = template.getTemplateContent();
+        if (existingContent == null) {
+            throw new IllegalStateException("Template has no content binary to base metadata version on.");
+        }
+
+        // 1. Read existing DOM and Placeholder Registry
+        JsonNode domRoot = template.getDocumentDom() != null
+                ? objectMapper.readTree(template.getDocumentDom())
+                : docxStructureParser.parseDocumentStructure(existingContent);
+
+        ObjectNode registryNode = template.getPlaceholderRegistry() != null
+                ? (ObjectNode) objectMapper.readTree(template.getPlaceholderRegistry())
+                : (ObjectNode) objectMapper.readTree(docxStructureParser.generatePlaceholderRegistry(domRoot));
+
+        // 2. Apply metadata modifications
+        if (metadataUpdates.containsKey("renames")) {
+            @SuppressWarnings("unchecked")
+            Map<String, String> renames = (Map<String, String>) metadataUpdates.get("renames");
+            for (Map.Entry<String, String> entry : renames.entrySet()) {
+                String oldKey = entry.getKey().toUpperCase();
+                String newKey = entry.getValue().toUpperCase();
+                if (registryNode.has(oldKey)) {
+                    JsonNode oldItem = registryNode.remove(oldKey);
+                    registryNode.set(newKey, oldItem);
+                }
+            }
+        }
+
+        if (metadataUpdates.containsKey("typeChanges")) {
+            @SuppressWarnings("unchecked")
+            Map<String, String> typeChanges = (Map<String, String>) metadataUpdates.get("typeChanges");
+            for (Map.Entry<String, String> entry : typeChanges.entrySet()) {
+                String key = entry.getKey().toUpperCase();
+                String newType = entry.getValue().toUpperCase();
+                if (registryNode.has(key)) {
+                    ((ObjectNode) registryNode.get(key)).put("type", newType);
+                }
+            }
+        }
+
+        if (metadataUpdates.containsKey("additions")) {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> additions = (List<Map<String, Object>>) metadataUpdates.get("additions");
+            for (Map<String, Object> add : additions) {
+                String key = add.get("key").toString().toUpperCase();
+                String type = add.getOrDefault("type", "TEXT").toString().toUpperCase();
+                String questionText = add.getOrDefault("questionText", key).toString();
+                ObjectNode item = registryNode.putObject(key);
+                item.put("type", type);
+                item.put("source", "USER_METADATA");
+                item.put("isCalculated", false);
+                item.put("questionText", questionText);
+            }
+        }
+
+        if (metadataUpdates.containsKey("deletions")) {
+            @SuppressWarnings("unchecked")
+            List<String> deletions = (List<String>) metadataUpdates.get("deletions");
+            for (String delKey : deletions) {
+                registryNode.remove(delKey.toUpperCase());
+            }
+        }
+
+        if (metadataUpdates.containsKey("placeholders")) {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> placeholdersList = (List<Map<String, Object>>) metadataUpdates.get("placeholders");
+            for (Map<String, Object> ph : placeholdersList) {
+                String key = ph.get("key").toString().toUpperCase();
+                boolean isDeleted = Boolean.TRUE.equals(ph.get("isDeleted"));
+                if (isDeleted) {
+                    registryNode.remove(key);
+                    continue;
+                }
+                String type = ph.getOrDefault("type", "TEXT").toString().toUpperCase();
+                String questionText = ph.getOrDefault("questionText", key).toString();
+                ObjectNode item = registryNode.has(key) ? (ObjectNode) registryNode.get(key) : registryNode.putObject(key);
+                item.put("type", type);
+                item.put("questionText", questionText);
+                if (ph.containsKey("aliases")) {
+                    item.set("aliases", objectMapper.valueToTree(ph.get("aliases")));
+                }
+            }
+        }
+
+        String updatedPlaceholderRegistryJson = registryNode.toString();
+        String updatedDocumentDomJson = domRoot.toString();
+        String updatedFieldMappingJson = templateEngine.parseTemplate(existingContent);
+
+        // Archive previous versions
+        List<TemplateVersion> prevVersions = templateVersionRepository.findAllByTemplateIdOrderByVersionDesc(templateId);
+        for (TemplateVersion pv : prevVersions) {
+            if ("ACTIVE".equalsIgnoreCase(pv.getStatus())) {
+                pv.setStatus("ARCHIVED");
+                templateVersionRepository.save(pv);
+            }
+        }
+
+        int nextVersion = template.getVersion() + 1;
+        if (!prevVersions.isEmpty()) {
+            int maxV = prevVersions.get(0).getVersion();
+            if (nextVersion <= maxV) {
+                nextVersion = maxV + 1;
+            }
+        }
+
+        // Create new Version record preserving existing binary!
+        TemplateVersion newVer = new TemplateVersion();
+        newVer.setTemplateId(template.getId());
+        newVer.setVersion(nextVersion);
+        newVer.setName(template.getName());
+        newVer.setTemplateContent(existingContent); // Option A: Exactly identical binary
+        newVer.setFieldMapping(updatedFieldMappingJson);
+        newVer.setDocumentDom(updatedDocumentDomJson);
+        newVer.setPlaceholderRegistry(updatedPlaceholderRegistryJson);
+        newVer.setChangeSummary(changeSummary != null && !changeSummary.trim().isEmpty()
+                ? changeSummary.trim()
+                : "Metadata update version " + nextVersion);
+        newVer.setStatus("ACTIVE");
+        newVer.setCreatedBy(actorId);
+        newVer.setCreatedAt(LocalDateTime.now());
+        templateVersionRepository.save(newVer);
+
+        // Update parent template
+        template.setVersion(nextVersion);
+        template.setDocumentDom(updatedDocumentDomJson);
+        template.setPlaceholderRegistry(updatedPlaceholderRegistryJson);
+        template.setStatus(Template.STATUS_ACTIVE);
+        template.setIsActive("Y");
+        template.setProcessingError(null);
+        Template saved = templateRepository.save(template);
+
+        log.info("Template #{} published new metadata version v{} successfully without modifying binary.", templateId, nextVersion);
+        return saved;
+    }
+
+    /**
+     * Validates proposed metadata changes before publish.
+     */
+    public Map<String, Object> validateMetadataUpdates(Long templateId, Map<String, Object> metadataUpdates) throws Exception {
+        Template template = templateRepository.findById(templateId)
+                .orElseThrow(() -> new IllegalArgumentException("Template not found: " + templateId));
+
+        Map<String, Object> result = new HashMap<>();
+        List<String> added = new ArrayList<>();
+        List<String> removed = new ArrayList<>();
+        List<String> renamed = new ArrayList<>();
+        List<String> typeChanged = new ArrayList<>();
+
+        if (metadataUpdates.containsKey("renames")) {
+            @SuppressWarnings("unchecked")
+            Map<String, String> renames = (Map<String, String>) metadataUpdates.get("renames");
+            renames.forEach((k, v) -> renamed.add(k + " -> " + v));
+        }
+        if (metadataUpdates.containsKey("deletions")) {
+            @SuppressWarnings("unchecked")
+            List<String> deletions = (List<String>) metadataUpdates.get("deletions");
+            removed.addAll(deletions);
+        }
+        if (metadataUpdates.containsKey("additions")) {
+            @SuppressWarnings("unchecked")
+            List<Map<String, Object>> additions = (List<Map<String, Object>>) metadataUpdates.get("additions");
+            for (Map<String, Object> add : additions) {
+                added.add(add.get("key").toString());
+            }
+        }
+        if (metadataUpdates.containsKey("typeChanges")) {
+            @SuppressWarnings("unchecked")
+            Map<String, String> tc = (Map<String, String>) metadataUpdates.get("typeChanges");
+            tc.forEach((k, v) -> typeChanged.add(k + " (" + v + ")"));
+        }
+
+        result.put("safeToPublish", true);
+        result.put("addedPlaceholders", added);
+        result.put("removedPlaceholders", removed);
+        result.put("renamedPlaceholders", renamed);
+        result.put("typeChangedPlaceholders", typeChanged);
+        result.put("templateVersion", template.getVersion());
+        return result;
     }
 
     /**

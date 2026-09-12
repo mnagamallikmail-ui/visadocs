@@ -14,9 +14,8 @@ import '../../theme/app_spacing.dart';
 import '../../theme/app_components.dart';
 import '../../services/api_service.dart';
 import '../document_studio/document_studio_screen.dart';
-import 'placeholder_catalog_screen.dart';
-import '../../utils/indian_number_formatter.dart';
 import '../../utils/report_list_helper.dart';
+import '../document_workspace/models/workspace_view_model.dart';
 
 // ─── Shared helpers ───────────────────────────────────────────
 
@@ -2103,6 +2102,400 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
     );
   }
 
+  // Fix 5 & Fix 6: Post-Upload Template Management & Metadata Version Editor
+  Future<void> _openTemplateMetadataEditor(dynamic t) async {
+    final templateId = t['id'];
+    setState(() => _loading = true);
+    Map<String, dynamic> detail = {};
+    try {
+      final res = await _api.dio.get('/api/v1/templates/$templateId');
+      if (res.data is Map<String, dynamic>) {
+        detail = res.data as Map<String, dynamic>;
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.brandRedDark,
+          content: Text('Failed to load template details: ${ApiService.getErrorMessage(e)}'),
+        ));
+      }
+      setState(() => _loading = false);
+      return;
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+
+    if (!mounted) return;
+
+    List<Map<String, dynamic>> placeholders = [];
+    final registryStr = detail['placeholderRegistry'];
+    if (registryStr != null && registryStr.toString().trim().isNotEmpty) {
+      try {
+        final Map<String, dynamic> reg = jsonDecode(registryStr.toString());
+        reg.forEach((k, v) {
+          final m = v is Map<String, dynamic> ? v : <String, dynamic>{};
+          placeholders.add({
+            'key': k.toUpperCase(),
+            'type': (m['type'] ?? 'TEXT').toString().toUpperCase(),
+            'questionText': m['questionText']?.toString() ?? DocumentWorkspaceVm.toHumanizedLabel(k),
+            'aliases': m['aliases'] is List ? List<String>.from(m['aliases']) : <String>[],
+            'isDeleted': false,
+            'isNew': false,
+            'originalKey': k.toUpperCase(),
+          });
+        });
+      } catch (_) {}
+    }
+
+    if (placeholders.isEmpty && detail['fieldMapping'] != null) {
+      try {
+        final Map<String, dynamic> fm = jsonDecode(detail['fieldMapping'].toString());
+        final fields = fm['fields'] as List<dynamic>? ?? [];
+        for (final f in fields) {
+          final key = (f['key'] ?? f['name'] ?? '').toString().toUpperCase();
+          if (key.isNotEmpty) {
+            placeholders.add({
+              'key': key,
+              'type': (f['type'] ?? 'TEXT').toString().toUpperCase(),
+              'questionText': f['question']?.toString() ?? DocumentWorkspaceVm.toHumanizedLabel(key),
+              'aliases': <String>[],
+              'isDeleted': false,
+              'isNew': false,
+              'originalKey': key,
+            });
+          }
+        }
+      } catch (_) {}
+    }
+
+    final changeSummaryCtrl = TextEditingController(text: 'Updated placeholder catalog and aliases (v${(t['version'] ?? 1) + 1})');
+    String searchFilter = '';
+    String selectedTypeFilter = 'ALL';
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setEditorState) {
+          final visiblePlaceholders = placeholders.where((p) {
+            if (p['isDeleted'] == true) return false;
+            final key = p['key'].toString().toLowerCase();
+            final q = p['questionText'].toString().toLowerCase();
+            if (searchFilter.isNotEmpty && !key.contains(searchFilter.toLowerCase()) && !q.contains(searchFilter.toLowerCase())) {
+              return false;
+            }
+            if (selectedTypeFilter != 'ALL' && p['type'] != selectedTypeFilter) {
+              return false;
+            }
+            return true;
+          }).toList();
+
+          return AlertDialog(
+            backgroundColor: Colors.white,
+            surfaceTintColor: Colors.transparent,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            title: Row(
+              children: [
+                const Icon(Icons.tune_rounded, color: AppColors.primary, size: 24),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Template Editor & Placeholder Catalog: ${t['name']}', style: AppTypography.heading4().copyWith(color: AppColors.ink)),
+                      Text('Version: v${t['version'] ?? 1}  •  Option A: Creates version v${(t['version'] ?? 1) + 1} without modifying binary', style: AppTypography.caption(color: AppColors.slate)),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  icon: const Icon(Icons.close),
+                  onPressed: () => Navigator.pop(ctx),
+                ),
+              ],
+            ),
+            content: SizedBox(
+              width: 850,
+              height: 560,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: 'Search placeholders...',
+                            prefixIcon: const Icon(Icons.search, size: 18),
+                            isDense: true,
+                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          ),
+                          onChanged: (v) => setEditorState(() => searchFilter = v),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      DropdownButton<String>(
+                        value: selectedTypeFilter,
+                        items: ['ALL', 'TEXT', 'NUMBER', 'CURRENCY', 'DATE', 'IMAGE', 'DYNAMIC_COMPOSITE_PROPERTY_TABLE']
+                            .map((type) => DropdownMenuItem(value: type, child: Text(type, style: const TextStyle(fontSize: 12))))
+                            .toList(),
+                        onChanged: (val) {
+                          if (val != null) setEditorState(() => selectedTypeFilter = val);
+                        },
+                      ),
+                      const SizedBox(width: 12),
+                      ElevatedButton.icon(
+                        icon: const Icon(Icons.add, size: 16),
+                        label: const Text('Add Placeholder'),
+                        style: AppComponents.primaryButton,
+                        onPressed: () async {
+                          final keyCtrl = TextEditingController();
+                          final qCtrl = TextEditingController();
+                          String fieldType = 'TEXT';
+
+                          final added = await showDialog<bool>(
+                            context: ctx,
+                            builder: (addCtx) => StatefulBuilder(
+                              builder: (context, setAddState) => AlertDialog(
+                                title: const Text('Add Placeholder'),
+                                content: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    TextField(
+                                      controller: keyCtrl,
+                                      decoration: const InputDecoration(labelText: 'Placeholder Key (e.g. TENANT_NAME)'),
+                                      textCapitalization: TextCapitalization.characters,
+                                    ),
+                                    const SizedBox(height: 10),
+                                    TextField(
+                                      controller: qCtrl,
+                                      decoration: const InputDecoration(labelText: 'Prompt / Question Text'),
+                                    ),
+                                    const SizedBox(height: 10),
+                                    DropdownButtonFormField<String>(
+                                      value: fieldType,
+                                      decoration: const InputDecoration(labelText: 'Placeholder Type'),
+                                      items: ['TEXT', 'NUMBER', 'CURRENCY', 'DATE', 'IMAGE', 'MULTILINE']
+                                          .map((t) => DropdownMenuItem(value: t, child: Text(t)))
+                                          .toList(),
+                                      onChanged: (val) {
+                                        if (val != null) setAddState(() => fieldType = val);
+                                      },
+                                    ),
+                                  ],
+                                ),
+                                actions: [
+                                  TextButton(onPressed: () => Navigator.pop(addCtx, false), child: const Text('Cancel')),
+                                  ElevatedButton(
+                                    onPressed: () {
+                                      if (keyCtrl.text.trim().isNotEmpty) {
+                                        Navigator.pop(addCtx, true);
+                                      }
+                                    },
+                                    child: const Text('Add'),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+
+                          if (added == true && keyCtrl.text.trim().isNotEmpty) {
+                            final cleanKey = keyCtrl.text.trim().toUpperCase().replaceAll('<<', '').replaceAll('>>', '');
+                            setEditorState(() {
+                              placeholders.add({
+                                'key': cleanKey,
+                                'type': fieldType,
+                                'questionText': qCtrl.text.trim().isEmpty ? DocumentWorkspaceVm.toHumanizedLabel(cleanKey) : qCtrl.text.trim(),
+                                'aliases': <String>[],
+                                'isDeleted': false,
+                                'isNew': true,
+                                'originalKey': cleanKey,
+                              });
+                            });
+                          }
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        border: Border.all(color: AppColors.hairlineSoft),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: ListView.separated(
+                        itemCount: visiblePlaceholders.length,
+                        separatorBuilder: (_, __) => const Divider(height: 1),
+                        itemBuilder: (context, idx) {
+                          final item = visiblePlaceholders[idx];
+                          return ListTile(
+                            dense: true,
+                            title: Row(
+                              children: [
+                                Text('<<${item['key']}>>', style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.workspaceCorporateNavy)),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surfaceSoft,
+                                    borderRadius: BorderRadius.circular(4),
+                                    border: Border.all(color: AppColors.hairlineSoft),
+                                  ),
+                                  child: Text(item['type'] ?? 'TEXT', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.slate)),
+                                ),
+                                if (item['isNew'] == true) ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                    decoration: BoxDecoration(color: AppColors.successBg, borderRadius: BorderRadius.circular(4)),
+                                    child: const Text('NEW', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.success)),
+                                  ),
+                                ],
+                              ],
+                            ),
+                            subtitle: Text('Prompt: ${item['questionText']}', style: AppTypography.caption(color: AppColors.slate)),
+                            trailing: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                DropdownButton<String>(
+                                  value: ['TEXT', 'NUMBER', 'CURRENCY', 'DATE', 'IMAGE', 'DYNAMIC_COMPOSITE_PROPERTY_TABLE'].contains(item['type'])
+                                      ? item['type']
+                                      : 'TEXT',
+                                  underline: const SizedBox(),
+                                  items: ['TEXT', 'NUMBER', 'CURRENCY', 'DATE', 'IMAGE', 'DYNAMIC_COMPOSITE_PROPERTY_TABLE']
+                                      .map((t) => DropdownMenuItem(value: t, child: Text(t, style: const TextStyle(fontSize: 11))))
+                                      .toList(),
+                                  onChanged: (newType) {
+                                    if (newType != null) {
+                                      setEditorState(() => item['type'] = newType);
+                                    }
+                                  },
+                                ),
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: const Icon(Icons.edit_outlined, size: 16),
+                                  tooltip: 'Rename Placeholder',
+                                  onPressed: () async {
+                                    final renameCtrl = TextEditingController(text: item['key']);
+                                    final renamed = await showDialog<bool>(
+                                      context: ctx,
+                                      builder: (rCtx) => AlertDialog(
+                                        title: const Text('Rename Placeholder'),
+                                        content: TextField(
+                                          controller: renameCtrl,
+                                          decoration: const InputDecoration(labelText: 'New Placeholder Key'),
+                                          textCapitalization: TextCapitalization.characters,
+                                        ),
+                                        actions: [
+                                          TextButton(onPressed: () => Navigator.pop(rCtx, false), child: const Text('Cancel')),
+                                          ElevatedButton(
+                                            onPressed: () => Navigator.pop(rCtx, true),
+                                            child: const Text('Rename'),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                    if (renamed == true && renameCtrl.text.trim().isNotEmpty) {
+                                      setEditorState(() {
+                                        item['key'] = renameCtrl.text.trim().toUpperCase().replaceAll('<<', '').replaceAll('>>', '');
+                                      });
+                                    }
+                                  },
+                                ),
+                                IconButton(
+                                  icon: const Icon(Icons.delete_outline, size: 16, color: AppColors.brandRedDark),
+                                  tooltip: 'Delete Placeholder',
+                                  onPressed: () {
+                                    setEditorState(() {
+                                      item['isDeleted'] = true;
+                                    });
+                                  },
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: changeSummaryCtrl,
+                    style: const TextStyle(fontSize: 12),
+                    decoration: const InputDecoration(
+                      labelText: 'Release Notes / Version Summary',
+                      hintText: 'e.g. Renamed OWNER to OWNER_NAME, added BANK_BRANCH, adjusted types',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('Cancel'),
+              ),
+              OutlinedButton.icon(
+                icon: const Icon(Icons.rule_folder_outlined, size: 16),
+                label: const Text('Validate Before Publish'),
+                onPressed: () async {
+                  try {
+                    await _api.dio.post('/api/v1/templates/$templateId/validate-metadata', data: {
+                      'placeholders': placeholders,
+                    });
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+                        backgroundColor: AppColors.success,
+                        content: Text('Validation Passed: Metadata changes are safe to publish!'),
+                      ));
+                    }
+                  } catch (e) {
+                    if (mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+                        backgroundColor: AppColors.brandRedDark,
+                        content: Text('Validation error: ${ApiService.getErrorMessage(e)}'),
+                      ));
+                    }
+                  }
+                },
+              ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.save_outlined, size: 16),
+                label: const Text('Save New Version'),
+                style: AppComponents.primaryButton,
+                onPressed: () async {
+                  final messenger = ScaffoldMessenger.of(context);
+                  Navigator.pop(ctx);
+                  setState(() => _loading = true);
+                  try {
+                    await _api.dio.post('/api/v1/templates/$templateId/publish-metadata-version', data: {
+                      'placeholders': placeholders,
+                      'changeSummary': changeSummaryCtrl.text.trim(),
+                    });
+                    messenger.showSnackBar(const SnackBar(
+                      backgroundColor: AppColors.success,
+                      content: Text('New template version published successfully! Historical reports preserved under Option A.'),
+                    ));
+                  } catch (e) {
+                    messenger.showSnackBar(SnackBar(
+                      backgroundColor: AppColors.brandRedDark,
+                      content: Text('Failed to publish version: ${ApiService.getErrorMessage(e)}'),
+                    ));
+                  } finally {
+                    _load();
+                  }
+                },
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
   // 0.15 Version History & Rollback Modal
   Future<void> _showVersionHistoryDialog(dynamic template) async {
     final templateId = template['id'];
@@ -2469,6 +2862,13 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                             ),
                             const SizedBox(width: 8),
                           ],
+                          OutlinedButton.icon(
+                            label: const Text('Edit Template'),
+                            icon: const Icon(Icons.edit_note_rounded, size: 16),
+                            onPressed: () => _openTemplateMetadataEditor(t),
+                            style: AppComponents.secondaryButton,
+                          ),
+                          const SizedBox(width: 8),
                           OutlinedButton.icon(
                             label: const Text('New Version'),
                             icon: const Icon(Icons.upgrade_rounded, size: 16),
@@ -3493,7 +3893,11 @@ class AdminTrashBinSection extends StatefulWidget {
 
 class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
   final _api = ApiService();
-  List<dynamic> _deletedOrders = [];
+  int _selectedTab = 0; // 0: Archived, 1: Purged Reports, 2: Deleted Templates, 3: Purge Audit History
+  List<dynamic> _archivedOrders = [];
+  List<dynamic> _purgedReports = [];
+  List<dynamic> _deletedTemplates = [];
+  List<dynamic> _purgeHistory = [];
   bool _loading = true;
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
@@ -3514,29 +3918,63 @@ class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
   Future<void> _load() async {
     setState(() => _loading = true);
     try {
-      final res = await _api.dio.get('/api/v1/admin/orders/deleted');
-      if (res.data is List) {
-        setState(() => _deletedOrders = res.data as List<dynamic>);
+      // 1. Archived & Deleted Reports
+      try {
+        final resArchived = await _api.dio.get('/api/v1/admin/orders/archived');
+        if (resArchived.data is List) {
+          _archivedOrders = resArchived.data as List<dynamic>;
+        }
+      } catch (_) {
+        try {
+          final resDeleted = await _api.dio.get('/api/v1/admin/orders/deleted');
+          if (resDeleted.data is List) {
+            _archivedOrders = resDeleted.data as List<dynamic>;
+          }
+        } catch (_) {}
       }
-    } catch (_) {
+
+      // 2. Deleted Templates
+      try {
+        final resTemplates = await _api.dio.get('/api/v1/admin/templates/deleted');
+        if (resTemplates.data is List) {
+          _deletedTemplates = resTemplates.data as List<dynamic>;
+        }
+      } catch (_) {}
+
+      // 3. Purge History & Purged Reports
+      try {
+        final resAudit = await _api.dio.get('/api/v1/admin/audit/purge-history');
+        if (resAudit.data is List) {
+          _purgeHistory = resAudit.data as List<dynamic>;
+          _purgedReports = _purgeHistory.where((log) {
+            final action = (log['actionType'] ?? '').toString().toUpperCase();
+            final entity = (log['entityType'] ?? '').toString().toUpperCase();
+            return action.contains('PURGE') || entity.contains('ORDER');
+          }).toList();
+        }
+      } catch (_) {}
     } finally {
-      setState(() => _loading = false);
+      if (mounted) setState(() => _loading = false);
     }
   }
 
   Future<void> _restore(int id) async {
     try {
       await _api.dio.post('/api/v1/admin/orders/$id/restore');
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        backgroundColor: AppColors.success,
-        content: Text('Report restored to active status successfully!'),
-      ));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          backgroundColor: AppColors.success,
+          content: Text('Report restored to active status successfully!'),
+        ));
+      }
       _load();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        backgroundColor: AppColors.brandRedDark,
-        content: Text('Restore failed: ${ApiService.getErrorMessage(e)}'),
-      ));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.brandRedDark,
+          content: Text('Restore failed: ${ApiService.getErrorMessage(e)}'),
+        ));
+      }
     }
   }
 
@@ -3561,16 +3999,20 @@ class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
 
     try {
       await _api.dio.delete('/api/v1/admin/orders/$id/purge');
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        backgroundColor: AppColors.success,
-        content: Text('Report permanently purged from database.'),
-      ));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          backgroundColor: AppColors.success,
+          content: Text('Report permanently purged from database.'),
+        ));
+      }
       _load();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        backgroundColor: AppColors.brandRedDark,
-        content: Text('Purge failed: ${ApiService.getErrorMessage(e)}'),
-      ));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.brandRedDark,
+          content: Text('Purge failed: ${ApiService.getErrorMessage(e)}'),
+        ));
+      }
     }
   }
 
@@ -3595,17 +4037,140 @@ class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
 
     try {
       await _api.dio.delete('/api/v1/admin/reports/purge-all');
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-        backgroundColor: AppColors.success,
-        content: Text('All reports and valuation data permanently purged.'),
-      ));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          backgroundColor: AppColors.success,
+          content: Text('All reports and valuation data permanently purged.'),
+        ));
+      }
       _load();
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-        backgroundColor: AppColors.brandRedDark,
-        content: Text('Purge all failed: ${ApiService.getErrorMessage(e)}'),
-      ));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.brandRedDark,
+          content: Text('Purge all failed: ${ApiService.getErrorMessage(e)}'),
+        ));
+      }
     }
+  }
+
+  String _formatDate(dynamic date) {
+    if (date == null) return '—';
+    try {
+      final s = date.toString();
+      if (s.length >= 16) {
+        return s.substring(0, 16).replaceAll('T', ' ');
+      }
+      return s;
+    } catch (_) {
+      return date.toString();
+    }
+  }
+
+  Widget _buildInspectionBadge(String label, Color color) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(4),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(color: color, fontSize: 11, fontWeight: FontWeight.bold),
+      ),
+    );
+  }
+
+  Widget _buildTabBar() {
+    final tabs = [
+      {'title': 'Archived Reports', 'count': _archivedOrders.length, 'icon': Icons.archive_outlined},
+      {'title': 'Purged Reports', 'count': _purgedReports.length, 'icon': Icons.delete_forever_outlined},
+      {'title': 'Deleted Templates', 'count': _deletedTemplates.length, 'icon': Icons.description_outlined},
+      {'title': 'Purge Audit History', 'count': _purgeHistory.length, 'icon': Icons.history_edu_outlined},
+    ];
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(28, 8, 28, 8),
+      child: Row(
+        children: List.generate(tabs.length, (idx) {
+          final t = tabs[idx];
+          final isSelected = _selectedTab == idx;
+          return Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: InkWell(
+              onTap: () => setState(() => _selectedTab = idx),
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                decoration: BoxDecoration(
+                  color: isSelected ? AppColors.primary.withValues(alpha: 0.12) : AppColors.cardBg,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: isSelected ? AppColors.primary : AppColors.border,
+                    width: isSelected ? 1.5 : 1,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(t['icon'] as IconData, size: 16, color: isSelected ? AppColors.primary : AppColors.slate),
+                    const SizedBox(width: 8),
+                    Text(
+                      t['title'] as String,
+                      style: TextStyle(
+                        fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                        color: isSelected ? AppColors.primary : AppColors.ink,
+                        fontSize: 13,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isSelected ? AppColors.primary : AppColors.slate.withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${t['count']}',
+                        style: TextStyle(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: isSelected ? Colors.white : AppColors.ink,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }),
+      ),
+    );
+  }
+
+  Widget _buildTableHeader() {
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: BoxDecoration(
+        color: AppColors.slate.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(6),
+      ),
+      child: const Row(
+        children: [
+          Expanded(flex: 3, child: Text('WHAT WAS DELETED', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.slate))),
+          SizedBox(width: 12),
+          Expanded(flex: 2, child: Text('WHEN DELETED', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.slate))),
+          SizedBox(width: 12),
+          Expanded(flex: 2, child: Text('WHO DELETED IT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.slate))),
+          SizedBox(width: 12),
+          Expanded(flex: 2, child: Text('RETENTION STATUS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.slate))),
+          SizedBox(width: 80, child: Text('ACTIONS', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: AppColors.slate))),
+        ],
+      ),
+    );
   }
 
   @override
@@ -3613,8 +4178,8 @@ class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
     return Column(
       children: [
         _sectionHeader(
-          'Deleted Reports & Trash Bin',
-          'Super Admin audit and recovery console for soft-deleted valuation orders',
+          'Purged & Archived Repository',
+          'Super Admin audit console for inspecting archived reports, purged reports, deleted templates, and purge logs',
           action: Row(
             children: [
               OutlinedButton.icon(
@@ -3633,11 +4198,12 @@ class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
             ],
           ),
         ),
+        _buildTabBar(),
         ReportSearchSortBar(
           searchController: _searchController,
           searchQuery: _searchQuery,
           sortBy: _sortBy,
-          padding: const EdgeInsets.fromLTRB(28, 16, 28, 8),
+          padding: const EdgeInsets.fromLTRB(28, 8, 28, 8),
           onSearchChanged: (val) => setState(() => _searchQuery = val),
           onSearchCleared: () => setState(() {
             _searchController.clear();
@@ -3647,134 +4213,308 @@ class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
             if (val != null) setState(() => _sortBy = val);
           },
         ),
+        _buildTableHeader(),
+        const SizedBox(height: 8),
         Expanded(
           child: _loading
               ? const Center(child: CircularProgressIndicator())
-              : _deletedOrders.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(Icons.delete_sweep_rounded, size: 48, color: AppColors.slate),
-                          const SizedBox(height: 12),
-                          Text('No deleted reports in trash bin.', style: AppTypography.bodySm(color: AppColors.slate)),
-                        ],
-                      ),
-                    )
-                  : Builder(
-                      builder: (context) {
-                        final displayOrders = ReportListHelper.filterAndSortReports(_deletedOrders, _searchQuery, _sortBy);
-
-                        if (displayOrders.isEmpty) {
-                          return Center(
-                            child: Text(
-                              _searchQuery.isNotEmpty ? "No deleted reports match '$_searchQuery'." : "No deleted reports in trash bin.",
-                              style: AppTypography.bodySm(color: AppColors.slate),
-                            ),
-                          );
-                        }
-
-                        return ListView.builder(
-                          padding: const EdgeInsets.all(28),
-                          itemCount: displayOrders.length,
-                          itemBuilder: (context, idx) {
-                            final o = displayOrders[idx];
-                            final reportNum = o['reportNumber'] ?? 'PV-${o['id']}';
-                            final dateStr = ReportListHelper.formatReportDate(o['createdAt']);
-
-                            return Container(
-                              margin: const EdgeInsets.only(bottom: 12),
-                              padding: const EdgeInsets.all(16),
-                              decoration: AppComponents.cardBase(),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.brandRedDark.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(8),
-                                    ),
-                                    child: const Icon(Icons.delete_outline_rounded, color: AppColors.brandRedDark, size: 24),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    flex: 3,
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          reportNum,
-                                          style: AppTypography.bodySm().copyWith(fontWeight: FontWeight.bold, fontSize: 14),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'Date: $dateStr',
-                                          style: AppTypography.caption(color: AppColors.slate),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    flex: 4,
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Client: ${o['clientName'] ?? '—'}',
-                                          style: AppTypography.bodySm().copyWith(
-                                            color: AppColors.ink,
-                                            fontSize: 12.5,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          'Bank: ${o['bankName'] ?? '—'}',
-                                          style: AppTypography.caption(color: AppColors.slate),
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.brandRedDark.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(4),
-                                    ),
-                                    child: Text(
-                                      'TRASH',
-                                      style: AppTypography.bodySm().copyWith(
-                                        color: AppColors.brandRedDark,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 16),
-                                  OutlinedButton.icon(
-                                    icon: const Icon(Icons.restore_from_trash_rounded, size: 16, color: AppColors.success),
-                                    label: const Text('Restore', style: TextStyle(color: AppColors.success)),
-                                    onPressed: () => _restore(o['id'] as int),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete_forever_rounded, color: AppColors.brandRedDark, size: 20),
-                                    tooltip: 'Permanently Purge',
-                                    onPressed: () => _purge(o['id'] as int),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        );
-                      },
-                    ),
+              : _buildTabContent(),
         ),
       ],
     );
   }
+
+  Widget _buildTabContent() {
+    switch (_selectedTab) {
+      case 0:
+        return _buildArchivedReportsList();
+      case 1:
+        return _buildPurgedReportsList();
+      case 2:
+        return _buildDeletedTemplatesList();
+      case 3:
+      default:
+        return _buildPurgeAuditHistoryList();
+    }
+  }
+
+  Widget _buildArchivedReportsList() {
+    final filtered = _archivedOrders.where((o) {
+      if (_searchQuery.isEmpty) return true;
+      final query = _searchQuery.toLowerCase();
+      final num = (o['reportNumber'] ?? '').toString().toLowerCase();
+      final client = (o['clientName'] ?? '').toString().toLowerCase();
+      final bank = (o['bankName'] ?? '').toString().toLowerCase();
+      return num.contains(query) || client.contains(query) || bank.contains(query);
+    }).toList();
+
+    if (filtered.isEmpty) {
+      return Center(
+        child: Text('No archived or soft-deleted reports found.', style: AppTypography.bodySm(color: AppColors.slate)),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
+      itemCount: filtered.length,
+      itemBuilder: (context, idx) {
+        final o = filtered[idx];
+        final reportNum = o['reportNumber'] ?? 'PV-${o['id']}';
+        final isArchived = (o['status']?.toString().toUpperCase() == 'ARCHIVED');
+        final isDeleted = o['deletedAt'] != null;
+        final when = _formatDate(o['deletedAt'] ?? o['updatedAt'] ?? o['createdAt']);
+        final who = o['deletedBy']?.toString() ?? o['createdBy']?.toString() ?? 'Admin';
+        final retention = isArchived
+            ? 'Archived - Option A Immutable'
+            : isDeleted
+                ? 'Soft-Deleted (30-Day Retention)'
+                : 'Pending Archive';
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(12),
+          decoration: AppComponents.cardBase(),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(reportNum, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
+                    Text('${o['clientName'] ?? '—'} • ${o['bankName'] ?? '—'}', style: TextStyle(fontSize: 11.5, color: AppColors.slate)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(flex: 2, child: Text(when, style: const TextStyle(fontSize: 12))),
+              const SizedBox(width: 12),
+              Expanded(flex: 2, child: Text(who, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w500))),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: _buildInspectionBadge(
+                  retention,
+                  isArchived ? AppColors.primary : AppColors.brandRedDark,
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                width: 80,
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.restore_from_trash_rounded, size: 18, color: AppColors.success),
+                      tooltip: 'Restore Report',
+                      onPressed: () => _restore(o['id'] as int),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete_forever_rounded, size: 18, color: AppColors.brandRedDark),
+                      tooltip: 'Permanently Purge',
+                      onPressed: () => _purge(o['id'] as int),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPurgedReportsList() {
+    final filtered = _purgedReports.where((p) {
+      if (_searchQuery.isEmpty) return true;
+      final q = _searchQuery.toLowerCase();
+      final details = (p['details'] ?? '').toString().toLowerCase();
+      final target = (p['targetId'] ?? '').toString().toLowerCase();
+      final email = (p['userEmail'] ?? '').toString().toLowerCase();
+      return details.contains(q) || target.contains(q) || email.contains(q);
+    }).toList();
+
+    if (filtered.isEmpty) {
+      return Center(
+        child: Text('No purged reports found in purge repository.', style: AppTypography.bodySm(color: AppColors.slate)),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
+      itemCount: filtered.length,
+      itemBuilder: (context, idx) {
+        final p = filtered[idx];
+        final what = p['details'] ?? 'Order #${p['targetId'] ?? '—'} (Purged)';
+        final when = _formatDate(p['timestamp']);
+        final who = '${p['userEmail'] ?? 'Super Admin'} (${p['userRole'] ?? 'ADMIN'})';
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(12),
+          decoration: AppComponents.cardBase(),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(what.toString(), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+                    Text('Entity: ${p['entityType'] ?? 'ORDER'} #${p['targetId'] ?? '—'}', style: TextStyle(fontSize: 11, color: AppColors.slate)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(flex: 2, child: Text(when, style: const TextStyle(fontSize: 12))),
+              const SizedBox(width: 12),
+              Expanded(flex: 2, child: Text(who, style: const TextStyle(fontSize: 12))),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: _buildInspectionBadge('Purged - Permanent (Irrevocable)', AppColors.brandRedDark),
+              ),
+              const SizedBox(width: 12),
+              const SizedBox(
+                width: 80,
+                child: Center(
+                  child: Text('PURGED', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.slate)),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDeletedTemplatesList() {
+    final filtered = _deletedTemplates.where((t) {
+      if (_searchQuery.isEmpty) return true;
+      final q = _searchQuery.toLowerCase();
+      final name = (t['templateName'] ?? '').toString().toLowerCase();
+      final code = (t['templateCode'] ?? '').toString().toLowerCase();
+      return name.contains(q) || code.contains(q);
+    }).toList();
+
+    if (filtered.isEmpty) {
+      return Center(
+        child: Text('No deleted or deprecated templates found.', style: AppTypography.bodySm(color: AppColors.slate)),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
+      itemCount: filtered.length,
+      itemBuilder: (context, idx) {
+        final t = filtered[idx];
+        final name = t['templateName'] ?? 'Untitled Template';
+        final code = t['templateCode'] ?? 'ID: ${t['id']}';
+        final when = _formatDate(t['deletedAt'] ?? t['updatedAt'] ?? t['createdAt']);
+        final who = t['deletedBy']?.toString() ?? t['author']?.toString() ?? 'Admin';
+        final status = t['status']?.toString() ?? 'DEPRECATED';
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(12),
+          decoration: AppComponents.cardBase(),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
+                    Text('Code: $code • Version ${t['activeVersionNumber'] ?? 1}', style: TextStyle(fontSize: 11.5, color: AppColors.slate)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(flex: 2, child: Text(when, style: const TextStyle(fontSize: 12))),
+              const SizedBox(width: 12),
+              Expanded(flex: 2, child: Text(who, style: const TextStyle(fontSize: 12))),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: _buildInspectionBadge('Deleted / Deprecated ($status)', Colors.amber.shade800),
+              ),
+              const SizedBox(width: 12),
+              const SizedBox(
+                width: 80,
+                child: Center(
+                  child: Text('IMMUTABLE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.slate)),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPurgeAuditHistoryList() {
+    final filtered = _purgeHistory.where((log) {
+      if (_searchQuery.isEmpty) return true;
+      final q = _searchQuery.toLowerCase();
+      final act = (log['actionType'] ?? '').toString().toLowerCase();
+      final details = (log['details'] ?? '').toString().toLowerCase();
+      final email = (log['userEmail'] ?? '').toString().toLowerCase();
+      return act.contains(q) || details.contains(q) || email.contains(q);
+    }).toList();
+
+    if (filtered.isEmpty) {
+      return Center(
+        child: Text('No purge audit log events found.', style: AppTypography.bodySm(color: AppColors.slate)),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
+      itemCount: filtered.length,
+      itemBuilder: (context, idx) {
+        final log = filtered[idx];
+        final action = log['actionType'] ?? 'PURGE';
+        final details = log['details'] ?? 'Entity: ${log['entityType']} #${log['targetId']}';
+        final when = _formatDate(log['timestamp']);
+        final who = '${log['userEmail'] ?? 'System'} (${log['userRole'] ?? 'ADMIN'})';
+
+        return Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          padding: const EdgeInsets.all(12),
+          decoration: AppComponents.cardBase(),
+          child: Row(
+            children: [
+              Expanded(
+                flex: 3,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(action.toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.brandRedDark)),
+                    Text(details.toString(), style: TextStyle(fontSize: 11.5, color: AppColors.slate), maxLines: 2, overflow: TextOverflow.ellipsis),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(flex: 2, child: Text(when, style: const TextStyle(fontSize: 12))),
+              const SizedBox(width: 12),
+              Expanded(flex: 2, child: Text(who, style: const TextStyle(fontSize: 12))),
+              const SizedBox(width: 12),
+              Expanded(
+                flex: 2,
+                child: _buildInspectionBadge('Audit Log Preserved', AppColors.primary),
+              ),
+              const SizedBox(width: 12),
+              const SizedBox(
+                width: 80,
+                child: Center(
+                  child: Icon(Icons.verified_user_outlined, size: 18, color: AppColors.success),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
+

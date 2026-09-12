@@ -434,6 +434,41 @@ public class DocxStructureParserTest {
         assertEquals("Plot Dimensions (Length x Width)", summary.get(1).get("questionText").asText());
     }
 
+    @Test
+    @DisplayName("15. Text placeholders inside drawings must default to TEXT, not IMAGE")
+    public void testTextPlaceholdersInDrawingsNotClassifiedAsImage() throws Exception {
+        WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.createPackage();
+        P p = factory.createP();
+        R r = factory.createR();
+
+        Drawing drawing = factory.createDrawing();
+        org.docx4j.dml.wordprocessingDrawing.Inline inline = new org.docx4j.dml.wordprocessingDrawing.Inline();
+        org.docx4j.dml.CTNonVisualDrawingProps docPr = new org.docx4j.dml.CTNonVisualDrawingProps();
+        docPr.setName("<<OWNER_NAME>>");
+        docPr.setDescr("<<OWNER_NAME>>");
+        inline.setDocPr(docPr);
+        drawing.getAnchorOrInline().add(inline);
+
+        r.getContent().add(drawing);
+        p.getContent().add(r);
+        wordMLPackage.getMainDocumentPart().getContent().add(p);
+
+        byte[] bytes = packageToBytes(wordMLPackage);
+        JsonNode root = parser.parseDocumentStructure(bytes);
+
+        JsonNode runs = root.get("sections").get(0).get("elements").get(0).get("runs");
+        assertNotNull(runs);
+        assertFalse(runs.isEmpty());
+        JsonNode run = runs.get(0);
+        assertEquals("OWNER_NAME", run.get("placeholderKey").asText());
+        assertEquals("TEXT", run.get("fieldType").asText());
+
+        JsonNode summary = root.get("placeholdersSummary");
+        assertNotNull(summary);
+        assertEquals(1, summary.size());
+        assertEquals("TEXT", summary.get(0).get("type").asText());
+    }
+
     private Tc createCellWithText(String text) {
         Tc cell = factory.createTc();
         P p = factory.createP();

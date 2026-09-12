@@ -337,6 +337,44 @@ public class TemplateController {
     }
 
     /**
+     * POST /api/v1/templates/{id}/publish-metadata-version
+     * Publishes a new metadata version (renaming, adding, deleting, type changing, aliases)
+     * without modifying the uploaded DOCX binary.
+     */
+    @PostMapping("/{id}/publish-metadata-version")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> publishMetadataVersion(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> request) {
+        try {
+            String changeSummary = (String) request.get("changeSummary");
+            Template published = templateProcessingService.publishMetadataVersion(id, request, changeSummary, currentUserId());
+            return ResponseEntity.ok(new TemplateDetailDTO(published));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Metadata publish failed: " + e.getMessage());
+        }
+    }
+
+    /**
+     * POST /api/v1/templates/{id}/validate-metadata
+     * Validates proposed metadata changes before publishing a new version.
+     */
+    @PostMapping("/{id}/validate-metadata")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> validateMetadata(
+            @PathVariable Long id,
+            @RequestBody Map<String, Object> request) {
+        try {
+            Map<String, Object> validation = templateProcessingService.validateMetadataUpdates(id, request);
+            return ResponseEntity.ok(validation);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Validation failed: " + e.getMessage());
+        }
+    }
+
+    /**
      * DELETE /api/v1/templates/{id}
      * OPTION A MANDATE: Soft-deletes template metadata for future usage.
      * Historical reports, snapshots, and version binaries remain 100% UNTOUCHED.

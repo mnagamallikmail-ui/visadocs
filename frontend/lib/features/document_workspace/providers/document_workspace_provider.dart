@@ -288,9 +288,19 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       if (_compositeItems.isEmpty) {
         final subType = _activeValues['PROPERTY_SUB_TYPE'] ?? _activeValues['PROPERTY_TYPE'] ?? 'Main Unit';
         final rawArea = _activeValues['SALEABLE_AREA'] ?? _activeValues['SUPER_BUILT_UP_AREA'] ?? _activeValues['PROPERTY_AREA_SFT'] ?? _activeValues['SBUA'] ?? _activeValues['FLAT_AREA'] ?? '1000';
-        final areaVal = ValueNormalizationEngine.tryNormalize('SALEABLE_AREA', rawArea) ?? 1000.0;
+        final dualArea = ValueNormalizationEngine.createDualValueResult('SALEABLE_AREA', rawArea);
+        final areaVal = dualArea.standardSqftValue;
+        dualArea.valuesToStore.forEach((k, v) {
+          _activeValues[k] = v;
+        });
+
         final rawRate = _activeValues['MARKET_RATE_FLAT'] ?? _activeValues['COMPOSITE_RATE'] ?? _activeValues['CURRENT_MARKET_RATE'] ?? _activeValues['FLAT_MARKET_RATE'] ?? _activeValues['BUILDING_MARKET_RATE'] ?? '0';
-        final compRate = ValueNormalizationEngine.tryNormalize('MARKET_RATE_FLAT', rawRate) ?? 0.0;
+        final dualRate = ValueNormalizationEngine.createDualValueResult('MARKET_RATE_FLAT', rawRate);
+        final compRate = dualRate.numericValue;
+        dualRate.valuesToStore.forEach((k, v) {
+          _activeValues[k] = v;
+        });
+
         final constCost = _valuationData!.compositeConstructionCost > 0 ? _valuationData!.compositeConstructionCost : 2000.0;
         final age = double.tryParse((_activeValues['COMPOSITE_BUILDING_AGE'] ?? '0').replaceAll(',', '')) ?? 0.0;
         final life = double.tryParse((_activeValues['COMPOSITE_BUILDING_TOTAL_LIFE'] ?? '60').replaceAll(',', '')) ?? 60.0;
@@ -300,7 +310,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
             orderId: orderId,
             itemCategory: 'MAIN_UNIT',
             description: subType,
-            enteredUnit: _activeValues['SUPER_BUILT_UP_AREA_UNIT'] ?? 'Sq.Ft',
+            enteredUnit: dualArea.detectedUnit,
             quantity: areaVal,
             rate: compRate,
             constructionCost: constCost,
@@ -381,9 +391,14 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   }
 
   void recalculateValuation() {
-    if (_valuationData == null) return;
+    if (_valuationData == null) {
+      _valuationData = ValuationDataModel(
+        orderId: _workspaceModel?.orderId ?? 0,
+        valuationMethodology: 'COMPOSITE',
+      );
+    }
 
-    if (isCompositeProperty) {
+    if (isCompositeProperty || _compositeItems.isNotEmpty) {
       _valuationData!.valuationMethodology = 'COMPOSITE';
       ValuationCalculator.recalculateCompositeSummary(_valuationData!, _compositeItems);
       final placeholders = ValuationCalculator.generatePlaceholders(
@@ -739,21 +754,47 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
 
       // Propagate authoritative area (STANDARD_SQFT) to calculation models
       if (PlaceholderNormalizationRegistry.isAreaKey(upperKey)) {
+        ensureCompositeMainUnit();
         for (final item in _compositeItems) {
           if (item.itemCategory.toUpperCase() == 'MAIN_UNIT') {
             item.quantity = dual.standardSqftValue;
+            item.enteredUnit = dual.detectedUnit;
             break;
           }
         }
+        for (final land in _landItems) {
+          land.standardAreaSqft = dual.standardSqftValue;
+          land.enteredUnit = dual.detectedUnit;
+          land.enteredArea = dual.numericValue;
+        }
+
+        // Publish runtime field values as required by Fix 3
+        _activeValues['SALEABLE_AREA'] = value;
+        _deltaValues['SALEABLE_AREA'] = value;
+        _activeValues['SALEABLE_AREA_NUMERIC'] = ValueNormalizationEngine.formatNormalizedString(dual.numericValue);
+        _deltaValues['SALEABLE_AREA_NUMERIC'] = _activeValues['SALEABLE_AREA_NUMERIC']!;
+        _activeValues['SALEABLE_AREA_UNIT'] = dual.detectedUnit;
+        _deltaValues['SALEABLE_AREA_UNIT'] = dual.detectedUnit;
+        _activeValues['SALEABLE_AREA_STANDARD_SQFT'] = ValueNormalizationEngine.formatNormalizedString(dual.standardSqftValue);
+        _deltaValues['SALEABLE_AREA_STANDARD_SQFT'] = _activeValues['SALEABLE_AREA_STANDARD_SQFT']!;
+
         recalculateValuation();
         return;
       } else if (PlaceholderNormalizationRegistry.isRateKey(upperKey)) {
+        ensureCompositeMainUnit();
         for (final item in _compositeItems) {
           if (item.itemCategory.toUpperCase() == 'MAIN_UNIT') {
             item.rate = dual.numericValue;
             break;
           }
         }
+
+        // Publish runtime field values as required by Fix 3
+        _activeValues['MARKET_RATE_FLAT'] = value;
+        _deltaValues['MARKET_RATE_FLAT'] = value;
+        _activeValues['MARKET_RATE_FLAT_NUMERIC'] = ValueNormalizationEngine.formatNormalizedString(dual.numericValue);
+        _deltaValues['MARKET_RATE_FLAT_NUMERIC'] = _activeValues['MARKET_RATE_FLAT_NUMERIC']!;
+
         recalculateValuation();
         return;
       } else if (upperKey == 'GOVERNMENT_VALUE') {
@@ -779,6 +820,42 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
           return;
         }
       }
+    } else if (upperKey == 'COMPOSITE_CONSTRUCTION_COST') {
+      final cost = ValueNormalizationEngine.tryNormalize(upperKey, value) ??
+          (double.tryParse(value.replaceAll('₹', '').replaceAll(',', '').trim()) ?? 2000.0);
+      ensureCompositeMainUnit();
+      setCompositeConstructionCost(cost);
+      return;
+    } else if (upperKey == 'COMPOSITE_BUILDING_AGE') {
+      final age = double.tryParse(value.replaceAll(',', '').trim()) ?? 0.0;
+      ensureCompositeMainUnit();
+      for (final item in _compositeItems) {
+        if (item.itemCategory.toUpperCase() == 'MAIN_UNIT') {
+          item.buildingAge = age;
+        }
+      }
+      if (_valuationData != null) {
+        _valuationData!.compositeBuildingAge = age;
+      }
+      _activeValues['COMPOSITE_BUILDING_AGE'] = value;
+      _deltaValues['COMPOSITE_BUILDING_AGE'] = value;
+      recalculateValuation();
+      return;
+    } else if (upperKey == 'COMPOSITE_BUILDING_TOTAL_LIFE') {
+      final life = double.tryParse(value.replaceAll(',', '').trim()) ?? 60.0;
+      ensureCompositeMainUnit();
+      for (final item in _compositeItems) {
+        if (item.itemCategory.toUpperCase() == 'MAIN_UNIT') {
+          item.totalLife = life;
+        }
+      }
+      if (_valuationData != null) {
+        _valuationData!.compositeBuildingTotalLife = life;
+      }
+      _activeValues['COMPOSITE_BUILDING_TOTAL_LIFE'] = value;
+      _deltaValues['COMPOSITE_BUILDING_TOTAL_LIFE'] = value;
+      recalculateValuation();
+      return;
     } else {
       if (_activeValues[upperKey] != value) {
         _activeValues[upperKey] = value;
@@ -792,6 +869,39 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
 
   String getValue(String key) {
     return _activeValues[key.toUpperCase()] ?? _activeValues[key.toLowerCase()] ?? _activeValues[key] ?? '';
+  }
+
+  void ensureCompositeMainUnit() {
+    if (_compositeItems.isEmpty) {
+      _initValuationDataFromValues(_workspaceModel?.orderId ?? 0);
+    }
+    if (_compositeItems.isEmpty || !_compositeItems.any((i) => i.itemCategory.toUpperCase() == 'MAIN_UNIT')) {
+      final orderId = _workspaceModel?.orderId ?? 0;
+      final areaStr = _activeValues['SALEABLE_AREA_STANDARD_SQFT'] ?? _activeValues['SALEABLE_AREA'] ?? '1000';
+      final area = double.tryParse(areaStr.replaceAll(',', '').trim()) ?? 1000.0;
+      final rateStr = _activeValues['MARKET_RATE_FLAT_NUMERIC'] ?? _activeValues['MARKET_RATE_FLAT'] ?? '0';
+      final rate = double.tryParse(rateStr.replaceAll(',', '').trim()) ?? 0.0;
+      final costStr = _activeValues['COMPOSITE_CONSTRUCTION_COST'] ?? '2000';
+      final cost = double.tryParse(costStr.replaceAll(',', '').trim()) ?? 2000.0;
+      final ageStr = _activeValues['COMPOSITE_BUILDING_AGE'] ?? '0';
+      final age = double.tryParse(ageStr.replaceAll(',', '').trim()) ?? 0.0;
+      final lifeStr = _activeValues['COMPOSITE_BUILDING_TOTAL_LIFE'] ?? '60';
+      final life = double.tryParse(lifeStr.replaceAll(',', '').trim()) ?? 60.0;
+
+      final mainUnit = ValuationCompositeItemModel(
+        orderId: orderId,
+        itemCategory: 'MAIN_UNIT',
+        description: _activeValues['PROPERTY_SUB_TYPE'] ?? _activeValues['PROPERTY_TYPE'] ?? 'Main Unit',
+        enteredUnit: _activeValues['SALEABLE_AREA_UNIT'] ?? 'Sq.Ft',
+        quantity: area,
+        rate: rate,
+        constructionCost: cost,
+        buildingAge: age,
+        totalLife: life,
+        sortOrder: 0,
+      );
+      _compositeItems.insert(0, mainUnit);
+    }
   }
 
   void updateValuesFromValuation(Map<String, String> newPlaceholders) {

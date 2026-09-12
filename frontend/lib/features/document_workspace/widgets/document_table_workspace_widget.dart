@@ -6,9 +6,11 @@ import '../../../theme/app_spacing.dart';
 import '../../../theme/app_typography.dart';
 import '../../../utils/indian_number_formatter.dart';
 import '../../../utils/indian_currency_to_words.dart';
+import '../../document_studio/models/studio_document_model.dart';
 import '../models/workspace_view_model.dart';
 import '../models/valuation_models.dart';
 import '../services/valuation_calculator.dart';
+import '../services/value_normalization_engine.dart';
 import '../providers/document_workspace_provider.dart';
 import 'document_input_slot_widget.dart';
 import 'inline_editable_placeholder_widget.dart';
@@ -1440,6 +1442,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
 
   // ─── Inline Valuation: COMPOSITE_PROPERTY_TABLE (Interactive Editor) ────────
   Widget _buildInlineCompositeSection(BuildContext context, DocumentWorkspaceProvider provider) {
+    provider.ensureCompositeMainUnit();
     final compItems = provider.compositeItems.isNotEmpty
         ? provider.compositeItems
         : [
@@ -1582,19 +1585,21 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
               Expanded(
                 flex: 2,
                 child: TextFormField(
-                  initialValue: item.quantity > 0 ? item.quantity.toString() : '',
+                  key: ValueKey('main_unit_area_${provider.getValue('SALEABLE_AREA')}'),
+                  initialValue: provider.getValue('SALEABLE_AREA').isNotEmpty
+                      ? provider.getValue('SALEABLE_AREA')
+                      : (item.quantity > 0 ? ValueNormalizationEngine.formatNormalizedString(item.quantity) : ''),
                   enabled: !isReadOnly,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: TextInputType.text,
                   decoration: InputDecoration(
-                    labelText: 'Super Built-up Area',
-                    suffixText: item.enteredUnit,
+                    labelText: 'Saleable Area (Authoritative)',
+                    suffixText: provider.getValue('SALEABLE_AREA_UNIT').isNotEmpty ? provider.getValue('SALEABLE_AREA_UNIT') : item.enteredUnit,
                     isDense: true,
                     border: const OutlineInputBorder(),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   ),
                   onChanged: (val) {
-                    item.quantity = double.tryParse(val.replaceAll(',', '').trim()) ?? 0.0;
-                    provider.recalculateValuation();
+                    provider.updateValue('SALEABLE_AREA', val);
                   },
                 ),
               ),
@@ -1602,19 +1607,21 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
               Expanded(
                 flex: 2,
                 child: TextFormField(
-                  initialValue: item.rate > 0 ? item.rate.toString() : '',
+                  key: ValueKey('main_unit_rate_${provider.getValue('MARKET_RATE_FLAT')}'),
+                  initialValue: provider.getValue('MARKET_RATE_FLAT').isNotEmpty
+                      ? provider.getValue('MARKET_RATE_FLAT')
+                      : (item.rate > 0 ? ValueNormalizationEngine.formatNormalizedString(item.rate) : ''),
                   enabled: !isReadOnly,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                  keyboardType: TextInputType.text,
                   decoration: const InputDecoration(
-                    labelText: 'Composite Rate (₹/Sq.Ft)',
+                    labelText: 'Market Rate (Flat / Composite)',
                     prefixText: '₹ ',
                     isDense: true,
                     border: OutlineInputBorder(),
                     contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   ),
                   onChanged: (val) {
-                    item.rate = double.tryParse(val.replaceAll(',', '').trim()) ?? 0.0;
-                    provider.recalculateValuation();
+                    provider.updateValue('MARKET_RATE_FLAT', val);
                   },
                 ),
               ),
@@ -1633,7 +1640,9 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                     children: [
                       const Text('Unit Amount (₹)', style: TextStyle(fontSize: 10, color: Colors.grey)),
                       Text(
-                        '₹ ${IndianNumberFormatter.format(item.amount)}',
+                        provider.getValue('UNIT_AMOUNT').isNotEmpty
+                            ? '₹ ${provider.getValue('UNIT_AMOUNT')}'
+                            : '₹ ${IndianNumberFormatter.format(item.amount)}',
                         style: GoogleFonts.firaCode(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.ink),
                       ),
                     ],
@@ -1676,9 +1685,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                           contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         ),
                         onChanged: (val) {
-                          final cost = double.tryParse(val.replaceAll(',', '').trim()) ?? 2000.0;
-                          item.constructionCost = cost;
-                          provider.setCompositeConstructionCost(cost);
+                          provider.updateValue('COMPOSITE_CONSTRUCTION_COST', val);
                         },
                       ),
                     ),
@@ -1696,8 +1703,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                           contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         ),
                         onChanged: (val) {
-                          item.buildingAge = double.tryParse(val.trim()) ?? 0.0;
-                          provider.recalculateValuation();
+                          provider.updateValue('COMPOSITE_BUILDING_AGE', val);
                         },
                       ),
                     ),
@@ -1715,8 +1721,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                           contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                         ),
                         onChanged: (val) {
-                          item.totalLife = double.tryParse(val.trim()) ?? 60.0;
-                          provider.recalculateValuation();
+                          provider.updateValue('COMPOSITE_BUILDING_TOTAL_LIFE', val);
                         },
                       ),
                     ),
@@ -1734,7 +1739,9 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                           children: [
                             const Text('Depreciation (₹)', style: TextStyle(fontSize: 10, color: Color(0xFFD46B08))),
                             Text(
-                              '₹ ${IndianNumberFormatter.format(item.depreciationAmount)}',
+                              provider.getValue('MAIN_UNIT_DEPRECIATION').isNotEmpty
+                                  ? '₹ ${provider.getValue('MAIN_UNIT_DEPRECIATION')}'
+                                  : '₹ ${IndianNumberFormatter.format(item.depreciationAmount)}',
                               style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFFD46B08)),
                             ),
                           ],
@@ -1755,7 +1762,9 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                           children: [
                             const Text('Main Unit Fair Value', style: TextStyle(fontSize: 10, color: Color(0xFF096DD9))),
                             Text(
-                              '₹ ${IndianNumberFormatter.format(item.fairValue)}',
+                              provider.getValue('FAIR_VALUE').isNotEmpty
+                                  ? '₹ ${provider.getValue('FAIR_VALUE')}'
+                                  : '₹ ${IndianNumberFormatter.format(item.fairValue)}',
                               style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF096DD9)),
                             ),
                           ],
@@ -2585,6 +2594,31 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
       );
     }
 
+    // Dedicated Mixed Narrative Inside Table Cells Routing (Document-Native WYSIWYG):
+    // If any cell in this row contains mixed text + placeholders (e.g. "Dear <<BANK_NAME>>, Property owned by <<OWNER_NAME>>..."),
+    // preserve document flow using Text.rich and WidgetSpan instead of Question-Answer layout.
+    if (rowVm.rawCells.any((c) => _isMixedContentCell(c))) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          border: Border(bottom: BorderSide(color: AppColors.workspaceBorder.withValues(alpha: 0.6), width: isLast ? 0 : 0.8)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            for (final cell in rowVm.rawCells)
+              Expanded(
+                flex: cell.colSpan > 0 ? cell.colSpan : 1,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
+                  child: _buildTableCell(context, cell, rowVm, readOnly),
+                ),
+              ),
+          ],
+        ),
+      );
+    }
+
     // 1. Merged Section Sub-header / Category Heading Row (STRICT: ALWAYS LEFT ALIGNED, SAME LEFT BOUNDARY)
     if (rowVm.isSectionHeadingRow) {
       final title = (rowVm.questionText != null && rowVm.questionText!.isNotEmpty)
@@ -2802,6 +2836,154 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  bool _isMixedContentCell(StudioTableCell cell) {
+    if (cell.plainText.contains('<<')) {
+      final stripped = cell.plainText.replaceAll(RegExp(r'<<[^>]+>>'), '').trim();
+      if (stripped.isNotEmpty) return true;
+    }
+    if (cell.placeholderBindings.isNotEmpty) {
+      for (final p in cell.paragraphs) {
+        for (final r in p.runs) {
+          if (!r.isPlaceholder && r.text.trim().isNotEmpty) {
+            return true;
+          }
+        }
+      }
+    }
+    return false;
+  }
+
+  Widget _buildTableCell(BuildContext context, StudioTableCell cell, TableRowVm rowVm, bool readOnly) {
+    // When mixed content exists: Text + Placeholder inside a cell,
+    // render using Text.rich, WidgetSpan, and InlineEditablePlaceholderWidget.
+    if (_isMixedContentCell(cell)) {
+      final spans = <InlineSpan>[];
+      String rawText = cell.plainText;
+      if (!rawText.contains('<<') && cell.paragraphs.isNotEmpty) {
+        final sb = StringBuffer();
+        for (final p in cell.paragraphs) {
+          for (final r in p.runs) {
+            if (r.isPlaceholder && r.placeholderKey != null) {
+              sb.write('<<${r.placeholderKey}>>');
+            } else {
+              sb.write(r.text);
+            }
+          }
+        }
+        rawText = sb.toString();
+      }
+      final matcher = RegExp(r'<<([^>]+)>>');
+      int lastIndex = 0;
+      int placeholderIdx = 0;
+
+      for (final match in matcher.allMatches(rawText)) {
+        if (match.start > lastIndex) {
+          final textBefore = rawText.substring(lastIndex, match.start);
+          spans.add(TextSpan(
+            text: textBefore,
+            style: GoogleFonts.montserrat(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w400,
+              color: AppColors.workspacePrimaryText,
+              height: 1.65,
+            ),
+          ));
+        }
+
+        final key = match.group(1)!.trim().toUpperCase();
+        InputFieldVm? fieldVm;
+        for (final f in rowVm.inputFields) {
+          if (f.key.toUpperCase() == key) {
+            fieldVm = f;
+            break;
+          }
+        }
+        if (fieldVm == null) {
+          final provider = context.read<DocumentWorkspaceProvider>();
+          fieldVm = InputFieldVm(
+            key: key,
+            questionText: DocumentWorkspaceVm.toHumanizedLabel(key),
+            fieldType: 'TEXT',
+            currentValue: provider.getValue(key),
+          );
+        }
+
+        final instanceId = 'tbl_${cell.cellId}_${key}_${placeholderIdx++}';
+        spans.add(WidgetSpan(
+          alignment: PlaceholderAlignment.middle,
+          baseline: TextBaseline.alphabetic,
+          child: InlineEditablePlaceholderWidget(
+            instanceId: instanceId,
+            fieldVm: fieldVm,
+            readOnly: readOnly,
+            textStyle: GoogleFonts.montserrat(
+              fontSize: 11.5,
+              fontWeight: FontWeight.w600,
+              color: AppColors.workspaceCorporateNavy,
+            ),
+          ),
+        ));
+
+        lastIndex = match.end;
+      }
+
+      if (lastIndex < rawText.length) {
+        spans.add(TextSpan(
+          text: rawText.substring(lastIndex),
+          style: GoogleFonts.montserrat(
+            fontSize: 11.5,
+            fontWeight: FontWeight.w400,
+            color: AppColors.workspacePrimaryText,
+            height: 1.65,
+          ),
+        ));
+      }
+
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Text.rich(
+          TextSpan(children: spans),
+          textAlign: TextAlign.left,
+        ),
+      );
+    }
+
+    // If cell contains pure placeholders without narrative, render standard slot widget
+    if (cell.placeholderBindings.isNotEmpty) {
+      final provider = context.read<DocumentWorkspaceProvider>();
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          for (final b in cell.placeholderBindings) ...[
+            DocumentInputSlotWidget(
+              fieldVm: rowVm.inputFields.firstWhere(
+                (f) => f.key.toUpperCase() == b.key.toUpperCase(),
+                orElse: () => InputFieldVm(
+                  key: b.key.toUpperCase(),
+                  questionText: b.questionText.isNotEmpty ? b.questionText : DocumentWorkspaceVm.toHumanizedLabel(b.key),
+                  fieldType: b.fieldType,
+                  currentValue: provider.getValue(b.key),
+                ),
+              ),
+              readOnly: readOnly,
+            ),
+            const SizedBox(height: 4),
+          ],
+        ],
+      );
+    }
+
+    // Static text cell
+    return Text(
+      cell.plainText.trim(),
+      style: GoogleFonts.montserrat(
+        fontSize: 11.5,
+        fontWeight: cell.isHeader ? FontWeight.w700 : FontWeight.w500,
+        color: cell.isHeader ? AppColors.workspaceCorporateNavy : AppColors.workspacePrimaryText,
       ),
     );
   }

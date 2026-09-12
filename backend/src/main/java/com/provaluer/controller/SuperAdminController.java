@@ -1,6 +1,7 @@
 package com.provaluer.controller;
 
 import com.provaluer.dto.DiagnosticsResponse;
+import com.provaluer.dto.TemplateListDTO;
 import com.provaluer.model.*;
 import com.provaluer.repository.*;
 import com.provaluer.security.UserDetailsImpl;
@@ -742,6 +743,26 @@ public class SuperAdminController {
     @GetMapping("/orders/deleted")
     public ResponseEntity<List<Order>> getDeletedOrders() {
         return ResponseEntity.ok(orderRepository.findAllDeletedOrders());
+    }
+
+    @GetMapping("/orders/archived")
+    public ResponseEntity<List<Order>> getArchivedOrders() {
+        return ResponseEntity.ok(orderRepository.findAll().stream()
+                .filter(o -> "ARCHIVED".equalsIgnoreCase(o.getStatus()) || o.getDeletedAt() != null)
+                .toList());
+    }
+
+    @GetMapping("/templates/deleted")
+    public ResponseEntity<?> getDeletedTemplates() {
+        return ResponseEntity.ok(templateRepository.findAll().stream()
+                .filter(t -> Template.STATUS_DELETED.equalsIgnoreCase(t.getStatus()) ||
+                             Template.STATUS_ARCHIVED.equalsIgnoreCase(t.getStatus()) ||
+                             t.getDeletedAt() != null)
+                .map(t -> {
+                    long total = orderRepository.countByTemplateId(t.getId());
+                    return new TemplateListDTO(t, total, 0, total);
+                })
+                .toList());
     }
 
     @DeleteMapping("/orders/{id}/purge")

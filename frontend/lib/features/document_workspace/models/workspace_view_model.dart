@@ -411,7 +411,7 @@ class DocumentWorkspaceVm {
     );
   }
 
-  static String _toHumanizedLabel(String key) {
+  static String toHumanizedLabel(String key) {
     final clean = key.replaceAll(RegExp(r'[<>\s]+'), '');
     final upper = clean.toUpperCase();
     if (upper == 'VRIN') return 'Valuer Registration Identification Number';
@@ -444,6 +444,8 @@ class DocumentWorkspaceVm {
       return w[0].toUpperCase() + w.substring(1).toLowerCase();
     }).join(' ');
   }
+
+  static String _toHumanizedLabel(String key) => toHumanizedLabel(key);
 }
 
 /// Base class for all renderable blocks within a section.

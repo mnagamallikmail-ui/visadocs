@@ -39,4 +39,16 @@ public class AuditController {
         List<AuditLog> logs = auditLogRepository.findAllByEntityTypeAndEntityIdOrderByTimestampDesc(entityType, entityId);
         return ResponseEntity.ok(logs);
     }
+
+    @GetMapping("/purge-history")
+    public ResponseEntity<?> getPurgeAuditHistory() {
+        List<AuditLog> purgeLogs = auditLogRepository.findAllByOrderByTimestampDesc(PageRequest.of(0, 200)).getContent().stream()
+                .filter(log -> log.getActionType() != null &&
+                        (log.getActionType().contains("PURGE") ||
+                         log.getActionType().contains("DELETE") ||
+                         log.getActionType().contains("RESTORE") ||
+                         log.getActionType().contains("ARCHIVE")))
+                .toList();
+        return ResponseEntity.ok(purgeLogs);
+    }
 }
