@@ -304,6 +304,7 @@ public class ValuationCalculationFormulaService {
     public void calculateCompositeSummary(ValuationData data, List<ValuationCompositeItem> compositeItems) {
         if (data == null) return;
 
+        BigDecimal totalFairValue = BigDecimal.ZERO;
         BigDecimal mainUnitFairVal = BigDecimal.ZERO;
         BigDecimal mainUnitArea = BigDecimal.ZERO;
         BigDecimal mainUnitCost = data.getCompositeConstructionCost() != null ? data.getCompositeConstructionCost() : new BigDecimal("2000.00");
@@ -316,17 +317,22 @@ public class ValuationCalculationFormulaService {
         if (compositeItems != null) {
             for (ValuationCompositeItem item : compositeItems) {
                 calculateCompositeItem(item);
+                BigDecimal iFair = item.getFairValue() != null ? item.getFairValue() : BigDecimal.ZERO;
+                totalFairValue = totalFairValue.add(iFair);
+
                 String cat = item.getItemCategory() != null ? item.getItemCategory().toUpperCase() : "INTERIOR_WORK";
                 if ("MAIN_UNIT".equals(cat)) {
-                    mainUnitFairVal = mainUnitFairVal.add(item.getFairValue() != null ? item.getFairValue() : BigDecimal.ZERO);
+                    mainUnitFairVal = mainUnitFairVal.add(iFair);
                     mainUnitArea = mainUnitArea.add(item.getQuantity() != null ? item.getQuantity() : BigDecimal.ZERO);
                     if (item.getConstructionCost() != null && item.getConstructionCost().compareTo(BigDecimal.ZERO) > 0) {
                         mainUnitCost = item.getConstructionCost();
                     }
+                } else if ("PARKING".equals(cat)) {
+                    // Parking isolated from interior
                 } else {
                     totalInteriorAmt = totalInteriorAmt.add(item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO);
                     totalInteriorDepr = totalInteriorDepr.add(item.getDepreciationAmount() != null ? item.getDepreciationAmount() : BigDecimal.ZERO);
-                    totalInteriorFairVal = totalInteriorFairVal.add(item.getFairValue() != null ? item.getFairValue() : BigDecimal.ZERO);
+                    totalInteriorFairVal = totalInteriorFairVal.add(iFair);
                     if (Boolean.TRUE.equals(item.getIsInsurable())) {
                         totalInsurableInteriors = totalInsurableInteriors.add(item.getAmount() != null ? item.getAmount() : BigDecimal.ZERO);
                     }
@@ -338,56 +344,49 @@ public class ValuationCalculationFormulaService {
         data.setTotalInteriorDepreciation(totalInteriorDepr.setScale(2, RoundingMode.HALF_UP));
         data.setTotalInteriorFairValue(totalInteriorFairVal.setScale(2, RoundingMode.HALF_UP));
 
-        // 1. Raw Fair Value = Main Unit Fair Value + Sum(Interior Works Fair Values)
-        BigDecimal rawFairValue = mainUnitFairVal.add(totalInteriorFairVal).setScale(2, RoundingMode.HALF_UP);
-        data.setRawFairValue(rawFairValue);
+        // LEVEL 1: TOTAL_FAIR_VALUE = Actual mathematical valuation result. No rounding.
+        BigDecimal actualTotalFair = totalFairValue.setScale(2, RoundingMode.HALF_UP);
+        data.setRawFairValue(actualTotalFair);
 
-        // 2. Say Fair Value = computeSayValue(rawFairValue)
-        BigDecimal sayFairValue = computeSayValue(rawFairValue);
-        data.setSayFairValue(sayFairValue);
+        // LEVEL 2: SAY_VALUE = computeSayValue(TOTAL_FAIR_VALUE)
+        BigDecimal sayValue = computeSayValue(actualTotalFair);
+        data.setSayFairValue(sayValue);
 
-        // 3. Fair Value in summary displays Say Fair Value
-        data.setFairValue(sayFairValue);
+        // FAIR_VALUE must always equal SAY_VALUE for report display
+        data.setFairValue(sayValue);
 
-        // 4. Downstream Realizable & Distress Sale Values consume Say Fair Value
+        // Downstream Realizable & Distress Sale Values consume Say Value
         BigDecimal realPct = data.getRealizablePercentage() != null ? data.getRealizablePercentage() : new BigDecimal("85.00");
         BigDecimal distPct = data.getDistressSalePercentage() != null ? data.getDistressSalePercentage() : new BigDecimal("75.00");
         data.setRealizablePercentage(realPct);
         data.setDistressSalePercentage(distPct);
 
-        BigDecimal realizableVal = sayFairValue.multiply(realPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        BigDecimal distressVal = sayFairValue.multiply(distPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal realizableVal = sayValue.multiply(realPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal distressVal = sayValue.multiply(distPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         data.setRealizableValue(realizableVal);
         data.setDistressSaleValue(distressVal);
 
-        // 5. Government Value = Area * Government Composite Rate
+        // Government Value = Area * Government Composite Rate
         BigDecimal govtRate = data.getCompositeGovernmentRate() != null ? data.getCompositeGovernmentRate() : BigDecimal.ZERO;
         BigDecimal govtVal = mainUnitArea.multiply(govtRate).setScale(2, RoundingMode.HALF_UP);
         data.setGovernmentValue(govtVal);
 
-        // 6. Insurable Value = Area * Construction Cost + Insurable Interior Improvements
+        // Insurable Value = Area * Construction Cost + Insurable Interior Improvements
         BigDecimal insurableVal = mainUnitArea.multiply(mainUnitCost).add(totalInsurableInteriors).setScale(2, RoundingMode.HALF_UP);
         data.setInsurableValue(insurableVal);
     }
 
     /**
-     * Presentation Say Value Rounding Rules (Phase 5):
-     * - If value is in Lakhs (< 50 Lakhs): Round to nearest ₹ 1,000 (e.g. ₹ 23,12,500 -> ₹ 23,13,000)
-     * - If value is in Tens of Lakhs (50L to 1Cr): Round to nearest ₹ 10,000 (e.g. ₹ 68,75,000 -> ₹ 68,80,000)
-     * - If value is in Crores (>= 1 Crore): Round to nearest ₹ 1,00,000 (e.g. ₹ 7,08,12,500 -> ₹ 7,08,00,000)
+     * Authoritative Say Value Rounding Governance:
+     * - For values in Lakhs (>= 10,000): Round to nearest ₹ 10,000 (e.g. ₹ 81,22,000 -> ₹ 81,20,000)
+     * - For values in Crores (>= 1 Crore): Round to nearest ₹ 10,000 (e.g. ₹ 1,47,86,000 -> ₹ 1,47,90,000; ₹ 2,83,42,000 -> ₹ 2,83,40,000)
      */
     public static BigDecimal computeSayValue(BigDecimal value) {
         if (value == null || value.compareTo(BigDecimal.ZERO) <= 0) return BigDecimal.ZERO;
-        BigDecimal fiftyLakhs = new BigDecimal("5000000");
-        BigDecimal oneCrore = new BigDecimal("10000000");
-        BigDecimal oneThousand = new BigDecimal("1000");
         BigDecimal tenThousand = new BigDecimal("10000");
-        BigDecimal oneLakh = new BigDecimal("100000");
+        BigDecimal oneThousand = new BigDecimal("1000");
 
-        if (value.compareTo(oneCrore) >= 0) {
-            BigDecimal rounded = value.divide(oneLakh, 0, RoundingMode.HALF_UP);
-            return rounded.multiply(oneLakh).setScale(2, RoundingMode.HALF_UP);
-        } else if (value.compareTo(fiftyLakhs) >= 0) {
+        if (value.compareTo(tenThousand) >= 0) {
             BigDecimal rounded = value.divide(tenThousand, 0, RoundingMode.HALF_UP);
             return rounded.multiply(tenThousand).setScale(2, RoundingMode.HALF_UP);
         } else {

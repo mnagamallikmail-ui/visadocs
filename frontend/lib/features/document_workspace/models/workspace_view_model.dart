@@ -503,14 +503,32 @@ bool isCalculatedValuationKey(String key) {
       upper == 'TOTAL_DEPRECIATION_AMOUNT_WORDS' ||
       upper == 'TOTAL_SALVAGE_VALUE' ||
       upper == 'TOTAL_SALVAGE_VALUE_WORDS' ||
+      upper == 'TOTAL_FAIR_VALUE' ||
+      upper == 'TOTAL_FAIR_VALUE_WORDS' ||
+      upper == 'TOTAL_FAIR_VALUE_NUMERIC' ||
       upper == 'FAIR_VALUE' ||
       upper == 'FAIR_VALUE_WORDS' ||
+      upper == 'FAIR_VALUE_NUMERIC' ||
       upper == 'RAW_FAIR_VALUE' ||
       upper == 'RAW_FAIR_VALUE_WORDS' ||
       upper == 'SAY_FAIR_VALUE' ||
       upper == 'SAY_FAIR_VALUE_WORDS' ||
+      upper == 'REPORT_FAIR_VALUE' ||
+      upper == 'REPORT_FAIR_VALUE_WORDS' ||
       upper == 'SAY_VALUE' ||
       upper == 'SAY_VALUE_WORDS' ||
+      upper == 'MARKET_VALUE' ||
+      upper == 'MARKET_VALUE_WORDS' ||
+      upper == 'PROPERTY_VALUE' ||
+      upper == 'PROPERTY_VALUE_WORDS' ||
+      upper == 'FINAL_VALUE' ||
+      upper == 'FINAL_VALUE_WORDS' ||
+      upper == 'VALUATION_AMOUNT' ||
+      upper == 'VALUATION_AMOUNT_WORDS' ||
+      upper == 'OPINION_OF_VALUE' ||
+      upper == 'OPINION_OF_VALUE_WORDS' ||
+      upper == 'RECOMMENDED_VALUE' ||
+      upper == 'RECOMMENDED_VALUE_WORDS' ||
       upper == 'REALIZABLE_VALUE' ||
       upper == 'REALIZABLE_VALUE_WORDS' ||
       upper == 'DISTRESS_SALE_VALUE' ||

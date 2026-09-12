@@ -169,27 +169,36 @@ public class ValuationEngineServiceTest {
     }
 
     @Test
-    @DisplayName("Say Value rounds to nearest Lakh when Fair Value is 1 Crore or above")
+    @DisplayName("Authoritative Say Value rounds to nearest 10,000 for values in Lakhs and Crores")
     public void testSayValueCalculation() {
-        // Example 1: 8,99,97,730 -> 9,00,00,000
+        // Governance Lakh Examples:
+        // ₹81,22,000 -> ₹81,20,000
+        BigDecimal l1 = new BigDecimal("8122000.00");
+        assertEquals(0, new BigDecimal("8120000.00").compareTo(ValuationEngineService.computeSayValue(l1)));
+
+        // ₹73,47,000 -> ₹73,50,000
+        BigDecimal l2 = new BigDecimal("7347000.00");
+        assertEquals(0, new BigDecimal("7350000.00").compareTo(ValuationEngineService.computeSayValue(l2)));
+
+        // ₹56,61,000 -> ₹56,60,000
+        BigDecimal l3 = new BigDecimal("5661000.00");
+        assertEquals(0, new BigDecimal("5660000.00").compareTo(ValuationEngineService.computeSayValue(l3)));
+
+        // Governance Crore Examples:
+        // ₹1,47,86,000 -> ₹1,47,90,000
+        BigDecimal c1 = new BigDecimal("14786000.00");
+        assertEquals(0, new BigDecimal("14790000.00").compareTo(ValuationEngineService.computeSayValue(c1)));
+
+        // ₹2,83,42,000 -> ₹2,83,40,000
+        BigDecimal c2 = new BigDecimal("28342000.00");
+        assertEquals(0, new BigDecimal("28340000.00").compareTo(ValuationEngineService.computeSayValue(c2)));
+
+        // Additional edge tests (nearest 10,000):
         BigDecimal ex1 = new BigDecimal("89997730.00");
         assertEquals(0, new BigDecimal("90000000.00").compareTo(ValuationEngineService.computeSayValue(ex1)));
 
-        // Example 2: 24,38,72,110 -> 24,39,00,000
         BigDecimal ex2 = new BigDecimal("243872110.00");
-        assertEquals(0, new BigDecimal("243900000.00").compareTo(ValuationEngineService.computeSayValue(ex2)));
-
-        // Example 3: 109,38,22,456 -> 109,38,00,000
-        BigDecimal ex3 = new BigDecimal("1093822456.00");
-        assertEquals(0, new BigDecimal("1093800000.00").compareTo(ValuationEngineService.computeSayValue(ex3)));
-
-        // Between 50 Lakhs and 1 Crore: Round to nearest 10,000
-        BigDecimal between50LAnd1Cr = new BigDecimal("7542380.00");
-        assertEquals(0, new BigDecimal("7540000.00").compareTo(ValuationEngineService.computeSayValue(between50LAnd1Cr)));
-
-        // Under 50 Lakhs: Round to nearest 1,000
-        BigDecimal under50L = new BigDecimal("2312500.00");
-        assertEquals(0, new BigDecimal("2313000.00").compareTo(ValuationEngineService.computeSayValue(under50L)));
+        assertEquals(0, new BigDecimal("243870000.00").compareTo(ValuationEngineService.computeSayValue(ex2)));
     }
 
     @Test

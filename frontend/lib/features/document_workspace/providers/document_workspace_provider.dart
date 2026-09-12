@@ -384,6 +384,13 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   void _mergePlaceholdersPreservingRaw(Map<String, String> placeholders) {
     placeholders.forEach((k, v) {
       final uk = k.toUpperCase();
+      if (isCalculatedValuationKey(uk)) {
+        _activeValues[uk] = v;
+        _deltaValues[uk] = v;
+        _activeValues[k] = v;
+        _deltaValues[k] = v;
+        return;
+      }
       if (uk.endsWith('_RAW') || (uk.endsWith('_NUMERIC') && !uk.contains('AMOUNT') && !uk.contains('FAIR_VALUE') && !uk.contains('DEPRECIATION')) || (uk.endsWith('_UNIT') && !uk.contains('AMOUNT')) || uk.endsWith('_STANDARD_SQFT')) {
         if (_activeValues.containsKey(uk) && _activeValues[uk]!.isNotEmpty) {
           return;

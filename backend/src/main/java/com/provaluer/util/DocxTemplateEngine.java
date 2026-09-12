@@ -1068,7 +1068,7 @@ public class DocxTemplateEngine {
             String rate = inputs != null ? inputs.getOrDefault("COMPOSITE_RATE", "0") : "0";
             String amt = inputs != null ? inputs.getOrDefault("COMPOSITE_AMOUNT", "0") : "0";
             String dep = inputs != null ? inputs.getOrDefault("COMPOSITE_DEPRECIATION", "0") : "0";
-            String fv = inputs != null ? inputs.getOrDefault("COMPOSITE_FAIR_VALUE", inputs.getOrDefault("FAIR_VALUE", "0")) : "0";
+            String fv = inputs != null ? inputs.getOrDefault("COMPOSITE_FAIR_VALUE", inputs.getOrDefault("MAIN_UNIT_FAIR_VALUE", inputs.getOrDefault("UNIT_AMOUNT", "0"))) : "0";
 
             rows.add(List.of("1", subType, "Sq.Ft", formatIndian(area), "₹ " + formatIndian(rate), "₹ " + formatIndian(amt), "₹ " + formatIndian(dep), "₹ " + formatIndian(fv)));
             rows.add(List.of("2", "Interior Works & Improvements", "LS", "1", "₹ 0", "₹ 0", "₹ 0", "₹ 0"));
@@ -1077,9 +1077,9 @@ public class DocxTemplateEngine {
             } catch (Exception ignored) {}
         }
 
-        String rawFairValStr = inputs != null ? inputs.getOrDefault("RAW_FAIR_VALUE", inputs.getOrDefault("raw_fair_value", "")) : "";
+        String rawFairValStr = inputs != null ? inputs.getOrDefault("TOTAL_FAIR_VALUE", inputs.getOrDefault("total_fair_value", inputs.getOrDefault("RAW_FAIR_VALUE", inputs.getOrDefault("raw_fair_value", "")))) : "";
         if (rawFairValStr.trim().isEmpty() || rawFairValStr.equals("0")) {
-            rawFairValStr = calculatedRawFairValue.compareTo(BigDecimal.ZERO) > 0 ? calculatedRawFairValue.toPlainString() : (inputs != null ? inputs.getOrDefault("FAIR_VALUE", inputs.getOrDefault("fair_value", "0")) : "0");
+            rawFairValStr = calculatedRawFairValue.compareTo(BigDecimal.ZERO) > 0 ? calculatedRawFairValue.toPlainString() : "0";
         }
 
         BigDecimal rawFairValBd = BigDecimal.ZERO;
@@ -1087,7 +1087,7 @@ public class DocxTemplateEngine {
             rawFairValBd = new BigDecimal(rawFairValStr.replaceAll("[^0-9.-]", ""));
         } catch (Exception ignored) {}
 
-        String sayFairValStr = inputs != null ? inputs.getOrDefault("SAY_FAIR_VALUE", inputs.getOrDefault("say_fair_value", inputs.getOrDefault("FAIR_VALUE", inputs.getOrDefault("fair_value", "")))) : "";
+        String sayFairValStr = inputs != null ? inputs.getOrDefault("SAY_VALUE", inputs.getOrDefault("say_value", inputs.getOrDefault("SAY_FAIR_VALUE", inputs.getOrDefault("say_fair_value", "")))) : "";
         BigDecimal sayFairValBd = BigDecimal.ZERO;
         try {
             if (!sayFairValStr.trim().isEmpty() && !sayFairValStr.equals("0")) {
@@ -1100,7 +1100,7 @@ public class DocxTemplateEngine {
         }
 
         List<Map.Entry<String, String>> totals = new ArrayList<>();
-        totals.add(Map.entry("Fair Value Of Property", "₹ " + formatIndian(rawFairValBd.toPlainString())));
+        totals.add(Map.entry("Total Fair Value", "₹ " + formatIndian(rawFairValBd.toPlainString())));
 
         if (sayFairValBd.compareTo(BigDecimal.ZERO) > 0 && sayFairValBd.compareTo(rawFairValBd) != 0) {
             totals.add(Map.entry("Say", "₹ " + formatIndian(sayFairValBd.toPlainString())));
@@ -1116,7 +1116,7 @@ public class DocxTemplateEngine {
         List<List<String>> rows = new ArrayList<>();
 
         if (inputs != null) {
-            String sayFairValStr = inputs.getOrDefault("SAY_FAIR_VALUE", inputs.getOrDefault("say_fair_value", inputs.getOrDefault("FAIR_VALUE", inputs.getOrDefault("fair_value", "0"))));
+            String sayFairValStr = inputs.getOrDefault("SAY_VALUE", inputs.getOrDefault("say_value", inputs.getOrDefault("SAY_FAIR_VALUE", inputs.getOrDefault("say_fair_value", inputs.getOrDefault("FAIR_VALUE", inputs.getOrDefault("fair_value", "0"))))));
             rows.add(List.of("Fair Value", "₹ " + formatIndian(sayFairValStr)));
 
             String realizable = inputs.getOrDefault("REALIZABLE_VALUE", inputs.getOrDefault("realizable_value", "0"));
@@ -1274,7 +1274,7 @@ public class DocxTemplateEngine {
             // 1. Fair Value Row (Phase 9): Say Land Value | Say Building Value | Fair Value
             String sayLandVal = formatIndian(inputs.getOrDefault("SAY_LAND_VALUE", inputs.getOrDefault("say_land_value", inputs.getOrDefault("TOTAL_LAND_VALUE", "0"))));
             String sayBldgVal = formatIndian(inputs.getOrDefault("SAY_BUILDING_VALUE", inputs.getOrDefault("say_building_value", inputs.getOrDefault("TOTAL_BUILDING_VALUE", "0"))));
-            String fairVal = formatIndian(inputs.getOrDefault("FAIR_VALUE", inputs.getOrDefault("fair_value", "0")));
+            String fairVal = formatIndian(inputs.getOrDefault("SAY_VALUE", inputs.getOrDefault("say_value", inputs.getOrDefault("FAIR_VALUE", inputs.getOrDefault("fair_value", "0")))));
             rows.add(List.of("Fair Value", "₹ " + sayLandVal, "₹ " + sayBldgVal, "₹ " + fairVal));
 
             // 2. Realizable Value Row (Phase 10): Land Realizable | Building Realizable | Total Realizable
@@ -1379,7 +1379,7 @@ public class DocxTemplateEngine {
 
         String rawLandVal = inputs != null ? inputs.getOrDefault("say_land_value", inputs.getOrDefault("SAY_LAND_VALUE", inputs.getOrDefault("total_land_value", inputs.getOrDefault("TOTAL_LAND_VALUE", "0")))) : "0";
         String rawBldgVal = inputs != null ? inputs.getOrDefault("say_building_value", inputs.getOrDefault("SAY_BUILDING_VALUE", inputs.getOrDefault("total_building_value", inputs.getOrDefault("TOTAL_BUILDING_VALUE", "0")))) : "0";
-        String rawFairVal = inputs != null ? inputs.getOrDefault("fair_value", inputs.getOrDefault("FAIR_VALUE", "0")) : "0";
+        String rawFairVal = inputs != null ? inputs.getOrDefault("SAY_VALUE", inputs.getOrDefault("say_value", inputs.getOrDefault("fair_value", inputs.getOrDefault("FAIR_VALUE", "0")))) : "0";
 
         // Fallback calculation from RAW JSON if zero/missing
         if (("0".equals(rawLandVal) || rawLandVal.trim().isEmpty()) && inputs != null && inputs.containsKey("RAW_LAND_ITEMS_JSON")) {

@@ -529,18 +529,35 @@ public class ValuationEngineService {
 
         if (isComposite) {
             // Composite Specific Placeholders
-            BigDecimal fairVal = data.getFairValue() != null ? data.getFairValue() : BigDecimal.ZERO;
-            BigDecimal rawFairVal = data.getRawFairValue() != null ? data.getRawFairValue() : fairVal;
-            BigDecimal sayFairVal = data.getSayFairValue() != null ? data.getSayFairValue() : fairVal;
+            BigDecimal totalFairVal = data.getRawFairValue() != null && data.getRawFairValue().compareTo(BigDecimal.ZERO) > 0
+                    ? data.getRawFairValue()
+                    : (data.getFairValue() != null ? data.getFairValue() : BigDecimal.ZERO);
+            BigDecimal sayFairVal = computeSayValue(totalFairVal);
 
-            map.put("raw_fair_value", IndianNumberFormatter.format(rawFairVal));
-            map.put("raw_fair_value_words", IndianCurrencyToWords.convertToWords(rawFairVal));
+            map.put("total_fair_value", IndianNumberFormatter.format(totalFairVal));
+            map.put("total_fair_value_words", IndianCurrencyToWords.convertToWords(totalFairVal));
+            map.put("raw_fair_value", IndianNumberFormatter.format(totalFairVal));
+            map.put("raw_fair_value_words", IndianCurrencyToWords.convertToWords(totalFairVal));
             map.put("say_fair_value", IndianNumberFormatter.format(sayFairVal));
             map.put("say_fair_value_words", IndianCurrencyToWords.convertToWords(sayFairVal));
             map.put("say_value", IndianNumberFormatter.format(sayFairVal));
             map.put("say_value_words", IndianCurrencyToWords.convertToWords(sayFairVal));
+            map.put("report_fair_value", IndianNumberFormatter.format(sayFairVal));
+            map.put("report_fair_value_words", IndianCurrencyToWords.convertToWords(sayFairVal));
             map.put("fair_value", IndianNumberFormatter.format(sayFairVal));
             map.put("fair_value_words", IndianCurrencyToWords.convertToWords(sayFairVal));
+            map.put("market_value", IndianNumberFormatter.format(sayFairVal));
+            map.put("market_value_words", IndianCurrencyToWords.convertToWords(sayFairVal));
+            map.put("property_value", IndianNumberFormatter.format(sayFairVal));
+            map.put("property_value_words", IndianCurrencyToWords.convertToWords(sayFairVal));
+            map.put("final_value", IndianNumberFormatter.format(sayFairVal));
+            map.put("final_value_words", IndianCurrencyToWords.convertToWords(sayFairVal));
+            map.put("valuation_amount", IndianNumberFormatter.format(sayFairVal));
+            map.put("valuation_amount_words", IndianCurrencyToWords.convertToWords(sayFairVal));
+            map.put("opinion_of_value", IndianNumberFormatter.format(sayFairVal));
+            map.put("opinion_of_value_words", IndianCurrencyToWords.convertToWords(sayFairVal));
+            map.put("recommended_value", IndianNumberFormatter.format(sayFairVal));
+            map.put("recommended_value_words", IndianCurrencyToWords.convertToWords(sayFairVal));
 
             map.put("realizable_value", IndianNumberFormatter.format(data.getRealizableValue()));
             map.put("realizable_value_words", IndianCurrencyToWords.convertToWords(data.getRealizableValue()));
@@ -638,10 +655,36 @@ public class ValuationEngineService {
             map.put("say_building_value", IndianNumberFormatter.format(sayBldg));
             map.put("say_building_value_words", IndianCurrencyToWords.convertToWords(sayBldg));
 
-            // Valuation Summary
-            BigDecimal fairVal = sayLand.add(sayBldg);
-            map.put("fair_value", IndianNumberFormatter.format(fairVal));
-            map.put("fair_value_words", IndianCurrencyToWords.convertToWords(fairVal));
+            // LEVEL 1: Total Fair Value
+            BigDecimal totalLandBuildingFairVal = data.getTotalLandValue().add(data.getTotalBuildingValue());
+            BigDecimal sayVal = computeSayValue(totalLandBuildingFairVal);
+
+            map.put("total_fair_value", IndianNumberFormatter.format(totalLandBuildingFairVal));
+            map.put("total_fair_value_words", IndianCurrencyToWords.convertToWords(totalLandBuildingFairVal));
+            map.put("raw_fair_value", IndianNumberFormatter.format(totalLandBuildingFairVal));
+            map.put("raw_fair_value_words", IndianCurrencyToWords.convertToWords(totalLandBuildingFairVal));
+
+            // LEVEL 2 & REPORT-FACING: SAY_VALUE and all aliases strictly equal SAY_VALUE
+            map.put("say_value", IndianNumberFormatter.format(sayVal));
+            map.put("say_value_words", IndianCurrencyToWords.convertToWords(sayVal));
+            map.put("say_fair_value", IndianNumberFormatter.format(sayVal));
+            map.put("say_fair_value_words", IndianCurrencyToWords.convertToWords(sayVal));
+            map.put("report_fair_value", IndianNumberFormatter.format(sayVal));
+            map.put("report_fair_value_words", IndianCurrencyToWords.convertToWords(sayVal));
+            map.put("fair_value", IndianNumberFormatter.format(sayVal));
+            map.put("fair_value_words", IndianCurrencyToWords.convertToWords(sayVal));
+            map.put("market_value", IndianNumberFormatter.format(sayVal));
+            map.put("market_value_words", IndianCurrencyToWords.convertToWords(sayVal));
+            map.put("property_value", IndianNumberFormatter.format(sayVal));
+            map.put("property_value_words", IndianCurrencyToWords.convertToWords(sayVal));
+            map.put("final_value", IndianNumberFormatter.format(sayVal));
+            map.put("final_value_words", IndianCurrencyToWords.convertToWords(sayVal));
+            map.put("valuation_amount", IndianNumberFormatter.format(sayVal));
+            map.put("valuation_amount_words", IndianCurrencyToWords.convertToWords(sayVal));
+            map.put("opinion_of_value", IndianNumberFormatter.format(sayVal));
+            map.put("opinion_of_value_words", IndianCurrencyToWords.convertToWords(sayVal));
+            map.put("recommended_value", IndianNumberFormatter.format(sayVal));
+            map.put("recommended_value_words", IndianCurrencyToWords.convertToWords(sayVal));
 
             // Separate Realizable
             BigDecimal landRealPct = data.getLandRealizablePercentage() != null ? data.getLandRealizablePercentage() : new BigDecimal("85.00");
@@ -710,10 +753,7 @@ public class ValuationEngineService {
             map.put("government_value", IndianNumberFormatter.format(totalGovt));
             map.put("government_value_words", IndianCurrencyToWords.convertToWords(totalGovt));
 
-            // Say Value
-            BigDecimal sayVal = computeSayValue(fairVal);
-            map.put("say_value", IndianNumberFormatter.format(sayVal));
-            map.put("say_value_words", IndianCurrencyToWords.convertToWords(sayVal));
+            // Say Value already populated above
 
             // Backward compatibility for single land / building placeholders
             if (landItems != null && !landItems.isEmpty()) {

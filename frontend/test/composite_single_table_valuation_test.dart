@@ -41,8 +41,8 @@ void main() {
       // Proof that MAIN_UNIT_FAIR_VALUE does NOT equal or read FAIR_VALUE
       // TOTAL_FAIR_VALUE = 22,95,455 + 3,00,000 = 25,95,455
       expect(provider.getValue('TOTAL_FAIR_VALUE'), equals('25,95,455'));
-      expect(provider.getValue('SAY_VALUE'), equals('25,95,000'));
-      expect(provider.getValue('FAIR_VALUE'), equals('25,95,000')); // FAIR_VALUE consumes SAY_VALUE
+      expect(provider.getValue('SAY_VALUE'), equals('26,00,000'));
+      expect(provider.getValue('FAIR_VALUE'), equals('26,00,000')); // FAIR_VALUE consumes SAY_VALUE
       expect(provider.getValue('MAIN_UNIT_FAIR_VALUE'), isNot(equals(provider.getValue('FAIR_VALUE'))));
       expect(provider.getValue('MAIN_UNIT_FAIR_VALUE'), equals('22,95,455'));
     });
@@ -118,8 +118,8 @@ void main() {
       // Total Fair Value = 22,95,455 + 3,00,000 + 5,00,000 = 30,95,455
       expect(provider.getValue('TOTAL_FAIR_VALUE'), equals('30,95,455'));
 
-      // SAY_VALUE for 30,95,455 rounded to nearest 1000 = 30,95,000
-      expect(provider.getValue('SAY_VALUE'), equals('30,95,000'));
+      // SAY_VALUE for 30,95,455 rounded to nearest 10,000 = 31,00,000
+      expect(provider.getValue('SAY_VALUE'), equals('31,00,000'));
     });
 
     test('Proof that compositeItems.first fallback is eliminated', () {

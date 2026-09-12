@@ -253,8 +253,17 @@ class ValuationCalculator {
     data.sayLandValue = sayLand;
     data.sayBuildingValue = sayBldg;
 
-    // 4. Fair Value = Say Land Value + Say Building Value (NOT raw totals) (Phase 4 & 9)
-    data.fairValue = sayLand + sayBldg;
+    // LEVEL 1: TOTAL_FAIR_VALUE (Mathematical valuation, no rounding)
+    final totalFair = totalLand + totalBuilding;
+    data.totalFairValue = totalFair;
+    data.rawFairValue = totalFair;
+
+    // LEVEL 2: SAY_VALUE = computeSayValue(TOTAL_FAIR_VALUE)
+    final sayVal = computeSayValue(totalFair);
+    data.sayFairValue = sayVal;
+
+    // FAIR_VALUE must always equal SAY_VALUE for report display
+    data.fairValue = sayVal;
 
     // 5. Separate Realizable Percentages (Phase 6 & 10)
     final landRealPct = data.landRealizablePercentage > 0 ? data.landRealizablePercentage : 85.0;
@@ -328,17 +337,47 @@ class ValuationCalculator {
     final isComposite = data.valuationMethodology == 'COMPOSITE' || compositeItems.isNotEmpty;
 
     if (isComposite) {
-      final sayFair = data.sayFairValue > 0 ? data.sayFairValue : computeSayValue(data.rawFairValue);
-      map['raw_fair_value'] = IndianNumberFormatter.format(data.rawFairValue);
-      map['raw_fair_value_words'] = IndianCurrencyToWords.convertToWords(data.rawFairValue);
-      map['say_fair_value'] = IndianNumberFormatter.format(sayFair);
-      map['say_fair_value_words'] = IndianCurrencyToWords.convertToWords(sayFair);
+      // LEVEL 1: TOTAL_FAIR_VALUE (Mathematical valuation result, no rounding)
+      final totalFair = (data.totalFairValue > 0) ? data.totalFairValue : data.rawFairValue;
+      final totalFairStr = IndianNumberFormatter.format(totalFair);
+      final totalFairWords = IndianCurrencyToWords.convertToWords(totalFair);
+      final numericTotalFair = ValueNormalizationEngine.formatNormalizedString(totalFair);
 
-      // Summary consumes Say Value as Fair Value
-      map['fair_value'] = IndianNumberFormatter.format(sayFair);
-      map['fair_value_words'] = IndianCurrencyToWords.convertToWords(sayFair);
-      map['say_value'] = IndianNumberFormatter.format(sayFair);
-      map['say_value_words'] = IndianCurrencyToWords.convertToWords(sayFair);
+      map['total_fair_value'] = totalFairStr;
+      map['total_fair_value_words'] = totalFairWords;
+      map['total_fair_value_numeric'] = numericTotalFair;
+      map['raw_fair_value'] = totalFairStr;
+      map['raw_fair_value_words'] = totalFairWords;
+
+      // LEVEL 2: SAY_VALUE = computeSayValue(TOTAL_FAIR_VALUE)
+      final sayVal = computeSayValue(totalFair);
+      final sayValStr = IndianNumberFormatter.format(sayVal);
+      final sayValWords = IndianCurrencyToWords.convertToWords(sayVal);
+      final numericSayVal = ValueNormalizationEngine.formatNormalizedString(sayVal);
+
+      map['say_value'] = sayValStr;
+      map['say_value_words'] = sayValWords;
+      map['say_fair_value'] = sayValStr;
+      map['say_fair_value_words'] = sayValWords;
+      map['report_fair_value'] = sayValStr;
+      map['report_fair_value_words'] = sayValWords;
+
+      // UNIFIED REPORT-FACING VALUATION: All aliases MUST equal SAY_VALUE
+      map['fair_value'] = sayValStr;
+      map['fair_value_words'] = sayValWords;
+      map['fair_value_numeric'] = numericSayVal;
+      map['market_value'] = sayValStr;
+      map['market_value_words'] = sayValWords;
+      map['property_value'] = sayValStr;
+      map['property_value_words'] = sayValWords;
+      map['final_value'] = sayValStr;
+      map['final_value_words'] = sayValWords;
+      map['valuation_amount'] = sayValStr;
+      map['valuation_amount_words'] = sayValWords;
+      map['opinion_of_value'] = sayValStr;
+      map['opinion_of_value_words'] = sayValWords;
+      map['recommended_value'] = sayValStr;
+      map['recommended_value_words'] = sayValWords;
 
       map['realizable_percentage'] = '${data.realizablePercentage.toStringAsFixed(1)}%';
       map['realizable_value'] = IndianNumberFormatter.format(data.realizableValue);
@@ -487,10 +526,49 @@ class ValuationCalculator {
       map['say_building_value'] = IndianNumberFormatter.format(sayBldg);
       map['say_building_value_words'] = IndianCurrencyToWords.convertToWords(sayBldg);
 
-      // Valuation Summary
-      final fairVal = sayLand + sayBldg;
-      map['fair_value'] = IndianNumberFormatter.format(fairVal);
-      map['fair_value_words'] = IndianCurrencyToWords.convertToWords(fairVal);
+      // LEVEL 1: TOTAL_FAIR_VALUE (Actual mathematical valuation result, no rounding)
+      final totalFair = (data.totalFairValue > 0)
+          ? data.totalFairValue
+          : (data.totalLandValue + data.totalBuildingValue);
+      final totalFairStr = IndianNumberFormatter.format(totalFair);
+      final totalFairWords = IndianCurrencyToWords.convertToWords(totalFair);
+      final numericTotalFair = ValueNormalizationEngine.formatNormalizedString(totalFair);
+
+      map['total_fair_value'] = totalFairStr;
+      map['total_fair_value_words'] = totalFairWords;
+      map['total_fair_value_numeric'] = numericTotalFair;
+      map['raw_fair_value'] = totalFairStr;
+      map['raw_fair_value_words'] = totalFairWords;
+
+      // LEVEL 2: SAY_VALUE = computeSayValue(TOTAL_FAIR_VALUE)
+      final sayVal = computeSayValue(totalFair);
+      final sayValStr = IndianNumberFormatter.format(sayVal);
+      final sayValWords = IndianCurrencyToWords.convertToWords(sayVal);
+      final numericSayVal = ValueNormalizationEngine.formatNormalizedString(sayVal);
+
+      map['say_value'] = sayValStr;
+      map['say_value_words'] = sayValWords;
+      map['say_fair_value'] = sayValStr;
+      map['say_fair_value_words'] = sayValWords;
+      map['report_fair_value'] = sayValStr;
+      map['report_fair_value_words'] = sayValWords;
+
+      // UNIFIED REPORT-FACING VALUATION: All aliases MUST equal SAY_VALUE
+      map['fair_value'] = sayValStr;
+      map['fair_value_words'] = sayValWords;
+      map['fair_value_numeric'] = numericSayVal;
+      map['market_value'] = sayValStr;
+      map['market_value_words'] = sayValWords;
+      map['property_value'] = sayValStr;
+      map['property_value_words'] = sayValWords;
+      map['final_value'] = sayValStr;
+      map['final_value_words'] = sayValWords;
+      map['valuation_amount'] = sayValStr;
+      map['valuation_amount_words'] = sayValWords;
+      map['opinion_of_value'] = sayValStr;
+      map['opinion_of_value_words'] = sayValWords;
+      map['recommended_value'] = sayValStr;
+      map['recommended_value_words'] = sayValWords;
 
       // Separate Realizable
       final landRealVal = data.landRealizableValue > 0 ? data.landRealizableValue : sayLand * (data.landRealizablePercentage / 100.0);
@@ -535,11 +613,6 @@ class ValuationCalculator {
       map['building_government_value_words'] = IndianCurrencyToWords.convertToWords(data.buildingGovernmentValue);
       map['government_value'] = IndianNumberFormatter.format(totalGovt);
       map['government_value_words'] = IndianCurrencyToWords.convertToWords(totalGovt);
-
-      // Say Value (Presentation Value: Rounded Fair Value to nearest Lakh if >= 1 Crore)
-      final sayVal = computeSayValue(fairVal);
-      map['say_value'] = IndianNumberFormatter.format(sayVal);
-      map['say_value_words'] = IndianCurrencyToWords.convertToWords(sayVal);
     }
 
     // Single Parcel / Building backward compatibility
@@ -610,15 +683,15 @@ class ValuationCalculator {
     return map;
   }
 
-  /// Presentation Say Value Rounding Rules (Phase 5):
-  /// - If value is in Lakhs (< 50 Lakhs): Round to nearest ₹ 1,000 (e.g. ₹ 23,12,500 -> ₹ 23,13,000)
-  /// - If value is in Tens of Lakhs (50L to 1Cr): Round to nearest ₹ 10,000 (e.g. ₹ 68,75,000 -> ₹ 68,80,000)
-  /// - If value is in Crores (>= 1 Crore): Round to nearest ₹ 1,00,000 (e.g. ₹ 7,08,12,500 -> ₹ 7,08,00,000)
+  /// Authoritative Say Value Rounding Governance:
+  /// Round to nearest ₹ 10,000 for values in Lakhs and Crores (>= ₹ 10,000).
+  /// Examples:
+  /// - ₹ 81,22,000 -> ₹ 81,20,000
+  /// - ₹ 1,47,86,000 -> ₹ 1,47,90,000
+  /// - ₹ 2,83,42,000 -> ₹ 2,83,40,000
   static double computeSayValue(double value) {
     if (value <= 0) return 0.0;
-    if (value >= 10000000.0) {
-      return (value / 100000.0).roundToDouble() * 100000.0;
-    } else if (value >= 5000000.0) {
+    if (value >= 10000.0) {
       return (value / 10000.0).roundToDouble() * 10000.0;
     } else {
       return (value / 1000.0).roundToDouble() * 1000.0;

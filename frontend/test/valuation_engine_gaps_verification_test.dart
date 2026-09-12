@@ -101,30 +101,26 @@ void main() {
       expect(placeholders['GOVERNMENT_VALUE'], '95,00,000');
       expect(placeholders['GOVERNMENT_VALUE_WORDS'], 'Rupees Ninety Five Lakh Only');
 
-      // Check Say Value Placeholders (Fair Value = 1,02,50,000 >= 1 Crore -> Rounded to nearest Lakh = 1,03,00,000)
-      expect(placeholders['say_value'], '1,03,00,000');
-      expect(placeholders['say_value_words'], 'Rupees One Crore Three Lakh Only');
-      expect(placeholders['SAY_VALUE'], '1,03,00,000');
-      expect(placeholders['SAY_VALUE_WORDS'], 'Rupees One Crore Three Lakh Only');
+      // Check Say Value Placeholders (Fair Value = 1,02,50,000 -> Rounded to nearest 10,000 = 1,02,50,000)
+      expect(placeholders['say_value'], '1,02,50,000');
+      expect(placeholders['say_value_words'], 'Rupees One Crore Two Lakh Fifty Thousand Only');
+      expect(placeholders['SAY_VALUE'], '1,02,50,000');
+      expect(placeholders['SAY_VALUE_WORDS'], 'Rupees One Crore Two Lakh Fifty Thousand Only');
 
-      // Check Fair Value & Totals
+      // Check Fair Value & Totals (Derived from SAY_VALUE)
       expect(placeholders['fair_value'], '1,02,50,000');
       expect(placeholders['fair_value_words'], 'Rupees One Crore Two Lakh Fifty Thousand Only');
     });
 
     test('ValuationCalculator.computeSayValue verifies presentation rounding rules', () {
-      // Crores (>= 1 Crore): Round to nearest ₹ 1,00,000
-      expect(ValuationCalculator.computeSayValue(70812500.0), 70800000.0);
-      expect(ValuationCalculator.computeSayValue(89997730.0), 90000000.0);
-      expect(ValuationCalculator.computeSayValue(243872110.0), 243900000.0);
+      // Governance Lakhs (>= 10,000): Round to nearest ₹ 10,000
+      expect(ValuationCalculator.computeSayValue(8122000.0), 8120000.0);
+      expect(ValuationCalculator.computeSayValue(7347000.0), 7350000.0);
+      expect(ValuationCalculator.computeSayValue(5661000.0), 5660000.0);
 
-      // Tens of Lakhs (50L to 1Cr): Round to nearest ₹ 10,000
-      expect(ValuationCalculator.computeSayValue(6875000.0), 6880000.0);
-      expect(ValuationCalculator.computeSayValue(7542380.0), 7540000.0);
-
-      // Lakhs (< 50 Lakhs): Round to nearest ₹ 1,000
-      expect(ValuationCalculator.computeSayValue(2312500.0), 2313000.0);
-      expect(ValuationCalculator.computeSayValue(4512340.0), 4512000.0);
+      // Governance Crores: Round to nearest ₹ 10,000
+      expect(ValuationCalculator.computeSayValue(14786000.0), 14790000.0);
+      expect(ValuationCalculator.computeSayValue(28342000.0), 28340000.0);
     });
 
     test('ValuationDataModel serialization roundtrip preserves insurableValue and governmentValue', () {
