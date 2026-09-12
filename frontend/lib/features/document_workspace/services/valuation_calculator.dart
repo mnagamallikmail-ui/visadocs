@@ -44,15 +44,15 @@ class ValuationCalculator {
   }
 
   static void calculateCompositeItem(ValuationCompositeItemModel item) {
-    item.amount = item.quantity * item.rate;
-
-    if (item.itemCategory == 'MAIN_UNIT') {
+    final cat = item.itemCategory.toUpperCase();
+    if (cat == 'MAIN_UNIT') {
+      item.amount = item.quantity * item.rate;
       final cost = item.constructionCost > 0 ? item.constructionCost : 2000.0;
       final life = item.totalLife > 0 ? item.totalLife : 60.0;
       final age = item.buildingAge >= 0 ? item.buildingAge : 0.0;
 
-      // Depreciation = Area * Construction Cost * 90% * Age / Total Life
-      final depr = item.quantity * cost * 0.90 * (age / life);
+      // Formula: Depreciation = Area * Construction Cost * 90% * (Age / Total Life)
+      final depr = (item.quantity * cost * 0.90 * (age / life)).roundToDouble();
       item.depreciationAmount = depr;
       if (item.amount > 0) {
         item.depreciationPercentage = (depr / item.amount) * 100.0;
@@ -60,10 +60,28 @@ class ValuationCalculator {
         item.depreciationPercentage = 0.0;
       }
       item.fairValue = item.amount - depr;
+    } else if (cat == 'PARKING') {
+      // Formula: Parking Amount = Quantity * Rate, Fair Value = Amount - Depreciation
+      if (item.rate > 0) {
+        item.amount = item.quantity * item.rate;
+      }
+      if (item.depreciationAmount > 0) {
+        if (item.amount > 0) {
+          item.depreciationPercentage = (item.depreciationAmount / item.amount) * 100.0;
+        }
+      } else if (item.depreciationPercentage > 0) {
+        item.depreciationAmount = item.amount * (item.depreciationPercentage / 100.0);
+      }
+      item.fairValue = item.amount - item.depreciationAmount;
     } else {
-      // Interior Work: Supports Option A (Depreciation %) or Option B (Direct Depreciation Amount in ₹)
+      // Interior Work: User entered amount/rate & user entered or percentage depreciation
+      if (item.rate > 0) {
+        item.amount = item.quantity * item.rate;
+      } else if (item.amount > 0 && item.quantity > 0) {
+        item.rate = item.amount / item.quantity;
+      }
       final mode = item.depreciationMode.toUpperCase();
-      if (mode == 'DIRECT_AMOUNT' && item.depreciationAmount > 0) {
+      if ((mode == 'DIRECT_AMOUNT' || item.depreciationPercentage == 0) && item.depreciationAmount > 0) {
         final depr = item.depreciationAmount;
         if (item.amount > 0) {
           item.depreciationPercentage = (depr / item.amount) * 100.0;
@@ -71,7 +89,6 @@ class ValuationCalculator {
           item.depreciationPercentage = 0.0;
         }
       } else {
-        // PERCENTAGE mode or direct calculation from percentage
         final pct = item.depreciationPercentage;
         item.depreciationAmount = item.amount * (pct / 100.0);
       }
@@ -83,25 +100,72 @@ class ValuationCalculator {
     ValuationDataModel data,
     List<ValuationCompositeItemModel> compositeItems,
   ) {
-    double rawFairValue = 0.0;
+    // 1. Ensure explicit MAIN_UNIT exists without invalid fallbacks
+    ValuationCompositeItemModel? mainUnit;
+    for (final item in compositeItems) {
+      if (item.itemCategory.toUpperCase() == 'MAIN_UNIT') {
+        mainUnit = item;
+        break;
+      }
+    }
+    if (mainUnit == null) {
+      mainUnit = ValuationCompositeItemModel(
+        orderId: data.orderId,
+        itemCategory: 'MAIN_UNIT',
+        description: 'Main Unit / Flat',
+        enteredUnit: 'Sq.Ft',
+        quantity: 1000.0,
+        rate: 0.0,
+        constructionCost: data.compositeConstructionCost > 0 ? data.compositeConstructionCost : 2000.0,
+        buildingAge: data.compositeBuildingAge,
+        totalLife: data.compositeBuildingTotalLife > 0 ? data.compositeBuildingTotalLife : 60.0,
+        sortOrder: 0,
+      );
+      compositeItems.insert(0, mainUnit);
+    }
+
+    double totalAmount = 0.0;
+    double totalDepreciation = 0.0;
+    double totalFairValue = 0.0;
+
+    double mainUnitAmount = 0.0;
+    double mainUnitDepreciation = 0.0;
+    double mainUnitFairValue = 0.0;
     double mainUnitArea = 0.0;
     double mainUnitCost = data.compositeConstructionCost > 0 ? data.compositeConstructionCost : 2000.0;
+
     double totalInteriorAmount = 0.0;
     double totalInteriorDepr = 0.0;
     double totalInteriorFair = 0.0;
+
+    double totalParkingAmount = 0.0;
+    double totalParkingDepr = 0.0;
+    double totalParkingFair = 0.0;
+
     double totalInsurableInteriors = 0.0;
 
     for (final item in compositeItems) {
       calculateCompositeItem(item);
-      rawFairValue += item.fairValue;
+      totalAmount += item.amount;
+      totalDepreciation += item.depreciationAmount;
+      totalFairValue += item.fairValue;
 
-      if (item.itemCategory == 'MAIN_UNIT') {
+      final cat = item.itemCategory.toUpperCase();
+      if (cat == 'MAIN_UNIT') {
         mainUnitArea = item.quantity;
         mainUnitCost = item.constructionCost;
+        mainUnitAmount = item.amount;
+        mainUnitDepreciation = item.depreciationAmount;
+        mainUnitFairValue = item.fairValue;
+
         data.compositeBuildingAge = item.buildingAge;
         data.compositeBuildingTotalLife = item.totalLife;
         data.compositeConstructionCost = item.constructionCost;
         data.compositeBuildingDepreciationPct = item.depreciationPercentage;
+      } else if (cat == 'PARKING') {
+        totalParkingAmount += item.amount;
+        totalParkingDepr += item.depreciationAmount;
+        totalParkingFair += item.fairValue;
       } else {
         totalInteriorAmount += item.amount;
         totalInteriorDepr += item.depreciationAmount;
@@ -112,19 +176,30 @@ class ValuationCalculator {
       }
     }
 
-    data.rawFairValue = rawFairValue;
+    data.unitAmount = mainUnitAmount;
+    data.mainUnitDepreciation = mainUnitDepreciation;
+    data.mainUnitFairValue = mainUnitFairValue;
+
     data.totalInteriorAmount = totalInteriorAmount;
     data.totalInteriorDepreciation = totalInteriorDepr;
     data.totalInteriorFairValue = totalInteriorFair;
 
-    // Apply existing ProValuer Say Value rounding engine
-    final sayFairValue = computeSayValue(rawFairValue);
+    data.totalParkingAmount = totalParkingAmount;
+    data.totalParkingDepreciation = totalParkingDepr;
+    data.totalParkingFairValue = totalParkingFair;
+
+    data.totalAmount = totalAmount;
+    data.totalDepreciation = totalDepreciation;
+    data.totalFairValue = totalFairValue;
+    data.rawFairValue = totalFairValue;
+
+    // Apply approved ProValuer Say Value rounding engine to totalFairValue
+    final sayFairValue = computeSayValue(totalFairValue);
     data.sayFairValue = sayFairValue;
 
-    // In the Composite Summary display: Fair Value shall consume Say Fair Value
+    // Fair Value consumes Say Value for presentation & downstream calculations
     data.fairValue = sayFairValue;
 
-    // Downstream calculations consume Say Fair Value
     final realPct = data.realizablePercentage > 0 ? data.realizablePercentage : 85.0;
     final distPct = data.distressSalePercentage > 0 ? data.distressSalePercentage : 75.0;
     data.realizablePercentage = realPct;
@@ -281,77 +356,116 @@ class ValuationCalculator {
 
       map['composite_government_rate'] = IndianNumberFormatter.format(data.compositeGovernmentRate);
       map['composite_construction_cost'] = IndianNumberFormatter.format(data.compositeConstructionCost);
-      map['composite_building_age'] = '${data.compositeBuildingAge} Years';
-      map['composite_building_total_life'] = '${data.compositeBuildingTotalLife} Years';
+      map['composite_building_age'] = data.compositeBuildingAge.toStringAsFixed(0);
+      map['composite_building_age_display'] = '${data.compositeBuildingAge} Years';
+      map['composite_building_total_life'] = data.compositeBuildingTotalLife.toStringAsFixed(0);
+      map['composite_building_total_life_display'] = '${data.compositeBuildingTotalLife} Years';
       map['composite_building_depreciation_pct'] = '${data.compositeBuildingDepreciationPct.toStringAsFixed(1)}%';
       map['total_interior_amount'] = IndianNumberFormatter.format(data.totalInteriorAmount);
       map['total_interior_depreciation'] = IndianNumberFormatter.format(data.totalInteriorDepreciation);
       map['total_interior_fair_value'] = IndianNumberFormatter.format(data.totalInteriorFairValue);
+      map['interior_amount'] = map['total_interior_amount']!;
+      map['interior_depreciation'] = map['total_interior_depreciation']!;
+      map['interior_fair_value'] = map['total_interior_fair_value']!;
 
-      if (compositeItems.isNotEmpty) {
-        final mainUnit = compositeItems.firstWhere(
-          (i) => i.itemCategory.toUpperCase() == 'MAIN_UNIT',
-          orElse: () => compositeItems.first,
-        );
-        final areaStr = mainUnit.quantity.toString();
-        final numericAreaStr = ValueNormalizationEngine.formatNormalizedString(mainUnit.quantity);
-        map['saleable_area'] = areaStr;
-        map['saleable_area_raw'] = areaStr;
-        map['saleable_area_numeric'] = numericAreaStr;
-        map['saleable_area_unit'] = mainUnit.enteredUnit;
-        map['saleable_area_standard_sqft'] = numericAreaStr;
-        map['super_built_up_area'] = areaStr;
-        map['super_built_up_area_raw'] = areaStr;
-        map['super_built_up_area_numeric'] = numericAreaStr;
-        map['super_built_up_area_unit'] = mainUnit.enteredUnit;
-        map['super_built_up_area_standard_sqft'] = numericAreaStr;
-        map['property_area_sft'] = areaStr;
-        map['property_area_sft_raw'] = areaStr;
-        map['property_area_sft_numeric'] = numericAreaStr;
-        map['property_area_sft_unit'] = mainUnit.enteredUnit;
-        map['property_area_sft_standard_sqft'] = numericAreaStr;
-        map['sbua'] = areaStr;
-        map['sbua_raw'] = areaStr;
-        map['sbua_numeric'] = numericAreaStr;
-        map['sbua_unit'] = mainUnit.enteredUnit;
-        map['sbua_standard_sqft'] = numericAreaStr;
-        map['flat_area'] = areaStr;
-        map['flat_area_raw'] = areaStr;
-        map['flat_area_numeric'] = numericAreaStr;
-        map['flat_area_unit'] = mainUnit.enteredUnit;
-        map['flat_area_standard_sqft'] = numericAreaStr;
-        map['composite_area'] = '$areaStr ${mainUnit.enteredUnit}';
+      map['total_parking_amount'] = IndianNumberFormatter.format(data.totalParkingAmount);
+      map['total_parking_depreciation'] = IndianNumberFormatter.format(data.totalParkingDepreciation);
+      map['total_parking_fair_value'] = IndianNumberFormatter.format(data.totalParkingFairValue);
+      map['parking_amount'] = map['total_parking_amount']!;
+      map['parking_depreciation'] = map['total_parking_depreciation']!;
+      map['parking_fair_value'] = map['total_parking_fair_value']!;
 
-        final rateStr = IndianNumberFormatter.format(mainUnit.rate);
-        final numericRateStr = ValueNormalizationEngine.formatNormalizedString(mainUnit.rate);
-        map['market_rate_flat'] = rateStr;
-        map['market_rate_flat_raw'] = rateStr;
-        map['market_rate_flat_numeric'] = numericRateStr;
-        map['composite_rate'] = rateStr;
-        map['composite_rate_raw'] = rateStr;
-        map['composite_rate_numeric'] = numericRateStr;
-        map['current_market_rate'] = rateStr;
-        map['current_market_rate_raw'] = rateStr;
-        map['current_market_rate_numeric'] = numericRateStr;
-        map['flat_market_rate'] = rateStr;
-        map['flat_market_rate_raw'] = rateStr;
-        map['flat_market_rate_numeric'] = numericRateStr;
-        map['building_market_rate'] = rateStr;
-        map['building_market_rate_raw'] = rateStr;
-        map['building_market_rate_numeric'] = numericRateStr;
+      map['total_amount'] = IndianNumberFormatter.format(data.totalAmount);
+      map['total_amount_numeric'] = ValueNormalizationEngine.formatNormalizedString(data.totalAmount);
+      map['total_depreciation'] = IndianNumberFormatter.format(data.totalDepreciation);
+      map['total_depreciation_numeric'] = ValueNormalizationEngine.formatNormalizedString(data.totalDepreciation);
+      map['total_fair_value'] = IndianNumberFormatter.format(data.totalFairValue);
+      map['total_fair_value_numeric'] = ValueNormalizationEngine.formatNormalizedString(data.totalFairValue);
 
-        final amountStr = IndianNumberFormatter.format(mainUnit.amount);
-        final numericAmountStr = ValueNormalizationEngine.formatNormalizedString(mainUnit.amount);
-        map['unit_amount'] = amountStr;
-        map['unit_amount_numeric'] = numericAmountStr;
-        map['flat_value'] = amountStr;
-        map['main_unit_amount'] = amountStr;
-        map['composite_amount'] = amountStr;
-
-        final deprStr = IndianNumberFormatter.format(mainUnit.depreciationAmount);
-        map['main_unit_depreciation'] = deprStr;
-        map['composite_depreciation'] = deprStr;
+      // Explicitly locate MAIN_UNIT. NEVER fallback to compositeItems.first or another category
+      ValuationCompositeItemModel? mainUnit;
+      for (final item in compositeItems) {
+        if (item.itemCategory.toUpperCase() == 'MAIN_UNIT') {
+          mainUnit = item;
+          break;
+        }
       }
+      mainUnit ??= ValuationCompositeItemModel(
+        orderId: data.orderId,
+        itemCategory: 'MAIN_UNIT',
+        description: 'Main Unit / Flat',
+        enteredUnit: 'Sq.Ft',
+        quantity: 1000.0,
+        rate: 0.0,
+        constructionCost: data.compositeConstructionCost > 0 ? data.compositeConstructionCost : 2000.0,
+        buildingAge: data.compositeBuildingAge,
+        totalLife: data.compositeBuildingTotalLife > 0 ? data.compositeBuildingTotalLife : 60.0,
+        sortOrder: 0,
+      );
+
+      final areaStr = mainUnit.quantity.toString();
+      final numericAreaStr = ValueNormalizationEngine.formatNormalizedString(mainUnit.quantity);
+      map['saleable_area'] = areaStr;
+      map['saleable_area_raw'] = areaStr;
+      map['saleable_area_numeric'] = numericAreaStr;
+      map['saleable_area_unit'] = mainUnit.enteredUnit;
+      map['saleable_area_standard_sqft'] = numericAreaStr;
+      map['super_built_up_area'] = areaStr;
+      map['super_built_up_area_raw'] = areaStr;
+      map['super_built_up_area_numeric'] = numericAreaStr;
+      map['super_built_up_area_unit'] = mainUnit.enteredUnit;
+      map['super_built_up_area_standard_sqft'] = numericAreaStr;
+      map['property_area_sft'] = areaStr;
+      map['property_area_sft_raw'] = areaStr;
+      map['property_area_sft_numeric'] = numericAreaStr;
+      map['property_area_sft_unit'] = mainUnit.enteredUnit;
+      map['property_area_sft_standard_sqft'] = numericAreaStr;
+      map['sbua'] = areaStr;
+      map['sbua_raw'] = areaStr;
+      map['sbua_numeric'] = numericAreaStr;
+      map['sbua_unit'] = mainUnit.enteredUnit;
+      map['sbua_standard_sqft'] = numericAreaStr;
+      map['flat_area'] = areaStr;
+      map['flat_area_raw'] = areaStr;
+      map['flat_area_numeric'] = numericAreaStr;
+      map['flat_area_unit'] = mainUnit.enteredUnit;
+      map['flat_area_standard_sqft'] = numericAreaStr;
+      map['composite_area'] = '$areaStr ${mainUnit.enteredUnit}';
+
+      final rateStr = IndianNumberFormatter.format(mainUnit.rate);
+      final numericRateStr = ValueNormalizationEngine.formatNormalizedString(mainUnit.rate);
+      map['market_rate_flat'] = rateStr;
+      map['market_rate_flat_raw'] = rateStr;
+      map['market_rate_flat_numeric'] = numericRateStr;
+      map['composite_rate'] = rateStr;
+      map['composite_rate_raw'] = rateStr;
+      map['composite_rate_numeric'] = numericRateStr;
+      map['current_market_rate'] = rateStr;
+      map['current_market_rate_raw'] = rateStr;
+      map['current_market_rate_numeric'] = numericRateStr;
+      map['flat_market_rate'] = rateStr;
+      map['flat_market_rate_raw'] = rateStr;
+      map['flat_market_rate_numeric'] = numericRateStr;
+      map['building_market_rate'] = rateStr;
+      map['building_market_rate_raw'] = rateStr;
+      map['building_market_rate_numeric'] = numericRateStr;
+
+      final amountStr = IndianNumberFormatter.format(mainUnit.amount);
+      final numericAmountStr = ValueNormalizationEngine.formatNormalizedString(mainUnit.amount);
+      map['unit_amount'] = amountStr;
+      map['unit_amount_numeric'] = numericAmountStr;
+      map['flat_value'] = amountStr;
+      map['main_unit_amount'] = amountStr;
+      map['composite_amount'] = amountStr;
+
+      final deprStr = IndianNumberFormatter.format(mainUnit.depreciationAmount);
+      map['main_unit_depreciation'] = deprStr;
+      map['composite_depreciation'] = deprStr;
+
+      final fairStr = IndianNumberFormatter.format(mainUnit.fairValue);
+      final numericFairStr = ValueNormalizationEngine.formatNormalizedString(mainUnit.fairValue);
+      map['main_unit_fair_value'] = fairStr;
+      map['main_unit_fair_value_numeric'] = numericFairStr;
     } else {
       // Land
       map['total_land_value'] = IndianNumberFormatter.format(data.totalLandValue);

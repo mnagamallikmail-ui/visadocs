@@ -16,6 +16,7 @@ import '../../services/api_service.dart';
 import '../document_studio/document_studio_screen.dart';
 import '../../utils/report_list_helper.dart';
 import '../document_workspace/models/workspace_view_model.dart';
+import 'placeholder_catalog_screen.dart';
 
 // ─── Shared helpers ───────────────────────────────────────────
 

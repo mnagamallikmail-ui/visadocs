@@ -330,7 +330,21 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
             isInsurable: true,
             sortOrder: 1,
           ),
+          ValuationCompositeItemModel(
+            orderId: orderId,
+            itemCategory: 'PARKING',
+            description: 'Car Parking',
+            enteredUnit: 'Slot',
+            quantity: 1.0,
+            rate: 0.0,
+            amount: 0.0,
+            depreciationAmount: 0.0,
+            isInsurable: false,
+            sortOrder: 2,
+          ),
         ];
+      } else {
+        ensureCompositeMainUnit();
       }
 
       ValuationCalculator.recalculateCompositeSummary(_valuationData!, _compositeItems);
@@ -370,7 +384,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   void _mergePlaceholdersPreservingRaw(Map<String, String> placeholders) {
     placeholders.forEach((k, v) {
       final uk = k.toUpperCase();
-      if (uk.endsWith('_RAW') || uk.endsWith('_NUMERIC') || uk.endsWith('_UNIT') || uk.endsWith('_STANDARD_SQFT')) {
+      if (uk.endsWith('_RAW') || (uk.endsWith('_NUMERIC') && !uk.contains('AMOUNT') && !uk.contains('FAIR_VALUE') && !uk.contains('DEPRECIATION')) || (uk.endsWith('_UNIT') && !uk.contains('AMOUNT')) || uk.endsWith('_STANDARD_SQFT')) {
         if (_activeValues.containsKey(uk) && _activeValues[uk]!.isNotEmpty) {
           return;
         }
@@ -495,6 +509,24 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       depreciationMode: 'DIRECT_AMOUNT',
       depreciationAmount: 0.0,
       isInsurable: true,
+      sortOrder: _compositeItems.length,
+    ));
+    recalculateValuation();
+  }
+
+  void addCompositeParkingItem() {
+    final orderId = _workspaceModel?.orderId ?? 0;
+    final parkingCount = _compositeItems.where((i) => i.itemCategory.toUpperCase() == 'PARKING').length;
+    _compositeItems.add(ValuationCompositeItemModel(
+      orderId: orderId,
+      itemCategory: 'PARKING',
+      description: parkingCount == 0 ? 'Car Parking' : 'Parking Slot #${parkingCount + 1}',
+      enteredUnit: 'Slot',
+      quantity: 1.0,
+      rate: 0.0,
+      amount: 0.0,
+      depreciationAmount: 0.0,
+      isInsurable: false,
       sortOrder: _compositeItems.length,
     ));
     recalculateValuation();
@@ -827,7 +859,10 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       setCompositeConstructionCost(cost);
       return;
     } else if (upperKey == 'COMPOSITE_BUILDING_AGE') {
-      final age = double.tryParse(value.replaceAll(',', '').trim()) ?? 0.0;
+      final clean = value.replaceAll(RegExp(r'[^0-9.]'), '').trim();
+      final age = double.tryParse(clean) ?? 0.0;
+      _activeValues['COMPOSITE_BUILDING_AGE'] = clean;
+      _deltaValues['COMPOSITE_BUILDING_AGE'] = clean;
       ensureCompositeMainUnit();
       for (final item in _compositeItems) {
         if (item.itemCategory.toUpperCase() == 'MAIN_UNIT') {
@@ -837,12 +872,13 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       if (_valuationData != null) {
         _valuationData!.compositeBuildingAge = age;
       }
-      _activeValues['COMPOSITE_BUILDING_AGE'] = value;
-      _deltaValues['COMPOSITE_BUILDING_AGE'] = value;
       recalculateValuation();
       return;
     } else if (upperKey == 'COMPOSITE_BUILDING_TOTAL_LIFE') {
-      final life = double.tryParse(value.replaceAll(',', '').trim()) ?? 60.0;
+      final clean = value.replaceAll(RegExp(r'[^0-9.]'), '').trim();
+      final life = double.tryParse(clean) ?? 60.0;
+      _activeValues['COMPOSITE_BUILDING_TOTAL_LIFE'] = clean;
+      _deltaValues['COMPOSITE_BUILDING_TOTAL_LIFE'] = clean;
       ensureCompositeMainUnit();
       for (final item in _compositeItems) {
         if (item.itemCategory.toUpperCase() == 'MAIN_UNIT') {
@@ -852,8 +888,6 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       if (_valuationData != null) {
         _valuationData!.compositeBuildingTotalLife = life;
       }
-      _activeValues['COMPOSITE_BUILDING_TOTAL_LIFE'] = value;
-      _deltaValues['COMPOSITE_BUILDING_TOTAL_LIFE'] = value;
       recalculateValuation();
       return;
     } else {
@@ -872,22 +906,75 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   }
 
   void ensureCompositeMainUnit() {
-    if (_compositeItems.isEmpty) {
-      _initValuationDataFromValues(_workspaceModel?.orderId ?? 0);
-    }
-    if (_compositeItems.isEmpty || !_compositeItems.any((i) => i.itemCategory.toUpperCase() == 'MAIN_UNIT')) {
-      final orderId = _workspaceModel?.orderId ?? 0;
-      final areaStr = _activeValues['SALEABLE_AREA_STANDARD_SQFT'] ?? _activeValues['SALEABLE_AREA'] ?? '1000';
-      final area = double.tryParse(areaStr.replaceAll(',', '').trim()) ?? 1000.0;
-      final rateStr = _activeValues['MARKET_RATE_FLAT_NUMERIC'] ?? _activeValues['MARKET_RATE_FLAT'] ?? '0';
-      final rate = double.tryParse(rateStr.replaceAll(',', '').trim()) ?? 0.0;
-      final costStr = _activeValues['COMPOSITE_CONSTRUCTION_COST'] ?? '2000';
-      final cost = double.tryParse(costStr.replaceAll(',', '').trim()) ?? 2000.0;
-      final ageStr = _activeValues['COMPOSITE_BUILDING_AGE'] ?? '0';
-      final age = double.tryParse(ageStr.replaceAll(',', '').trim()) ?? 0.0;
-      final lifeStr = _activeValues['COMPOSITE_BUILDING_TOTAL_LIFE'] ?? '60';
-      final life = double.tryParse(lifeStr.replaceAll(',', '').trim()) ?? 60.0;
+    final orderId = _workspaceModel?.orderId ?? 0;
+    final areaStr = _activeValues['SALEABLE_AREA_STANDARD_SQFT'] ?? _activeValues['SALEABLE_AREA'] ?? '1000';
+    final area = double.tryParse(areaStr.replaceAll(',', '').trim()) ?? 1000.0;
+    final rateStr = _activeValues['MARKET_RATE_FLAT_NUMERIC'] ?? _activeValues['MARKET_RATE_FLAT'] ?? '0';
+    final rate = double.tryParse(rateStr.replaceAll(',', '').trim()) ?? 0.0;
+    final costStr = _activeValues['COMPOSITE_CONSTRUCTION_COST'] ?? '2000';
+    final cost = double.tryParse(costStr.replaceAll(',', '').trim()) ?? 2000.0;
+    final ageStr = _activeValues['COMPOSITE_BUILDING_AGE'] ?? '0';
+    final age = double.tryParse(ageStr.replaceAll(RegExp(r'[^0-9.]'), '').trim()) ?? 0.0;
+    final lifeStr = _activeValues['COMPOSITE_BUILDING_TOTAL_LIFE'] ?? '60';
+    final life = double.tryParse(lifeStr.replaceAll(RegExp(r'[^0-9.]'), '').trim()) ?? 60.0;
 
+    if (_compositeItems.isEmpty) {
+      _compositeItems.add(ValuationCompositeItemModel(
+        orderId: orderId,
+        itemCategory: 'MAIN_UNIT',
+        description: _activeValues['PROPERTY_SUB_TYPE'] ?? _activeValues['PROPERTY_TYPE'] ?? 'Main Unit',
+        enteredUnit: _activeValues['SALEABLE_AREA_UNIT'] ?? 'Sq.Ft',
+        quantity: area,
+        rate: rate,
+        constructionCost: cost,
+        buildingAge: age,
+        totalLife: life,
+        sortOrder: 0,
+      ));
+      _compositeItems.add(ValuationCompositeItemModel(
+        orderId: orderId,
+        itemCategory: 'INTERIOR_WORK',
+        description: 'Interior Works & Improvements',
+        enteredUnit: 'LS',
+        quantity: 1.0,
+        rate: 0.0,
+        amount: 0.0,
+        depreciationMode: 'DIRECT_AMOUNT',
+        depreciationAmount: 0.0,
+        isInsurable: true,
+        sortOrder: 1,
+      ));
+      _compositeItems.add(ValuationCompositeItemModel(
+        orderId: orderId,
+        itemCategory: 'PARKING',
+        description: 'Car Parking',
+        enteredUnit: 'Slot',
+        quantity: 1.0,
+        rate: 0.0,
+        amount: 0.0,
+        depreciationAmount: 0.0,
+        isInsurable: false,
+        sortOrder: 2,
+      ));
+      return;
+    }
+
+    final existingIdx = _compositeItems.indexWhere((i) => i.itemCategory.toUpperCase() == 'MAIN_UNIT');
+    if (existingIdx >= 0) {
+      final item = _compositeItems[existingIdx];
+      if (_activeValues.containsKey('SALEABLE_AREA_STANDARD_SQFT') || _activeValues.containsKey('SALEABLE_AREA')) {
+        item.quantity = area;
+        if (_activeValues.containsKey('SALEABLE_AREA_UNIT')) {
+          item.enteredUnit = _activeValues['SALEABLE_AREA_UNIT']!;
+        }
+      }
+      if (_activeValues.containsKey('MARKET_RATE_FLAT_NUMERIC') || _activeValues.containsKey('MARKET_RATE_FLAT')) {
+        item.rate = rate;
+      }
+      if (cost > 0) item.constructionCost = cost;
+      if (_activeValues.containsKey('COMPOSITE_BUILDING_AGE')) item.buildingAge = age;
+      if (_activeValues.containsKey('COMPOSITE_BUILDING_TOTAL_LIFE') && life > 0) item.totalLife = life;
+    } else {
       final mainUnit = ValuationCompositeItemModel(
         orderId: orderId,
         itemCategory: 'MAIN_UNIT',

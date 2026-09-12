@@ -1458,8 +1458,6 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     final data = provider.valuationData ?? ValuationDataModel(orderId: 0, valuationMethodology: 'COMPOSITE');
     final isReadOnly = provider.isReadOnly;
 
-    final mainUnit = compItems.firstWhere((i) => i.itemCategory == 'MAIN_UNIT', orElse: () => compItems.first);
-    final interiorItems = compItems.where((i) => i.itemCategory == 'INTERIOR_WORK').toList();
 
     final rawFairVal = data.rawFairValue;
     final sayFairVal = data.sayFairValue > 0 ? data.sayFairValue : ValuationCalculator.computeSayValue(rawFairVal);
@@ -1518,19 +1516,11 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // 1. Main Unit Card
-                _buildCompositeMainUnitCard(context, mainUnit, isReadOnly, provider),
-                const SizedBox(height: 16),
-
-                // 2. Interior Works Card
-                _buildCompositeInteriorCard(context, interiorItems, isReadOnly, provider),
-                const SizedBox(height: 16),
-
-                // 3. Composite Breakdown Table & Footer
-                _buildCompositeBreakdownTable(context, compItems, rawFairVal, sayFairVal),
+                // 1. ONE SINGLE COMPOSITE VALUATION TABLE
+                _buildUnifiedCompositeTable(context, compItems, data, isReadOnly, provider),
                 const SizedBox(height: 20),
 
-                // 4. Valuation Parameters Summary Card (Consumes Say Value)
+                // 2. Valuation Parameters Summary Card (Consumes Say Value)
                 _buildCompositeSummaryCard(context, data, sayFairVal, isReadOnly, provider),
               ],
             ),
@@ -1540,549 +1530,736 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     );
   }
 
-  Widget _buildCompositeMainUnitCard(BuildContext context, ValuationCompositeItemModel item, bool isReadOnly, DocumentWorkspaceProvider provider) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FBFC),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.hairlineSoft),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.home_work_outlined, size: 18, color: Color(0xFF3494BA)),
-              const SizedBox(width: 6),
-              Text(
-                '1. MAIN UNIT DETAILS & DEPRECIATION',
-                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF3494BA), letterSpacing: 0.5),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              Expanded(
-                flex: 3,
-                child: TextFormField(
-                  initialValue: item.description,
-                  enabled: !isReadOnly,
-                  decoration: const InputDecoration(
-                    labelText: 'Unit Description (e.g. Flat No / Floor)',
-                    isDense: true,
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  ),
-                  onChanged: (val) {
-                    item.description = val;
-                    provider.recalculateValuation();
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: TextFormField(
-                  key: ValueKey('main_unit_area_${provider.getValue('SALEABLE_AREA')}'),
-                  initialValue: provider.getValue('SALEABLE_AREA').isNotEmpty
-                      ? provider.getValue('SALEABLE_AREA')
-                      : (item.quantity > 0 ? ValueNormalizationEngine.formatNormalizedString(item.quantity) : ''),
-                  enabled: !isReadOnly,
-                  keyboardType: TextInputType.text,
-                  decoration: InputDecoration(
-                    labelText: 'Saleable Area (Authoritative)',
-                    suffixText: provider.getValue('SALEABLE_AREA_UNIT').isNotEmpty ? provider.getValue('SALEABLE_AREA_UNIT') : item.enteredUnit,
-                    isDense: true,
-                    border: const OutlineInputBorder(),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  ),
-                  onChanged: (val) {
-                    provider.updateValue('SALEABLE_AREA', val);
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: TextFormField(
-                  key: ValueKey('main_unit_rate_${provider.getValue('MARKET_RATE_FLAT')}'),
-                  initialValue: provider.getValue('MARKET_RATE_FLAT').isNotEmpty
-                      ? provider.getValue('MARKET_RATE_FLAT')
-                      : (item.rate > 0 ? ValueNormalizationEngine.formatNormalizedString(item.rate) : ''),
-                  enabled: !isReadOnly,
-                  keyboardType: TextInputType.text,
-                  decoration: const InputDecoration(
-                    labelText: 'Market Rate (Flat / Composite)',
-                    prefixText: '₹ ',
-                    isDense: true,
-                    border: OutlineInputBorder(),
-                    contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  ),
-                  onChanged: (val) {
-                    provider.updateValue('MARKET_RATE_FLAT', val);
-                  },
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                flex: 2,
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: AppColors.hairlineSoft),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      const Text('Unit Amount (₹)', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                      Text(
-                        provider.getValue('UNIT_AMOUNT').isNotEmpty
-                            ? '₹ ${provider.getValue('UNIT_AMOUNT')}'
-                            : '₹ ${IndianNumberFormatter.format(item.amount)}',
-                        style: GoogleFonts.firaCode(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.ink),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          // Construction Cost, Age & Life Sub-row
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: const Color(0xFF3494BA).withValues(alpha: 0.2)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Text('Depreciation Formula Parameters: ', style: TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: Color(0xFF3494BA))),
-                    Text('Depreciation = Area × Construction Cost × 90% × (Age ÷ Life)', style: GoogleFonts.firaCode(fontSize: 11, color: Colors.grey[700])),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        initialValue: item.constructionCost > 0 ? item.constructionCost.toString() : '2000',
-                        enabled: !isReadOnly,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(
-                          labelText: 'Construction Cost (₹/Sq.Ft)',
-                          prefixText: '₹ ',
-                          isDense: true,
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        ),
-                        onChanged: (val) {
-                          provider.updateValue('COMPOSITE_CONSTRUCTION_COST', val);
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        initialValue: item.buildingAge > 0 ? item.buildingAge.toString() : '0',
-                        enabled: !isReadOnly,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(
-                          labelText: 'Age of Building (Years)',
-                          suffixText: 'Yrs',
-                          isDense: true,
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        ),
-                        onChanged: (val) {
-                          provider.updateValue('COMPOSITE_BUILDING_AGE', val);
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        initialValue: item.totalLife > 0 ? item.totalLife.toString() : '60',
-                        enabled: !isReadOnly,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(
-                          labelText: 'Total Useful Life (Years)',
-                          suffixText: 'Yrs',
-                          isDense: true,
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                        ),
-                        onChanged: (val) {
-                          provider.updateValue('COMPOSITE_BUILDING_TOTAL_LIFE', val);
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFFFF7E6),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: const Color(0xFFFFD591)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            const Text('Depreciation (₹)', style: TextStyle(fontSize: 10, color: Color(0xFFD46B08))),
-                            Text(
-                              provider.getValue('MAIN_UNIT_DEPRECIATION').isNotEmpty
-                                  ? '₹ ${provider.getValue('MAIN_UNIT_DEPRECIATION')}'
-                                  : '₹ ${IndianNumberFormatter.format(item.depreciationAmount)}',
-                              style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFFD46B08)),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE6F7FF),
-                          borderRadius: BorderRadius.circular(4),
-                          border: Border.all(color: const Color(0xFF91D5FF)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            const Text('Main Unit Fair Value', style: TextStyle(fontSize: 10, color: Color(0xFF096DD9))),
-                            Text(
-                              provider.getValue('FAIR_VALUE').isNotEmpty
-                                  ? '₹ ${provider.getValue('FAIR_VALUE')}'
-                                  : '₹ ${IndianNumberFormatter.format(item.fairValue)}',
-                              style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF096DD9)),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCompositeInteriorCard(BuildContext context, List<ValuationCompositeItemModel> items, bool isReadOnly, DocumentWorkspaceProvider provider) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFFF9FBFC),
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: AppColors.hairlineSoft),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  const Icon(Icons.chair_outlined, size: 18, color: Color(0xFF3494BA)),
-                  const SizedBox(width: 6),
-                  Text(
-                    '2. INTERIOR WORKS & IMPROVEMENTS',
-                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF3494BA), letterSpacing: 0.5),
-                  ),
-                ],
-              ),
-              if (!isReadOnly)
-                ElevatedButton.icon(
-                  icon: const Icon(Icons.add, size: 14),
-                  label: const Text('+ Add Row', style: TextStyle(fontSize: 12)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF3494BA),
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  ),
-                  onPressed: () => provider.addCompositeInteriorItem(),
-                ),
-            ],
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Consolidated or breakup interior improvements, woodwork, false ceiling, partitions, etc.',
-            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
-          ),
-          const SizedBox(height: 12),
-          ...items.asMap().entries.map((entry) {
-            final idx = entry.key;
-            final item = entry.value;
-            return Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(color: AppColors.hairlineSoft),
-              ),
-              child: Row(
-                children: [
-                  Text('${idx + 1}', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.grey[600])),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    flex: 3,
-                    child: TextFormField(
-                      initialValue: item.description,
-                      enabled: !isReadOnly,
-                      decoration: const InputDecoration(
-                        labelText: 'Description',
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                      ),
-                      onChanged: (val) {
-                        item.description = val;
-                        provider.recalculateValuation();
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  SizedBox(
-                    width: 60,
-                    child: Text(
-                      item.enteredUnit,
-                      textAlign: TextAlign.center,
-                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey[700]),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    flex: 2,
-                    child: TextFormField(
-                      initialValue: item.amount > 0 ? item.amount.toString() : '',
-                      enabled: !isReadOnly,
-                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                      decoration: const InputDecoration(
-                        labelText: 'Amount (₹)',
-                        prefixText: '₹ ',
-                        isDense: true,
-                        border: OutlineInputBorder(),
-                        contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                      ),
-                      onChanged: (val) {
-                        final amt = double.tryParse(val.replaceAll(',', '').trim()) ?? 0.0;
-                        item.amount = amt;
-                        item.rate = amt;
-                        provider.recalculateValuation();
-                      },
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  // Depreciation Mode Toggle & Input
-                  Row(
-                    children: [
-                      DropdownButton<String>(
-                        value: item.depreciationMode,
-                        underline: const SizedBox.shrink(),
-                        isDense: true,
-                        items: const [
-                          DropdownMenuItem(value: 'DIRECT_AMOUNT', child: Text('₹ Amt', style: TextStyle(fontSize: 11))),
-                          DropdownMenuItem(value: 'PERCENTAGE', child: Text('% Pct', style: TextStyle(fontSize: 11))),
-                        ],
-                        onChanged: isReadOnly ? null : (mode) {
-                          if (mode != null) {
-                            item.depreciationMode = mode;
-                            provider.recalculateValuation();
-                          }
-                        },
-                      ),
-                      const SizedBox(width: 4),
-                      SizedBox(
-                        width: 100,
-                        child: TextFormField(
-                          initialValue: item.depreciationMode == 'PERCENTAGE'
-                              ? (item.depreciationPercentage > 0 ? item.depreciationPercentage.toString() : '')
-                              : (item.depreciationAmount > 0 ? item.depreciationAmount.toString() : ''),
-                          enabled: !isReadOnly,
-                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                          decoration: InputDecoration(
-                            labelText: item.depreciationMode == 'PERCENTAGE' ? 'Depr %' : 'Depr (₹)',
-                            suffixText: item.depreciationMode == 'PERCENTAGE' ? '%' : '',
-                            prefixText: item.depreciationMode == 'DIRECT_AMOUNT' ? '₹ ' : '',
-                            isDense: true,
-                            border: const OutlineInputBorder(),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                          ),
-                          onChanged: (val) {
-                            final parsed = double.tryParse(val.replaceAll(',', '').replaceAll('%', '').trim()) ?? 0.0;
-                            if (item.depreciationMode == 'PERCENTAGE') {
-                              item.depreciationPercentage = parsed;
-                            } else {
-                              item.depreciationAmount = parsed;
-                            }
-                            provider.recalculateValuation();
-                          },
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(width: 8),
-                  // Insurable Checkbox
-                  Row(
-                    children: [
-                      Checkbox(
-                        value: item.isInsurable,
-                        onChanged: isReadOnly ? null : (checked) {
-                          item.isInsurable = checked ?? true;
-                          provider.recalculateValuation();
-                        },
-                      ),
-                      const Text('Insurable', style: TextStyle(fontSize: 11)),
-                    ],
-                  ),
-                  const SizedBox(width: 8),
-                  // Fair Value Text
-                  SizedBox(
-                    width: 110,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        const Text('Fair Value (₹)', style: TextStyle(fontSize: 10, color: Colors.grey)),
-                        Text(
-                          '₹ ${IndianNumberFormatter.format(item.fairValue)}',
-                          style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.ink),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 4),
-                  if (!isReadOnly && idx > 0)
-                    IconButton(
-                      icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
-                      onPressed: () {
-                        final origIdx = provider.compositeItems.indexOf(item);
-                        if (origIdx > 0) {
-                          provider.removeCompositeItem(origIdx);
-                        }
-                      },
-                    )
-                  else if (!isReadOnly)
-                    const SizedBox(width: 40),
-                ],
-              ),
-            );
-          }),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCompositeBreakdownTable(BuildContext context, List<ValuationCompositeItemModel> items, double rawFairVal, double sayFairVal) {
-    final showSayRow = sayFairVal > 0 && sayFairVal != rawFairVal;
+  /// ONE SINGLE COMPOSITE PROPERTY VALUATION TABLE
+  /// Holds Row 1: Main Unit / Flat, Row 2: Interior Works, Row 3: Parking,
+  /// followed by TOTAL VALUATION row and SAY VALUE footer in the SAME TABLE.
+  Widget _buildUnifiedCompositeTable(
+    BuildContext context,
+    List<ValuationCompositeItemModel> items,
+    ValuationDataModel data,
+    bool isReadOnly,
+    DocumentWorkspaceProvider provider,
+  ) {
+    ValuationCompositeItemModel? mainUnit;
+    for (final item in items) {
+      if (item.itemCategory.toUpperCase() == 'MAIN_UNIT') {
+        mainUnit = item;
+        break;
+      }
+    }
+    mainUnit ??= items.isNotEmpty ? items.first : ValuationCompositeItemModel(itemCategory: 'MAIN_UNIT', quantity: 1000, rate: 0);
 
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
         border: Border.all(color: AppColors.hairlineSoft),
         borderRadius: BorderRadius.circular(8),
+        boxShadow: AppShadows.subtleElevated,
       ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Table Header
+          // Table Column Headers
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: const BoxDecoration(
-              color: Color(0xFF3494BA),
+              color: Color(0xFF1A3B5C),
               borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
             ),
             child: Row(
               children: const [
-                SizedBox(width: 40, child: Text('S.No', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white), textAlign: TextAlign.center)),
-                Expanded(flex: 3, child: Text('DESCRIPTION', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white))),
-                SizedBox(width: 50, child: Text('UNIT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white), textAlign: TextAlign.center)),
-                Expanded(flex: 1, child: Text('QUANTITY', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white), textAlign: TextAlign.right)),
-                Expanded(flex: 1, child: Text('RATE (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white), textAlign: TextAlign.right)),
+                SizedBox(width: 35, child: Text('#', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white), textAlign: TextAlign.center)),
+                Expanded(flex: 3, child: Text('ITEM DESCRIPTION', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white))),
+                SizedBox(width: 8),
+                Expanded(flex: 2, child: Text('QTY / AREA', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white))),
+                SizedBox(width: 8),
+                SizedBox(width: 70, child: Text('UNIT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white), textAlign: TextAlign.center)),
+                SizedBox(width: 8),
+                Expanded(flex: 2, child: Text('RATE (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white), textAlign: TextAlign.right)),
+                SizedBox(width: 8),
                 Expanded(flex: 2, child: Text('AMOUNT (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white), textAlign: TextAlign.right)),
+                SizedBox(width: 8),
                 Expanded(flex: 2, child: Text('DEPRECIATION (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white), textAlign: TextAlign.right)),
+                SizedBox(width: 8),
                 Expanded(flex: 2, child: Text('FAIR VALUE (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white), textAlign: TextAlign.right)),
+                SizedBox(width: 8),
+                SizedBox(width: 45, child: Text('ACT', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11, color: Colors.white), textAlign: TextAlign.center)),
               ],
             ),
           ),
-          // Rows
+
+          // Table Rows
           ...items.asMap().entries.map((entry) {
             final idx = entry.key;
             final item = entry.value;
-            return Container(
+            final isMainUnit = item.itemCategory.toUpperCase() == 'MAIN_UNIT';
+            final isParking = item.itemCategory.toUpperCase() == 'PARKING';
+
+            if (isMainUnit) {
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFBFDFF),
+                  border: Border(bottom: BorderSide(color: AppColors.hairlineSoft)),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        SizedBox(width: 35, child: Text('${idx + 1}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                        Expanded(
+                          flex: 3,
+                          child: TextFormField(
+                            initialValue: item.description.isNotEmpty ? item.description : 'Main Unit / Flat',
+                            enabled: !isReadOnly,
+                            decoration: const InputDecoration(
+                              hintText: 'Unit Description (e.g. Flat No / Floor)',
+                              isDense: true,
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            ),
+                            onChanged: (val) {
+                              item.description = val;
+                              provider.recalculateValuation();
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Authoritative SALEABLE_AREA driver
+                        Expanded(
+                          flex: 2,
+                          child: TextFormField(
+                            key: ValueKey('main_unit_area_${provider.getValue('SALEABLE_AREA')}'),
+                            initialValue: provider.getValue('SALEABLE_AREA').isNotEmpty
+                                ? provider.getValue('SALEABLE_AREA')
+                                : (item.quantity > 0 ? ValueNormalizationEngine.formatNormalizedString(item.quantity) : ''),
+                            enabled: !isReadOnly,
+                            keyboardType: TextInputType.text,
+                            decoration: InputDecoration(
+                              labelText: '<<SALEABLE_AREA>>',
+                              isDense: true,
+                              border: const OutlineInputBorder(),
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            ),
+                            onChanged: (val) {
+                              provider.updateValue('SALEABLE_AREA', val);
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          width: 70,
+                          child: Text(
+                            provider.getValue('SALEABLE_AREA_UNIT').isNotEmpty ? provider.getValue('SALEABLE_AREA_UNIT') : item.enteredUnit,
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.grey[700]),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Authoritative MARKET_RATE_FLAT driver
+                        Expanded(
+                          flex: 2,
+                          child: TextFormField(
+                            key: ValueKey('main_unit_rate_${provider.getValue('MARKET_RATE_FLAT')}'),
+                            initialValue: provider.getValue('MARKET_RATE_FLAT').isNotEmpty
+                                ? provider.getValue('MARKET_RATE_FLAT')
+                                : (item.rate > 0 ? ValueNormalizationEngine.formatNormalizedString(item.rate) : ''),
+                            enabled: !isReadOnly,
+                            keyboardType: TextInputType.text,
+                            decoration: const InputDecoration(
+                              labelText: '<<MARKET_RATE_FLAT>>',
+                              prefixText: '₹ ',
+                              isDense: true,
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            ),
+                            onChanged: (val) {
+                              provider.updateValue('MARKET_RATE_FLAT', val);
+                            },
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Amount = SALEABLE_AREA * MARKET_RATE_FLAT
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            provider.getValue('UNIT_AMOUNT').isNotEmpty
+                                ? '₹ ${provider.getValue('UNIT_AMOUNT')}'
+                                : '₹ ${IndianNumberFormatter.format(item.amount)}',
+                            style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.ink),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // Depreciation = Area * Cost * (Age / Life) * 90%
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            provider.getValue('MAIN_UNIT_DEPRECIATION').isNotEmpty
+                                ? '₹ ${provider.getValue('MAIN_UNIT_DEPRECIATION')}'
+                                : '₹ ${IndianNumberFormatter.format(item.depreciationAmount)}',
+                            style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFFD46B08)),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        // MAIN_UNIT_FAIR_VALUE = UNIT_AMOUNT - MAIN_UNIT_DEPRECIATION (Protected: Never reads FAIR_VALUE)
+                        Expanded(
+                          flex: 2,
+                          child: Text(
+                            provider.getValue('MAIN_UNIT_FAIR_VALUE').isNotEmpty
+                                ? '₹ ${provider.getValue('MAIN_UNIT_FAIR_VALUE')}'
+                                : '₹ ${IndianNumberFormatter.format(item.fairValue)}',
+                            style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF096DD9)),
+                            textAlign: TextAlign.right,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        const SizedBox(
+                          width: 45,
+                          child: Center(
+                            child: Icon(Icons.verified, size: 18, color: Color(0xFF3494BA)),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    // Inline Formula Parameters Bar for Main Unit Depreciation
+                    Container(
+                      margin: const EdgeInsets.only(top: 8, bottom: 4),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF4F9FD),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFF3494BA).withValues(alpha: 0.2)),
+                      ),
+                      child: Row(
+                        children: [
+                          Row(
+                            children: [
+                              const Icon(Icons.calculate_outlined, size: 14, color: Color(0xFF3494BA)),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Depreciation Drivers: ',
+                                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF3494BA)),
+                              ),
+                              Text(
+                                '<<SALEABLE_AREA>> × Cost × (Age/Life) × 90%',
+                                style: GoogleFonts.firaCode(fontSize: 10, color: Colors.grey[700]),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: TextFormField(
+                              initialValue: item.constructionCost > 0 ? item.constructionCost.toString() : '2000',
+                              enabled: !isReadOnly,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              decoration: const InputDecoration(
+                                labelText: 'Construction Cost (₹/Sq.Ft)',
+                                prefixText: '₹ ',
+                                isDense: true,
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                              ),
+                              onChanged: (val) {
+                                provider.updateValue('COMPOSITE_CONSTRUCTION_COST', val);
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextFormField(
+                              initialValue: item.buildingAge > 0 ? item.buildingAge.toString() : '0',
+                              enabled: !isReadOnly,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              decoration: const InputDecoration(
+                                labelText: 'Age (Years)',
+                                suffixText: 'Yrs',
+                                isDense: true,
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                              ),
+                              onChanged: (val) {
+                                provider.updateValue('COMPOSITE_BUILDING_AGE', val);
+                              },
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: TextFormField(
+                              initialValue: item.totalLife > 0 ? item.totalLife.toString() : '60',
+                              enabled: !isReadOnly,
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              decoration: const InputDecoration(
+                                labelText: 'Useful Life (Years)',
+                                suffixText: 'Yrs',
+                                isDense: true,
+                                border: OutlineInputBorder(),
+                                contentPadding: EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+                              ),
+                              onChanged: (val) {
+                                provider.updateValue('COMPOSITE_BUILDING_TOTAL_LIFE', val);
+                              },
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            } else if (isParking) {
+              // Parking Row: QUANTITY * RATE, editable unit (Slot, No, LS, Sq.Ft, Bay)
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: AppColors.hairlineSoft)),
+                ),
+                child: Row(
+                  children: [
+                    SizedBox(width: 35, child: Text('${idx + 1}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                    Expanded(
+                      flex: 3,
+                      child: TextFormField(
+                        initialValue: item.description.isNotEmpty ? item.description : 'Car Parking',
+                        enabled: !isReadOnly,
+                        decoration: const InputDecoration(
+                          hintText: 'Parking Description',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        ),
+                        onChanged: (val) {
+                          item.description = val;
+                          provider.recalculateValuation();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        initialValue: item.quantity > 0 ? item.quantity.toString() : '1',
+                        enabled: !isReadOnly,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Qty / Slots',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        ),
+                        onChanged: (val) {
+                          item.quantity = double.tryParse(val.replaceAll(',', '').trim()) ?? 1.0;
+                          item.amount = item.quantity * item.rate;
+                          provider.recalculateValuation();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 70,
+                      child: TextFormField(
+                        initialValue: item.enteredUnit.isNotEmpty ? item.enteredUnit : 'Slot',
+                        enabled: !isReadOnly,
+                        textAlign: TextAlign.center,
+                        decoration: const InputDecoration(
+                          hintText: 'Slot/No',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                        ),
+                        onChanged: (val) {
+                          item.enteredUnit = val;
+                          provider.recalculateValuation();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        initialValue: item.rate > 0 ? item.rate.toString() : '',
+                        enabled: !isReadOnly,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Rate / Slot',
+                          prefixText: '₹ ',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        ),
+                        onChanged: (val) {
+                          item.rate = double.tryParse(val.replaceAll(',', '').trim()) ?? 0.0;
+                          item.amount = item.quantity * item.rate;
+                          provider.recalculateValuation();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        '₹ ${IndianNumberFormatter.format(item.amount)}',
+                        style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.ink),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        initialValue: item.depreciationAmount > 0 ? item.depreciationAmount.toString() : '0',
+                        enabled: !isReadOnly,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          prefixText: '₹ ',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        ),
+                        onChanged: (val) {
+                          item.depreciationAmount = double.tryParse(val.replaceAll(',', '').trim()) ?? 0.0;
+                          provider.recalculateValuation();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        '₹ ${IndianNumberFormatter.format(item.fairValue)}',
+                        style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.ink),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 45,
+                      child: !isReadOnly
+                          ? IconButton(
+                              icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                              onPressed: () {
+                                final origIdx = provider.compositeItems.indexOf(item);
+                                if (origIdx > 0) {
+                                  provider.removeCompositeItem(origIdx);
+                                }
+                              },
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ),
+              );
+            } else {
+              // Interior Works Row: User entered amount, user entered depreciation
+              return Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                decoration: const BoxDecoration(
+                  border: Border(bottom: BorderSide(color: AppColors.hairlineSoft)),
+                ),
+                child: Row(
+                  children: [
+                    SizedBox(width: 35, child: Text('${idx + 1}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12), textAlign: TextAlign.center)),
+                    Expanded(
+                      flex: 3,
+                      child: TextFormField(
+                        initialValue: item.description.isNotEmpty ? item.description : 'Interior Works & Improvements',
+                        enabled: !isReadOnly,
+                        decoration: const InputDecoration(
+                          hintText: 'Description',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        ),
+                        onChanged: (val) {
+                          item.description = val;
+                          provider.recalculateValuation();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        initialValue: item.quantity > 0 ? item.quantity.toString() : '1',
+                        enabled: !isReadOnly,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Qty',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        ),
+                        onChanged: (val) {
+                          item.quantity = double.tryParse(val.replaceAll(',', '').trim()) ?? 1.0;
+                          provider.recalculateValuation();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 70,
+                      child: TextFormField(
+                        initialValue: item.enteredUnit.isNotEmpty ? item.enteredUnit : 'LS',
+                        enabled: !isReadOnly,
+                        textAlign: TextAlign.center,
+                        decoration: const InputDecoration(
+                          hintText: 'LS',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                        ),
+                        onChanged: (val) {
+                          item.enteredUnit = val;
+                          provider.recalculateValuation();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        initialValue: item.rate > 0 ? item.rate.toString() : '',
+                        enabled: !isReadOnly,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Rate',
+                          prefixText: '₹ ',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        ),
+                        onChanged: (val) {
+                          final r = double.tryParse(val.replaceAll(',', '').trim()) ?? 0.0;
+                          item.rate = r;
+                          if (r > 0 && item.quantity > 0) item.amount = item.quantity * r;
+                          provider.recalculateValuation();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // User Entered Interior Amount
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        initialValue: item.amount > 0 ? item.amount.toString() : '',
+                        enabled: !isReadOnly,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Amount (₹)',
+                          prefixText: '₹ ',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        ),
+                        onChanged: (val) {
+                          final amt = double.tryParse(val.replaceAll(',', '').trim()) ?? 0.0;
+                          item.amount = amt;
+                          if (item.rate <= 0) item.rate = amt;
+                          provider.recalculateValuation();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // User Entered Interior Depreciation (Affects ONLY INTERIOR_FAIR_VALUE)
+                    Expanded(
+                      flex: 2,
+                      child: TextFormField(
+                        initialValue: item.depreciationAmount > 0 ? item.depreciationAmount.toString() : '0',
+                        enabled: !isReadOnly,
+                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                        decoration: const InputDecoration(
+                          labelText: 'Depr (₹)',
+                          prefixText: '₹ ',
+                          isDense: true,
+                          border: OutlineInputBorder(),
+                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                        ),
+                        onChanged: (val) {
+                          item.depreciationAmount = double.tryParse(val.replaceAll(',', '').trim()) ?? 0.0;
+                          item.depreciationMode = 'DIRECT_AMOUNT';
+                          provider.recalculateValuation();
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // INTERIOR_FAIR_VALUE = Amount - Depreciation
+                    Expanded(
+                      flex: 2,
+                      child: Text(
+                        '₹ ${IndianNumberFormatter.format(item.fairValue)}',
+                        style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.ink),
+                        textAlign: TextAlign.right,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    SizedBox(
+                      width: 45,
+                      child: !isReadOnly
+                          ? IconButton(
+                              icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                              onPressed: () {
+                                final origIdx = provider.compositeItems.indexOf(item);
+                                if (origIdx > 0) {
+                                  provider.removeCompositeItem(origIdx);
+                                }
+                              },
+                            )
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ),
+              );
+            }
+          }),
+
+          // Action Buttons Toolbar for adding rows
+          if (!isReadOnly)
+            Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: const BoxDecoration(
-                border: Border(bottom: BorderSide(color: AppColors.hairlineSoft)),
-              ),
+              color: const Color(0xFFF9FBFC),
               child: Row(
                 children: [
-                  SizedBox(width: 40, child: Text('${idx + 1}', style: const TextStyle(fontSize: 12), textAlign: TextAlign.center)),
-                  Expanded(flex: 3, child: Text(item.description, style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600))),
-                  SizedBox(width: 50, child: Text(item.enteredUnit, style: const TextStyle(fontSize: 12), textAlign: TextAlign.center)),
-                  Expanded(flex: 1, child: Text(IndianNumberFormatter.format(item.quantity), style: GoogleFonts.firaCode(fontSize: 12), textAlign: TextAlign.right)),
-                  Expanded(flex: 1, child: Text('₹ ${IndianNumberFormatter.format(item.rate)}', style: GoogleFonts.firaCode(fontSize: 12), textAlign: TextAlign.right)),
-                  Expanded(flex: 2, child: Text('₹ ${IndianNumberFormatter.format(item.amount)}', style: GoogleFonts.firaCode(fontSize: 12), textAlign: TextAlign.right)),
-                  Expanded(flex: 2, child: Text('₹ ${IndianNumberFormatter.format(item.depreciationAmount)}', style: GoogleFonts.firaCode(fontSize: 12), textAlign: TextAlign.right)),
-                  Expanded(flex: 2, child: Text('₹ ${IndianNumberFormatter.format(item.fairValue)}', style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold), textAlign: TextAlign.right)),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.add, size: 14),
+                    label: const Text('+ Add Interior Row', style: TextStyle(fontSize: 12)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF3494BA),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    onPressed: () => provider.addCompositeInteriorItem(),
+                  ),
+                  const SizedBox(width: 10),
+                  ElevatedButton.icon(
+                    icon: const Icon(Icons.directions_car_outlined, size: 14),
+                    label: const Text('+ Add Parking Row', style: TextStyle(fontSize: 12)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1A3B5C),
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    onPressed: () => provider.addCompositeParkingItem(),
+                  ),
                 ],
               ),
-            );
-          }),
-          // Blank separator row
-          Container(
-            height: 8,
-            color: const Color(0xFFF9FBFC),
-          ),
-          // Total Row 1: Fair Value Of Property (Actual arithmetic total of Fair Value column)
+            ),
+
+          // TOTAL VALUATION ROW (in the SAME table)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            color: const Color(0xFFF3F9FA),
+            decoration: const BoxDecoration(
+              color: Color(0xFFF3F9FA),
+              border: Border(top: BorderSide(color: AppColors.hairlineSoft, width: 1.5)),
+            ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  'Fair Value Of Property',
-                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF3494BA)),
+                const SizedBox(width: 35),
+                Expanded(
+                  flex: 3,
+                  child: Text(
+                    'TOTAL VALUATION',
+                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A3B5C)),
+                  ),
                 ),
-                Text(
-                  '₹ ${IndianNumberFormatter.format(rawFairVal)}',
-                  style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF3494BA)),
+                const SizedBox(width: 8),
+                Expanded(flex: 2, child: const SizedBox.shrink()),
+                const SizedBox(width: 8),
+                const SizedBox(width: 70),
+                const SizedBox(width: 8),
+                Expanded(flex: 2, child: const SizedBox.shrink()),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    provider.getValue('TOTAL_AMOUNT').isNotEmpty
+                        ? '₹ ${provider.getValue('TOTAL_AMOUNT')}'
+                        : '₹ ${IndianNumberFormatter.format(data.totalAmount)}',
+                    style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.ink),
+                    textAlign: TextAlign.right,
+                  ),
                 ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    provider.getValue('TOTAL_DEPRECIATION').isNotEmpty
+                        ? '₹ ${provider.getValue('TOTAL_DEPRECIATION')}'
+                        : '₹ ${IndianNumberFormatter.format(data.totalDepreciation)}',
+                    style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFFD46B08)),
+                    textAlign: TextAlign.right,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 2,
+                  child: Text(
+                    provider.getValue('TOTAL_FAIR_VALUE').isNotEmpty
+                        ? '₹ ${provider.getValue('TOTAL_FAIR_VALUE')}'
+                        : '₹ ${IndianNumberFormatter.format(data.totalFairValue)}',
+                    style: GoogleFonts.firaCode(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF3494BA)),
+                    textAlign: TextAlign.right,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const SizedBox(width: 45),
               ],
             ),
           ),
-          // Total Row 2: Say Row (Conditional - suppressed if rawFairVal == sayFairVal)
-          if (showSayRow)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+
+          // SAY VALUE ROW (in the SAME table footer)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: const BoxDecoration(
               color: Colors.white,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    'Say',
-                    style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.ink),
-                  ),
-                  Text(
-                    '₹ ${IndianNumberFormatter.format(sayFairVal)}',
-                    style: GoogleFonts.firaCode(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.successAccent),
+              border: Border(top: BorderSide(color: AppColors.hairlineSoft)),
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(7)),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'SAY VALUE (Rounded)',
+                          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.ink),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE6F7FF),
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: const Color(0xFF91D5FF)),
+                          ),
+                          child: const Text('<<SAY_VALUE>>', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF096DD9))),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      provider.getValue('SAY_VALUE').isNotEmpty
+                          ? '₹ ${provider.getValue('SAY_VALUE')}'
+                          : '₹ ${IndianNumberFormatter.format(data.sayFairValue)}',
+                      style: GoogleFonts.firaCode(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.successAccent),
+                    ),
+                  ],
+                ),
+                if (provider.getValue('SAY_VALUE_WORDS').isNotEmpty || provider.getValue('FAIR_VALUE_WORDS').isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: Text(
+                      '(Rupees ${provider.getValue('SAY_VALUE_WORDS').isNotEmpty ? provider.getValue('SAY_VALUE_WORDS') : provider.getValue('FAIR_VALUE_WORDS')} Only)',
+                      style: GoogleFonts.inter(fontSize: 11, fontStyle: FontStyle.italic, color: Colors.grey[700]),
+                    ),
                   ),
                 ],
-              ),
+              ],
             ),
+          ),
         ],
       ),
     );

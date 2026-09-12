@@ -36,9 +36,18 @@ class ValuationDataModel {
   double compositeBuildingDepreciationPct;
   double rawFairValue;
   double sayFairValue;
+  double unitAmount;
+  double mainUnitDepreciation;
+  double mainUnitFairValue;
   double totalInteriorAmount;
   double totalInteriorDepreciation;
   double totalInteriorFairValue;
+  double totalParkingAmount;
+  double totalParkingDepreciation;
+  double totalParkingFairValue;
+  double totalAmount;
+  double totalDepreciation;
+  double totalFairValue;
 
   ValuationDataModel({
     this.id,
@@ -78,9 +87,18 @@ class ValuationDataModel {
     this.compositeBuildingDepreciationPct = 0,
     this.rawFairValue = 0,
     this.sayFairValue = 0,
+    this.unitAmount = 0,
+    this.mainUnitDepreciation = 0,
+    this.mainUnitFairValue = 0,
     this.totalInteriorAmount = 0,
     this.totalInteriorDepreciation = 0,
     this.totalInteriorFairValue = 0,
+    this.totalParkingAmount = 0,
+    this.totalParkingDepreciation = 0,
+    this.totalParkingFairValue = 0,
+    this.totalAmount = 0,
+    this.totalDepreciation = 0,
+    this.totalFairValue = 0,
   });
 
   factory ValuationDataModel.fromJson(Map<String, dynamic> json) {
@@ -127,9 +145,18 @@ class ValuationDataModel {
       compositeBuildingDepreciationPct: (json['compositeBuildingDepreciationPct'] as num?)?.toDouble() ?? 0,
       rawFairValue: (json['rawFairValue'] as num?)?.toDouble() ?? 0,
       sayFairValue: (json['sayFairValue'] as num?)?.toDouble() ?? 0,
+      unitAmount: (json['unitAmount'] as num?)?.toDouble() ?? 0,
+      mainUnitDepreciation: (json['mainUnitDepreciation'] as num?)?.toDouble() ?? 0,
+      mainUnitFairValue: (json['mainUnitFairValue'] as num?)?.toDouble() ?? 0,
       totalInteriorAmount: (json['totalInteriorAmount'] as num?)?.toDouble() ?? 0,
       totalInteriorDepreciation: (json['totalInteriorDepreciation'] as num?)?.toDouble() ?? 0,
       totalInteriorFairValue: (json['totalInteriorFairValue'] as num?)?.toDouble() ?? 0,
+      totalParkingAmount: (json['totalParkingAmount'] as num?)?.toDouble() ?? 0,
+      totalParkingDepreciation: (json['totalParkingDepreciation'] as num?)?.toDouble() ?? 0,
+      totalParkingFairValue: (json['totalParkingFairValue'] as num?)?.toDouble() ?? 0,
+      totalAmount: (json['totalAmount'] as num?)?.toDouble() ?? 0,
+      totalDepreciation: (json['totalDepreciation'] as num?)?.toDouble() ?? 0,
+      totalFairValue: (json['totalFairValue'] as num?)?.toDouble() ?? 0,
     );
   }
 
@@ -171,9 +198,18 @@ class ValuationDataModel {
     'compositeBuildingDepreciationPct': compositeBuildingDepreciationPct,
     'rawFairValue': rawFairValue,
     'sayFairValue': sayFairValue,
+    'unitAmount': unitAmount,
+    'mainUnitDepreciation': mainUnitDepreciation,
+    'mainUnitFairValue': mainUnitFairValue,
     'totalInteriorAmount': totalInteriorAmount,
     'totalInteriorDepreciation': totalInteriorDepreciation,
     'totalInteriorFairValue': totalInteriorFairValue,
+    'totalParkingAmount': totalParkingAmount,
+    'totalParkingDepreciation': totalParkingDepreciation,
+    'totalParkingFairValue': totalParkingFairValue,
+    'totalAmount': totalAmount,
+    'totalDepreciation': totalDepreciation,
+    'totalFairValue': totalFairValue,
   };
 }
 
