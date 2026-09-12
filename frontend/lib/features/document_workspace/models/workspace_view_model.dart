@@ -909,7 +909,8 @@ class InputFieldVm {
           key.toUpperCase().contains('AMOUNT') ||
           key.toUpperCase().contains('COST') ||
           key.toUpperCase().contains('PRICE') ||
-          key.toUpperCase().contains('FEE'));
+          key.toUpperCase().contains('FEE') ||
+          key.toUpperCase().contains('DEPRECIATION'));
 
   /// Type A Column 3 conditional alignment:
   /// Left align for addresses, remarks, boundary descriptions, narratives, multiline content.

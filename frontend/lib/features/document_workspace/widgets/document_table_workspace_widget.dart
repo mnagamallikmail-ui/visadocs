@@ -1629,17 +1629,17 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                         Expanded(
                           flex: 2,
                           child: TextFormField(
-                            key: ValueKey('main_unit_area_${provider.getValue('SALEABLE_AREA')}'),
+                            key: const ValueKey('main_unit_saleable_area_input'),
                             initialValue: provider.getValue('SALEABLE_AREA').isNotEmpty
                                 ? provider.getValue('SALEABLE_AREA')
                                 : (item.quantity > 0 ? ValueNormalizationEngine.formatNormalizedString(item.quantity) : ''),
                             enabled: !isReadOnly,
-                            keyboardType: TextInputType.text,
-                            decoration: InputDecoration(
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(
                               labelText: '<<SALEABLE_AREA>>',
                               isDense: true,
-                              border: const OutlineInputBorder(),
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                              border: OutlineInputBorder(),
+                              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                             ),
                             onChanged: (val) {
                               provider.updateValue('SALEABLE_AREA', val);
@@ -1660,12 +1660,12 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                         Expanded(
                           flex: 2,
                           child: TextFormField(
-                            key: ValueKey('main_unit_rate_${provider.getValue('MARKET_RATE_FLAT')}'),
+                            key: const ValueKey('main_unit_market_rate_input'),
                             initialValue: provider.getValue('MARKET_RATE_FLAT').isNotEmpty
                                 ? provider.getValue('MARKET_RATE_FLAT')
                                 : (item.rate > 0 ? ValueNormalizationEngine.formatNormalizedString(item.rate) : ''),
                             enabled: !isReadOnly,
-                            keyboardType: TextInputType.text,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             decoration: const InputDecoration(
                               labelText: '<<MARKET_RATE_FLAT>>',
                               prefixText: '₹ ',

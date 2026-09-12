@@ -675,7 +675,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     if (_valuationData != null) {
       _valuationData!.compositeConstructionCost = val;
       for (final item in _compositeItems) {
-        if (item.itemCategory == 'MAIN_UNIT') {
+        if (item.itemCategory.toUpperCase() == 'MAIN_UNIT') {
           item.constructionCost = val;
         }
       }
@@ -859,9 +859,17 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
           return;
         }
       }
-    } else if (upperKey == 'COMPOSITE_CONSTRUCTION_COST') {
+    } else if (upperKey == 'COMPOSITE_CONSTRUCTION_COST' ||
+        upperKey == 'CONSTRUCTION_COST' ||
+        upperKey == 'CONSTRUCTION_RATE' ||
+        upperKey == 'COMPOSITE_CONSTRUCTION_RATE') {
       final cost = ValueNormalizationEngine.tryNormalize(upperKey, value) ??
           (double.tryParse(value.replaceAll('₹', '').replaceAll(',', '').trim()) ?? 2000.0);
+      final costStr = cost.toString();
+      _activeValues['COMPOSITE_CONSTRUCTION_COST'] = costStr;
+      _deltaValues['COMPOSITE_CONSTRUCTION_COST'] = costStr;
+      _activeValues['CONSTRUCTION_COST'] = costStr;
+      _deltaValues['CONSTRUCTION_COST'] = costStr;
       ensureCompositeMainUnit();
       setCompositeConstructionCost(cost);
       return;
@@ -881,11 +889,17 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       }
       recalculateValuation();
       return;
-    } else if (upperKey == 'COMPOSITE_BUILDING_TOTAL_LIFE') {
+    } else if (upperKey == 'COMPOSITE_BUILDING_TOTAL_LIFE' ||
+        upperKey == 'USEFUL_LIFE' ||
+        upperKey == 'BUILDING_USEFUL_LIFE' ||
+        upperKey == 'TOTAL_LIFE' ||
+        upperKey == 'BUILDING_TOTAL_LIFE') {
       final clean = value.replaceAll(RegExp(r'[^0-9.]'), '').trim();
       final life = double.tryParse(clean) ?? 60.0;
       _activeValues['COMPOSITE_BUILDING_TOTAL_LIFE'] = clean;
       _deltaValues['COMPOSITE_BUILDING_TOTAL_LIFE'] = clean;
+      _activeValues['USEFUL_LIFE'] = clean;
+      _deltaValues['USEFUL_LIFE'] = clean;
       ensureCompositeMainUnit();
       for (final item in _compositeItems) {
         if (item.itemCategory.toUpperCase() == 'MAIN_UNIT') {

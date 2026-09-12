@@ -3,6 +3,8 @@
 class AliasResolutionEngine {
   static const String canonicalSaleableArea = 'SALEABLE_AREA';
   static const String canonicalMarketRateFlat = 'MARKET_RATE_FLAT';
+  static const String canonicalConstructionCost = 'COMPOSITE_CONSTRUCTION_COST';
+  static const String canonicalUsefulLife = 'COMPOSITE_BUILDING_TOTAL_LIFE';
 
   static final Map<String, String> _aliasToCanonical = {
     'SALEABLE_AREA': canonicalSaleableArea,
@@ -17,6 +19,17 @@ class AliasResolutionEngine {
     'CURRENT_MARKET_RATE': canonicalMarketRateFlat,
     'FLAT_MARKET_RATE': canonicalMarketRateFlat,
     'BUILDING_MARKET_RATE': canonicalMarketRateFlat,
+
+    'COMPOSITE_CONSTRUCTION_COST': canonicalConstructionCost,
+    'CONSTRUCTION_COST': canonicalConstructionCost,
+    'CONSTRUCTION_RATE': canonicalConstructionCost,
+    'COMPOSITE_CONSTRUCTION_RATE': canonicalConstructionCost,
+
+    'COMPOSITE_BUILDING_TOTAL_LIFE': canonicalUsefulLife,
+    'USEFUL_LIFE': canonicalUsefulLife,
+    'BUILDING_USEFUL_LIFE': canonicalUsefulLife,
+    'TOTAL_LIFE': canonicalUsefulLife,
+    'BUILDING_TOTAL_LIFE': canonicalUsefulLife,
   };
 
   static final Map<String, Set<String>> _canonicalToAliases = {
@@ -32,6 +45,17 @@ class AliasResolutionEngine {
       'CURRENT_MARKET_RATE',
       'FLAT_MARKET_RATE',
       'BUILDING_MARKET_RATE',
+    },
+    canonicalConstructionCost: {
+      'CONSTRUCTION_COST',
+      'CONSTRUCTION_RATE',
+      'COMPOSITE_CONSTRUCTION_RATE',
+    },
+    canonicalUsefulLife: {
+      'USEFUL_LIFE',
+      'BUILDING_USEFUL_LIFE',
+      'TOTAL_LIFE',
+      'BUILDING_TOTAL_LIFE',
     },
   };
 

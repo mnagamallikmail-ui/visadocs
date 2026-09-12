@@ -240,6 +240,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
     final isImage = widget.fieldVm.isImage;
     final isMultiline = widget.fieldVm.isMultiline;
     final isNumber = widget.fieldVm.isNumber;
+    final isCurrency = widget.fieldVm.isCurrency;
     final isCompositeTable = widget.fieldVm.isCompositeTable;
 
     // Must NEVER render as generic input or image upload
@@ -303,6 +304,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                       horizontal: 11,
                       vertical: isMultiline ? 9 : 8,
                     ),
+                    prefixText: (isCurrency && !isDate && !isMultiline) ? '₹ ' : null,
                     suffixIcon: isDate
                         ? InkWell(
                             onTap: () => _pickDate(context, provider),
