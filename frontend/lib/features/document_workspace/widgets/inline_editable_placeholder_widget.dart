@@ -328,15 +328,14 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
     final isRepeated = widget.fieldVm.isRepeated;
     final isDate = widget.fieldVm.isDate;
 
-    final displayPrompt = isEmpty
-        ? (widget.fieldVm.questionText.isNotEmpty ? widget.fieldVm.questionText : widget.fieldVm.key)
-        : val;
-
+    // GOVERNANCE (DEFECT 13): Empty TEXT placeholders must render a blank, clickable
+    // area with NO generated labels, no questionText, no key name, no hints.
+    // Only DATE fields may show a format indicator as it is an operational cue.
     final promptStyle = isEmpty
         ? baseStyle.copyWith(
-            color: AppColors.workspaceSecondaryText.withValues(alpha: 0.8),
+            color: AppColors.workspaceSecondaryText.withValues(alpha: 0.5),
             fontStyle: FontStyle.italic,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w400,
           )
         : baseStyle.copyWith(
             color: AppColors.workspaceCorporateNavy,
@@ -377,10 +376,17 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
           child: Wrap(
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
-              Text(
-                isEmpty ? '[ $displayPrompt ]' : displayPrompt,
-                style: promptStyle,
-              ),
+              if (!isEmpty)
+                Text(val, style: promptStyle),
+              // DATE: show a minimal format cue only — never show key name or questionText.
+              if (isEmpty && isDate)
+                Text(
+                  'dd-MMM-yyyy',
+                  style: promptStyle,
+                ),
+              // All other empty TEXT fields: blank — SizedBox provides minimum tap target.
+              if (isEmpty && !isDate)
+                const SizedBox(width: 40, height: 16),
               if (isDate && !widget.readOnly) ...[
                 const SizedBox(width: 4),
                 Icon(
@@ -409,14 +415,16 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
 
   /// ─── EDIT MODE: Auto-Sizing Active Text Field with Visual Active Indicator ──
   Widget _buildEditMode(BuildContext context, DocumentWorkspaceProvider provider, TextStyle baseStyle) {
-    // Measure dynamic width so the input expands naturally as user types
-    final textToMeasure = _controller.text.isEmpty ? widget.fieldVm.questionText : _controller.text;
+    // Measure dynamic width from the actual typed content only.
+    // GOVERNANCE: Never use questionText or key as a size fallback — that leaks label content.
+    // When the field is empty, use a neutral minimum width.
+    final textToMeasure = _controller.text.isEmpty ? '' : _controller.text;
     final painter = TextPainter(
       text: TextSpan(text: textToMeasure, style: baseStyle),
       textDirection: TextDirection.ltr,
     )..layout();
 
-    final dynamicWidth = (painter.width + 32).clamp(80.0, 520.0);
+    final dynamicWidth = textToMeasure.isEmpty ? 120.0 : (painter.width + 32).clamp(80.0, 520.0);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 2.5, vertical: 1.0),

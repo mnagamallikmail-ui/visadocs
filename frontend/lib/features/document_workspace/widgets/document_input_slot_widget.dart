@@ -289,12 +289,11 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                     color: widget.readOnly ? AppColors.workspaceSecondaryText : AppColors.workspacePrimaryText,
                   ),
                   decoration: InputDecoration(
-                    hintText: isMultiline
-                        ? 'Enter ${widget.fieldVm.questionText}... (Alt+Enter for newline)'
-                        : (isDate
-                            ? 'Select date (dd-MMM-yyyy)'
-                            : 'Enter ${widget.fieldVm.questionText.isNotEmpty ? widget.fieldVm.questionText : "value"}...'),
-                    hintStyle: AppTypography.workspaceHint(),
+                    // GOVERNANCE: TEXT placeholders must render a completely blank field.
+                    // No hints, no labels, no question-text-derived descriptions.
+                    // Only DATE fields may show a format hint as it is operational, not a label.
+                    hintText: isDate ? 'dd-MMM-yyyy' : null,
+                    hintStyle: isDate ? AppTypography.workspaceHint() : null,
                     filled: true,
                     fillColor: _focusNode.hasFocus
                         ? Colors.white

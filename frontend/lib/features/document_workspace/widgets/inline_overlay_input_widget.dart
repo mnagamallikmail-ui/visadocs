@@ -255,16 +255,14 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
   }
 
   Widget _buildFloatingFieldInput(DocumentWorkspaceProvider provider) {
-
-    final k = widget.placeholder.key.toLowerCase();
-    final isMultiline = k.contains('remark') || k.contains('description') || k.contains('address') || k.contains('observation');
-
-
+    // <<TEXT>> placeholders must always render as a blank, multiline, auto-expanding
+    // text area with no assumptions, no hints, and no helper text.
+    // MULTILINE RULE: all TEXT-type fields support multiline / ALT+ENTER / unlimited narrative.
     return TextFormField(
       controller: _controller,
       autofocus: true,
-      minLines: isMultiline ? 3 : 1,
-      maxLines: isMultiline ? 6 : 1,
+      minLines: 3,
+      maxLines: null, // auto-expanding, unlimited
       style: AppTypography.workspaceInput(),
       decoration: InputDecoration(
         isDense: true,
@@ -279,8 +277,7 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
           borderRadius: BorderRadius.circular(8),
           borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.0),
         ),
-        hintText: 'Enter value for ${widget.placeholder.key}...',
-        hintStyle: AppTypography.workspaceHint(),
+        // No hintText — <<TEXT>> must render a completely blank text input area.
       ),
       onChanged: (val) {
         provider.updateValue(widget.placeholder.key, val);
@@ -461,6 +458,8 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
     }
 
     // TEXT / NUMBER Compact Display
+    // GOVERNANCE: When the field is empty, render a blank box — never show the key
+    // name, placeholder description, helper text, or any auto-generated content.
     final hasValue = currentValue.isNotEmpty;
 
     return Padding(
@@ -468,17 +467,18 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
       child: Row(
         children: [
           Expanded(
-            child: Text(
-              hasValue ? currentValue : widget.placeholder.key,
-              style: GoogleFonts.inter(
-                fontSize: 11,
-                fontWeight: hasValue ? FontWeight.w600 : FontWeight.w400,
-                color: hasValue ? AppColors.ink : AppColors.slate.withValues(alpha: 0.7),
-                fontStyle: hasValue ? FontStyle.normal : FontStyle.italic,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
+            child: hasValue
+                ? Text(
+                    currentValue,
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.ink,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  )
+                : const SizedBox.shrink(), // Blank — no key name, no hint, no assumptions.
           ),
           if (!widget.readOnly && !isFocused)
             Icon(Icons.edit_outlined, size: 11, color: AppColors.slate.withValues(alpha: 0.6)),
