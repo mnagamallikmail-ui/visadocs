@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'package:dio/dio.dart';
@@ -85,10 +86,13 @@ class OrderProvider extends ChangeNotifier {
     notifyListeners();
     try {
       final response = await _apiService.dio.get('/api/v1/templates/active');
+      debugPrint('[TEMPLATE_API] status=${response.statusCode}');
+      debugPrint('[TEMPLATE_API] body=${jsonEncode(response.data)}');
       if (response.statusCode == 200 && response.data is List) {
         _activeTemplates = response.data;
       }
     } catch (e) {
+      debugPrint('[TEMPLATE_API] error=$e');
       // Error fetching active templates — _activeTemplates unchanged
     } finally {
       _isLoadingTemplates = false;

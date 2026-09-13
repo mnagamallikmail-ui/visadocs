@@ -333,6 +333,12 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
               ];
             } else {
               final isLoadingTpls = orderProvider.isLoadingTemplates;
+              debugPrint('[FILTER] before=${templates.length}');
+              debugPrint('[FILTER] after=${templates.length}');
+              debugPrint('[PROVIDER] templateCount=${templates.length}');
+              debugPrint('[PROVIDER] isLoading=$isLoadingTpls');
+              debugPrint('[DROPDOWN] templates=${templates.length}');
+              debugPrint('[DROPDOWN] values=$templates');
               content = Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,

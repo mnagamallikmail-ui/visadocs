@@ -31,6 +31,8 @@ import java.util.*;
 @RequestMapping("/api/v1/templates")
 public class TemplateController {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(TemplateController.class);
+
     @Autowired
     private TemplateRepository templateRepository;
 
@@ -231,10 +233,22 @@ public class TemplateController {
      */
     @GetMapping("/active")
     public ResponseEntity<List<TemplateListDTO>> getActiveTemplates() {
-        List<TemplateListDTO> dtos = templateRepository.findAllByStatusNot(Template.STATUS_DELETED).stream()
-                .filter(t -> "Y".equalsIgnoreCase(t.getIsActive()) && Template.STATUS_ACTIVE.equalsIgnoreCase(t.getStatus()))
+        log.info("Template endpoint called");
+        List<Template> beforeList = templateRepository.findAllByStatusNot(Template.STATUS_DELETED);
+        int beforeCount = beforeList.size();
+        log.info("Count before filtering={}", beforeCount);
+        for (Template t : beforeList) {
+            log.info("  Before template: id={}, name='{}', status='{}', isActive='{}'", t.getId(), t.getName(), t.getStatus(), t.getIsActive());
+        }
+
+        List<TemplateListDTO> dtos = beforeList.stream()
+                .filter(t -> "Y".equalsIgnoreCase(t.getIsActive()) && (Template.STATUS_ACTIVE.equalsIgnoreCase(t.getStatus()) || "CONFIRMED".equalsIgnoreCase(t.getStatus())))
                 .map(TemplateListDTO::new)
                 .toList();
+
+        int afterCount = dtos.size();
+        log.info("Count after filtering={}", afterCount);
+        log.info("Returning {} templates", dtos.size());
         return ResponseEntity.ok(dtos);
     }
 
@@ -264,7 +278,7 @@ public class TemplateController {
                 objectMapper.readTree(fieldMappingUpdates);
                 template.setFieldMapping(fieldMappingUpdates);
                 template.setIsActive("Y");
-                template.setStatus("CONFIRMED");
+                template.setStatus(Template.STATUS_ACTIVE);
                 Template saved = templateRepository.save(template);
 
                 // Create version snapshot on confirmation
@@ -499,7 +513,7 @@ public class TemplateController {
 
             // Soft-archive old version
             oldTemplate.setIsActive("N");
-            oldTemplate.setStatus("CONFIRMED");
+            oldTemplate.setStatus(Template.STATUS_ARCHIVED);
             templateRepository.save(oldTemplate);
 
             // Create new inherited active template
@@ -515,7 +529,7 @@ public class TemplateController {
             newTemplate.setFieldMapping(objectMapper.writeValueAsString(newSchema));
             newTemplate.setVersion(oldTemplate.getVersion() + 1);
             newTemplate.setIsActive("Y");
-            newTemplate.setStatus("CONFIRMED");
+            newTemplate.setStatus(Template.STATUS_ACTIVE);
 
             Template saved = templateRepository.save(newTemplate);
             templateProcessingService.saveVersionSnapshot(saved, "Inherited from v" + oldTemplate.getVersion(), currentUserId());
