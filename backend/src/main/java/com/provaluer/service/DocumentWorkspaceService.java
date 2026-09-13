@@ -79,6 +79,12 @@ public class DocumentWorkspaceService {
     @Autowired
     private ValuationEngineService valuationEngineService;
 
+    @Autowired
+    private ValuationSnapshotRepository valuationSnapshotRepository;
+
+    @Autowired
+    private ValuationAuditLogRepository valuationAuditLogRepository;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<Long, CachedOrderPreview> orderPreviewCache = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -310,8 +316,6 @@ public class DocumentWorkspaceService {
                 || "LOCKED".equalsIgnoreCase(order.getValuationStatus());
 
         if (isLockedOrFinalized && !isSpaOrAdmin) {
-            readOnly = true;
-        } else if ("FINAL_DELIVERY".equalsIgnoreCase(order.getStatus())) {
             readOnly = true;
         }
 
@@ -655,11 +659,71 @@ public class DocumentWorkspaceService {
                     byte[] signedDocxBytes = docxTemplateEngine.stampDigitalSignature(docxBytes, signerName, timestamp);
                     byte[] pdfBytes = docxTemplateEngine.convertDocxToPdf(signedDocxBytes);
 
+                    // Option A Revision Governance:
+                    // Revision 0 = Original generation
+                    // Revision 1 = First recompilation
+                    // Revision 2 = Second recompilation
+                    // Revision numbers must never decrease, never be reused, never be overwritten.
+                    // Always use: MAX(existing revision) + 1.
+                    List<ValuationSnapshot> existingSnapshots = valuationSnapshotRepository.findByOrderIdOrderByVersionNumberDesc(orderId);
+                    int nextRevision;
+                    if (existingSnapshots.isEmpty()) {
+                        nextRevision = 0;
+                    } else {
+                        int maxRev = existingSnapshots.stream().mapToInt(ValuationSnapshot::getVersionNumber).max().orElse(-1);
+                        nextRevision = Math.max(maxRev + 1, order.getRevisionCount() + 1);
+                    }
+                    order.setRevisionCount(nextRevision);
+
                     // Save as final documents
                     User uploader = principal != null ? userRepository.findById(principal.getId()).orElse(null) : null;
                     if (uploader != null) {
                         saveOrderDocument(order, "FINAL_DOCX", "Report_" + orderId + ".docx", signedDocxBytes, uploader);
                         saveOrderDocument(order, "FINAL_SIGNED_PDF", "Report_" + orderId + ".pdf", pdfBytes, uploader);
+                    }
+
+                    // Create immutable ValuationSnapshot record (Option A Mandate: never overwrite history)
+                    ValuationSnapshot snapshot = new ValuationSnapshot();
+                    snapshot.setOrderId(order.getId());
+                    snapshot.setVersionNumber(nextRevision);
+                    snapshot.setSnapshotTrigger(nextRevision == 0 ? "REPORT_GENERATED" : "REPORT_RECOMPILED");
+                    snapshot.setDocxContent(signedDocxBytes);
+                    snapshot.setPdfContent(pdfBytes);
+                    String snapHash = computePreviewContentHash(templateId, nextRevision, inputsMap, Collections.emptyMap());
+                    snapshot.setSnapshotHash(snapHash);
+                    snapshot.setDocumentHash(snapHash);
+
+                    Map<String, Object> snapshotDataMap = new HashMap<>();
+                    snapshotDataMap.put("orderId", orderId);
+                    snapshotDataMap.put("reportNumber", order.getReportNumber());
+                    snapshotDataMap.put("revisionNumber", nextRevision);
+                    snapshotDataMap.put("previousRevision", nextRevision > 0 ? (nextRevision - 1) : null);
+                    snapshotDataMap.put("currentRevision", nextRevision);
+                    snapshotDataMap.put("compiledBy", principal != null ? principal.getUsername() : "SPA");
+                    snapshotDataMap.put("compiledAt", LocalDateTime.now().toString());
+                    snapshotDataMap.put("reasonForRevision", nextRevision == 0 ? "Original generation" : "Report revision and recompilation");
+                    snapshotDataMap.put("inputs", inputsMap);
+
+                    snapshot.setSnapshotData(objectMapper.writeValueAsString(snapshotDataMap));
+                    snapshot.setVersionNotes(nextRevision == 0 ? "Original generation" : ("Revision " + nextRevision + " - Recompiled"));
+                    snapshot.setCreatedBy(principal != null ? principal.getId() : null);
+                    snapshot.setCreatedAt(LocalDateTime.now());
+                    valuationSnapshotRepository.save(snapshot);
+                    log.info("Saved revision {} snapshot for order #{} [trigger: {}]", nextRevision, orderId, snapshot.getSnapshotTrigger());
+
+                    // Audit Trail Requirements
+                    try {
+                        valuationAuditLogRepository.save(new ValuationAuditLog(
+                                orderId,
+                                "report_revision",
+                                String.valueOf(nextRevision > 0 ? nextRevision - 1 : 0),
+                                String.valueOf(nextRevision),
+                                "RECOMPILE",
+                                nextRevision == 0 ? "Original generation" : ("Revision " + nextRevision + " recompilation"),
+                                principal != null ? principal.getId() : null
+                        ));
+                    } catch (Exception e) {
+                        log.warn("Failed to save valuation audit log for order #{}: {}", orderId, e.getMessage());
                     }
                 } catch (Exception e) {
                     log.error("Failed to compile final report during SPA approval: {}", e.getMessage(), e);
@@ -667,11 +731,16 @@ public class DocumentWorkspaceService {
             }
         }
 
-        order.setStatus("SPA_CONFIRMED");
+        // Lifecycle Governance: DO NOT revert FINAL_DELIVERY back to SPA_GATE or SPA_CONFIRMED.
+        // Keep FINAL_DELIVERY as historical truth.
+        if (!"FINAL_DELIVERY".equalsIgnoreCase(order.getStatus())) {
+            order.setStatus("SPA_CONFIRMED");
+        }
         orderRepository.save(order);
 
         Map<String, Object> result = new HashMap<>();
-        result.put("status", "SPA_CONFIRMED");
+        result.put("status", order.getStatus());
+        result.put("revisionNumber", order.getRevisionCount());
         result.put("finalValue", order.getFinalValue());
         result.put("feeCharged", order.getFeeCharged());
         return result;
@@ -1123,6 +1192,68 @@ public class DocumentWorkspaceService {
                 collectAllObjectNodes(child, list);
             }
         }
+    }
+
+    /**
+     * Option A Governance: Returns all revision history snapshots for an order.
+     */
+    public List<Map<String, Object>> getOrderRevisions(Long orderId, UserDetailsImpl principal) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new NoSuchElementException("Order not found with ID: " + orderId));
+        validateOrderAccess(order, principal, "VIEW");
+
+        List<ValuationSnapshot> snapshots = valuationSnapshotRepository.findByOrderIdOrderByVersionNumberDesc(orderId);
+        List<Map<String, Object>> list = new ArrayList<>();
+        for (ValuationSnapshot snap : snapshots) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("id", snap.getId());
+            map.put("orderId", snap.getOrderId());
+            map.put("revisionNumber", snap.getVersionNumber());
+            map.put("trigger", snap.getSnapshotTrigger());
+            map.put("versionNotes", snap.getVersionNotes());
+            map.put("createdAt", snap.getCreatedAt());
+            map.put("createdBy", snap.getCreatedBy());
+            map.put("hasDocx", snap.getDocxContent() != null && snap.getDocxContent().length > 0);
+            map.put("hasPdf", snap.getPdfContent() != null && snap.getPdfContent().length > 0);
+
+            if (snap.getSnapshotData() != null) {
+                try {
+                    JsonNode dataNode = objectMapper.readTree(snap.getSnapshotData());
+                    if (dataNode.has("compiledBy")) map.put("compiledBy", dataNode.get("compiledBy").asText());
+                    if (dataNode.has("compiledAt")) map.put("compiledAt", dataNode.get("compiledAt").asText());
+                    if (dataNode.has("previousRevision")) map.put("previousRevision", dataNode.get("previousRevision").asText());
+                    if (dataNode.has("currentRevision")) map.put("currentRevision", dataNode.get("currentRevision").asText());
+                    if (dataNode.has("reasonForRevision")) map.put("reasonForRevision", dataNode.get("reasonForRevision").asText());
+                } catch (Exception ignored) {}
+            }
+            list.add(map);
+        }
+        return list;
+    }
+
+    /**
+     * Option A Governance: Returns historical revision DOCX or PDF bytes without modifying historical truth.
+     */
+    public byte[] getRevisionDocumentBytes(Long orderId, int revisionNumber, String type, UserDetailsImpl principal) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new NoSuchElementException("Order not found with ID: " + orderId));
+        validateOrderAccess(order, principal, "VIEW");
+
+        ValuationSnapshot snap = valuationSnapshotRepository.findByOrderIdAndVersionNumber(orderId, revisionNumber)
+                .orElseThrow(() -> new NoSuchElementException("Revision " + revisionNumber + " not found for order #" + orderId));
+
+        if ("pdf".equalsIgnoreCase(type)) {
+            if (snap.getPdfContent() == null || snap.getPdfContent().length == 0) {
+                throw new NoSuchElementException("PDF content not available for revision " + revisionNumber);
+            }
+            return snap.getPdfContent();
+        } else if ("docx".equalsIgnoreCase(type)) {
+            if (snap.getDocxContent() == null || snap.getDocxContent().length == 0) {
+                throw new NoSuchElementException("DOCX content not available for revision " + revisionNumber);
+            }
+            return snap.getDocxContent();
+        }
+        throw new IllegalArgumentException("Unsupported document type: " + type);
     }
 }
 

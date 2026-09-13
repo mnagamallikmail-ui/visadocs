@@ -227,16 +227,33 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
                                     },
                                   )
                                 : provider.viewMode == WorkspaceViewMode.tableEdit
-                                    ? Row(
-                                        key: const ValueKey('TABLE_EDIT_LAYOUT'),
-                                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                                        children: const [
-                                          SectionNavigationTreeWidget(),
-                                          Expanded(
-                                            child: DocumentTableWorkspaceWidget(),
+                                      ? Focus(
+                                          onKeyEvent: (node, event) {
+                                            if (event is KeyDownEvent) {
+                                              if (event.logicalKey == LogicalKeyboardKey.tab || event.logicalKey == LogicalKeyboardKey.arrowDown) {
+                                                if (provider.placeholderRegistry.activeId == null) {
+                                                  provider.placeholderRegistry.activateFirst();
+                                                  return KeyEventResult.handled;
+                                                }
+                                              }
+                                            }
+                                            return KeyEventResult.ignored;
+                                          },
+                                          child: Row(
+                                            key: const ValueKey('TABLE_EDIT_LAYOUT'),
+                                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                                            children: const [
+                                              Focus(
+                                                canRequestFocus: false,
+                                                descendantsAreFocusable: false,
+                                                child: SectionNavigationTreeWidget(),
+                                              ),
+                                              Expanded(
+                                                child: DocumentTableWorkspaceWidget(),
+                                              ),
+                                            ],
                                           ),
-                                        ],
-                                      )
+                                        )
                                     : const LivePreviewViewerWidget(key: ValueKey('COMPILED_PREVIEW')),
                           ),
                   ),
@@ -257,8 +274,12 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
     final isPa = widget.role == 'PA';
     final isSpa = widget.role == 'SPA';
     final isAdmin = widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN';
-
-    return AppBar(
+    return PreferredSize(
+      preferredSize: const Size.fromHeight(kToolbarHeight + 1),
+      child: Focus(
+        canRequestFocus: false,
+        descendantsAreFocusable: false,
+        child: AppBar(
       backgroundColor: AppColors.workspacePanel,
       surfaceTintColor: Colors.transparent,
       elevation: 0,
@@ -451,6 +472,36 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
           const SizedBox(width: 10),
         ],
 
+        // REVISION MODE ACTION: SPA / Super Admin Recompile & Regenerate
+        if ((isSpa || isAdmin) && (status == 'SPA_CONFIRMED' || status == 'FINAL_DELIVERY')) ...[
+          ElevatedButton.icon(
+            icon: provider.isSubmitting
+                ? const SizedBox(
+                    width: 13,
+                    height: 13,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.auto_fix_high_rounded, size: 14),
+            label: Text(
+              provider.isSubmitting ? 'Recompiling...' : 'RECOMPILE & REGENERATE',
+              style: AppTypography.workspaceButton(
+                color: Colors.white,
+                weight: FontWeight.w700,
+                letterSpacing: 0.3,
+              ),
+            ),
+            onPressed: provider.isSubmitting ? null : _handleSpaApprove,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.workspaceSuccess,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+          const SizedBox(width: 10),
+        ],
+
         IconButton(
           icon: const Icon(Icons.refresh_rounded, color: AppColors.workspaceSecondaryText, size: 20),
           tooltip: 'Reload Document Data',
@@ -458,7 +509,9 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
         ),
         const SizedBox(width: 16),
       ],
-    );
+    ),
+  ),
+);
   }
 
   /// Sticky Property Context Header Strip (Fixed 42px bar, always visible throughout scrolling)

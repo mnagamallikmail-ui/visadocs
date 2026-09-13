@@ -298,8 +298,9 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
     final naturalHeight = widget.rect.h * widget.containerHeight;
 
     // Minimum width of 180px for standard inline rendering
+    final lineCount = currentValue.split('\n').length;
     final effectiveWidth = math.max(naturalWidth, 180.0);
-    final effectiveHeight = math.max(naturalHeight, 26.0);
+    final effectiveHeight = math.max(naturalHeight, 26.0 * math.max(1, lineCount));
 
     final isHovered = provider.hoveredKey == widget.placeholder.key;
     final isFocused = provider.focusedKey == widget.placeholder.key || _isFloatingOpen;
@@ -475,8 +476,6 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
                       fontWeight: FontWeight.w600,
                       color: AppColors.ink,
                     ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   )
                 : const SizedBox.shrink(), // Blank — no key name, no hint, no assumptions.
           ),

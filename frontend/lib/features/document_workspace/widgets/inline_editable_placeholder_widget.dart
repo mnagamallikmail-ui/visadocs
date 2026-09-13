@@ -94,6 +94,8 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
     return val;
   }
 
+  bool _isNavigating = false;
+
   @override
   void initState() {
     super.initState();
@@ -104,10 +106,70 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
     _focusNode = FocusNode();
 
     _focusNode.addListener(() {
-      if (!_focusNode.hasFocus && _isEditing) {
+      if (!_focusNode.hasFocus && _isEditing && !_isNavigating) {
         _commitAndExitEditMode();
       }
     });
+
+    _focusNode.onKeyEvent = (node, event) {
+      if (!_isEditing) return KeyEventResult.ignored;
+
+      if (event is KeyDownEvent) {
+        final isShift = HardwareKeyboard.instance.isShiftPressed;
+        final isAlt = HardwareKeyboard.instance.isAltPressed;
+
+        // TAB / SHIFT+TAB: Document-order placeholder navigation
+        if (event.logicalKey == LogicalKeyboardKey.tab) {
+          _commitAndExitEditMode(navigateNext: !isShift, navigatePrevious: isShift);
+          return KeyEventResult.handled;
+        }
+
+        // ALT + ENTER: Always creates new line in text placeholders
+        if (event.logicalKey == LogicalKeyboardKey.enter && isAlt) {
+          _insertNewline(provider);
+          return KeyEventResult.handled;
+        }
+
+        // ENTER: Creates new line in multiline text, submits in pure number fields
+        if (event.logicalKey == LogicalKeyboardKey.enter && !isAlt) {
+          if (widget.fieldVm.isNumber) {
+            _commitAndExitEditMode(navigateNext: true);
+            return KeyEventResult.handled;
+          } else {
+            _insertNewline(provider);
+            return KeyEventResult.handled;
+          }
+        }
+
+        // UP ARROW: Moves cursor to previous line; if already on FIRST line -> moves to PREVIOUS placeholder
+        if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+          final pos = _controller.selection.baseOffset >= 0 ? _controller.selection.baseOffset : _controller.text.length;
+          final firstNl = _controller.text.indexOf('\n');
+          if (firstNl == -1 || pos <= firstNl) {
+            _commitAndExitEditMode(navigatePrevious: true);
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored; // Normal multiline movement within textbox
+        }
+
+        // DOWN ARROW: Moves cursor to next line; if already on LAST line -> moves to NEXT placeholder
+        if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+          final pos = _controller.selection.baseOffset >= 0 ? _controller.selection.baseOffset : _controller.text.length;
+          final lastNl = _controller.text.lastIndexOf('\n');
+          if (lastNl == -1 || pos > lastNl) {
+            _commitAndExitEditMode(navigateNext: true);
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored; // Normal multiline movement within textbox
+        }
+
+        if (event.logicalKey == LogicalKeyboardKey.escape) {
+          _cancelEditMode();
+          return KeyEventResult.handled;
+        }
+      }
+      return KeyEventResult.ignored;
+    };
 
     // Register with centralized PlaceholderRegistry for keyboard-first traversal
     provider.placeholderRegistry.register(
@@ -119,6 +181,20 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
         getContext: () => context,
       ),
     );
+  }
+
+  void _insertNewline(DocumentWorkspaceProvider provider) {
+    final text = _controller.text;
+    final selection = _controller.selection;
+    final start = selection.start >= 0 ? selection.start : text.length;
+    final end = selection.end >= 0 ? selection.end : text.length;
+    final newText = text.replaceRange(start, end, '\n');
+    _controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: start + 1),
+    );
+    provider.updateValue(widget.fieldVm.key, newText);
+    setState(() {});
   }
 
   @override
@@ -173,21 +249,26 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
     _originalValue = normalized;
     provider.updateValue(widget.fieldVm.key, normalized);
 
-    if (mounted) {
-      setState(() {
-        _isEditing = false;
-        _isHovered = false;
-      });
-    }
-
-    if (navigateNext) {
-      provider.placeholderRegistry.next(effectiveId);
-    } else if (navigatePrevious) {
-      provider.placeholderRegistry.previous(effectiveId);
-    } else {
-      if (provider.placeholderRegistry.activeId == effectiveId) {
-        provider.placeholderRegistry.setActive(null);
+    _isNavigating = true;
+    try {
+      if (mounted) {
+        setState(() {
+          _isEditing = false;
+          _isHovered = false;
+        });
       }
+
+      if (navigateNext) {
+        provider.placeholderRegistry.next(effectiveId);
+      } else if (navigatePrevious) {
+        provider.placeholderRegistry.previous(effectiveId);
+      } else {
+        if (provider.placeholderRegistry.activeId == effectiveId) {
+          provider.placeholderRegistry.setActive(null);
+        }
+      }
+    } finally {
+      _isNavigating = false;
     }
   }
 
@@ -415,16 +496,18 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
 
   /// ─── EDIT MODE: Auto-Sizing Active Text Field with Visual Active Indicator ──
   Widget _buildEditMode(BuildContext context, DocumentWorkspaceProvider provider, TextStyle baseStyle) {
-    // Measure dynamic width from the actual typed content only.
-    // GOVERNANCE: Never use questionText or key as a size fallback — that leaks label content.
-    // When the field is empty, use a neutral minimum width.
+    // Measure dynamic width from the actual typed content across all lines.
     final textToMeasure = _controller.text.isEmpty ? '' : _controller.text;
-    final painter = TextPainter(
-      text: TextSpan(text: textToMeasure, style: baseStyle),
-      textDirection: TextDirection.ltr,
-    )..layout();
-
-    final dynamicWidth = textToMeasure.isEmpty ? 120.0 : (painter.width + 32).clamp(80.0, 520.0);
+    final lines = textToMeasure.isEmpty ? [''] : textToMeasure.split('\n');
+    double maxLineWidth = 0.0;
+    for (final line in lines) {
+      final p = TextPainter(
+        text: TextSpan(text: line.isEmpty ? ' ' : line, style: baseStyle),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      if (p.width > maxLineWidth) maxLineWidth = p.width;
+    }
+    final dynamicWidth = textToMeasure.isEmpty ? 140.0 : (maxLineWidth + 40).clamp(120.0, 720.0);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 2.5, vertical: 1.0),
@@ -446,15 +529,18 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
           color: AppColors.workspacePrimaryText,
           fontWeight: FontWeight.w600,
         ),
-        keyboardType: widget.fieldVm.isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
+        keyboardType: widget.fieldVm.isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.multiline,
+        minLines: 1,
+        maxLines: null, // Auto-growing dynamic height with unlimited vertical expansion
+        scrollPhysics: const NeverScrollableScrollPhysics(), // Full text always visible, no internal scrollbar
         onChanged: (newText) {
           provider.updateValue(widget.fieldVm.key, newText);
-          setState(() {}); // Re-measure dynamic width for instant reflow
+          setState(() {}); // Re-measure dynamic width and height for instant reflow
         },
-        onFieldSubmitted: (_) => _commitAndExitEditMode(navigateNext: true),
+        onFieldSubmitted: widget.fieldVm.isNumber ? (_) => _commitAndExitEditMode(navigateNext: true) : null,
         decoration: InputDecoration(
           isDense: true,
-          contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
           filled: true,
           fillColor: Colors.white,
           border: OutlineInputBorder(

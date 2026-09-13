@@ -313,6 +313,42 @@ class OrderProvider extends ChangeNotifier {
     return false;
   }
 
+  Future<List<Map<String, dynamic>>> fetchRevisions(int orderId) async {
+    try {
+      final response = await _apiService.dio.get('/api/v1/orders/$orderId/revisions');
+      if (response.statusCode == 200 && response.data is List) {
+        return List<Map<String, dynamic>>.from(response.data);
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  Future<Uint8List?> downloadRevisionPdf(int orderId, int revNumber) async {
+    try {
+      final response = await _apiService.dio.get<List<int>>(
+        '/api/v1/orders/$orderId/revisions/$revNumber/pdf',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        return Uint8List.fromList(response.data!);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<Uint8List?> downloadRevisionDocx(int orderId, int revNumber) async {
+    try {
+      final response = await _apiService.dio.get<List<int>>(
+        '/api/v1/orders/$orderId/revisions/$revNumber/docx',
+        options: Options(responseType: ResponseType.bytes),
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        return Uint8List.fromList(response.data!);
+      }
+    } catch (_) {}
+    return null;
+  }
+
   Future<bool> processBalancePayment(int orderId, double amount) async {
     try {
       final response = await _apiService.dio.post('/api/v1/payments/process-balance', queryParameters: {

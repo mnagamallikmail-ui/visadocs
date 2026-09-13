@@ -871,36 +871,40 @@ class InputFieldVm {
           key.toUpperCase().startsWith('DT_') ||
           key.toUpperCase().endsWith('_DT'));
 
-  bool get isMultiline {
-    if (isCompositeTable) return false;
-    if (fieldType.toUpperCase() == 'MULTILINE') return true;
+  bool get isNumber {
+    if (isCompositeTable || isImage || isDate) return false;
+    final t = fieldType.toUpperCase();
+    if (t == 'MULTILINE') return false;
     final k = key.toUpperCase();
-    return k.contains('OBSERVATION') ||
-        k.contains('ADVANTAGE') ||
-        k.contains('DISADVANTAGE') ||
-        k.contains('DOCUMENT') ||
-        k.contains('DESCRIPTION') ||
-        k.contains('REMARK') ||
+    if (k.contains('REMARK') ||
+        k.contains('COMMENT') ||
+        k.contains('OBSERVATION') ||
         k.contains('NOTE') ||
+        k.contains('DESC') ||
         k.contains('ADDRESS') ||
-        k.contains('SPECIFICATION') ||
+        k.contains('NAME') ||
+        k.contains('TEXT') ||
+        k.contains('TREND') ||
+        k.contains('DETAIL') ||
         k.contains('BOUNDARY') ||
-        k.contains('BOUNDARIES');
+        k.contains('BOUNDARIES')) {
+      return false;
+    }
+    return t == 'NUMBER' ||
+        k.contains('AMOUNT') ||
+        k.contains('VALUE') ||
+        k.contains('RATE') ||
+        k.contains('AREA') ||
+        k.contains('SFT') ||
+        k.contains('SQFT') ||
+        k.contains('SQYD');
   }
 
-  bool get isNumber =>
-      !isCompositeTable &&
-      !isDate &&
-      !isMultiline &&
-      !isImage &&
-      (fieldType.toUpperCase() == 'NUMBER' ||
-          key.toUpperCase().contains('AMOUNT') ||
-          key.toUpperCase().contains('VALUE') ||
-          key.toUpperCase().contains('RATE') ||
-          key.toUpperCase().contains('AREA') ||
-          key.toUpperCase().contains('SFT') ||
-          key.toUpperCase().contains('SQFT') ||
-          key.toUpperCase().contains('SQYD'));
+  bool get isMultiline {
+    if (isCompositeTable || isImage || isDate || isNumber) return false;
+    // DEFECT 1: Every TEXT placeholder without exception behaves as a multiline expandable textbox.
+    return true;
+  }
 
   bool get isCurrency =>
       isNumber &&

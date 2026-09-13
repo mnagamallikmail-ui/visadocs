@@ -285,6 +285,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                       : (isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text),
                   minLines: isMultiline ? 3 : 1,
                   maxLines: isMultiline ? null : 1, // Auto-growing dynamic height
+                  scrollPhysics: const NeverScrollableScrollPhysics(), // No internal scrollbars
                   style: AppTypography.workspaceInput(
                     color: widget.readOnly ? AppColors.workspaceSecondaryText : AppColors.workspacePrimaryText,
                   ),

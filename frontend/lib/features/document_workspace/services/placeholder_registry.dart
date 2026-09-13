@@ -74,6 +74,8 @@ class PlaceholderRegistry {
     if (idx != -1 && idx < _entries.length - 1) {
       final nextEntry = _entries[idx + 1];
       _activateAndScroll(nextEntry);
+    } else if (idx == -1 && _entries.isNotEmpty) {
+      _activateAndScroll(_entries.first);
     }
   }
 
@@ -84,6 +86,15 @@ class PlaceholderRegistry {
     if (idx > 0) {
       final prevEntry = _entries[idx - 1];
       _activateAndScroll(prevEntry);
+    } else if (idx == -1 && _entries.isNotEmpty) {
+      _activateAndScroll(_entries.last);
+    }
+  }
+
+  /// Activates the very first editable placeholder in document order.
+  void activateFirst() {
+    if (_entries.isNotEmpty) {
+      _activateAndScroll(_entries.first);
     }
   }
 

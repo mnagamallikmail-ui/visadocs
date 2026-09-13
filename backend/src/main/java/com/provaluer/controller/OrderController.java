@@ -394,7 +394,7 @@ public class OrderController {
 
     @PostMapping("/{id}/revert-to-review")
     @Transactional
-    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    @PreAuthorize("hasAnyRole('SPA', 'SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<?> revertToReview(@PathVariable Long id) {
         Optional<Order> orderOpt = orderRepository.findById(id);
         if (orderOpt.isPresent()) {
@@ -958,7 +958,7 @@ public class OrderController {
      */
     @PostMapping("/{id}/spa-approve")
     @PreAuthorize("hasAnyRole('SPA', 'SUPER_ADMIN', 'ADMIN')")
-    public ResponseEntity<?> spaApproveDocument(@PathVariable Long id, @RequestBody com.provaluer.dto.SpaApproveDocumentRequest request) {
+    public ResponseEntity<?> spaApproveDocument(@PathVariable Long id, @RequestBody(required = false) com.provaluer.dto.SpaApproveDocumentRequest request) {
         try {
             UserDetailsImpl principal = getCurrentPrincipal();
             var response = documentWorkspaceService.spaApprove(id, request, principal);
@@ -1026,6 +1026,66 @@ public class OrderController {
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"live_page_" + pageIndex + ".png\"")
                     .body(imageBytes);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * GET /api/v1/orders/{id}/revisions
+     * Returns all immutable revision records for the order under Option A.
+     */
+    @GetMapping("/{id}/revisions")
+    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN', 'CLIENT')")
+    public ResponseEntity<?> getOrderRevisions(@PathVariable Long id) {
+        try {
+            UserDetailsImpl principal = getCurrentPrincipal();
+            var list = documentWorkspaceService.getOrderRevisions(id, principal);
+            return ResponseEntity.ok(list);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * GET /api/v1/orders/{id}/revisions/{revNumber}/pdf
+     * Downloads immutable historical revision PDF without destroying history.
+     */
+    @GetMapping("/{id}/revisions/{revNumber}/pdf")
+    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN', 'CLIENT')")
+    public ResponseEntity<byte[]> getRevisionPdf(@PathVariable Long id, @PathVariable int revNumber) {
+        try {
+            UserDetailsImpl principal = getCurrentPrincipal();
+            byte[] bytes = documentWorkspaceService.getRevisionDocumentBytes(id, revNumber, "pdf", principal);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Report_" + id + "_Rev" + revNumber + ".pdf\"")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(bytes);
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    /**
+     * GET /api/v1/orders/{id}/revisions/{revNumber}/docx
+     * Downloads immutable historical revision DOCX without destroying history.
+     */
+    @GetMapping("/{id}/revisions/{revNumber}/docx")
+    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN', 'CLIENT')")
+    public ResponseEntity<byte[]> getRevisionDocx(@PathVariable Long id, @PathVariable int revNumber) {
+        try {
+            UserDetailsImpl principal = getCurrentPrincipal();
+            byte[] bytes = documentWorkspaceService.getRevisionDocumentBytes(id, revNumber, "docx", principal);
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Report_" + id + "_Rev" + revNumber + ".docx\"")
+                    .header(HttpHeaders.CONTENT_TYPE, "application/vnd.openxmlformats-officedocument.wordprocessingml.document")
+                    .body(bytes);
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).build();
         } catch (Exception e) {

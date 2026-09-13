@@ -989,6 +989,256 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
     }
   }
 
+  Future<void> _downloadRevisionPdf(int orderId, int revNumber) async {
+    final provider = Provider.of<OrderProvider>(context, listen: false);
+    final bytes = await provider.downloadRevisionPdf(orderId, revNumber);
+    if (bytes == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: DesignSystem.error,
+            content: Text("Failed to download revision PDF."),
+          ),
+        );
+      }
+      return;
+    }
+    try {
+      final blob = html.Blob([bytes], 'application/pdf');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', 'PV_REPORT_${orderId}_Rev$revNumber.pdf')
+        ..style.display = 'none';
+      html.document.body!.append(anchor);
+      anchor.click();
+      anchor.remove();
+      html.Url.revokeObjectUrl(url);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error saving PDF: $e")),
+        );
+      }
+    }
+  }
+
+  Future<void> _downloadRevisionDocx(int orderId, int revNumber) async {
+    final provider = Provider.of<OrderProvider>(context, listen: false);
+    final bytes = await provider.downloadRevisionDocx(orderId, revNumber);
+    if (bytes == null) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            backgroundColor: DesignSystem.error,
+            content: Text("Failed to download revision DOCX."),
+          ),
+        );
+      }
+      return;
+    }
+    try {
+      final blob = html.Blob([bytes], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', 'PV_REPORT_${orderId}_Rev$revNumber.docx')
+        ..style.display = 'none';
+      html.document.body!.append(anchor);
+      anchor.click();
+      anchor.remove();
+      html.Url.revokeObjectUrl(url);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text("Error saving DOCX: $e")),
+        );
+      }
+    }
+  }
+
+  void _showRevisionHistoryDialog(int orderId, OrderProvider provider) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        child: Container(
+          width: 650,
+          maxHeight: 550,
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: AppColors.deepTeal.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(Icons.history_edu, color: AppColors.deepTeal, size: 22),
+                      ),
+                      const SizedBox(width: 12),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "REPORT REVISION HISTORY",
+                            style: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.bold, color: DesignSystem.textPrimary),
+                          ),
+                          Text(
+                            "Option A Governance • Immutable Audit Trail • Order #$orderId",
+                            style: const TextStyle(fontSize: 11, color: DesignSystem.textSecondary),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, size: 20),
+                    onPressed: () => Navigator.pop(ctx),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              const Divider(height: 1),
+              const SizedBox(height: 16),
+              Expanded(
+                child: FutureBuilder<List<Map<String, dynamic>>>(
+                  future: provider.fetchRevisions(orderId),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Center(child: CircularProgressIndicator());
+                    }
+                    final revisions = snapshot.data ?? [];
+                    if (revisions.isEmpty) {
+                      return const Center(
+                        child: Text(
+                          "No revisions recorded yet. Recompile to produce Revision 1.",
+                          style: TextStyle(color: DesignSystem.textSecondary, fontSize: 12),
+                        ),
+                      );
+                    }
+                    return ListView.separated(
+                      itemCount: revisions.length,
+                      separatorBuilder: (_, __) => const Divider(height: 16),
+                      itemBuilder: (context, index) {
+                        final rev = revisions[index];
+                        final revNum = rev['revisionNumber'] ?? index;
+                        final compiledBy = rev['compiledBy'] ?? 'SPA';
+                        final compiledAt = rev['compiledAt'] ?? rev['createdAt'] ?? 'N/A';
+                        final notes = rev['versionNotes'] ?? rev['reasonForRevision'] ?? '';
+                        final hasDocx = rev['hasDocx'] == true;
+                        final hasPdf = rev['hasPdf'] == true;
+
+                        return Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade50,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: DesignSystem.border),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: revNum == 0 ? Colors.blue.shade50 : AppColors.deepTeal.withOpacity(0.12),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(
+                                    color: revNum == 0 ? Colors.blue.shade300 : AppColors.deepTeal.withOpacity(0.4),
+                                  ),
+                                ),
+                                child: Text(
+                                  revNum == 0 ? "Rev 0 (Original)" : "Rev $revNum",
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 11,
+                                    color: revNum == 0 ? Colors.blue.shade800 : AppColors.deepTeal,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      "Compiled by $compiledBy",
+                                      style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      "Date: $compiledAt",
+                                      style: const TextStyle(fontSize: 10.5, color: DesignSystem.textSecondary),
+                                    ),
+                                    if (notes.toString().isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        notes.toString(),
+                                        style: TextStyle(fontSize: 10, fontStyle: FontStyle.italic, color: Colors.grey.shade700),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (hasDocx)
+                                    ElevatedButton.icon(
+                                      icon: const Icon(Icons.description, size: 13, color: Colors.white),
+                                      label: const Text("DOCX", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: AppColors.deepTeal,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                        minimumSize: Size.zero,
+                                      ),
+                                      onPressed: () => _downloadRevisionDocx(orderId, revNum),
+                                    ),
+                                  const SizedBox(width: 6),
+                                  if (hasPdf)
+                                    ElevatedButton.icon(
+                                      icon: const Icon(Icons.picture_as_pdf, size: 13, color: Colors.white),
+                                      label: const Text("PDF", style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold)),
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: DesignSystem.success,
+                                        foregroundColor: Colors.white,
+                                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                                        minimumSize: Size.zero,
+                                      ),
+                                      onPressed: () => _downloadRevisionPdf(orderId, revNum),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: const Text("Close", style: TextStyle(fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final viewportHeight = MediaQuery.of(context).size.height;
@@ -3099,14 +3349,84 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
           ],
         ],
 
-        // Action E: SPA / Admin Upload Final Reports (For SPA / SUPER_ADMIN / ADMIN under SPA_CONFIRMED status)
-        if (status == 'SPA_CONFIRMED' && (widget.role == 'SPA' || widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN')) ...[
+        // Action E: SPA / Admin Finalized Report Operations & Reopen / Revision Mode
+        if ((status == 'SPA_CONFIRMED' || status == 'FINAL_DELIVERY') &&
+            (widget.role == 'SPA' || widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN')) ...[
           const SizedBox(height: 16),
           const Divider(),
           const SizedBox(height: 10),
-          Text(
-            "FINALIZED REPORT OPERATIONS",
-            style: GoogleFonts.montserrat(color: DesignSystem.secondary, fontSize: 10, fontWeight: FontWeight.bold),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                "REPORT GOVERNANCE & REVISION MODE",
+                style: GoogleFonts.montserrat(color: DesignSystem.secondary, fontSize: 10, fontWeight: FontWeight.bold),
+              ),
+              if (order['revisionCount'] != null && (order['revisionCount'] as int) > 0)
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.deepTeal.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: AppColors.deepTeal.withOpacity(0.3)),
+                  ),
+                  child: Text(
+                    "Rev ${order['revisionCount']}",
+                    style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.deepTeal),
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          // Re-enter workspace button (Revision Mode)
+          SizedBox(
+            width: double.infinity,
+            height: 40,
+            child: ElevatedButton.icon(
+              icon: const Icon(Icons.edit_note, size: 18, color: Colors.white),
+              onPressed: () async {
+                await Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => DocumentWorkspaceScreen(
+                      orderId: order['id'],
+                      reportNumber: reportNum,
+                      role: widget.role,
+                    ),
+                  ),
+                );
+                _refreshData();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.deepTeal,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              ),
+              label: Text(
+                status == 'FINAL_DELIVERY'
+                    ? "REOPEN WORKSPACE (REVISION MODE)"
+                    : "OPEN DOCUMENT WORKSPACE (EDIT & RECOMPILE)",
+                style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+          // Revision History button
+          SizedBox(
+            width: double.infinity,
+            height: 36,
+            child: OutlinedButton.icon(
+              icon: const Icon(Icons.history, size: 16, color: DesignSystem.primary),
+              onPressed: () => _showRevisionHistoryDialog(order['id'], provider),
+              style: OutlinedButton.styleFrom(
+                side: const BorderSide(color: DesignSystem.primary),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+              ),
+              label: const Text(
+                "VIEW IMMUTABLE REVISION HISTORY",
+                style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: DesignSystem.primary),
+              ),
+            ),
           ),
           const SizedBox(height: 12),
           Row(
@@ -3146,7 +3466,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                               Icon(Icons.check_circle, color: DesignSystem.success, size: 14),
                               SizedBox(width: 4),
                               Text(
-                                "DOCX UPLOADED",
+                                "DOCX READY",
                                 style: TextStyle(color: DesignSystem.success, fontSize: 9.5, fontWeight: FontWeight.bold),
                               ),
                             ],
@@ -3180,7 +3500,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                               Icon(Icons.check_circle, color: DesignSystem.success, size: 14),
                               SizedBox(width: 4),
                               Text(
-                                "PDF UPLOADED",
+                                "PDF READY",
                                 style: TextStyle(color: DesignSystem.success, fontSize: 9.5, fontWeight: FontWeight.bold),
                               ),
                             ],
@@ -3201,13 +3521,13 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
           ),
           const SizedBox(height: 12),
 
-          // Super Admin Override: revert an approved report back to SPA review
+          // Reopen / Super Admin Override: revert an approved report back to SPA review
           if (status == 'SPA_CONFIRMED' &&
-              (widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN')) ...[    
+              (widget.role == 'SPA' || widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN')) ...[
             const Divider(),
             const SizedBox(height: 10),
             Text(
-              "SUPER ADMIN OVERRIDE",
+              "REOPEN / OVERRIDE CONTROLS",
               style: GoogleFonts.montserrat(color: Colors.orange.shade700, fontSize: 10, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
@@ -3233,7 +3553,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                 ),
                 label: const Text(
-                  "OVERRIDE — REVERT TO SPA REVIEW",
+                  "REOPEN — REVERT TO SPA REVIEW",
                   style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold),
                 ),
               ),
@@ -3480,9 +3800,15 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
             inputControl = TextFormField(
               controller: controller,
               style: DesignSystem.body(fontSize: 13),
+              keyboardType: TextInputType.multiline,
+              minLines: 1,
+              maxLines: null,
               decoration: const InputDecoration(
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               ),
+              onChanged: (val) {
+                _entryValues[key] = val;
+              },
             );
           }
 
@@ -3604,6 +3930,118 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
     anchor.click();
     anchor.remove();
     html.Url.revokeObjectUrl(url);
+  }
+
+  Future<void> _showRevisionHistoryDialog(int orderId, OrderProvider provider) async {
+    final revisions = await provider.fetchRevisions(orderId);
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Row(
+          children: [
+            Icon(Icons.history_rounded, color: AppColors.deepTeal),
+            SizedBox(width: 8),
+            Text("Report Revision History"),
+          ],
+        ),
+        content: SizedBox(
+          width: 500,
+          child: revisions.isEmpty
+              ? const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Text("No revisions recorded yet."),
+                )
+              : ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: revisions.length,
+                  separatorBuilder: (_, __) => const Divider(),
+                  itemBuilder: (ctx, i) {
+                    final rev = revisions[i];
+                    final revNum = rev['revisionNumber'] ?? i;
+                    final trigger = rev['trigger'] ?? 'REPORT';
+                    final compiledBy = rev['compiledBy'] ?? 'SPA';
+                    final dateStr = rev['createdAt'] ?? '';
+                    final notes = rev['versionNotes'] ?? '';
+
+                    return ListTile(
+                      dense: true,
+                      leading: CircleAvatar(
+                        radius: 14,
+                        backgroundColor: AppColors.deepTeal.withValues(alpha: 0.1),
+                        child: Text(
+                          "R$revNum",
+                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.deepTeal),
+                        ),
+                      ),
+                      title: Text(
+                        "Revision $revNum • $trigger",
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+                      ),
+                      subtitle: Text(
+                        "Compiled by: $compiledBy • $dateStr\n$notes",
+                        style: const TextStyle(fontSize: 10, color: DesignSystem.textSecondary),
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 20),
+                            tooltip: "Download Revision $revNum PDF",
+                            onPressed: () => _downloadRevisionPdf(orderId, revNum),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.description, color: Colors.blue, size: 20),
+                            tooltip: "Download Revision $revNum DOCX",
+                            onPressed: () => _downloadRevisionDocx(orderId, revNum),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text("CLOSE"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _downloadRevisionPdf(int orderId, int revNumber) async {
+    final provider = Provider.of<OrderProvider>(context, listen: false);
+    final bytes = await provider.downloadRevisionPdf(orderId, revNumber);
+    if (bytes != null) {
+      final blob = html.Blob([bytes], 'application/pdf');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', 'Report_${orderId}_Rev$revNumber.pdf')
+        ..style.display = 'none';
+      html.document.body!.append(anchor);
+      anchor.click();
+      anchor.remove();
+      html.Url.revokeObjectUrl(url);
+    }
+  }
+
+  Future<void> _downloadRevisionDocx(int orderId, int revNumber) async {
+    final provider = Provider.of<OrderProvider>(context, listen: false);
+    final bytes = await provider.downloadRevisionDocx(orderId, revNumber);
+    if (bytes != null) {
+      final blob = html.Blob([bytes], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', 'Report_${orderId}_Rev$revNumber.docx')
+        ..style.display = 'none';
+      html.document.body!.append(anchor);
+      anchor.click();
+      anchor.remove();
+      html.Url.revokeObjectUrl(url);
+    }
   }
 
   Widget _buildIntakeDocumentsSection(OrderProvider provider) {
