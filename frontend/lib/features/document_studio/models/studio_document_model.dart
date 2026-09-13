@@ -159,12 +159,27 @@ class StudioRun {
     final fieldType = json['fieldType']?.toString().toUpperCase();
     final isPlaceholder = json['isPlaceholder'] as bool? ?? false;
     final placeholderKey = json['placeholderKey'] as String?;
-    final isImage = type == 'IMAGE' ||
-        fieldType == 'IMAGE' ||
-        (placeholderKey != null &&
-            (placeholderKey.toUpperCase().startsWith('IMG_') ||
-                placeholderKey.toUpperCase().contains('PHOTO') ||
-                placeholderKey.toUpperCase().contains('IMAGE')));
+    final rawKeyUpper = placeholderKey?.toUpperCase() ?? '';
+    final isExplicitText = rawKeyUpper.contains('DESC') ||
+        rawKeyUpper.contains('CAPTION') ||
+        rawKeyUpper.contains('REMARK') ||
+        rawKeyUpper.contains('NOTE') ||
+        rawKeyUpper.contains('COMMENT') ||
+        rawKeyUpper.contains('TEXT');
+
+    final isImage = !isExplicitText &&
+        (type == 'IMAGE' ||
+            fieldType == 'IMAGE' ||
+            (placeholderKey != null &&
+                (rawKeyUpper.startsWith('IMG_') ||
+                    rawKeyUpper.startsWith('IMAGE_') ||
+                    rawKeyUpper.endsWith('_IMAGE') ||
+                    rawKeyUpper.endsWith('_IMG') ||
+                    rawKeyUpper.contains('PHOTO') ||
+                    rawKeyUpper.contains('SELFIE') ||
+                    rawKeyUpper.contains('SIGNATURE') ||
+                    rawKeyUpper == 'IMAGE' ||
+                    rawKeyUpper == 'IMG')));
 
     return StudioRun(
       text: json['text'] as String? ?? (placeholderKey != null ? '<<$placeholderKey>>' : ''),

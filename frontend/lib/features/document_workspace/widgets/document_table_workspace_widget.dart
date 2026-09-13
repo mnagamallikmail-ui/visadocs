@@ -2657,6 +2657,15 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             );
             continue;
           }
+          if (node.fieldVm.isImage) {
+            imageWidgets.add(
+              Padding(
+                padding: const EdgeInsets.only(top: 8.0),
+                child: DocumentInputSlotWidget(fieldVm: node.fieldVm, readOnly: readOnly),
+              ),
+            );
+            continue;
+          }
           final instanceId = '${block.id}_${node.key}_${placeholderIdx++}';
           spans.add(WidgetSpan(
             alignment: PlaceholderAlignment.middle,
@@ -3090,20 +3099,30 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
         }
 
         final instanceId = 'tbl_${cell.cellId}_${key}_${placeholderIdx++}';
-        spans.add(WidgetSpan(
-          alignment: PlaceholderAlignment.middle,
-          baseline: TextBaseline.alphabetic,
-          child: InlineEditablePlaceholderWidget(
-            instanceId: instanceId,
-            fieldVm: fieldVm,
-            readOnly: readOnly,
-            textStyle: GoogleFonts.montserrat(
-              fontSize: 11.5,
-              fontWeight: FontWeight.w600,
-              color: AppColors.workspaceCorporateNavy,
+        if (fieldVm.isImage) {
+          spans.add(WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            child: SizedBox(
+              width: 320,
+              child: DocumentInputSlotWidget(fieldVm: fieldVm, readOnly: readOnly),
             ),
-          ),
-        ));
+          ));
+        } else {
+          spans.add(WidgetSpan(
+            alignment: PlaceholderAlignment.middle,
+            baseline: TextBaseline.alphabetic,
+            child: InlineEditablePlaceholderWidget(
+              instanceId: instanceId,
+              fieldVm: fieldVm,
+              readOnly: readOnly,
+              textStyle: GoogleFonts.montserrat(
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
+                color: AppColors.workspaceCorporateNavy,
+              ),
+            ),
+          ));
+        }
 
         lastIndex = match.end;
       }

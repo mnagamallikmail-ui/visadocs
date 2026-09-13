@@ -255,27 +255,38 @@ class DocumentWorkspaceVm {
 
           if (el.runs.isNotEmpty) {
             for (final run in el.runs) {
-              if (run.isImage ||
-                  (run.placeholderKey != null &&
-                      (run.placeholderKey!.toUpperCase().startsWith('IMG_') ||
-                          run.placeholderKey!.toUpperCase().endsWith('_IMAGE') ||
-                          run.placeholderKey!.toUpperCase().contains('PHOTO') ||
-                          run.placeholderKey!.toUpperCase().contains('SELFIE') ||
-                          run.placeholderKey!.toUpperCase().contains('SIGNATURE')))) {
+              final runKey = (run.placeholderKey ?? '').toUpperCase().trim();
+              final isRunImage = run.isImage ||
+                  (runKey.isNotEmpty &&
+                      (runKey.startsWith('IMG_') ||
+                          runKey.startsWith('IMAGE_') ||
+                          runKey.endsWith('_IMAGE') ||
+                          runKey.endsWith('_IMG') ||
+                          runKey.contains('PHOTO') ||
+                          runKey.contains('SELFIE') ||
+                          runKey.contains('SIGNATURE') ||
+                          runKey == 'IMAGE' ||
+                          runKey == 'IMG'));
+
+              if (isRunImage) {
                 final keyUpper = (run.placeholderKey ?? 'IMAGE').toUpperCase().trim();
                 final fVm = getOrCreateField(keyUpper);
                 docNodes.add(ImageRunNode(key: keyUpper, fieldVm: fVm));
               } else if (run.isPlaceholder && run.placeholderKey != null) {
                 final keyUpper = run.placeholderKey!.toUpperCase().trim();
                 final fVm = getOrCreateField(keyUpper);
-                docNodes.add(PlaceholderRunNode(
-                  key: keyUpper,
-                  fieldVm: fVm,
-                  isBold: run.isBold,
-                  isItalic: run.isItalic,
-                  fontSizePt: run.fontSizePt,
-                  fontColor: run.fontColor,
-                ));
+                if (fVm.isImage) {
+                  docNodes.add(ImageRunNode(key: keyUpper, fieldVm: fVm));
+                } else {
+                  docNodes.add(PlaceholderRunNode(
+                    key: keyUpper,
+                    fieldVm: fVm,
+                    isBold: run.isBold,
+                    isItalic: run.isItalic,
+                    fontSizePt: run.fontSizePt,
+                    fontColor: run.fontColor,
+                  ));
+                }
               } else {
                 final rText = run.text;
                 final matches = RegExp(r'<<([^>]+)>>').allMatches(rText);
@@ -308,14 +319,18 @@ class DocumentWorkspaceVm {
                     final kUpper = rawK.toUpperCase();
                     if (kUpper.isNotEmpty) {
                       final fVm = getOrCreateField(kUpper);
-                      docNodes.add(PlaceholderRunNode(
-                        key: kUpper,
-                        fieldVm: fVm,
-                        isBold: run.isBold,
-                        isItalic: run.isItalic,
-                        fontSizePt: run.fontSizePt,
-                        fontColor: run.fontColor,
-                      ));
+                      if (fVm.isImage) {
+                        docNodes.add(ImageRunNode(key: kUpper, fieldVm: fVm));
+                      } else {
+                        docNodes.add(PlaceholderRunNode(
+                          key: kUpper,
+                          fieldVm: fVm,
+                          isBold: run.isBold,
+                          isItalic: run.isItalic,
+                          fontSizePt: run.fontSizePt,
+                          fontColor: run.fontColor,
+                        ));
+                      }
                     }
                     lastIdx = m.end;
                   }
@@ -772,12 +787,12 @@ class TableRowVm {
           final occ = counts[keyUpper] ?? 1;
           String prompt = b.questionText.isNotEmpty
               ? b.questionText
-              : (qText != null && qText.isNotEmpty ? qText : summaries[keyUpper]?.questionText ?? DocumentWorkspaceVm._toHumanizedLabel(keyUpper));
+              : (qText != null && qText.isNotEmpty ? qText : summaries[keyUpper]?.questionText ?? DocumentWorkspaceVm.toHumanizedLabel(keyUpper));
           if (prompt.trim().length <= 1 ||
               prompt.toLowerCase().startsWith('rectangle') ||
               prompt.toLowerCase().startsWith('picture') ||
               prompt.trim() == '_') {
-            prompt = DocumentWorkspaceVm._toHumanizedLabel(keyUpper);
+            prompt = DocumentWorkspaceVm.toHumanizedLabel(keyUpper);
           }
 
           fields.add(InputFieldVm(
@@ -854,11 +869,31 @@ class InputFieldVm {
     final t = fieldType.toUpperCase();
     if (t == 'IMAGE') return true;
     final k = key.toUpperCase();
+    if (k.contains('CAPTION') ||
+        k.contains('DESC') ||
+        k.contains('REMARK') ||
+        k.contains('NOTE') ||
+        k.contains('COMMENT') ||
+        k.contains('TEXT') ||
+        k.contains('ADDRESS') ||
+        k.contains('NAME') ||
+        k.contains('RATE') ||
+        k.contains('VALUE') ||
+        k.contains('AREA')) {
+      return false;
+    }
     final isExplicitImageKey = k.startsWith('IMG_') ||
+        k.startsWith('IMAGE_') ||
+        k == 'IMAGE' ||
+        k == 'IMG' ||
         k.endsWith('_IMAGE') ||
+        k.endsWith('_IMG') ||
+        k.contains('_IMAGE_') ||
+        k.contains('_IMG_') ||
         k.contains('PHOTO') ||
         k.contains('SELFIE') ||
-        k.contains('SIGNATURE');
+        k.contains('SIGNATURE') ||
+        k.contains('PICTURE');
     if (isExplicitImageKey) return true;
     if (t == 'TEXT' || t == 'MULTILINE' || t == 'NUMBER' || t == 'DATE') return false;
     return false;

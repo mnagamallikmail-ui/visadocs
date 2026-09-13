@@ -10,6 +10,7 @@ import '../../../theme/app_typography.dart';
 import '../../../utils/indian_number_formatter.dart';
 import '../models/workspace_view_model.dart';
 import '../providers/document_workspace_provider.dart';
+import '../services/placeholder_registry.dart';
 
 class DocumentInputSlotWidget extends StatefulWidget {
   final InputFieldVm fieldVm;
@@ -112,27 +113,109 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
         }
       }
     });
+
+    // Register with centralized PlaceholderRegistry for keyboard-first traversal
+    final effectiveId = widget.fieldVm.key;
+    if (!widget.readOnly && !widget.fieldVm.isImage && !widget.fieldVm.isCompositeTable) {
+      provider.placeholderRegistry.register(
+        PlaceholderRegistration(
+          id: effectiveId,
+          key: widget.fieldVm.key,
+          onActivate: () {
+            _focusNode.requestFocus();
+            _controller.selection = TextSelection(
+              baseOffset: 0,
+              extentOffset: _controller.text.length,
+            );
+          },
+          onDeactivate: () {
+            if (_focusNode.hasFocus) {
+              _focusNode.unfocus();
+            }
+          },
+          getContext: () => context,
+        ),
+      );
+    }
   }
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
-    // DEFECT 4: Support Alt + Enter for explicit newline insertion
-    if (event is KeyDownEvent &&
-        event.logicalKey == LogicalKeyboardKey.enter &&
-        HardwareKeyboard.instance.isAltPressed) {
-      final text = _controller.text;
-      final selection = _controller.selection;
-      final start = selection.isValid ? selection.start : text.length;
-      final end = selection.isValid ? selection.end : text.length;
-      final newText = text.replaceRange(start, end, '\n');
-      _controller.value = TextEditingValue(
-        text: newText,
-        selection: TextSelection.collapsed(offset: start + 1),
-      );
-      final provider = context.read<DocumentWorkspaceProvider>();
-      provider.updateValue(widget.fieldVm.key, newText);
+    if (event is! KeyDownEvent) return KeyEventResult.ignored;
+
+    final isShift = HardwareKeyboard.instance.isShiftPressed;
+    final isAlt = HardwareKeyboard.instance.isAltPressed;
+    final provider = context.read<DocumentWorkspaceProvider>();
+    final effectiveId = widget.fieldVm.key;
+
+    // TAB / SHIFT+TAB: Document-order placeholder navigation
+    if (event.logicalKey == LogicalKeyboardKey.tab) {
+      if (isShift) {
+        provider.placeholderRegistry.previous(effectiveId);
+      } else {
+        provider.placeholderRegistry.next(effectiveId);
+      }
       return KeyEventResult.handled;
     }
+
+    // ALT + ENTER: Always creates new line in text placeholders
+    if (event.logicalKey == LogicalKeyboardKey.enter && isAlt) {
+      _insertNewline(provider);
+      return KeyEventResult.handled;
+    }
+
+    // ENTER: Creates new line in multiline text, submits/navigates in pure number fields
+    if (event.logicalKey == LogicalKeyboardKey.enter && !isAlt) {
+      if (widget.fieldVm.isNumber) {
+        provider.placeholderRegistry.next(effectiveId);
+        return KeyEventResult.handled;
+      } else {
+        _insertNewline(provider);
+        return KeyEventResult.handled;
+      }
+    }
+
+    // UP ARROW: Moves cursor to previous line; if already on FIRST line -> moves to PREVIOUS placeholder
+    if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+      final pos = _controller.selection.baseOffset >= 0 ? _controller.selection.baseOffset : _controller.text.length;
+      final firstNl = _controller.text.indexOf('\n');
+      if (firstNl == -1 || pos <= firstNl) {
+        provider.placeholderRegistry.previous(effectiveId);
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored; // Normal multiline movement within textbox
+    }
+
+    // DOWN ARROW: Moves cursor to next line; if already on LAST line -> moves to NEXT placeholder
+    if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+      final pos = _controller.selection.baseOffset >= 0 ? _controller.selection.baseOffset : _controller.text.length;
+      final lastNl = _controller.text.lastIndexOf('\n');
+      if (lastNl == -1 || pos > lastNl) {
+        provider.placeholderRegistry.next(effectiveId);
+        return KeyEventResult.handled;
+      }
+      return KeyEventResult.ignored; // Normal multiline movement within textbox
+    }
+
+    if (event.logicalKey == LogicalKeyboardKey.escape) {
+      _focusNode.unfocus();
+      return KeyEventResult.handled;
+    }
+
     return KeyEventResult.ignored;
+  }
+
+  void _insertNewline(DocumentWorkspaceProvider provider) {
+    final text = _controller.text;
+    final selection = _controller.selection;
+    final start = selection.isValid ? selection.start : text.length;
+    final end = selection.isValid ? selection.end : text.length;
+    final newText = text.replaceRange(start, end, '\n');
+    _controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: start + 1),
+    );
+    provider.updateValue(widget.fieldVm.key, newText);
+    setState(() {});
   }
 
   @override
@@ -147,6 +230,10 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
 
   @override
   void dispose() {
+    try {
+      final provider = context.read<DocumentWorkspaceProvider>();
+      provider.placeholderRegistry.unregister(widget.fieldVm.key);
+    } catch (_) {}
     _focusNode.dispose();
     _controller.dispose();
     super.dispose();
@@ -497,7 +584,6 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
 
   Future<void> _pickAndUploadImage(DocumentWorkspaceProvider provider) async {
     if (widget.readOnly) return;
-    _uploadImageSample(provider);
     try {
       final result = await FilePicker.platform.pickFiles(
         type: FileType.custom,
@@ -515,7 +601,8 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
         }
       }
     } catch (_) {
-      // Headless / test environment fallback preserved
+      // Fallback for headless / test environments where FilePicker platform modal is unavailable
+      _uploadImageSample(provider);
     }
   }
 

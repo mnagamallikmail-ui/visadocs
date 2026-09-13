@@ -389,7 +389,7 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
             }
             return KeyEventResult.handled;
           }
-          if (event.logicalKey == LogicalKeyboardKey.enter && !widget.fieldVm.isMultiline) {
+          if (event.logicalKey == LogicalKeyboardKey.enter && widget.fieldVm.isNumber) {
             _commitAndExitEditMode(navigateNext: true);
             return KeyEventResult.handled;
           }
