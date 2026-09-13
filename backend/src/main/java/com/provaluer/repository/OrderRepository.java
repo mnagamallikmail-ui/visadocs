@@ -29,6 +29,8 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
 
     long countByReportNumberStartingWith(String prefix);
 
+    boolean existsByReportNumber(String reportNumber);
+
     long countByTemplateId(Long templateId);
 
     long countByTemplateIdAndStatus(Long templateId, String status);

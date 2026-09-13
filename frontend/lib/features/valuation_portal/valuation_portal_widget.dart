@@ -371,7 +371,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                 ],
               );
 
-              final createEnabled = selectedTemplateId != null && !isCreating;
+              final createEnabled = selectedTemplateId != null && selectedTemplateId! > 0 && !isCreating;
 
               actions = [
                 TextButton(
@@ -391,6 +391,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                             isCreating = true;
                           });
                           try {
+                            debugPrint('[CREATE_REPORT] Dispatching create-by-staff: clientName="${clientCtrl.text.trim()}", bankName="${bankCtrl.text.trim()}", branchName="${branchCtrl.text.trim()}", templateId=$selectedTemplateId');
                             final order = await orderProvider.createStaffReport(
                               clientCtrl.text.trim(),
                               bankCtrl.text.trim(),

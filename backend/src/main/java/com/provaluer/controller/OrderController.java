@@ -27,6 +27,8 @@ import java.util.*;
 @RequestMapping("/api/v1/orders")
 public class OrderController {
 
+    private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(OrderController.class);
+
     @Autowired
     private OrderRepository orderRepository;
 
@@ -719,12 +721,20 @@ public class OrderController {
         public void setBranchName(String branchName) { this.branchName = branchName; }
         public Long getTemplateId() { return templateId; }
         public void setTemplateId(Long templateId) { this.templateId = templateId; }
+
+        @Override
+        public String toString() {
+            return "CreateStaffReportRequest{clientName='" + clientName + "', bankName='" + bankName + "', branchName='" + branchName + "', templateId=" + templateId + "}";
+        }
     }
 
     @PostMapping("/create-by-staff")
     @Transactional
     @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<?> createStaffReport(@RequestBody CreateStaffReportRequest request) {
+        log.info("Create report request: {}", request);
+        log.info("Template ID: {}", request != null ? request.getTemplateId() : null);
+
         UserDetailsImpl principal = getCurrentPrincipal();
         if (principal == null) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
@@ -753,16 +763,18 @@ public class OrderController {
         // REPORT CREATION VALIDATION GOVERNANCE
         // ========================================================================
         Long templateId = request.getTemplateId();
-        if (templateId == null) {
+        if (templateId == null || templateId <= 0) {
             return ResponseEntity.badRequest().body(Map.of("error", "Template ID is required. Cannot create report with missing template."));
         }
 
         Optional<Template> templateOpt = templateRepository.findById(templateId);
+        log.info("Template found: {}", templateOpt.isPresent());
         if (templateOpt.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("error", "Template #" + templateId + " not found. Cannot create report with missing template."));
         }
 
         Template template = templateOpt.get();
+        log.info("Template status: {}", template.getStatus());
 
         // 1. Do not allow report creation with Deleted template
         if (Template.STATUS_DELETED.equalsIgnoreCase(template.getStatus()) || template.getDeletedAt() != null) {
@@ -815,6 +827,10 @@ public class OrderController {
         String prefix = String.format("PV-%02d%02d-", yy, mm);
         long seq = orderRepository.countByReportNumberStartingWith(prefix) + 1;
         String reportNumber = String.format("%s%04d", prefix, seq);
+        while (orderRepository.existsByReportNumber(reportNumber)) {
+            seq++;
+            reportNumber = String.format("%s%04d", prefix, seq);
+        }
         order.setReportNumber(reportNumber);
 
         Order savedOrder = orderRepository.save(order);
