@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../theme/app_colors.dart';
 import '../../../utils/indian_number_formatter.dart';
+import '../../../utils/date_picker_helper.dart';
 
 import '../models/workspace_view_model.dart';
 import '../providers/document_workspace_provider.dart';
@@ -45,41 +46,15 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
 
-  static String formatDate(DateTime dt) {
-    final day = dt.day.toString().padLeft(2, '0');
-    final month = _months[dt.month - 1];
-    final year = dt.year.toString();
-    return '$day-$month-$year'; // Strict dd-MMM-yyyy format
-  }
+  static String formatDate(DateTime dt) => DatePickerHelper.formatDate(dt);
 
-  static DateTime? parseFlexibleDate(String input) {
-    final trimmed = input.trim();
-    if (trimmed.isEmpty) return null;
-
-    final iso = DateTime.tryParse(trimmed);
-    if (iso != null) return iso;
-
-    final parts = trimmed.split('-');
-    if (parts.length == 3) {
-      final d = int.tryParse(parts[0]);
-      final mStr = parts[1].toLowerCase();
-      final y = int.tryParse(parts[2]);
-      if (d != null && y != null) {
-        for (int i = 0; i < _months.length; i++) {
-          if (_months[i].toLowerCase() == mStr) {
-            return DateTime(y, i + 1, d);
-          }
-        }
-      }
-    }
-    return null;
-  }
+  static DateTime? parseFlexibleDate(String input) => DatePickerHelper.parseFlexibleDate(input);
 
   String _normalizeValue(String val) {
     if (widget.fieldVm.isDate && val.isNotEmpty) {
-      final parsed = parseFlexibleDate(val);
+      final parsed = DatePickerHelper.parseFlexibleDate(val);
       if (parsed != null) {
-        return formatDate(parsed);
+        return DatePickerHelper.formatDate(parsed);
       }
     }
     if (widget.fieldVm.isNumber && val.isNotEmpty) {
@@ -100,7 +75,9 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
   void initState() {
     super.initState();
     final provider = context.read<DocumentWorkspaceProvider>();
-    final initial = _normalizeValue(provider.getValue(widget.fieldVm.key));
+    final pVal = provider.getValue(widget.fieldVm.key);
+    final raw = pVal.isNotEmpty ? pVal : widget.fieldVm.currentValue;
+    final initial = _normalizeValue(raw);
     _originalValue = initial;
     _controller = TextEditingController(text: initial);
     _focusNode = FocusNode();
@@ -176,7 +153,13 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
       PlaceholderRegistration(
         id: effectiveId,
         key: widget.fieldVm.key,
-        onActivate: _enterEditMode,
+        onActivate: () {
+          if (widget.fieldVm.isDate) {
+            _pickDate(context, provider);
+          } else {
+            _enterEditMode();
+          }
+        },
         onDeactivate: _commitAndExitEditMode,
         getContext: () => context,
       ),
@@ -210,11 +193,18 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
     }
   }
 
+  DocumentWorkspaceProvider? _provider;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _provider = context.read<DocumentWorkspaceProvider>();
+  }
+
   @override
   void dispose() {
     try {
-      final provider = context.read<DocumentWorkspaceProvider>();
-      provider.placeholderRegistry.unregister(effectiveId);
+      _provider?.placeholderRegistry.unregister(effectiveId);
     } catch (_) {}
     _focusNode.dispose();
     _controller.dispose();
@@ -224,6 +214,10 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
   void _enterEditMode() {
     if (widget.readOnly) return;
     final provider = context.read<DocumentWorkspaceProvider>();
+    if (widget.fieldVm.isDate) {
+      _pickDate(context, provider);
+      return;
+    }
     provider.placeholderRegistry.setActive(effectiveId);
 
     _originalValue = _controller.text;
@@ -290,81 +284,28 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
 
   Future<void> _pickDate(BuildContext context, DocumentWorkspaceProvider provider) async {
     if (widget.readOnly) return;
-    DateTime initial = DateTime.now();
-    final currentText = _controller.text.trim();
-    if (currentText.isNotEmpty) {
-      final parsed = parseFlexibleDate(currentText);
-      if (parsed != null) initial = parsed;
-    }
-
-    final picked = await showDialog<DateTime>(
+    final title = widget.fieldVm.questionText.isNotEmpty
+        ? widget.fieldVm.questionText
+        : DocumentWorkspaceVm.toHumanizedLabel(widget.fieldVm.key);
+    final picked = await DatePickerHelper.showAppDatePicker(
       context: context,
-      builder: (ctx) {
-        return Dialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Container(
-            width: 320,
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.calendar_month_rounded, size: 18, color: AppColors.workspaceCorporateNavy),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        widget.fieldVm.questionText.isNotEmpty ? widget.fieldVm.questionText : 'Select Date',
-                        style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.workspacePrimaryText),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.workspaceSecondaryText),
-                      onPressed: () => Navigator.of(ctx).pop(null),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
-                const Divider(height: 20, color: AppColors.workspaceBorder),
-                Theme(
-                  data: Theme.of(ctx).copyWith(
-                    colorScheme: const ColorScheme.light(
-                      primary: AppColors.workspaceCorporateNavy,
-                      onPrimary: Colors.white,
-                      onSurface: AppColors.workspacePrimaryText,
-                    ),
-                  ),
-                  child: CalendarDatePicker(
-                    initialDate: initial,
-                    firstDate: DateTime(1970),
-                    lastDate: DateTime(2050),
-                    onDateChanged: (selectedDate) {
-                      Navigator.of(ctx).pop(selectedDate);
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+      title: title,
+      currentValue: _controller.text,
     );
 
     if (picked != null) {
-      final formatted = formatDate(picked);
-      _controller.text = formatted;
-      _originalValue = formatted;
-      provider.updateValue(widget.fieldVm.key, formatted);
+      _controller.text = picked;
+      _originalValue = picked;
+      provider.updateValue(widget.fieldVm.key, picked);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<DocumentWorkspaceProvider>();
-    final val = _normalizeValue(provider.getValue(widget.fieldVm.key));
+    final pVal = provider.getValue(widget.fieldVm.key);
+    final raw = pVal.isNotEmpty ? pVal : widget.fieldVm.currentValue;
+    final val = _normalizeValue(raw);
     final isEmpty = val.trim().isEmpty;
 
     final baseStyle = widget.textStyle ??
@@ -375,8 +316,14 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
         );
 
     return Focus(
-      canRequestFocus: false,
+      canRequestFocus: widget.fieldVm.isDate,
       onKeyEvent: (node, event) {
+        if (event is KeyDownEvent && widget.fieldVm.isDate) {
+          if (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.space) {
+            _pickDate(context, provider);
+            return KeyEventResult.handled;
+          }
+        }
         if (!_isEditing) return KeyEventResult.ignored;
 
         if (event is KeyDownEvent) {
@@ -470,10 +417,13 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
                 const SizedBox(width: 40, height: 16),
               if (isDate && !widget.readOnly) ...[
                 const SizedBox(width: 4),
-                Icon(
-                  Icons.calendar_today_rounded,
-                  size: 11,
-                  color: isEmpty ? AppColors.workspaceSecondaryText : AppColors.workspaceCorporateNavy,
+                InkWell(
+                  onTap: () => _pickDate(context, provider),
+                  child: Icon(
+                    Icons.calendar_today_rounded,
+                    size: 11,
+                    color: isEmpty ? AppColors.workspaceSecondaryText : AppColors.workspaceCorporateNavy,
+                  ),
                 ),
               ],
               if (isRepeated) ...[

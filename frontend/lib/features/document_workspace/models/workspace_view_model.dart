@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../document_studio/models/studio_document_model.dart';
+import '../../../../utils/date_picker_helper.dart';
 
 
 /// Top-level ViewModel representing the full parsed Document Workspace.
@@ -227,7 +228,7 @@ class DocumentWorkspaceVm {
                 kUpper.contains('SELFIE') ||
                 kUpper.contains('SIGNATURE')) {
               fieldType = 'IMAGE';
-            } else if (kUpper.contains('DATE') || kUpper.contains('DT')) {
+            } else if (DatePickerHelper.isDateKey(kUpper, fieldType)) {
               fieldType = 'DATE';
             } else if (kUpper.contains('OBSERVATION') ||
                 kUpper.contains('ADVANTAGE') ||
@@ -900,11 +901,7 @@ class InputFieldVm {
   }
 
   bool get isDate =>
-      !isCompositeTable &&
-      (fieldType.toUpperCase() == 'DATE' ||
-          key.toUpperCase().contains('DATE') ||
-          key.toUpperCase().startsWith('DT_') ||
-          key.toUpperCase().endsWith('_DT'));
+      !isCompositeTable && DatePickerHelper.isDateKey(key, fieldType);
 
   bool get isNumber {
     if (isCompositeTable || isImage || isDate) return false;

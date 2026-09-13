@@ -8,6 +8,7 @@ import '../../../theme/app_colors.dart';
 import '../../../theme/app_spacing.dart';
 import '../../../theme/app_typography.dart';
 import '../../../utils/indian_number_formatter.dart';
+import '../../../utils/date_picker_helper.dart';
 import '../models/workspace_view_model.dart';
 import '../providers/document_workspace_provider.dart';
 import '../services/placeholder_registry.dart';
@@ -35,43 +36,15 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
 
-  static String formatDate(DateTime dt) {
-    final day = dt.day.toString().padLeft(2, '0');
-    final month = _months[dt.month - 1];
-    final year = dt.year.toString();
-    return '$day-$month-$year'; // Enforce strict dd-MMM-yyyy format
-  }
+  static String formatDate(DateTime dt) => DatePickerHelper.formatDate(dt);
 
-  static DateTime? parseFlexibleDate(String input) {
-    final trimmed = input.trim();
-    if (trimmed.isEmpty) return null;
-
-    // Try standard ISO yyyy-MM-dd
-    final iso = DateTime.tryParse(trimmed);
-    if (iso != null) return iso;
-
-    // Try dd-MMM-yyyy (e.g. 01-Jan-2026 or 15-Sep-2026)
-    final parts = trimmed.split('-');
-    if (parts.length == 3) {
-      final d = int.tryParse(parts[0]);
-      final mStr = parts[1].toLowerCase();
-      final y = int.tryParse(parts[2]);
-      if (d != null && y != null) {
-        for (int i = 0; i < _months.length; i++) {
-          if (_months[i].toLowerCase() == mStr) {
-            return DateTime(y, i + 1, d);
-          }
-        }
-      }
-    }
-    return null;
-  }
+  static DateTime? parseFlexibleDate(String input) => DatePickerHelper.parseFlexibleDate(input);
 
   String _normalizeValue(String val) {
     if (widget.fieldVm.isDate && val.isNotEmpty) {
-      final parsed = parseFlexibleDate(val);
+      final parsed = DatePickerHelper.parseFlexibleDate(val);
       if (parsed != null) {
-        return formatDate(parsed);
+        return DatePickerHelper.formatDate(parsed);
       }
     }
     if (widget.fieldVm.isNumber && val.isNotEmpty) {
@@ -91,7 +64,9 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
   void initState() {
     super.initState();
     final provider = context.read<DocumentWorkspaceProvider>();
-    final initialValue = _normalizeValue(provider.getValue(widget.fieldVm.key));
+    final serverVal = provider.getValue(widget.fieldVm.key);
+    final rawVal = serverVal.isNotEmpty ? serverVal : widget.fieldVm.currentValue;
+    final initialValue = _normalizeValue(rawVal);
 
     _controller = TextEditingController(text: initialValue);
     _focusNode = FocusNode(onKeyEvent: _handleKeyEvent);
@@ -103,6 +78,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
     });
 
     _focusNode.addListener(() {
+      if (!mounted) return;
       setState(() {});
       if (!_focusNode.hasFocus && widget.fieldVm.isNumber) {
         final currentText = _controller.text;
@@ -123,10 +99,14 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
           key: widget.fieldVm.key,
           onActivate: () {
             _focusNode.requestFocus();
-            _controller.selection = TextSelection(
-              baseOffset: 0,
-              extentOffset: _controller.text.length,
-            );
+            if (widget.fieldVm.isDate) {
+              _pickDate(context, provider);
+            } else {
+              _controller.selection = TextSelection(
+                baseOffset: 0,
+                extentOffset: _controller.text.length,
+              );
+            }
           },
           onDeactivate: () {
             if (_focusNode.hasFocus) {
@@ -146,6 +126,13 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
     final isAlt = HardwareKeyboard.instance.isAltPressed;
     final provider = context.read<DocumentWorkspaceProvider>();
     final effectiveId = widget.fieldVm.key;
+
+    // DATE FIELD KEYBOARD ACTIVATION: Enter or Space immediately opens calendar
+    if (widget.fieldVm.isDate &&
+        (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.space)) {
+      _pickDate(context, provider);
+      return KeyEventResult.handled;
+    }
 
     // TAB / SHIFT+TAB: Document-order placeholder navigation
     if (event.logicalKey == LogicalKeyboardKey.tab) {
@@ -229,11 +216,18 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
     }
   }
 
+  DocumentWorkspaceProvider? _provider;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _provider = context.read<DocumentWorkspaceProvider>();
+  }
+
   @override
   void dispose() {
     try {
-      final provider = context.read<DocumentWorkspaceProvider>();
-      provider.placeholderRegistry.unregister(widget.fieldVm.key);
+      _provider?.placeholderRegistry.unregister(widget.fieldVm.key);
     } catch (_) {}
     _focusNode.dispose();
     _controller.dispose();
@@ -242,82 +236,27 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
 
   Future<void> _pickDate(BuildContext context, DocumentWorkspaceProvider provider) async {
     if (widget.readOnly) return;
-    DateTime initial = DateTime.now();
-    final currentText = _controller.text.trim();
-    if (currentText.isNotEmpty) {
-      final parsed = parseFlexibleDate(currentText);
-      if (parsed != null) initial = parsed;
-    }
-
-    // BLOCKER 1: Date selection immediately populates field and closes dialog without OK confirmation button
-    final picked = await showDialog<DateTime>(
+    final title = widget.fieldVm.questionText.isNotEmpty
+        ? widget.fieldVm.questionText
+        : DocumentWorkspaceVm.toHumanizedLabel(widget.fieldVm.key);
+    final picked = await DatePickerHelper.showAppDatePicker(
       context: context,
-      builder: (ctx) {
-        return Dialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-          child: Container(
-            width: 320,
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.calendar_month_rounded, size: 18, color: AppColors.deepTeal),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        widget.fieldVm.questionText.isNotEmpty ? widget.fieldVm.questionText : 'Select Date',
-                        style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.ink),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.close_rounded, size: 18, color: AppColors.slate),
-                      onPressed: () => Navigator.of(ctx).pop(null),
-                      padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
-                    ),
-                  ],
-                ),
-                const Divider(height: 20, color: AppColors.hairline),
-                Theme(
-                  data: Theme.of(ctx).copyWith(
-                    colorScheme: const ColorScheme.light(
-                      primary: AppColors.deepTeal,
-                      onPrimary: Colors.white,
-                      onSurface: AppColors.ink,
-                    ),
-                  ),
-                  child: CalendarDatePicker(
-                    initialDate: initial,
-                    firstDate: DateTime(1970),
-                    lastDate: DateTime(2050),
-                    onDateChanged: (selectedDate) {
-                      // Instantly pop and return selected date upon day click! No OK or Apply button needed.
-                      Navigator.of(ctx).pop(selectedDate);
-                    },
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
+      title: title,
+      currentValue: _controller.text,
     );
 
     if (picked != null) {
-      final formatted = formatDate(picked);
-      _controller.text = formatted;
-      provider.updateValue(widget.fieldVm.key, formatted);
+      _controller.text = picked;
+      provider.updateValue(widget.fieldVm.key, picked);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<DocumentWorkspaceProvider>();
-    final latestVal = _normalizeValue(provider.getValue(widget.fieldVm.key));
+    final pVal = provider.getValue(widget.fieldVm.key);
+    final rawVal = pVal.isNotEmpty ? pVal : widget.fieldVm.currentValue;
+    final latestVal = _normalizeValue(rawVal);
 
     if (!_focusNode.hasFocus && _controller.text != latestVal) {
       _controller.text = latestVal;
@@ -348,8 +287,11 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
           crossAxisAlignment: isMultiline ? CrossAxisAlignment.start : CrossAxisAlignment.center,
           children: [
             Expanded(
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 140),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: isDate && !widget.readOnly ? () => _pickDate(context, provider) : null,
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 140),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(8),
                   boxShadow: _focusNode.hasFocus
@@ -433,6 +375,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                   ),
                 ),
               ),
+            ),
             ),
           ],
         ),

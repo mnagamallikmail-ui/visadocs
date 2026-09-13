@@ -8,6 +8,7 @@ import '../../../theme/app_colors.dart';
 import '../../../theme/app_spacing.dart';
 import '../../../theme/app_typography.dart';
 import '../../../utils/indian_number_formatter.dart';
+import '../../../utils/date_picker_helper.dart';
 import '../../document_studio/models/visual_preview_model.dart';
 import '../models/document_workspace_model.dart';
 import '../providers/document_workspace_provider.dart';
@@ -84,7 +85,7 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
     if (clean.startsWith('IMG_') || clean.endsWith('_IMAGE') || clean.contains('PHOTO') || clean.contains('SIGNATURE')) {
       return 'IMAGE';
     }
-    if (clean.contains('DATE')) {
+    if (DatePickerHelper.isDateKey(clean)) {
       return 'DATE';
     }
     if (clean.contains('AREA') || clean.contains('RATE') || clean.contains('VALUE') ||
@@ -437,17 +438,19 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
     }
 
     if (fieldType == 'DATE') {
+      final hasValue = currentValue.isNotEmpty;
       return Padding(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         child: Row(
           children: [
             Expanded(
               child: Text(
-                currentValue.isNotEmpty ? currentValue : widget.placeholder.key,
+                hasValue ? currentValue : 'dd-MMM-yyyy',
                 style: GoogleFonts.inter(
                   fontSize: 11,
-                  fontWeight: FontWeight.w600,
-                  color: currentValue.isNotEmpty ? AppColors.ink : AppColors.slate,
+                  fontWeight: hasValue ? FontWeight.w600 : FontWeight.w400,
+                  fontStyle: hasValue ? FontStyle.normal : FontStyle.italic,
+                  color: hasValue ? AppColors.ink : AppColors.slate.withValues(alpha: 0.6),
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -489,31 +492,18 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
   Future<void> _handleDatePicker(String currentValue, DocumentWorkspaceProvider provider) async {
     if (widget.readOnly) return;
 
-    DateTime initialDate = DateTime.tryParse(currentValue) ?? DateTime.now();
-    final picked = await showDatePicker(
+    final title = widget.placeholder.questionText?.isNotEmpty == true
+        ? widget.placeholder.questionText!
+        : widget.placeholder.key;
+    final picked = await DatePickerHelper.showAppDatePicker(
       context: context,
-      initialDate: initialDate,
-      firstDate: DateTime(1990),
-      lastDate: DateTime(2050),
-      builder: (context, child) {
-        return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: AppColors.deepTeal,
-              onPrimary: Colors.white,
-              onSurface: AppColors.ink,
-            ),
-          ),
-          child: child!,
-        );
-      },
+      title: title,
+      currentValue: currentValue,
     );
 
     if (picked != null) {
-      final formatted =
-          "${picked.year}-${picked.month.toString().padLeft(2, '0')}-${picked.day.toString().padLeft(2, '0')}";
-      _controller.text = formatted;
-      provider.updateValue(widget.placeholder.key, formatted);
+      _controller.text = picked;
+      provider.updateValue(widget.placeholder.key, picked);
     }
   }
 

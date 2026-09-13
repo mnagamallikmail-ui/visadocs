@@ -20,6 +20,7 @@ import '../../theme/app_components.dart';
 import '../../theme/app_spacing.dart';
 import '../../providers/auth_provider.dart';
 import '../../utils/report_list_helper.dart';
+import '../../utils/date_picker_helper.dart';
 import '../document_workspace/document_workspace_screen.dart';
 
 class ValuationPortalWidget extends StatefulWidget {
@@ -1062,7 +1063,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Container(
           width: 650,
-          maxHeight: 550,
+          constraints: const BoxConstraints(maxHeight: 550),
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -3757,7 +3758,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                 );
               }
             );
-          } else if (type == 'DATE') {
+          } else if (DatePickerHelper.isDateKey(key, type)) {
             inputControl = TextFormField(
               controller: controller,
               readOnly: true,
@@ -3766,34 +3767,18 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                 contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 suffixIcon: Icon(Icons.calendar_today_outlined, size: 16, color: DesignSystem.primary),
               ),
-              onTap: () {
-                showDialog(
+              onTap: () async {
+                final picked = await DatePickerHelper.showAppDatePicker(
                   context: context,
-                  builder: (context) {
-                    return AlertDialog(
-                      backgroundColor: Colors.white,
-                      surfaceTintColor: Colors.transparent,
-                      contentPadding: EdgeInsets.zero,
-                      content: SizedBox(
-                        width: 320,
-                        height: 320,
-                        child: CalendarDatePicker(
-                          initialDate: DateTime.tryParse(controller.text) ?? DateTime.now(),
-                          firstDate: DateTime(2000),
-                          lastDate: DateTime(2100),
-                          onDateChanged: (DateTime date) {
-                            final dateStr = "${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}";
-                            setState(() {
-                              controller.text = dateStr;
-                              _entryValues[key] = dateStr;
-                            });
-                            Navigator.pop(context);
-                          },
-                        ),
-                      ),
-                    );
-                  }
+                  title: f['questionText'] ?? key,
+                  currentValue: controller.text,
                 );
+                if (picked != null) {
+                  setState(() {
+                    controller.text = picked;
+                    _entryValues[key] = picked;
+                  });
+                }
               },
             );
           } else {
@@ -3932,117 +3917,6 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
     html.Url.revokeObjectUrl(url);
   }
 
-  Future<void> _showRevisionHistoryDialog(int orderId, OrderProvider provider) async {
-    final revisions = await provider.fetchRevisions(orderId);
-    if (!mounted) return;
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Row(
-          children: [
-            Icon(Icons.history_rounded, color: AppColors.deepTeal),
-            SizedBox(width: 8),
-            Text("Report Revision History"),
-          ],
-        ),
-        content: SizedBox(
-          width: 500,
-          child: revisions.isEmpty
-              ? const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Text("No revisions recorded yet."),
-                )
-              : ListView.separated(
-                  shrinkWrap: true,
-                  itemCount: revisions.length,
-                  separatorBuilder: (_, __) => const Divider(),
-                  itemBuilder: (ctx, i) {
-                    final rev = revisions[i];
-                    final revNum = rev['revisionNumber'] ?? i;
-                    final trigger = rev['trigger'] ?? 'REPORT';
-                    final compiledBy = rev['compiledBy'] ?? 'SPA';
-                    final dateStr = rev['createdAt'] ?? '';
-                    final notes = rev['versionNotes'] ?? '';
-
-                    return ListTile(
-                      dense: true,
-                      leading: CircleAvatar(
-                        radius: 14,
-                        backgroundColor: AppColors.deepTeal.withValues(alpha: 0.1),
-                        child: Text(
-                          "R$revNum",
-                          style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.deepTeal),
-                        ),
-                      ),
-                      title: Text(
-                        "Revision $revNum • $trigger",
-                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                      ),
-                      subtitle: Text(
-                        "Compiled by: $compiledBy • $dateStr\n$notes",
-                        style: const TextStyle(fontSize: 10, color: DesignSystem.textSecondary),
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.picture_as_pdf, color: Colors.red, size: 20),
-                            tooltip: "Download Revision $revNum PDF",
-                            onPressed: () => _downloadRevisionPdf(orderId, revNum),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.description, color: Colors.blue, size: 20),
-                            tooltip: "Download Revision $revNum DOCX",
-                            onPressed: () => _downloadRevisionDocx(orderId, revNum),
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text("CLOSE"),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Future<void> _downloadRevisionPdf(int orderId, int revNumber) async {
-    final provider = Provider.of<OrderProvider>(context, listen: false);
-    final bytes = await provider.downloadRevisionPdf(orderId, revNumber);
-    if (bytes != null) {
-      final blob = html.Blob([bytes], 'application/pdf');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute('download', 'Report_${orderId}_Rev$revNumber.pdf')
-        ..style.display = 'none';
-      html.document.body!.append(anchor);
-      anchor.click();
-      anchor.remove();
-      html.Url.revokeObjectUrl(url);
-    }
-  }
-
-  Future<void> _downloadRevisionDocx(int orderId, int revNumber) async {
-    final provider = Provider.of<OrderProvider>(context, listen: false);
-    final bytes = await provider.downloadRevisionDocx(orderId, revNumber);
-    if (bytes != null) {
-      final blob = html.Blob([bytes], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute('download', 'Report_${orderId}_Rev$revNumber.docx')
-        ..style.display = 'none';
-      html.document.body!.append(anchor);
-      anchor.click();
-      anchor.remove();
-      html.Url.revokeObjectUrl(url);
-    }
-  }
 
   Widget _buildIntakeDocumentsSection(OrderProvider provider) {
     // Filter out final-report documents; show only client intake uploads
