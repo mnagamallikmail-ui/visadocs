@@ -84,6 +84,7 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
 
       if (event is KeyDownEvent) {
         final isShift = HardwareKeyboard.instance.isShiftPressed;
+        final isAlt = HardwareKeyboard.instance.isAltPressed;
 
         // TAB / SHIFT+TAB: Document-order placeholder navigation
         if (event.logicalKey == LogicalKeyboardKey.tab) {
@@ -91,22 +92,38 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
           return KeyEventResult.handled;
         }
 
-        // ENTER: Always commits inline placeholder and navigates to next placeholder
-        if (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+        // ALT + ENTER: Inserts newline and expands textbox vertically
+        if ((event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter) && isAlt) {
+          _insertNewline(provider);
+          return KeyEventResult.handled;
+        }
+
+        // NORMAL ENTER: Always commits inline placeholder and navigates to next placeholder
+        if ((event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter) && !isAlt) {
           _commitAndExitEditMode(navigateNext: true);
           return KeyEventResult.handled;
         }
 
-        // UP ARROW: Moves to PREVIOUS placeholder
+        // UP ARROW: Moves cursor to previous line; if on first line -> moves to PREVIOUS placeholder
         if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
-          _commitAndExitEditMode(navigatePrevious: true);
-          return KeyEventResult.handled;
+          final pos = _controller.selection.baseOffset >= 0 ? _controller.selection.baseOffset : _controller.text.length;
+          final firstNl = _controller.text.indexOf('\n');
+          if (firstNl == -1 || pos <= firstNl) {
+            _commitAndExitEditMode(navigatePrevious: true);
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored; // Normal multiline movement within textbox
         }
 
-        // DOWN ARROW: Moves to NEXT placeholder
+        // DOWN ARROW: Moves cursor to next line; if on last line -> moves to NEXT placeholder
         if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
-          _commitAndExitEditMode(navigateNext: true);
-          return KeyEventResult.handled;
+          final pos = _controller.selection.baseOffset >= 0 ? _controller.selection.baseOffset : _controller.text.length;
+          final lastNl = _controller.text.lastIndexOf('\n');
+          if (lastNl == -1 || pos > lastNl) {
+            _commitAndExitEditMode(navigateNext: true);
+            return KeyEventResult.handled;
+          }
+          return KeyEventResult.ignored; // Normal multiline movement within textbox
         }
 
         if (event.logicalKey == LogicalKeyboardKey.escape) {
@@ -133,6 +150,24 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
         getContext: () => context,
       ),
     );
+  }
+
+  void _insertNewline(DocumentWorkspaceProvider provider) {
+    final text = _controller.text;
+    final selection = _controller.selection;
+    int start = selection.start >= 0 ? selection.start : text.length;
+    int end = selection.end >= 0 ? selection.end : text.length;
+    if (start == 0 && end == text.length && text.isNotEmpty) {
+      start = text.length;
+      end = text.length;
+    }
+    final newText = text.replaceRange(start, end, '\n');
+    _controller.value = TextEditingValue(
+      text: newText,
+      selection: TextSelection.collapsed(offset: start + 1),
+    );
+    provider.updateValue(widget.fieldVm.key, newText);
+    if (mounted) setState(() {});
   }
 
   @override
@@ -291,7 +326,11 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
             }
             return KeyEventResult.handled;
           }
-          if (event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter) {
+          if ((event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter) && HardwareKeyboard.instance.isAltPressed) {
+            _insertNewline(provider);
+            return KeyEventResult.handled;
+          }
+          if ((event.logicalKey == LogicalKeyboardKey.enter || event.logicalKey == LogicalKeyboardKey.numpadEnter) && !HardwareKeyboard.instance.isAltPressed) {
             _commitAndExitEditMode(navigateNext: true);
             return KeyEventResult.handled;
           }
@@ -399,15 +438,20 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
     );
   }
 
-  /// ─── EDIT MODE: Single-Line Active Text Field with Visual Active Indicator ──
+  /// ─── EDIT MODE: Auto-Sizing Active Text Field with Visual Active Indicator ──
   Widget _buildEditMode(BuildContext context, DocumentWorkspaceProvider provider, TextStyle baseStyle) {
-    // Measure dynamic width from the single-line content.
-    final textToMeasure = _controller.text;
-    final p = TextPainter(
-      text: TextSpan(text: textToMeasure.isEmpty ? ' ' : textToMeasure, style: baseStyle),
-      textDirection: TextDirection.ltr,
-    )..layout();
-    final dynamicWidth = textToMeasure.isEmpty ? 140.0 : (p.width + 40).clamp(120.0, 720.0);
+    // Measure dynamic width from the actual typed content across all lines.
+    final textToMeasure = _controller.text.isEmpty ? '' : _controller.text;
+    final lines = textToMeasure.isEmpty ? [''] : textToMeasure.split('\n');
+    double maxLineWidth = 0.0;
+    for (final line in lines) {
+      final p = TextPainter(
+        text: TextSpan(text: line.isEmpty ? ' ' : line, style: baseStyle),
+        textDirection: TextDirection.ltr,
+      )..layout();
+      if (p.width > maxLineWidth) maxLineWidth = p.width;
+    }
+    final dynamicWidth = textToMeasure.isEmpty ? 140.0 : (maxLineWidth + 40).clamp(120.0, 720.0);
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 2.5, vertical: 1.0),
@@ -429,12 +473,13 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
           color: AppColors.workspacePrimaryText,
           fontWeight: FontWeight.w600,
         ),
-        keyboardType: widget.fieldVm.isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text,
+        keyboardType: widget.fieldVm.isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.multiline,
         minLines: 1,
-        maxLines: 1,
+        maxLines: widget.fieldVm.isNumber ? 1 : null, // Starts single-line, expands dynamically with ALT+ENTER
+        scrollPhysics: const NeverScrollableScrollPhysics(), // No internal scrollbars, grows with content
         onChanged: (newText) {
           provider.updateValue(widget.fieldVm.key, newText);
-          setState(() {}); // Re-measure dynamic width for instant reflow
+          setState(() {}); // Re-measure dynamic width and height for instant reflow
         },
         onFieldSubmitted: (_) => _commitAndExitEditMode(navigateNext: true),
         decoration: InputDecoration(

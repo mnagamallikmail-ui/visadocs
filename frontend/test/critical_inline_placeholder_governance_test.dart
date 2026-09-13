@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:provaluer_frontend/features/document_workspace/models/workspace_view_model.dart';
 import 'package:provaluer_frontend/features/document_workspace/providers/document_workspace_provider.dart';
@@ -10,9 +11,8 @@ import 'package:provider/provider.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
 
-  group('CRITICAL INLINE PLACEHOLDER GOVERNANCE - TESTS A TO H', () {
-    test('TEST A: Column 2: PHOTO, Column 3: <<TEXT>> -> Single-line textbox only, No image picker', () {
-      // Key is TEXT or TEXT_001, questionText from Column 2 is PHOTO
+  group('CRITICAL TEXT INPUT PLACEHOLDER GOVERNANCE - TESTS A TO J', () {
+    test('TEST A: Column 2: PHOTO, Column 3: <<TEXT>> -> Text input only, No image picker', () {
       final vm1 = InputFieldVm(
         key: 'TEXT',
         questionText: 'PHOTO',
@@ -26,16 +26,11 @@ void main() {
 
       expect(vm1.isImage, isFalse, reason: 'TEXT must never be classified as IMAGE even if question is PHOTO');
       expect(vm1.isDate, isFalse);
-      expect(vm1.isMultiline, isFalse, reason: 'TEXT must be single-line');
-      expect(vm1.isBlockNarrative, isFalse);
-
       expect(vm2.isImage, isFalse, reason: 'TEXT_001 must never be classified as IMAGE even if question is PHOTO');
       expect(vm2.isDate, isFalse);
-      expect(vm2.isMultiline, isFalse, reason: 'TEXT_001 must be single-line');
-      expect(vm2.isBlockNarrative, isFalse);
     });
 
-    test('TEST B: Column 2: DATE OF PHOTO, Column 3: <<TEXT>> -> Single-line textbox only, No calendar picker', () {
+    test('TEST B: Column 2: DATE OF PHOTO, Column 3: <<TEXT>> -> Text input only, No calendar picker', () {
       final vm1 = InputFieldVm(
         key: 'TEXT',
         questionText: 'DATE OF PHOTO',
@@ -49,125 +44,21 @@ void main() {
 
       expect(vm1.isDate, isFalse, reason: 'TEXT must never be classified as DATE even if question mentions DATE');
       expect(vm1.isImage, isFalse);
-      expect(vm1.isMultiline, isFalse, reason: 'TEXT must be single-line');
-      expect(vm1.isBlockNarrative, isFalse);
-
       expect(vm2.isDate, isFalse, reason: 'TEXT_002 must never be classified as DATE even if question mentions DATE');
       expect(vm2.isImage, isFalse);
-      expect(vm2.isMultiline, isFalse, reason: 'TEXT_002 must be single-line');
-      expect(vm2.isBlockNarrative, isFalse);
 
-      // DatePickerHelper verification
       expect(DatePickerHelper.isDateKey('TEXT', 'TEXT'), isFalse);
       expect(DatePickerHelper.isDateKey('TEXT_002', 'TEXT'), isFalse);
       expect(DatePickerHelper.isDateKey('TXT_001', 'TEXT'), isFalse);
     });
 
-    test('TEST C: Column 2: ANY DESCRIPTION, Column 3: <<TEXT>> -> Single-line textbox only', () {
-      final vm = InputFieldVm(
-        key: 'TEXT_003',
-        questionText: 'ANY DESCRIPTION',
-        fieldType: 'TEXT',
-      );
-
-      expect(vm.isMultiline, isFalse, reason: 'Generic TEXT must remain single-line');
-      expect(vm.isBlockNarrative, isFalse);
-      expect(vm.isImage, isFalse);
-      expect(vm.isDate, isFalse);
-    });
-
-    test('TEST D: Inline sentence placeholder classification', () {
-      final inlineTextVm = InputFieldVm(
-        key: 'TEXT_004',
-        questionText: 'Property Address',
-        fieldType: 'TEXT',
-      );
-      final inlineOwnerVm = InputFieldVm(
-        key: 'OWNER_NAME',
-        questionText: 'Owner Name',
-        fieldType: 'TEXT',
-      );
-
-      expect(inlineTextVm.isBlockNarrative, isFalse, reason: 'Inline placeholder must NOT be block narrative');
-      expect(inlineTextVm.isMultiline, isFalse, reason: 'Inline placeholder must be single line');
-      expect(inlineOwnerVm.isBlockNarrative, isFalse, reason: 'OWNER_NAME must NOT be block narrative');
-      expect(inlineOwnerVm.isMultiline, isFalse, reason: 'OWNER_NAME must be single line');
-    });
-
-    test('TEST E: OBSERVATIONS -> Still multiline block narrative, No regression', () {
-      final vm = InputFieldVm(
-        key: 'OBSERVATIONS',
-        questionText: 'Site Observations',
-        fieldType: 'MULTILINE',
-      );
-      final vm2 = InputFieldVm(
-        key: 'OBSERVATION_1',
-        questionText: 'Observation 1',
-        fieldType: 'TEXT',
-      );
-
-      expect(vm.isBlockNarrative, isTrue);
-      expect(vm.isMultiline, isTrue, reason: 'OBSERVATIONS must remain multiline');
-      expect(vm2.isBlockNarrative, isTrue);
-      expect(vm2.isMultiline, isTrue, reason: 'OBSERVATION_1 must remain multiline');
-    });
-
-    test('TEST F: REMARKS -> Still multiline block narrative, No regression', () {
-      final vm1 = InputFieldVm(
-        key: 'REMARKS',
-        questionText: 'General Remarks',
-        fieldType: 'TEXT',
-      );
-      final vm2 = InputFieldVm(
-        key: 'VALUATION_REMARKS',
-        questionText: 'Valuation Remarks',
-        fieldType: 'MULTILINE',
-      );
-
-      expect(vm1.isBlockNarrative, isTrue);
-      expect(vm1.isMultiline, isTrue, reason: 'REMARKS must remain multiline');
-      expect(vm2.isBlockNarrative, isTrue);
-      expect(vm2.isMultiline, isTrue, reason: 'VALUATION_REMARKS must remain multiline');
-    });
-
-    test('TEST G: DOCUMENTS_PERUSED -> Still multiline block narrative, No regression', () {
-      final vm = InputFieldVm(
-        key: 'DOCUMENTS_PERUSED',
-        questionText: 'Documents Perused',
-        fieldType: 'TEXT',
-      );
-
-      expect(vm.isBlockNarrative, isTrue);
-      expect(vm.isMultiline, isTrue, reason: 'DOCUMENTS_PERUSED must remain multiline');
-    });
-
-    test('TEST H: LOCATION_DESCRIPTION -> Still multiline block narrative, No regression', () {
-      final vm = InputFieldVm(
-        key: 'LOCATION_DESCRIPTION',
-        questionText: 'Location Description',
-        fieldType: 'TEXT',
-      );
-      final vmBoundaries = InputFieldVm(
-        key: 'BOUNDARIES',
-        questionText: 'Boundaries of Property',
-        fieldType: 'TEXT',
-      );
-
-      expect(vm.isBlockNarrative, isTrue);
-      expect(vm.isMultiline, isTrue, reason: 'LOCATION_DESCRIPTION must remain multiline');
-      expect(vmBoundaries.isBlockNarrative, isTrue);
-      expect(vmBoundaries.isMultiline, isTrue, reason: 'BOUNDARIES must remain multiline');
-    });
-  });
-
-  group('INLINE EDITABLE WIDGET SINGLE-LINE GOVERNANCE', () {
-    testWidgets('InlineEditablePlaceholderWidget renders in single line and enters edit mode', (tester) async {
+    testWidgets('TEST C & D: Inline placeholder starts single-line, ALT+ENTER inserts newline and expands', (tester) async {
       final provider = DocumentWorkspaceProvider();
       final fieldVm = InputFieldVm(
         key: 'TEXT_001',
-        questionText: 'Owner',
+        questionText: 'Property Address',
         fieldType: 'TEXT',
-        currentValue: 'John Doe',
+        currentValue: 'Line 1',
       );
 
       await tester.pumpWidget(
@@ -183,17 +74,162 @@ void main() {
         ),
       );
 
-      // Read mode shows text 'John Doe'
-      expect(find.text('John Doe'), findsOneWidget);
+      expect(find.text('Line 1'), findsOneWidget);
 
-      // Click to enter edit mode
-      await tester.tap(find.text('John Doe'));
+      // Tap to enter edit mode
+      await tester.tap(find.text('Line 1'));
       await tester.pumpAndSettle();
 
-      // In edit mode, TextField is rendered with maxLines = 1, minLines = 1
+      // Verify starts as single-line (minLines: 1, maxLines: null for dynamic growth)
       final textField = tester.widget<TextField>(find.byType(TextField));
-      expect(textField.maxLines, equals(1), reason: 'Inline placeholder must have maxLines = 1');
-      expect(textField.minLines, equals(1), reason: 'Inline placeholder must have minLines = 1');
+      expect(textField.minLines, equals(1), reason: 'Starts single-line');
+      expect(textField.maxLines, isNull, reason: 'Allows dynamic vertical expansion');
+
+      // Send ALT + ENTER key event
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+      await tester.pumpAndSettle();
+
+      // Verify newline was inserted in provider
+      expect(provider.getValue('TEXT_001'), equals('Line 1\n'));
+
+      // Enter Line 2
+      await tester.enterText(find.byType(TextField), 'Line 1\nLine 2');
+      await tester.pumpAndSettle();
+      expect(provider.getValue('TEXT_001'), equals('Line 1\nLine 2'));
+
+      // Send ALT + ENTER again (TEST D: repeated ALT+ENTER -> Line 3)
+      await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.sendKeyUpEvent(LogicalKeyboardKey.altLeft);
+      await tester.pumpAndSettle();
+
+      await tester.enterText(find.byType(TextField), 'Line 1\nLine 2\nLine 3');
+      await tester.pumpAndSettle();
+      expect(provider.getValue('TEXT_001'), equals('Line 1\nLine 2\nLine 3'));
+
+      // Normal ENTER commits edit mode without adding another newline
+      await tester.sendKeyEvent(LogicalKeyboardKey.enter);
+      await tester.pumpAndSettle();
+
+      // Read mode displays all 3 lines preserved
+      expect(find.text('Line 1\nLine 2\nLine 3'), findsOneWidget);
+    });
+
+    test('TEST E: Save and Reopen preserves multi-line content exactly', () {
+      final provider = DocumentWorkspaceProvider();
+      provider.updateValue('TEXT_001', 'Line 1\nLine 2\nLine 3');
+
+      final savedMap = Map<String, String>.from(provider.activeValues);
+      expect(savedMap['TEXT_001'], equals('Line 1\nLine 2\nLine 3'));
+
+      // Simulate reopen
+      final reopenedProvider = DocumentWorkspaceProvider();
+      reopenedProvider.updateValue('TEXT_001', savedMap['TEXT_001']!);
+      expect(reopenedProvider.getValue('TEXT_001'), equals('Line 1\nLine 2\nLine 3'));
+    });
+
+    testWidgets('TEST H: Inline paragraph placeholder keeps entire sentence visible', (tester) async {
+      final provider = DocumentWorkspaceProvider();
+      final fieldVm = InputFieldVm(
+        key: 'TEXT_005',
+        questionText: 'Location',
+        fieldType: 'TEXT',
+        currentValue: 'Main Road',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ChangeNotifierProvider<DocumentWorkspaceProvider>.value(
+              value: provider,
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    const TextSpan(text: 'The property situated at '),
+                    WidgetSpan(
+                      child: InlineEditablePlaceholderWidget(
+                        fieldVm: fieldVm,
+                      ),
+                    ),
+                    const TextSpan(text: ' is bounded by a public road.'),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Context words before and after must both be visible
+      expect(find.textContaining('The property situated at', findRichText: true), findsOneWidget);
+      expect(find.textContaining('is bounded by a public road.', findRichText: true), findsOneWidget);
+      expect(find.text('Main Road'), findsOneWidget);
+
+      // Tap placeholder to edit
+      await tester.tap(find.text('Main Road'));
+      await tester.pumpAndSettle();
+
+      // Sentence context remains visible during editing
+      expect(find.textContaining('The property situated at', findRichText: true), findsOneWidget);
+      expect(find.textContaining('is bounded by a public road.', findRichText: true), findsOneWidget);
+    });
+
+    testWidgets('TEST I: OBSERVATIONS starts single-line and expands with ALT+ENTER', (tester) async {
+      final provider = DocumentWorkspaceProvider();
+      final fieldVm = InputFieldVm(
+        key: 'OBSERVATIONS',
+        questionText: 'Site Observations',
+        fieldType: 'TEXT',
+        currentValue: '',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ChangeNotifierProvider<DocumentWorkspaceProvider>.value(
+              value: provider,
+              child: DocumentInputSlotWidget(
+                fieldVm: fieldVm,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Verify starts as single-line (minLines: 1)
+      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(textField.minLines, equals(1), reason: 'OBSERVATIONS must start single-line');
+      expect(textField.maxLines, isNull, reason: 'OBSERVATIONS must auto-expand dynamically');
+    });
+
+    testWidgets('TEST J: REMARKS starts single-line and expands with ALT+ENTER', (tester) async {
+      final provider = DocumentWorkspaceProvider();
+      final fieldVm = InputFieldVm(
+        key: 'REMARKS',
+        questionText: 'General Remarks',
+        fieldType: 'TEXT',
+        currentValue: '',
+      );
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ChangeNotifierProvider<DocumentWorkspaceProvider>.value(
+              value: provider,
+              child: DocumentInputSlotWidget(
+                fieldVm: fieldVm,
+              ),
+            ),
+          ),
+        ),
+      );
+
+      // Verify starts as single-line (minLines: 1)
+      final textField = tester.widget<TextField>(find.byType(TextField));
+      expect(textField.minLines, equals(1), reason: 'REMARKS must start single-line');
+      expect(textField.maxLines, isNull, reason: 'REMARKS must auto-expand dynamically');
     });
   });
 }

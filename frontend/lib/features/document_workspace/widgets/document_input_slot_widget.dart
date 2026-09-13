@@ -140,16 +140,11 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
       return KeyEventResult.handled;
     }
 
-    // ENTER (plain): For NUMBER and SINGLE-LINE fields → navigate to next placeholder.
-    // For MULTILINE block narrative fields → DO NOT intercept; Flutter's native TextInputType.multiline
-    // already inserts \n. Intercepting here would cause a double newline.
+    // ENTER (plain): Always navigates to next placeholder. Never creates a newline.
+    // ONLY ALT+ENTER creates new lines per governance.
     if (event.logicalKey == LogicalKeyboardKey.enter && !isAlt) {
-      if (widget.fieldVm.isNumber || !widget.fieldVm.isMultiline) {
-        provider.placeholderRegistry.next(effectiveId);
-        return KeyEventResult.handled;
-      }
-      // Multiline text: let native TextField handle ENTER → single \n insertion.
-      return KeyEventResult.ignored;
+      provider.placeholderRegistry.next(effectiveId);
+      return KeyEventResult.handled;
     }
 
     // UP ARROW: Moves cursor to previous line; if already on FIRST line -> moves to PREVIOUS placeholder
@@ -185,15 +180,19 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
   void _insertNewline(DocumentWorkspaceProvider provider) {
     final text = _controller.text;
     final selection = _controller.selection;
-    final start = selection.isValid ? selection.start : text.length;
-    final end = selection.isValid ? selection.end : text.length;
+    int start = selection.isValid ? selection.start : text.length;
+    int end = selection.isValid ? selection.end : text.length;
+    if (start == 0 && end == text.length && text.isNotEmpty) {
+      start = text.length;
+      end = text.length;
+    }
     final newText = text.replaceRange(start, end, '\n');
     _controller.value = TextEditingValue(
       text: newText,
       selection: TextSelection.collapsed(offset: start + 1),
     );
     provider.updateValue(widget.fieldVm.key, newText);
-    setState(() {});
+    if (mounted) setState(() {});
   }
 
   @override
@@ -300,13 +299,13 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                   readOnly: widget.readOnly || isDate,
                   onTap: isDate ? () => _pickDate(context, provider) : null,
                   textAlign: widget.fieldVm.effectiveTextAlign,
-                  keyboardType: isMultiline
-                      ? TextInputType.multiline
-                      : (isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.text),
-                  minLines: isMultiline ? 3 : 1,
-                  maxLines: isMultiline ? null : 1, // Auto-growing dynamic height
+                  keyboardType: isNumber
+                      ? const TextInputType.numberWithOptions(decimal: true)
+                      : TextInputType.multiline,
+                  minLines: 1, // All text inputs start compact as single-line
+                  maxLines: isNumber ? 1 : null, // Dynamic auto-growing height following content lines
                   scrollPhysics: const NeverScrollableScrollPhysics(), // No internal scrollbars
-                  onFieldSubmitted: !isMultiline ? (_) => provider.placeholderRegistry.next(widget.fieldVm.key) : null,
+                  onFieldSubmitted: (_) => provider.placeholderRegistry.next(widget.fieldVm.key),
                   style: AppTypography.workspaceInput(
                     color: widget.readOnly ? AppColors.workspaceSecondaryText : AppColors.workspacePrimaryText,
                   ),
