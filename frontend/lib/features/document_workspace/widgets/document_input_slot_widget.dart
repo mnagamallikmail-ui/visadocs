@@ -157,21 +157,22 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
       return KeyEventResult.handled;
     }
 
-    // ALT + ENTER: Always creates new line in text placeholders
+    // ALT + ENTER: Explicit multiline newline insertion (works in all text field types)
     if (event.logicalKey == LogicalKeyboardKey.enter && isAlt) {
       _insertNewline(provider);
       return KeyEventResult.handled;
     }
 
-    // ENTER: Creates new line in multiline text, submits/navigates in pure number fields
+    // ENTER (plain): For NUMBER fields → navigate to next placeholder.
+    // For MULTILINE text fields → DO NOT intercept; Flutter's native TextInputType.multiline
+    // already inserts \n. Intercepting here would cause a double newline.
     if (event.logicalKey == LogicalKeyboardKey.enter && !isAlt) {
       if (widget.fieldVm.isNumber) {
         provider.placeholderRegistry.next(effectiveId);
         return KeyEventResult.handled;
-      } else {
-        _insertNewline(provider);
-        return KeyEventResult.handled;
       }
+      // Multiline text: let native TextField handle ENTER → single \n insertion.
+      return KeyEventResult.ignored;
     }
 
     // UP ARROW: Moves cursor to previous line; if already on FIRST line -> moves to PREVIOUS placeholder

@@ -2666,6 +2666,19 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             );
             continue;
           }
+          // MULTILINE FIX: Multiline text placeholders MUST be rendered as block-level
+          // widgets (DocumentInputSlotWidget), NOT as inline WidgetSpan inside Text.rich.
+          // WidgetSpan cannot grow vertically → multiline content is visually clipped.
+          // Only date and number fields (guaranteed single-line) remain as inline WidgetSpan.
+          if (node.fieldVm.isMultiline) {
+            imageWidgets.add(
+              Padding(
+                padding: const EdgeInsets.only(top: 6.0),
+                child: DocumentInputSlotWidget(fieldVm: node.fieldVm, readOnly: readOnly),
+              ),
+            );
+            continue;
+          }
           final instanceId = '${block.id}_${node.key}_${placeholderIdx++}';
           spans.add(WidgetSpan(
             alignment: PlaceholderAlignment.middle,
