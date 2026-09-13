@@ -329,12 +329,12 @@ void main() {
       expect(desc.isMultiline, isTrue);
       print('✓ <<DESCRIPTION>> -> isMultiline: true (Multiline Text)');
 
-      // 7. COMMENTS
+      // 7. COMMENTS (Approved Block Narrative)
       const comments = InputFieldVm(key: 'COMMENTS', questionText: 'Valuer Comments', fieldType: 'TEXT');
       expect(comments.isImage, isFalse);
       expect(comments.isCompositeTable, isFalse);
-      expect(comments.isMultiline, isFalse);
-      print('✓ <<COMMENTS>> -> isImage: false (Text Input)');
+      expect(comments.isMultiline, isTrue);
+      print('✓ <<COMMENTS>> -> isMultiline: true (Block Narrative)');
 
       // 8. REMARKS
       const remarks = InputFieldVm(key: 'REMARKS', questionText: 'Remarks', fieldType: 'TEXT');

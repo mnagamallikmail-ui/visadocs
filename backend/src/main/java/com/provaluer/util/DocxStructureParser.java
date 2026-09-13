@@ -417,9 +417,16 @@ public class DocxStructureParser {
         }
     }
 
+    public static boolean isTextPlaceholder(String key) {
+        if (key == null) return false;
+        String upper = key.toUpperCase().trim();
+        return upper.equals("TEXT") || upper.startsWith("TEXT_") || upper.equals("TXT") || upper.startsWith("TXT_");
+    }
+
     public static boolean isExplicitImagePlaceholder(String key) {
         if (key == null) return false;
         String upper = key.toUpperCase().trim();
+        if (isTextPlaceholder(upper)) return false;
         return upper.startsWith("IMG_") || upper.startsWith("IMAGE_") || upper.startsWith("PHOTO_")
                 || upper.startsWith("PICTURE_") || upper.startsWith("MAP_")
                 || upper.startsWith("LOGO_") || upper.endsWith("_IMAGE") || upper.endsWith("_IMG")
@@ -431,6 +438,7 @@ public class DocxStructureParser {
     private boolean isLikelyImageKey(String key) {
         if (key == null) return false;
         String upper = key.toUpperCase().trim();
+        if (isTextPlaceholder(upper)) return false;
         if (isExplicitImagePlaceholder(upper)) return true;
         // Never treat known non-image fields as image
         if (upper.equals("OWNER_NAME") || upper.equals("BANK_NAME") || upper.equals("CLIENT_NAME")
@@ -932,6 +940,9 @@ public class DocxStructureParser {
 
     private String inferFieldType(String key) {
         String upper = key.toUpperCase();
+        if (isTextPlaceholder(upper)) {
+            return "TEXT";
+        }
         if (upper.equals("LAND_TABLE") || upper.equals("DYNAMIC_LAND_TABLE")) {
             return "DYNAMIC_LAND_TABLE";
         }

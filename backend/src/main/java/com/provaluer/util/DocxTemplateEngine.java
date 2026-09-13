@@ -264,9 +264,31 @@ public class DocxTemplateEngine {
                 String questionText = resolveQuestionTextForCell(cIdx, numCells, cellTexts, vMergeQuestions, cell);
 
                 for (String genericToken : genericTokens) {
-                    String baseSlug = GenericPlaceholderNormalizer.generateBaseSlug(questionText);
-                    int occurrence = slugCounter.merge(baseSlug, 1, Integer::sum);
-                    String generatedKey = baseSlug + "_" + occurrence;
+                    String generatedKey;
+                    int occurrence;
+                    String reportSlug;
+                    if ("TEXT".equalsIgnoreCase(genericToken)) {
+                        occurrence = slugCounter.merge("TEXT", 1, Integer::sum);
+                        generatedKey = String.format("TEXT_%03d", occurrence);
+                        reportSlug = "TEXT";
+                    } else if ("NUMBER".equalsIgnoreCase(genericToken)) {
+                        occurrence = slugCounter.merge("NUMBER", 1, Integer::sum);
+                        generatedKey = String.format("NUMBER_%03d", occurrence);
+                        reportSlug = "NUMBER";
+                    } else if ("DATE".equalsIgnoreCase(genericToken)) {
+                        occurrence = slugCounter.merge("DATE", 1, Integer::sum);
+                        generatedKey = String.format("DATE_%03d", occurrence);
+                        reportSlug = "DATE";
+                    } else if ("IMAGE".equalsIgnoreCase(genericToken)) {
+                        occurrence = slugCounter.merge("IMAGE", 1, Integer::sum);
+                        generatedKey = String.format("IMAGE_%03d", occurrence);
+                        reportSlug = "IMAGE";
+                    } else {
+                        String baseSlug = GenericPlaceholderNormalizer.generateBaseSlug(questionText);
+                        occurrence = slugCounter.merge(baseSlug, 1, Integer::sum);
+                        generatedKey = baseSlug + "_" + occurrence;
+                        reportSlug = baseSlug;
+                    }
 
                     substituteGenericTokenInCell(cell, genericToken, generatedKey);
 
@@ -274,7 +296,7 @@ public class DocxTemplateEngine {
                         String cellContext = tableId + "_r" + rIdx + "_c" + cIdx;
                         GenericPlaceholderNormalizer.NormalizedField field =
                                 new GenericPlaceholderNormalizer.NormalizedField(generatedKey, questionText, genericToken, occurrence, cellContext);
-                        analysisReport.recordGeneratedField(field, baseSlug);
+                        analysisReport.recordGeneratedField(field, reportSlug);
                     }
                 }
             }

@@ -221,7 +221,9 @@ class DocumentWorkspaceVm {
             }
 
             String fieldType = summaryItem?.type ?? 'TEXT';
-            if (fieldType.toUpperCase() == 'IMAGE' ||
+            if (kUpper == 'TEXT' || kUpper.startsWith('TEXT_') || kUpper == 'TXT' || kUpper.startsWith('TXT_')) {
+              fieldType = 'TEXT';
+            } else if (fieldType.toUpperCase() == 'IMAGE' ||
                 kUpper.startsWith('IMG_') ||
                 kUpper.endsWith('_IMAGE') ||
                 kUpper.contains('PHOTO') ||
@@ -796,11 +798,14 @@ class TableRowVm {
             prompt = DocumentWorkspaceVm.toHumanizedLabel(keyUpper);
           }
 
+          final isGenericText = keyUpper == 'TEXT' || keyUpper.startsWith('TEXT_') || keyUpper == 'TXT' || keyUpper.startsWith('TXT_');
+          final resolvedFieldType = isGenericText ? 'TEXT' : b.fieldType;
+
           fields.add(InputFieldVm(
             key: keyUpper,
             serialNo: b.serialNo ?? sNo,
             questionText: prompt,
-            fieldType: b.fieldType,
+            fieldType: resolvedFieldType,
             occurrences: occ,
             currentValue: values[keyUpper] ?? '',
           ));
@@ -864,25 +869,17 @@ class InputFieldVm {
   /// Explicit detection for <<COMPOSITE_PROPERTY_TABLE>>
   bool get isCompositeTable =>
       DocumentWorkspaceVm.isCompositeTableKey(key, fieldType);
-  
+   bool get isGenericText {
+    final k = key.toUpperCase();
+    return k == 'TEXT' || k.startsWith('TEXT_') || k == 'TXT' || k.startsWith('TXT_');
+  }
+
   bool get isImage {
     if (isCompositeTable) return false;
+    final k = key.toUpperCase();
+    if (isGenericText) return false;
     final t = fieldType.toUpperCase();
     if (t == 'IMAGE') return true;
-    final k = key.toUpperCase();
-    if (k.contains('CAPTION') ||
-        k.contains('DESC') ||
-        k.contains('REMARK') ||
-        k.contains('NOTE') ||
-        k.contains('COMMENT') ||
-        k.contains('TEXT') ||
-        k.contains('ADDRESS') ||
-        k.contains('NAME') ||
-        k.contains('RATE') ||
-        k.contains('VALUE') ||
-        k.contains('AREA')) {
-      return false;
-    }
     final isExplicitImageKey = k.startsWith('IMG_') ||
         k.startsWith('IMAGE_') ||
         k == 'IMAGE' ||
@@ -896,15 +893,30 @@ class InputFieldVm {
         k.contains('SIGNATURE') ||
         k.contains('PICTURE');
     if (isExplicitImageKey) return true;
-    if (t == 'TEXT' || t == 'MULTILINE' || t == 'NUMBER' || t == 'DATE') return false;
+    if (k.contains('CAPTION') ||
+        k.contains('DESC') ||
+        k.contains('REMARK') ||
+        k.contains('NOTE') ||
+        k.contains('COMMENT') ||
+        k.contains('TEXT') ||
+        k.contains('ADDRESS') ||
+        k.contains('NAME') ||
+        k.contains('RATE') ||
+        k.contains('VALUE') ||
+        k.contains('AREA')) {
+      return false;
+    }
+    if (t == 'MULTILINE' || t == 'NUMBER' || t == 'DATE') return false;
     return false;
   }
 
-  bool get isDate =>
-      !isCompositeTable && DatePickerHelper.isDateKey(key, fieldType);
+  bool get isDate {
+    if (isCompositeTable || isGenericText || isBlockNarrative || fieldType.toUpperCase() == 'TEXT') return false;
+    return DatePickerHelper.isDateKey(key, fieldType);
+  }
 
   bool get isNumber {
-    if (isCompositeTable || isImage || isDate) return false;
+    if (isCompositeTable || isImage || isDate || isGenericText || isBlockNarrative) return false;
     final t = fieldType.toUpperCase();
     if (t == 'MULTILINE') return false;
     final k = key.toUpperCase();
@@ -932,10 +944,49 @@ class InputFieldVm {
         k.contains('SQYD');
   }
 
+  /// Governance: Block Narrative Placeholders vs Inline Placeholders
+  /// BLOCK NARRATIVE: OBSERVATIONS, DESCRIPTION, REMARKS, BOUNDARIES,
+  /// MARKET_COMMENT, DOCUMENTS_PERUSED, PRICE_TREND, ADVANTAGES, DISADVANTAGES,
+  /// COMMENTS, NOTES, NARRATIVE, or explicit fieldType == 'MULTILINE'.
+  bool get isBlockNarrative {
+    if (isCompositeTable || isGenericText) return false;
+    final t = fieldType.toUpperCase();
+    if (t == 'MULTILINE') return true;
+    final k = key.toUpperCase();
+    return k == 'OBSERVATIONS' ||
+        k.startsWith('OBSERVATION') ||
+        k.contains('OBSERVATION') ||
+        k == 'DESCRIPTION' ||
+        k.contains('DESCRIPTION') ||
+        k == 'PROPERTY_DESCRIPTION' ||
+        k == 'LOCATION_DESCRIPTION' ||
+        k == 'REMARKS' ||
+        k.contains('REMARK') ||
+        k == 'BOUNDARIES' ||
+        k.startsWith('BOUNDARY') ||
+        k.contains('BOUNDAR') ||
+        k == 'MARKET_COMMENT' ||
+        k.contains('DOCUMENTS_PERUSED') ||
+        k.contains('DOCUMENT') ||
+        k == 'PRICE_TREND' ||
+        k.contains('TREND') ||
+        k == 'ADVANTAGES' ||
+        k.contains('ADVANTAGE') ||
+        k == 'DISADVANTAGES' ||
+        k.contains('DISADVANTAGE') ||
+        k == 'COMMENTS' ||
+        k.contains('COMMENT') ||
+        k == 'NOTES' ||
+        k.contains('NOTE') ||
+        k == 'NARRATIVE' ||
+        k.contains('NARRATIVE');
+  }
+
+  /// Whether this field behaves as a multiline editor.
+  /// Strictly true ONLY for block narratives. Inline placeholders are strictly single-line.
   bool get isMultiline {
-    if (isCompositeTable || isImage || isDate || isNumber) return false;
-    // DEFECT 1: Every TEXT placeholder without exception behaves as a multiline expandable textbox.
-    return true;
+    if (isCompositeTable || isImage || isDate || isNumber || isGenericText) return false;
+    return isBlockNarrative;
   }
 
   bool get isCurrency =>

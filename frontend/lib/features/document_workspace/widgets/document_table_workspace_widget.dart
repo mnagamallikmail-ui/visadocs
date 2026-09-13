@@ -2666,11 +2666,12 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             );
             continue;
           }
-          // MULTILINE FIX: Multiline text placeholders MUST be rendered as block-level
-          // widgets (DocumentInputSlotWidget), NOT as inline WidgetSpan inside Text.rich.
-          // WidgetSpan cannot grow vertically → multiline content is visually clipped.
-          // Only date and number fields (guaranteed single-line) remain as inline WidgetSpan.
-          if (node.fieldVm.isMultiline) {
+          // CRITICAL INLINE PLACEHOLDER GOVERNANCE:
+          // Only BLOCK NARRATIVE placeholders (e.g. OBSERVATIONS, REMARKS, DESCRIPTION)
+          // may leave paragraph flow and render as block-level widgets.
+          // Inline placeholders (TEXT, DATE, NUMBER, OWNER_NAME, etc.) MUST remain inside
+          // Text.rich / WidgetSpan so that sentence context is fully preserved.
+          if (node.fieldVm.isBlockNarrative) {
             imageWidgets.add(
               Padding(
                 padding: const EdgeInsets.only(top: 6.0),
@@ -3112,7 +3113,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
         }
 
         final instanceId = 'tbl_${cell.cellId}_${key}_${placeholderIdx++}';
-        if (fieldVm.isImage) {
+        if (fieldVm.isImage || fieldVm.isBlockNarrative) {
           spans.add(WidgetSpan(
             alignment: PlaceholderAlignment.middle,
             child: SizedBox(

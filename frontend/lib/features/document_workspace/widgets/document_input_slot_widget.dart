@@ -2,7 +2,6 @@ import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_spacing.dart';
@@ -30,15 +29,6 @@ class DocumentInputSlotWidget extends StatefulWidget {
 class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
   late final TextEditingController _controller;
   late final FocusNode _focusNode;
-
-  static final List<String> _months = [
-    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
-  ];
-
-  static String formatDate(DateTime dt) => DatePickerHelper.formatDate(dt);
-
-  static DateTime? parseFlexibleDate(String input) => DatePickerHelper.parseFlexibleDate(input);
 
   String _normalizeValue(String val) {
     if (widget.fieldVm.isDate && val.isNotEmpty) {
@@ -150,11 +140,11 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
       return KeyEventResult.handled;
     }
 
-    // ENTER (plain): For NUMBER fields → navigate to next placeholder.
-    // For MULTILINE text fields → DO NOT intercept; Flutter's native TextInputType.multiline
+    // ENTER (plain): For NUMBER and SINGLE-LINE fields → navigate to next placeholder.
+    // For MULTILINE block narrative fields → DO NOT intercept; Flutter's native TextInputType.multiline
     // already inserts \n. Intercepting here would cause a double newline.
     if (event.logicalKey == LogicalKeyboardKey.enter && !isAlt) {
-      if (widget.fieldVm.isNumber) {
+      if (widget.fieldVm.isNumber || !widget.fieldVm.isMultiline) {
         provider.placeholderRegistry.next(effectiveId);
         return KeyEventResult.handled;
       }
@@ -316,6 +306,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                   minLines: isMultiline ? 3 : 1,
                   maxLines: isMultiline ? null : 1, // Auto-growing dynamic height
                   scrollPhysics: const NeverScrollableScrollPhysics(), // No internal scrollbars
+                  onFieldSubmitted: !isMultiline ? (_) => provider.placeholderRegistry.next(widget.fieldVm.key) : null,
                   style: AppTypography.workspaceInput(
                     color: widget.readOnly ? AppColors.workspaceSecondaryText : AppColors.workspacePrimaryText,
                   ),

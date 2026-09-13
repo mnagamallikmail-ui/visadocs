@@ -93,6 +93,9 @@ class DatePickerHelper {
         k == 'COMPOSITE_TABLE') {
       return false;
     }
+    if (k == 'TEXT' || k.startsWith('TEXT_') || k == 'TXT' || k.startsWith('TXT_')) {
+      return false;
+    }
     final t = (fieldType ?? '').trim().toUpperCase();
     if (t == 'DATE') return true;
 
