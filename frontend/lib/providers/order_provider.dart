@@ -20,6 +20,7 @@ class OrderProvider extends ChangeNotifier {
   List<dynamic> _activeTemplates = [];
   dynamic _currentOrder;
   Timer? _heartbeatTimer;
+  String? _lastError;
 
   List<dynamic> get clientOrders => _clientOrders;
   List<dynamic> get unassignedPool => _unassignedPool;
@@ -27,6 +28,7 @@ class OrderProvider extends ChangeNotifier {
   List<dynamic> get allOrders => _allOrders;
   List<dynamic> get activeTemplates => _activeTemplates;
   dynamic get currentOrder => _currentOrder;
+  String? get lastError => _lastError;
 
   Future<void> fetchClientOrders() async {
     try {
@@ -79,7 +81,7 @@ class OrderProvider extends ChangeNotifier {
   Future<void> fetchActiveTemplates() async {
     try {
       final response = await _apiService.dio.get('/api/v1/templates/active');
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && response.data is List) {
         _activeTemplates = response.data;
         notifyListeners();
       }
@@ -186,6 +188,7 @@ class OrderProvider extends ChangeNotifier {
   }
 
   Future<dynamic> createStaffReport(String clientName, String bankName, String branchName, int templateId) async {
+    _lastError = null;
     try {
       final response = await _apiService.dio.post('/api/v1/orders/create-by-staff', data: {
         'clientName': clientName,
@@ -196,8 +199,14 @@ class OrderProvider extends ChangeNotifier {
       if (response.statusCode == 200) {
         return response.data;
       }
+    } on DioException catch (e) {
+      if (e.response?.data is Map && e.response?.data['error'] != null) {
+        _lastError = e.response?.data['error'].toString();
+      } else {
+        _lastError = e.message ?? "Error creating staff report";
+      }
     } catch (e) {
-      // Error creating staff report
+      _lastError = e.toString();
     }
     return null;
   }

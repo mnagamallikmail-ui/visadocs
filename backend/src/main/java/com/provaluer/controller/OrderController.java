@@ -52,6 +52,9 @@ public class OrderController {
     private TemplateRepository templateRepository;
 
     @Autowired
+    private TemplateVersionRepository templateVersionRepository;
+
+    @Autowired
     private DocxTemplateEngine docxTemplateEngine;
 
     @Autowired
@@ -722,15 +725,76 @@ public class OrderController {
     @Transactional
     @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<?> createStaffReport(@RequestBody CreateStaffReportRequest request) {
-        UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Map.of("error", "Authentication required to create report."));
+        }
+
+        if (request == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Request payload cannot be null."));
+        }
+
+        String clientName = (request.getClientName() != null) ? request.getClientName().trim() : "";
+        String bankName = (request.getBankName() != null) ? request.getBankName().trim() : "";
+        String branchName = (request.getBranchName() != null) ? request.getBranchName().trim() : "";
+
+        if (clientName.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Client Name is required."));
+        }
+        if (bankName.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Bank Name is required."));
+        }
+        if (branchName.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Branch Name is required."));
+        }
+
+        // ========================================================================
+        // REPORT CREATION VALIDATION GOVERNANCE
+        // ========================================================================
+        Long templateId = request.getTemplateId();
+        if (templateId == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Template ID is required. Cannot create report with missing template."));
+        }
+
+        Optional<Template> templateOpt = templateRepository.findById(templateId);
+        if (templateOpt.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Template #" + templateId + " not found. Cannot create report with missing template."));
+        }
+
+        Template template = templateOpt.get();
+
+        // 1. Do not allow report creation with Deleted template
+        if (Template.STATUS_DELETED.equalsIgnoreCase(template.getStatus()) || template.getDeletedAt() != null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Template #" + templateId + " is deleted. Cannot create report with deleted template."));
+        }
+
+        // 2. Do not allow report creation with Inactive template
+        if (!"Y".equalsIgnoreCase(template.getIsActive()) || Template.STATUS_ARCHIVED.equalsIgnoreCase(template.getStatus())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Template #" + templateId + " is inactive. Cannot create report with inactive template."));
+        }
+
+        // 3. Do not allow report creation with Template in PARSING state
+        if ("PARSING".equalsIgnoreCase(template.getStatus()) || "PENDING".equalsIgnoreCase(template.getStatus())) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Template #" + templateId + " is currently in PARSING state. Cannot create report until parsing completes."));
+        }
+
+        // 4. Do not allow report creation with Template in FAILED state
+        if ("FAILED".equalsIgnoreCase(template.getStatus()) || "ERROR".equalsIgnoreCase(template.getStatus())
+                || (template.getProcessingError() != null && !template.getProcessingError().trim().isEmpty())) {
+            String errorDetail = (template.getProcessingError() != null && !template.getProcessingError().trim().isEmpty())
+                    ? template.getProcessingError()
+                    : "Processing failed";
+            return ResponseEntity.badRequest().body(Map.of("error", "Template #" + templateId + " is in FAILED state (" + errorDetail + "). Cannot create report with failed template."));
+        }
 
         Order order = new Order();
         order.setClientId(principal.getId());
         order.setPaId(principal.getId());
-        order.setClientName(request.getClientName());
-        order.setBankName(request.getBankName());
-        order.setBranchName(request.getBranchName());
-        order.setTemplateId(request.getTemplateId());
+        order.setClientName(clientName);
+        order.setBankName(bankName);
+        order.setBranchName(branchName);
+        order.setTemplateId(template.getId());
 
         order.setPropertyCategory("VALUATION");
         order.setPurpose("VALUATION");
@@ -738,11 +802,12 @@ public class OrderController {
         order.setClaimedAt(LocalDateTime.now());
         order.setLastHeartbeat(LocalDateTime.now());
 
-        if (request.getTemplateId() != null) {
-            templateRepository.findById(request.getTemplateId()).ifPresent(t -> {
-                order.setFieldMappingSnapshot(t.getFieldMapping());
-            });
-        }
+        order.setFieldMappingSnapshot(template.getFieldMapping());
+        order.setTemplateVersion(template.getVersion());
+
+        // Link immutable template_version_id for Option A historical preservation
+        templateVersionRepository.findByTemplateIdAndVersion(template.getId(), template.getVersion())
+                .ifPresent(tv -> order.setTemplateVersionId(tv.getId()));
 
         LocalDateTime now = LocalDateTime.now();
         int yy = now.getYear() % 100;
@@ -754,9 +819,9 @@ public class OrderController {
 
         Order savedOrder = orderRepository.save(order);
 
-        orderInputRepository.save(new OrderInput(savedOrder.getId(), "CLIENT_NAME", request.getClientName()));
-        orderInputRepository.save(new OrderInput(savedOrder.getId(), "BANK_NAME", request.getBankName()));
-        orderInputRepository.save(new OrderInput(savedOrder.getId(), "BRANCH_NAME", request.getBranchName()));
+        orderInputRepository.save(new OrderInput(savedOrder.getId(), "CLIENT_NAME", clientName));
+        orderInputRepository.save(new OrderInput(savedOrder.getId(), "BANK_NAME", bankName));
+        orderInputRepository.save(new OrderInput(savedOrder.getId(), "BRANCH_NAME", branchName));
 
         performanceLedgerRepository.findById(principal.getId()).ifPresent(ledger -> {
             ledger.setActiveAllocations(ledger.getActiveAllocations() + 1);

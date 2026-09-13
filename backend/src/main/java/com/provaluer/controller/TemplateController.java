@@ -77,7 +77,7 @@ public class TemplateController {
     @GetMapping
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<List<TemplateListDTO>> getAllTemplates() {
-        List<TemplateListDTO> dtos = templateRepository.findAll().stream()
+        List<TemplateListDTO> dtos = templateRepository.findAllByStatusNot(Template.STATUS_DELETED).stream()
                 .map(t -> {
                     long total = orderRepository.countByTemplateId(t.getId());
                     long drafts = orderRepository.countByTemplateIdAndStatus(t.getId(), "DRAFT");
@@ -231,7 +231,8 @@ public class TemplateController {
      */
     @GetMapping("/active")
     public ResponseEntity<List<TemplateListDTO>> getActiveTemplates() {
-        List<TemplateListDTO> dtos = templateRepository.findAllByIsActive("Y").stream()
+        List<TemplateListDTO> dtos = templateRepository.findAllByStatusNot(Template.STATUS_DELETED).stream()
+                .filter(t -> "Y".equalsIgnoreCase(t.getIsActive()) && Template.STATUS_ACTIVE.equalsIgnoreCase(t.getStatus()))
                 .map(TemplateListDTO::new)
                 .toList();
         return ResponseEntity.ok(dtos);

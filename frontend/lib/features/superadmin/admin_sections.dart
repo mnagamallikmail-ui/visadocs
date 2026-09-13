@@ -1228,17 +1228,17 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
       }
       final r = await _api.dio.get('/api/v1/templates');
       if (mounted) {
-        setState(() {
-          _templates.clear();
-          if (r.data is List) {
-            _templates = List<dynamic>.from(r.data as List<dynamic>);
-          } else {
-            _templates = [];
-          }
-        });
-        debugPrint('[TEMPLATE_MANAGER] API TEMPLATE COUNT: ${_templates.length}');
-        debugPrint('[TEMPLATE_MANAGER] UI TEMPLATE COUNT: ${_templates.length}');
-        _checkAndStartPolling();
+        if (r.data is List) {
+          final List<dynamic> incoming = List<dynamic>.from(r.data as List<dynamic>);
+          setState(() {
+            _templates = incoming;
+          });
+          debugPrint('[TEMPLATE_MANAGER] API TEMPLATE COUNT: ${_templates.length}');
+          debugPrint('[TEMPLATE_MANAGER] UI TEMPLATE COUNT: ${_templates.length}');
+          _checkAndStartPolling();
+        } else {
+          debugPrint('[TEMPLATE_MANAGER] Non-list API response received, preserving existing template cache (count: ${_templates.length})');
+        }
       }
     } catch (e) {
       if (mounted && !silent) {

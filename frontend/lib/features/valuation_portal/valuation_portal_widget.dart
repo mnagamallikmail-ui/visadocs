@@ -415,10 +415,11 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                                   ),
                                 );
                               } else {
+                                final errorMsg = orderProvider.lastError ?? "Failed to create report.";
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
+                                  SnackBar(
                                     backgroundColor: DesignSystem.error,
-                                    content: Text("Failed to create report."),
+                                    content: Text(errorMsg),
                                   ),
                                 );
                               }
@@ -426,12 +427,13 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                           } catch (_) {
                             if (mounted) {
                               Navigator.pop(context);
+                              final errorMsg = orderProvider.lastError ?? "Error creating report.";
                               ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    backgroundColor: DesignSystem.error,
-                                    content: Text("Error creating report."),
-                                  ),
-                                );
+                                SnackBar(
+                                  backgroundColor: DesignSystem.error,
+                                  content: Text(errorMsg),
+                                ),
+                              );
                             }
                           }
                         }
