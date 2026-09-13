@@ -32,11 +32,18 @@ import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
+import javax.imageio.IIOImage;
 import javax.imageio.ImageIO;
+import javax.imageio.ImageWriteParam;
+import javax.imageio.ImageWriter;
+import javax.imageio.stream.ImageOutputStream;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @Component
 public class DocxTemplateEngine {
 
+    private static final Logger log = LoggerFactory.getLogger(DocxTemplateEngine.class);
     private final ObjectMapper objectMapper = new ObjectMapper();
     private static final Pattern PLACEHOLDER_PATTERN = Pattern.compile("<<([^>]+)>>");
 
@@ -2367,8 +2374,8 @@ public class DocxTemplateEngine {
     /**
      * Scales the source image proportionally to fit within the placeholder frame (emuCx x emuCy)
      * maintaining its original aspect ratio (Scale To Fit, never stretch or distort).
-     * Centers the image horizontally and vertically inside a high-resolution canvas matching the exact frame aspect ratio.
-     * Preserves full image quality and prevents content/table/paragraph shifting.
+     * Centers the image horizontally and vertically inside a crisp canvas matching the exact frame aspect ratio.
+     * Capped at max 1600px dimension and compressed as high-quality JPEG (0.85) to prevent compile OOM.
      */
     private byte[] padImageToFitEmu(byte[] originalImageBytes, long emuCx, long emuCy) {
         if (originalImageBytes == null || originalImageBytes.length == 0) return originalImageBytes;
@@ -2385,19 +2392,29 @@ public class DocxTemplateEngine {
             double frameAspect = (double) emuCx / (double) emuCy;
             double imgAspect = (double) srcW / (double) srcH;
 
-            // Target canvas dimensions (in high-resolution pixels) matching frameAspect exactly
-            // Ensure minimum 1600px width/height or source image size to preserve crispness for print
+            // Target canvas dimensions matching frameAspect exactly, capped at 1600px maximum dimension
+            int maxDimension = 1600;
             int canvasW;
             int canvasH;
 
             if (imgAspect > frameAspect) {
                 // Image is wider than frame -> width determines canvas width, letterbox top/bottom
-                canvasW = Math.max(srcW, 1600);
+                canvasW = Math.min(srcW, maxDimension);
+                if (canvasW < 800) canvasW = Math.min(maxDimension, Math.max(srcW, 800));
                 canvasH = (int) Math.max(1, Math.round(canvasW / frameAspect));
+                if (canvasH > maxDimension) {
+                    canvasH = maxDimension;
+                    canvasW = (int) Math.max(1, Math.round(canvasH * frameAspect));
+                }
             } else {
                 // Image is taller than frame -> height determines canvas height, pillarbox left/right
-                canvasH = Math.max(srcH, 1600);
+                canvasH = Math.min(srcH, maxDimension);
+                if (canvasH < 800) canvasH = Math.min(maxDimension, Math.max(srcH, 800));
                 canvasW = (int) Math.max(1, Math.round(canvasH * frameAspect));
+                if (canvasW > maxDimension) {
+                    canvasW = maxDimension;
+                    canvasH = (int) Math.max(1, Math.round(canvasW / frameAspect));
+                }
             }
 
             // Proportional scale factor to fit srcImg completely within canvasW x canvasH
@@ -2409,24 +2426,43 @@ public class DocxTemplateEngine {
             int x = (canvasW - scaledW) / 2;
             int y = (canvasH - scaledH) / 2;
 
-            // High-resolution canvas with transparent / alpha channel
-            BufferedImage canvas = new BufferedImage(canvasW, canvasH, BufferedImage.TYPE_INT_ARGB);
+            // TYPE_INT_RGB canvas with crisp white background padding
+            BufferedImage canvas = new BufferedImage(canvasW, canvasH, BufferedImage.TYPE_INT_RGB);
             Graphics2D g = canvas.createGraphics();
+            g.setColor(java.awt.Color.WHITE);
+            g.fillRect(0, 0, canvasW, canvasH);
 
-            // Set highest quality rendering hints
-            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BICUBIC);
+            // Set high quality rendering hints
+            g.setRenderingHint(RenderingHints.KEY_INTERPOLATION, RenderingHints.VALUE_INTERPOLATION_BILINEAR);
             g.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
             g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
             g.setRenderingHint(RenderingHints.KEY_COLOR_RENDERING, RenderingHints.VALUE_COLOR_RENDER_QUALITY);
-            g.setRenderingHint(RenderingHints.KEY_ALPHA_INTERPOLATION, RenderingHints.VALUE_ALPHA_INTERPOLATION_QUALITY);
 
             // Draw image centered and proportionally scaled
             g.drawImage(srcImg, x, y, scaledW, scaledH, null);
             g.dispose();
 
+            // Compress to JPEG with quality 0.85
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(canvas, "png", baos);
-            return baos.toByteArray();
+            Iterator<ImageWriter> writers = ImageIO.getImageWritersByFormatName("jpg");
+            if (writers.hasNext()) {
+                ImageWriter writer = writers.next();
+                try (ImageOutputStream ios = ImageIO.createImageOutputStream(baos)) {
+                    writer.setOutput(ios);
+                    ImageWriteParam param = writer.getDefaultWriteParam();
+                    if (param.canWriteCompressed()) {
+                        param.setCompressionMode(ImageWriteParam.MODE_EXPLICIT);
+                        param.setCompressionQuality(0.85f);
+                    }
+                    writer.write(null, new IIOImage(canvas, null, null), param);
+                } finally {
+                    writer.dispose();
+                }
+                return baos.toByteArray();
+            } else {
+                ImageIO.write(canvas, "jpg", baos);
+                return baos.toByteArray();
+            }
         } catch (Exception e) {
             return originalImageBytes;
         }
@@ -2446,27 +2482,43 @@ public class DocxTemplateEngine {
         return out.toByteArray();
     }
 
-    private byte[] convertWithLibreOfficeHeadless(byte[] docxBytes) {
-        String[] candidates = {
-                "libreoffice",
-                "soffice",
-                "/usr/bin/libreoffice",
-                "/usr/bin/soffice",
-                "/usr/local/bin/libreoffice",
-                "C:\\Program Files\\LibreOffice\\program\\soffice.exe",
-                "C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe"
-        };
-        String sofficeCmd = null;
-        for (String candidate : candidates) {
-            try {
-                Process p = new ProcessBuilder(candidate, "--version").start();
-                if (p.waitFor(2, java.util.concurrent.TimeUnit.SECONDS) && p.exitValue() == 0) {
-                    sofficeCmd = candidate;
-                    break;
-                }
-            } catch (Exception ignored) {}
+    private static volatile String cachedSofficeCmd = null;
+    private static volatile boolean sofficeSearched = false;
+
+    private String getSofficeCommand() {
+        if (sofficeSearched) return cachedSofficeCmd;
+        synchronized (DocxTemplateEngine.class) {
+            if (sofficeSearched) return cachedSofficeCmd;
+            String[] candidates = {
+                    "libreoffice",
+                    "soffice",
+                    "/usr/bin/libreoffice",
+                    "/usr/bin/soffice",
+                    "/usr/local/bin/libreoffice",
+                    "C:\\Program Files\\LibreOffice\\program\\soffice.exe",
+                    "C:\\Program Files (x86)\\LibreOffice\\program\\soffice.exe"
+            };
+            for (String candidate : candidates) {
+                try {
+                    Process p = new ProcessBuilder(candidate, "--version").start();
+                    if (p.waitFor(5, java.util.concurrent.TimeUnit.SECONDS) && p.exitValue() == 0) {
+                        cachedSofficeCmd = candidate;
+                        log.info("Discovered and verified LibreOffice CLI: {}", candidate);
+                        break;
+                    }
+                } catch (Exception ignored) {}
+            }
+            sofficeSearched = true;
+            return cachedSofficeCmd;
         }
-        if (sofficeCmd == null) return null;
+    }
+
+    private byte[] convertWithLibreOfficeHeadless(byte[] docxBytes) {
+        String sofficeCmd = getSofficeCommand();
+        if (sofficeCmd == null) {
+            log.warn("LibreOffice CLI not found on system; falling back to Docx4J");
+            return null;
+        }
 
         try {
             java.nio.file.Path tempDir = java.nio.file.Files.createTempDirectory("provaluer_pdf_");
@@ -2484,9 +2536,13 @@ public class DocxTemplateEngine {
                 );
                 pb.redirectErrorStream(true);
                 Process process = pb.start();
-                boolean finished = process.waitFor(45, java.util.concurrent.TimeUnit.SECONDS);
+                boolean finished = process.waitFor(60, java.util.concurrent.TimeUnit.SECONDS);
                 if (finished && process.exitValue() == 0 && java.nio.file.Files.exists(tempPdf)) {
-                    return java.nio.file.Files.readAllBytes(tempPdf);
+                    byte[] pdfBytes = java.nio.file.Files.readAllBytes(tempPdf);
+                    log.info("Successfully compiled PDF using native LibreOffice [{} bytes]", pdfBytes.length);
+                    return pdfBytes;
+                } else {
+                    log.warn("LibreOffice conversion process exited with code {}. Finished: {}", process.exitValue(), finished);
                 }
             } finally {
                 try {
@@ -2495,7 +2551,9 @@ public class DocxTemplateEngine {
                     java.nio.file.Files.deleteIfExists(tempDir);
                 } catch (Exception ignored) {}
             }
-        } catch (Exception ignored) {}
+        } catch (Exception e) {
+            log.warn("LibreOffice conversion encountered exception: {}", e.getMessage());
+        }
         return null;
     }
 

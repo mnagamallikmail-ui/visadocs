@@ -855,6 +855,7 @@ public class OrderController {
             try {
                 String base64Data = value.substring(value.indexOf(";base64,") + 8);
                 byte[] bytes = Base64.getDecoder().decode(base64Data);
+                bytes = com.provaluer.util.ImageOptimizationUtil.compressAndResizeImage(bytes);
                 field.setImageValue(bytes);
                 field.setFieldValue("[IMAGE]");
             } catch (Exception e) {

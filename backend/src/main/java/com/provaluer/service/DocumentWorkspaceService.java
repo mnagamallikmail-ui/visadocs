@@ -725,7 +725,7 @@ public class DocumentWorkspaceService {
                     } catch (Exception e) {
                         log.warn("Failed to save valuation audit log for order #{}: {}", orderId, e.getMessage());
                     }
-                } catch (Exception e) {
+                } catch (Throwable e) {
                     log.error("Failed to compile final report during SPA approval: {}", e.getMessage(), e);
                 }
             }
@@ -974,6 +974,7 @@ public class DocumentWorkspaceService {
             try {
                 String base64Data = value.substring(value.indexOf(";base64,") + 8);
                 byte[] bytes = Base64.getDecoder().decode(base64Data);
+                bytes = com.provaluer.util.ImageOptimizationUtil.compressAndResizeImage(bytes);
                 field.setImageValue(bytes);
                 field.setFieldValue("[IMAGE]");
             } catch (Exception e) {
