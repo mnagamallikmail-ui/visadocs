@@ -18,6 +18,7 @@ class OrderProvider extends ChangeNotifier {
   List<dynamic> _paOrders = [];
   List<dynamic> _allOrders = [];
   List<dynamic> _activeTemplates = [];
+  bool _isLoadingTemplates = false;
   dynamic _currentOrder;
   Timer? _heartbeatTimer;
   String? _lastError;
@@ -27,6 +28,7 @@ class OrderProvider extends ChangeNotifier {
   List<dynamic> get paOrders => _paOrders;
   List<dynamic> get allOrders => _allOrders;
   List<dynamic> get activeTemplates => _activeTemplates;
+  bool get isLoadingTemplates => _isLoadingTemplates;
   dynamic get currentOrder => _currentOrder;
   String? get lastError => _lastError;
 
@@ -79,14 +81,18 @@ class OrderProvider extends ChangeNotifier {
   }
 
   Future<void> fetchActiveTemplates() async {
+    _isLoadingTemplates = true;
+    notifyListeners();
     try {
       final response = await _apiService.dio.get('/api/v1/templates/active');
       if (response.statusCode == 200 && response.data is List) {
         _activeTemplates = response.data;
-        notifyListeners();
       }
     } catch (e) {
-      // Error fetching active templates
+      // Error fetching active templates — _activeTemplates unchanged
+    } finally {
+      _isLoadingTemplates = false;
+      notifyListeners();
     }
   }
 

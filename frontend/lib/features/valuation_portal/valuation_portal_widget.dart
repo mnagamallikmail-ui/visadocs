@@ -332,6 +332,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                 ),
               ];
             } else {
+              final isLoadingTpls = orderProvider.isLoadingTemplates;
               content = Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -341,11 +342,37 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                     style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 11, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
-                  if (templates.isEmpty)
+                  if (isLoadingTpls)
                     const Center(
                       child: Padding(
                         padding: EdgeInsets.symmetric(vertical: 20.0),
                         child: CircularProgressIndicator(),
+                      ),
+                    )
+                  else if (templates.isEmpty)
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 20.0),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 32),
+                            const SizedBox(height: 8),
+                            Text(
+                              "No active templates available.",
+                              style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 12),
+                              textAlign: TextAlign.center,
+                            ),
+                            const SizedBox(height: 12),
+                            TextButton.icon(
+                              icon: const Icon(Icons.refresh, size: 14),
+                              label: Text("Retry", style: DesignSystem.body(fontSize: 12)),
+                              onPressed: () {
+                                Provider.of<OrderProvider>(context, listen: false).fetchActiveTemplates();
+                              },
+                            ),
+                          ],
+                        ),
                       ),
                     )
                   else
