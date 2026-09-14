@@ -86,6 +86,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     final meth = _valuationData?.valuationMethodology ?? _activeValues['VALUATION_METHODOLOGY'] ?? '';
     if (meth == 'COMPOSITE') return true;
     if (_compositeItems.isNotEmpty) return true;
+    if (_activeValues.containsKey('SALEABLE_AREA') || _activeValues.containsKey('SALEABLE_RATE') || _activeValues.containsKey('MARKET_RATE_FLAT')) return true;
     final cat = (_activeValues['PROPERTY_CATEGORY'] ?? _activeValues['property_category'] ?? _activeValues['PROPERTY_TYPE'] ?? '').toLowerCase();
     return cat.contains('flat') || cat.contains('apartment') || cat.contains('commercial space') ||
            cat.contains('office') || cat.contains('retail') || cat.contains('shop') || cat.contains('commercial unit');
@@ -197,7 +198,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
             PlaceholderNormalizationRegistry.isPercentageKey(uk)) {
           final dual = ValueNormalizationEngine.createDualValueResult(uk, val);
           dual.valuesToStore.forEach((dk, dv) {
-            _activeValues.putIfAbsent(dk, () => dv);
+            _activeValues[dk] = dv;
           });
         }
       }
@@ -246,8 +247,16 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         if (rawArea != null && rawArea.isNotEmpty) {
           final parsedNum = ValueNormalizationEngine.extractNumericValue(rawArea) ??
               double.tryParse(rawArea.replaceAll(RegExp(r'[^0-9.]'), '').trim());
-          if (parsedNum != null && parsedNum > 0 && mUnit.quantity == 0) {
+          if (parsedNum != null && parsedNum > 0) {
             mUnit.quantity = parsedNum;
+          }
+        }
+        final rawRate = _activeValues['SALEABLE_RATE'] ?? _activeValues['MARKET_RATE_FLAT'] ?? _activeValues['COMPOSITE_RATE'] ?? _activeValues['CURRENT_MARKET_RATE'] ?? _activeValues['FLAT_MARKET_RATE'] ?? _activeValues['BUILDING_MARKET_RATE'];
+        if (rawRate != null && rawRate.isNotEmpty) {
+          final parsedRate = ValueNormalizationEngine.extractNumericValue(rawRate) ??
+              double.tryParse(rawRate.replaceAll(RegExp(r'[^0-9.]'), '').trim());
+          if (parsedRate != null && parsedRate > 0) {
+            mUnit.rate = parsedRate;
           }
         }
       }
@@ -308,7 +317,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
           _activeValues[k] = v;
         });
 
-        final rawRate = _activeValues['MARKET_RATE_FLAT'] ?? _activeValues['COMPOSITE_RATE'] ?? _activeValues['CURRENT_MARKET_RATE'] ?? _activeValues['FLAT_MARKET_RATE'] ?? _activeValues['BUILDING_MARKET_RATE'] ?? '0';
+        final rawRate = _activeValues['SALEABLE_RATE'] ?? _activeValues['MARKET_RATE_FLAT'] ?? _activeValues['COMPOSITE_RATE'] ?? _activeValues['CURRENT_MARKET_RATE'] ?? _activeValues['FLAT_MARKET_RATE'] ?? _activeValues['BUILDING_MARKET_RATE'] ?? '0';
         final dualRate = ValueNormalizationEngine.createDualValueResult('MARKET_RATE_FLAT', rawRate);
         final compRate = dualRate.numericValue;
         dualRate.valuesToStore.forEach((k, v) {
@@ -412,10 +421,12 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       }
       final rawKey = '${uk}_RAW';
       if (_activeValues.containsKey(rawKey) && _activeValues[rawKey]!.isNotEmpty) {
-        _activeValues[uk] = _activeValues[rawKey]!;
-        _deltaValues[uk] = _activeValues[rawKey]!;
-        _activeValues[k] = _activeValues[rawKey]!;
-        _deltaValues[k] = _activeValues[rawKey]!;
+        if (!PlaceholderNormalizationRegistry.isAreaKey(uk) && !PlaceholderNormalizationRegistry.isRateKey(uk)) {
+          _activeValues[uk] = _activeValues[rawKey]!;
+          _deltaValues[uk] = _activeValues[rawKey]!;
+          _activeValues[k] = _activeValues[rawKey]!;
+          _deltaValues[k] = _activeValues[rawKey]!;
+        }
       } else {
         _activeValues[uk] = v;
         _deltaValues[uk] = v;
@@ -819,14 +830,17 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         }
 
         // Publish runtime field values as required by Fix 3
-        _activeValues['SALEABLE_AREA'] = value;
-        _deltaValues['SALEABLE_AREA'] = value;
+        final stdSqftStr = ValueNormalizationEngine.formatNormalizedString(dual.standardSqftValue);
+        _activeValues['SALEABLE_AREA'] = stdSqftStr;
+        _deltaValues['SALEABLE_AREA'] = stdSqftStr;
+        _activeValues['SALEABLE_AREA_RAW'] = value;
+        _deltaValues['SALEABLE_AREA_RAW'] = value;
         _activeValues['SALEABLE_AREA_NUMERIC'] = ValueNormalizationEngine.formatNormalizedString(dual.numericValue);
         _deltaValues['SALEABLE_AREA_NUMERIC'] = _activeValues['SALEABLE_AREA_NUMERIC']!;
         _activeValues['SALEABLE_AREA_UNIT'] = dual.detectedUnit;
         _deltaValues['SALEABLE_AREA_UNIT'] = dual.detectedUnit;
-        _activeValues['SALEABLE_AREA_STANDARD_SQFT'] = ValueNormalizationEngine.formatNormalizedString(dual.standardSqftValue);
-        _deltaValues['SALEABLE_AREA_STANDARD_SQFT'] = _activeValues['SALEABLE_AREA_STANDARD_SQFT']!;
+        _activeValues['SALEABLE_AREA_STANDARD_SQFT'] = stdSqftStr;
+        _deltaValues['SALEABLE_AREA_STANDARD_SQFT'] = stdSqftStr;
 
         recalculateValuation();
         return;
@@ -840,10 +854,17 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         }
 
         // Publish runtime field values as required by Fix 3
-        _activeValues['MARKET_RATE_FLAT'] = value;
-        _deltaValues['MARKET_RATE_FLAT'] = value;
-        _activeValues['MARKET_RATE_FLAT_NUMERIC'] = ValueNormalizationEngine.formatNormalizedString(dual.numericValue);
-        _deltaValues['MARKET_RATE_FLAT_NUMERIC'] = _activeValues['MARKET_RATE_FLAT_NUMERIC']!;
+        final rateNumStr = ValueNormalizationEngine.formatNormalizedString(dual.numericValue);
+        _activeValues['MARKET_RATE_FLAT'] = rateNumStr;
+        _deltaValues['MARKET_RATE_FLAT'] = rateNumStr;
+        _activeValues['SALEABLE_RATE'] = rateNumStr;
+        _deltaValues['SALEABLE_RATE'] = rateNumStr;
+        _activeValues['MARKET_RATE_FLAT_RAW'] = value;
+        _deltaValues['MARKET_RATE_FLAT_RAW'] = value;
+        _activeValues['SALEABLE_RATE_RAW'] = value;
+        _deltaValues['SALEABLE_RATE_RAW'] = value;
+        _activeValues['MARKET_RATE_FLAT_NUMERIC'] = rateNumStr;
+        _deltaValues['MARKET_RATE_FLAT_NUMERIC'] = rateNumStr;
 
         recalculateValuation();
         return;
@@ -926,6 +947,14 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       if (_activeValues[upperKey] != value) {
         _activeValues[upperKey] = value;
         _deltaValues[upperKey] = value;
+        if (upperKey == 'IMG_COVER_PAGE' || upperKey == 'IMG_FRONT_PAGE' || upperKey == 'COVER_IMAGE') {
+          _activeValues['IMG_COVER_PAGE'] = value;
+          _deltaValues['IMG_COVER_PAGE'] = value;
+          _activeValues['IMG_FRONT_PAGE'] = value;
+          _deltaValues['IMG_FRONT_PAGE'] = value;
+          _activeValues['COVER_IMAGE'] = value;
+          _deltaValues['COVER_IMAGE'] = value;
+        }
         _isDirty = true;
         _validationError = null;
         if (notify) {
@@ -940,6 +969,15 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   }
 
   String getValue(String key) {
+    final upper = key.toUpperCase();
+    if (upper == 'IMG_COVER_PAGE' || upper == 'IMG_FRONT_PAGE' || upper == 'COVER_IMAGE') {
+      final img = _activeValues['IMG_COVER_PAGE'] ?? _activeValues['IMG_FRONT_PAGE'] ?? _activeValues['COVER_IMAGE'];
+      if (img != null && img.isNotEmpty) return img;
+    }
+    if (upper == 'SALEABLE_RATE' || upper == 'MARKET_RATE_FLAT') {
+      final rate = _activeValues['SALEABLE_RATE'] ?? _activeValues['MARKET_RATE_FLAT'] ?? _activeValues['MARKET_RATE_FLAT_NUMERIC'];
+      if (rate != null && rate.isNotEmpty) return rate;
+    }
     return _activeValues[key.toUpperCase()] ?? _activeValues[key.toLowerCase()] ?? _activeValues[key] ?? '';
   }
 
@@ -948,7 +986,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     final areaStr = _activeValues['SALEABLE_AREA_STANDARD_SQFT'] ?? _activeValues['SALEABLE_AREA_NUMERIC'] ?? _activeValues['SALEABLE_AREA'] ?? '1000';
     final parsedArea = ValueNormalizationEngine.extractNumericValue(areaStr);
     final area = parsedArea ?? (double.tryParse(areaStr.replaceAll(RegExp(r'[^0-9.]'), '').trim()) ?? 1000.0);
-    final rateStr = _activeValues['MARKET_RATE_FLAT_NUMERIC'] ?? _activeValues['MARKET_RATE_FLAT'] ?? '0';
+    final rateStr = _activeValues['SALEABLE_RATE'] ?? _activeValues['MARKET_RATE_FLAT_NUMERIC'] ?? _activeValues['MARKET_RATE_FLAT'] ?? '0';
     final rate = double.tryParse(rateStr.replaceAll(',', '').trim()) ?? 0.0;
     final costStr = _activeValues['COMPOSITE_CONSTRUCTION_COST'] ?? '2000';
     final cost = double.tryParse(costStr.replaceAll(',', '').trim()) ?? 2000.0;
@@ -1011,7 +1049,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
           item.enteredUnit = _activeValues['SALEABLE_AREA_UNIT']!;
         }
       }
-      if (_activeValues.containsKey('MARKET_RATE_FLAT_NUMERIC') || _activeValues.containsKey('MARKET_RATE_FLAT')) {
+      if (_activeValues.containsKey('SALEABLE_RATE') || _activeValues.containsKey('MARKET_RATE_FLAT_NUMERIC') || _activeValues.containsKey('MARKET_RATE_FLAT')) {
         item.rate = rate;
       }
       if (cost > 0) item.constructionCost = cost;

@@ -644,6 +644,8 @@ public class ValuationEngineService {
 
             map.put("government_value", IndianNumberFormatter.format(data.getGovernmentValue()));
             map.put("government_value_words", IndianCurrencyToWords.convertToWords(data.getGovernmentValue()));
+            map.put("govt_value", IndianNumberFormatter.format(data.getGovernmentValue()));
+            map.put("govt_value_words", IndianCurrencyToWords.convertToWords(data.getGovernmentValue()));
             map.put("composite_government_rate", IndianNumberFormatter.format(data.getCompositeGovernmentRate()));
 
             map.put("insurable_value", IndianNumberFormatter.format(data.getInsurableValue()));
@@ -828,6 +830,8 @@ public class ValuationEngineService {
             map.put("building_government_value_words", IndianCurrencyToWords.convertToWords(bldgGovt));
             map.put("government_value", IndianNumberFormatter.format(totalGovt));
             map.put("government_value_words", IndianCurrencyToWords.convertToWords(totalGovt));
+            map.put("govt_value", IndianNumberFormatter.format(totalGovt));
+            map.put("govt_value_words", IndianCurrencyToWords.convertToWords(totalGovt));
 
             // Say Value already populated above
 

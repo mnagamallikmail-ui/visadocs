@@ -700,6 +700,14 @@ public class DocumentWorkspaceService {
                             imagesMap.put(key, input.getImageValue());
                         }
                     }
+                    if (imagesMap.containsKey("IMG_COVER_PAGE") && !imagesMap.containsKey("IMG_FRONT_PAGE")) {
+                        imagesMap.put("IMG_FRONT_PAGE", imagesMap.get("IMG_COVER_PAGE"));
+                    } else if (imagesMap.containsKey("IMG_FRONT_PAGE") && !imagesMap.containsKey("IMG_COVER_PAGE")) {
+                        imagesMap.put("IMG_COVER_PAGE", imagesMap.get("IMG_FRONT_PAGE"));
+                    }
+                    if (imagesMap.containsKey("COVER_IMAGE") && !imagesMap.containsKey("IMG_COVER_PAGE")) {
+                        imagesMap.put("IMG_COVER_PAGE", imagesMap.get("COVER_IMAGE"));
+                    }
 
                     // Hydrate DOCX
                     byte[] docxBytes = docxTemplateEngine.generateReport(tplBytes, inputsMap, imagesMap);
@@ -827,6 +835,14 @@ public class DocumentWorkspaceService {
             if (input.getImageValue() != null) {
                 imagesMap.put(input.getFieldKey().toUpperCase(), input.getImageValue());
             }
+        }
+        if (imagesMap.containsKey("IMG_COVER_PAGE") && !imagesMap.containsKey("IMG_FRONT_PAGE")) {
+            imagesMap.put("IMG_FRONT_PAGE", imagesMap.get("IMG_COVER_PAGE"));
+        } else if (imagesMap.containsKey("IMG_FRONT_PAGE") && !imagesMap.containsKey("IMG_COVER_PAGE")) {
+            imagesMap.put("IMG_COVER_PAGE", imagesMap.get("IMG_FRONT_PAGE"));
+        }
+        if (imagesMap.containsKey("COVER_IMAGE") && !imagesMap.containsKey("IMG_COVER_PAGE")) {
+            imagesMap.put("IMG_COVER_PAGE", imagesMap.get("COVER_IMAGE"));
         }
 
         int effectiveVersion = order.getTemplateVersion() != null ? order.getTemplateVersion() : (template != null ? template.getVersion() : 1);
@@ -973,6 +989,16 @@ public class DocumentWorkspaceService {
             }
         }
 
+        // Ensure bidirectional alias coverage for cover page / front page images
+        if (map.containsKey("IMG_COVER_PAGE") && (!map.containsKey("IMG_FRONT_PAGE") || map.get("IMG_FRONT_PAGE").isEmpty())) {
+            map.put("IMG_FRONT_PAGE", map.get("IMG_COVER_PAGE"));
+        } else if (map.containsKey("IMG_FRONT_PAGE") && (!map.containsKey("IMG_COVER_PAGE") || map.get("IMG_COVER_PAGE").isEmpty())) {
+            map.put("IMG_COVER_PAGE", map.get("IMG_FRONT_PAGE"));
+        }
+        if (map.containsKey("COVER_IMAGE") && (!map.containsKey("IMG_COVER_PAGE") || map.get("IMG_COVER_PAGE").isEmpty())) {
+            map.put("IMG_COVER_PAGE", map.get("COVER_IMAGE"));
+        }
+
         // Merge Valuation Engine Placeholders as fallback / bundle computation
         try {
             com.provaluer.dto.ValuationBundleResponse valBundle = valuationEngineService.getValuationBundle(orderId);
@@ -1032,10 +1058,13 @@ public class DocumentWorkspaceService {
         Optional<OrderInput> existing = orderInputRepository.findByOrderIdAndFieldKey(orderId, key);
         OrderInput field = existing.orElseGet(() -> new OrderInput(orderId, key, ""));
 
-        if (value != null && value.startsWith("data:image/") && value.contains(";base64,")) {
+        if (value != null && (value.startsWith("data:image/") || (value.length() > 200 && !value.contains(" ") && !value.contains("\n")))) {
             try {
-                String base64Data = value.substring(value.indexOf(";base64,") + 8);
-                byte[] bytes = Base64.getDecoder().decode(base64Data);
+                String base64Data = value;
+                if (base64Data.contains(";base64,")) {
+                    base64Data = base64Data.substring(base64Data.indexOf(";base64,") + 8);
+                }
+                byte[] bytes = Base64.getDecoder().decode(base64Data.replaceAll("\\s+", ""));
                 bytes = com.provaluer.util.ImageOptimizationUtil.compressAndResizeImage(bytes);
                 field.setImageValue(bytes);
                 field.setFieldValue("[IMAGE]");

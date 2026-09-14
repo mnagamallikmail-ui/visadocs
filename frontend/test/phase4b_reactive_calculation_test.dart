@@ -28,10 +28,10 @@ void main() {
       provider.updateValue('SALEABLE_AREA', '1000 sq.ft');
       provider.updateValue('MARKET_RATE_FLAT', 'Rs 5000');
 
-      // 1. Raw values are preserved for display
-      expect(provider.getValue('SALEABLE_AREA'), equals('1000 sq.ft'));
+      // 1. Normalized values in base keys and raw values in _RAW
+      expect(provider.getValue('SALEABLE_AREA'), equals('1000'));
       expect(provider.getValue('SALEABLE_AREA_RAW'), equals('1000 sq.ft'));
-      expect(provider.getValue('MARKET_RATE_FLAT'), equals('Rs 5000'));
+      expect(provider.getValue('MARKET_RATE_FLAT'), equals('5000'));
       expect(provider.getValue('MARKET_RATE_FLAT_RAW'), equals('Rs 5000'));
 
       // 2. Numeric and unit values are cleanly derived
@@ -41,10 +41,12 @@ void main() {
       expect(provider.getValue('MARKET_RATE_FLAT_NUMERIC'), equals('5000'));
 
       // 3. Alias propagation
-      expect(provider.getValue('SUPER_BUILT_UP_AREA'), equals('1000 sq.ft'));
+      expect(provider.getValue('SUPER_BUILT_UP_AREA'), equals('1000'));
+      expect(provider.getValue('SUPER_BUILT_UP_AREA_RAW'), equals('1000 sq.ft'));
       expect(provider.getValue('SUPER_BUILT_UP_AREA_NUMERIC'), equals('1000'));
       expect(provider.getValue('SUPER_BUILT_UP_AREA_STANDARD_SQFT'), equals('1000'));
-      expect(provider.getValue('COMPOSITE_RATE'), equals('Rs 5000'));
+      expect(provider.getValue('COMPOSITE_RATE'), equals('5000'));
+      expect(provider.getValue('COMPOSITE_RATE_RAW'), equals('Rs 5000'));
       expect(provider.getValue('COMPOSITE_RATE_NUMERIC'), equals('5000'));
 
       // 4. Valuation calculations are exact
@@ -92,7 +94,8 @@ void main() {
       expect(provider.validationError, equals(ValueNormalizationEngine.validationErrorMsg));
       // Preserves existing valid numeric value
       expect(provider.getValue('SALEABLE_AREA_NUMERIC'), equals('1000'));
-      expect(provider.getValue('SALEABLE_AREA'), equals('1000 sq.ft'));
+      expect(provider.getValue('SALEABLE_AREA'), equals('1000'));
+      expect(provider.getValue('SALEABLE_AREA_RAW'), equals('1000 sq.ft'));
     });
 
     test('Invalid rate "Rs only" sets validation error and halts overwrite', () {

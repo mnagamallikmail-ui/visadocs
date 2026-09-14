@@ -99,14 +99,13 @@ public class InspectProductionDocxTest {
         }
         
         System.out.println("DOM Search Result: IMG_FRONT_PAGE found = " + foundFront + ", IMG_PIC3 found = " + foundPic3);
-        System.out.println("\nPlaceholders Summary Array Items for Images:");
+        System.out.println("\nAll Placeholders Summary Array Items:");
         JsonNode summary = dom.get("placeholdersSummary");
         if (summary != null && summary.isArray()) {
             for (JsonNode item : summary) {
                 String key = item.has("key") ? item.get("key").asText() : "";
-                if ("IMG_FRONT_PAGE".equalsIgnoreCase(key) || "IMG_PIC3".equalsIgnoreCase(key)) {
-                    System.out.println(mapper.writeValueAsString(item));
-                }
+                String type = item.has("type") ? item.get("type").asText() : "";
+                System.out.println(key + " [" + type + "]");
             }
         }
     }

@@ -258,8 +258,8 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
 
   @override
   Widget build(BuildContext context) {
-    final provider = context.watch<DocumentWorkspaceProvider>();
-    final pVal = provider.getValue(widget.fieldVm.key);
+    final pVal = context.select<DocumentWorkspaceProvider, String>((p) => p.getValue(widget.fieldVm.key));
+    final provider = context.read<DocumentWorkspaceProvider>();
     final rawVal = pVal.isNotEmpty ? pVal : widget.fieldVm.currentValue;
     final latestVal = _normalizeValue(rawVal);
 

@@ -346,6 +346,9 @@ class ValuationCalculator {
       map['total_fair_value'] = totalFairStr;
       map['total_fair_value_words'] = totalFairWords;
       map['total_fair_value_numeric'] = numericTotalFair;
+      map['composite_value'] = totalFairStr;
+      map['composite_value_words'] = totalFairWords;
+      map['composite_value_numeric'] = numericTotalFair;
       map['raw_fair_value'] = totalFairStr;
       map['raw_fair_value_words'] = totalFairWords;
 

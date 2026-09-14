@@ -1004,6 +1004,7 @@ public class DocxStructureParser {
                 || upper.equals("DISTRESS_SALE_VALUE") || upper.equals("DISTRESS_SALE_VALUE_WORDS")
                 || upper.equals("INSURABLE_VALUE") || upper.equals("INSURABLE_VALUE_WORDS")
                 || upper.equals("GOVERNMENT_VALUE") || upper.equals("GOVERNMENT_VALUE_WORDS")
+                || upper.equals("GOVT_VALUE") || upper.equals("GOVT_VALUE_WORDS")
                 || upper.equals("REALIZABLE_PERCENTAGE") || upper.equals("DISTRESS_SALE_PERCENTAGE");
     }
 
@@ -1048,6 +1049,8 @@ public class DocxStructureParser {
         KNOWN_HUMANIZED_LABELS.put("PURPOSE", "Purpose of Valuation");
         KNOWN_HUMANIZED_LABELS.put("APPROACH", "Valuation Approach Adopted");
         KNOWN_HUMANIZED_LABELS.put("IMG_FRONT_PAGE", "Front Page Photograph");
+        KNOWN_HUMANIZED_LABELS.put("IMG_COVER_PAGE", "Cover Page Photograph");
+        KNOWN_HUMANIZED_LABELS.put("COVER_IMAGE", "Cover Page Photograph");
         KNOWN_HUMANIZED_LABELS.put("IMG_SECOND_PAGE", "Second Page Photograph");
         KNOWN_HUMANIZED_LABELS.put("IMG_PIC1", "Property Photograph 1");
         KNOWN_HUMANIZED_LABELS.put("IMG_PIC2", "Property Photograph 2");

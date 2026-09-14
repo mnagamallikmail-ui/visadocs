@@ -236,7 +236,8 @@ class DualValueResult {
     final isArea = PlaceholderNormalizationRegistry.isAreaKey(enteredKey);
 
     // 1. Entered key store
-    valuesToStore[enteredKey] = rawValue;
+    final effectiveValue = isArea ? stdSqftStr : numericStr;
+    valuesToStore[enteredKey] = effectiveValue;
     valuesToStore['${enteredKey}_RAW'] = rawValue;
     valuesToStore['${enteredKey}_NUMERIC'] = numericStr;
     if (isArea) {
@@ -245,7 +246,7 @@ class DualValueResult {
     }
 
     // 2. Canonical key store
-    valuesToStore[canonicalKey] = rawValue;
+    valuesToStore[canonicalKey] = effectiveValue;
     valuesToStore['${canonicalKey}_RAW'] = rawValue;
     valuesToStore['${canonicalKey}_NUMERIC'] = numericStr;
     if (isArea) {
@@ -256,7 +257,7 @@ class DualValueResult {
     // 3. Alias propagation
     final aliases = AliasResolutionEngine.getAliases(canonicalKey);
     for (final alias in aliases) {
-      valuesToStore[alias] = rawValue;
+      valuesToStore[alias] = effectiveValue;
       valuesToStore['${alias}_RAW'] = rawValue;
       valuesToStore['${alias}_NUMERIC'] = numericStr;
       if (isArea) {

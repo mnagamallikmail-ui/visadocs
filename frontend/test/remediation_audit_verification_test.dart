@@ -86,7 +86,8 @@ void main() {
       provider.updateValue('SALEABLE_AREA', '1250 Sq.Ft');
       provider.updateValue('MARKET_RATE_FLAT', '6200');
 
-      expect(provider.getValue('SALEABLE_AREA'), equals('1250 Sq.Ft'));
+      expect(provider.getValue('SALEABLE_AREA'), equals('1250'));
+      expect(provider.getValue('SALEABLE_AREA_RAW'), equals('1250 Sq.Ft'));
       expect(provider.getValue('SALEABLE_AREA_NUMERIC'), equals('1250'));
       expect(provider.getValue('SALEABLE_AREA_STANDARD_SQFT'), equals('1250'));
       expect(provider.getValue('MARKET_RATE_FLAT'), equals('6200'));

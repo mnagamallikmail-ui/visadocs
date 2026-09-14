@@ -697,12 +697,9 @@ public class DocxTemplateEngine {
         for (Object o : inlineFinder.results) {
             Inline inline = (Inline) o;
             if (inline.getDocPr() == null) continue;
-            String desc = inline.getDocPr().getDescr();
-            String name = inline.getDocPr().getName();
-            String matchedName = (desc != null && desc.startsWith("IMG_")) ? desc : name;
+            String key = extractImageKey(inline.getDocPr());
 
-            if (matchedName != null && (matchedName.toUpperCase().contains("IMG_") || matchedName.toUpperCase().contains("_IMAGE"))) {
-                String key = matchedName.toUpperCase();
+            if (key != null) {
                 if (uniqueKeys.contains(key)) continue;
                 uniqueKeys.add(key);
 
@@ -723,12 +720,9 @@ public class DocxTemplateEngine {
         for (Object o : anchorFinder.results) {
             Anchor anchor = (Anchor) o;
             if (anchor.getDocPr() == null) continue;
-            String desc = anchor.getDocPr().getDescr();
-            String name = anchor.getDocPr().getName();
-            String matchedName = (desc != null && desc.startsWith("IMG_")) ? desc : name;
+            String key = extractImageKey(anchor.getDocPr());
 
-            if (matchedName != null && (matchedName.toUpperCase().contains("IMG_") || matchedName.toUpperCase().contains("_IMAGE"))) {
-                String key = matchedName.toUpperCase();
+            if (key != null) {
                 if (uniqueKeys.contains(key)) continue;
                 uniqueKeys.add(key);
 
@@ -852,59 +846,55 @@ public class DocxTemplateEngine {
         enableUpdateFields(wordMLPackage);
 
         // 6. Zero-placeholder guarantee: Strip any remaining unresolved <<...>> tokens
-        stripRemainingPlaceholders(wordMLPackage.getMainDocumentPart().getContent());
-        for (org.docx4j.openpackaging.parts.Part part : wordMLPackage.getParts().getParts().values()) {
-            if (part instanceof org.docx4j.openpackaging.parts.WordprocessingML.HeaderPart) {
-                stripRemainingPlaceholders(((org.docx4j.openpackaging.parts.WordprocessingML.HeaderPart) part).getContent());
-            } else if (part instanceof org.docx4j.openpackaging.parts.WordprocessingML.FooterPart) {
-                stripRemainingPlaceholders(((org.docx4j.openpackaging.parts.WordprocessingML.FooterPart) part).getContent());
-            }
-        }
+        stripRemainingPlaceholders(wordMLPackage);
 
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         wordMLPackage.save(out);
         return out.toByteArray();
     }
 
-    private void stripRemainingPlaceholders(List<Object> elements) {
-        if (elements == null) return;
-        for (Object elem : elements) {
-            Object unwrapped = unwrap(elem);
-            if (unwrapped instanceof P) {
-                P p = (P) unwrapped;
-                for (Object rObj : p.getContent()) {
-                    Object unwrappedR = unwrap(rObj);
-                    if (unwrappedR instanceof R) {
-                        R r = (R) unwrappedR;
-                        for (Object tObj : r.getContent()) {
-                            Object unwrappedT = unwrap(tObj);
-                            if (unwrappedT instanceof Text) {
-                                Text t = (Text) unwrappedT;
-                                String textVal = t.getValue();
-                                if (textVal != null && textVal.contains("<<") && textVal.contains(">>")) {
-                                    String cleaned = textVal.replaceAll("<<[^>]+>>", "");
-                                    t.setValue(cleaned);
-                                }
-                            }
-                        }
-                    }
+    private void stripRemainingPlaceholders(WordprocessingMLPackage wordMLPackage) {
+        if (wordMLPackage == null || wordMLPackage.getMainDocumentPart() == null) return;
+        new TraversalUtil(wordMLPackage.getMainDocumentPart().getContent(), new TraversalUtil.CallbackImpl() {
+            @Override
+            public List<Object> apply(Object o) {
+                Object unwrapped = unwrap(o);
+                if (unwrapped instanceof Text t) {
+                    cleanPlaceholderText(t);
                 }
-            } else if (unwrapped instanceof Tbl) {
-                Tbl tbl = (Tbl) unwrapped;
-                for (Object rowObj : tbl.getContent()) {
-                    Object unwrappedRow = unwrap(rowObj);
-                    if (unwrappedRow instanceof Tr) {
-                        Tr row = (Tr) unwrappedRow;
-                        for (Object cellObj : row.getContent()) {
-                            Object unwrappedCell = unwrap(cellObj);
-                            if (unwrappedCell instanceof Tc) {
-                                Tc cell = (Tc) unwrappedCell;
-                                stripRemainingPlaceholders(cell.getContent());
-                            }
-                        }
-                    }
-                }
+                return null;
             }
+        });
+
+        for (org.docx4j.openpackaging.parts.Part part : wordMLPackage.getParts().getParts().values()) {
+            if (part instanceof org.docx4j.openpackaging.parts.WordprocessingML.HeaderPart hp) {
+                new TraversalUtil(hp.getContent(), new TraversalUtil.CallbackImpl() {
+                    @Override
+                    public List<Object> apply(Object o) {
+                        Object unwrapped = unwrap(o);
+                        if (unwrapped instanceof Text t) cleanPlaceholderText(t);
+                        return null;
+                    }
+                });
+            } else if (part instanceof org.docx4j.openpackaging.parts.WordprocessingML.FooterPart fp) {
+                new TraversalUtil(fp.getContent(), new TraversalUtil.CallbackImpl() {
+                    @Override
+                    public List<Object> apply(Object o) {
+                        Object unwrapped = unwrap(o);
+                        if (unwrapped instanceof Text t) cleanPlaceholderText(t);
+                        return null;
+                    }
+                });
+            }
+        }
+    }
+
+    private void cleanPlaceholderText(Text t) {
+        if (t == null || t.getValue() == null) return;
+        String val = t.getValue();
+        if (val.contains("<<") || val.contains(">>")) {
+            String cleaned = val.replaceAll("<<[^>]*>>", "").replaceAll("<<|>>", "");
+            t.setValue(cleaned);
         }
     }
 
@@ -921,13 +911,14 @@ public class DocxTemplateEngine {
                 // Normalize paragraph text for ultra-robust placeholder matching
                 String norm = pText.replaceAll("[\\s_<>]+", "").toUpperCase();
                 
-                boolean isExplicitTableDirective = (pText.startsWith("<<") && pText.endsWith(">>"))
-                        || norm.equals("COMPOSITEPROPERTYTABLE") || norm.equals("DYNAMICCOMPOSITEPROPERTYTABLE") || norm.equals("COMPOSITETABLE")
+                boolean isPlaceholderFormat = (pText.startsWith("<<") && pText.endsWith(">>")) || (pText.startsWith("<<") && pText.contains(">>"));
+                boolean isExplicitTableDirective = isPlaceholderFormat && (
+                        norm.equals("COMPOSITEPROPERTYTABLE") || norm.equals("DYNAMICCOMPOSITEPROPERTYTABLE") || norm.equals("COMPOSITETABLE")
                         || norm.equals("LANDTABLE") || norm.equals("DYNAMICLANDTABLE")
                         || norm.equals("BUILDINGTABLE") || norm.equals("DYNAMICBUILDINGTABLE")
                         || norm.equals("VALUATIONSUMMARYTABLE") || norm.equals("DYNAMICVALUATIONSUMMARYTABLE")
                         || norm.equals("COMPARABLESTABLE") || norm.equals("COMPARABLETABLE") || norm.equals("DYNAMICCOMPARABLESTABLE")
-                        || norm.equals("PROPERTYVALUETABLE") || norm.equals("VALUEOFTHEPROPERTYTABLE") || norm.equals("VALUEOFPROPERTYTABLE") || norm.equals("DYNAMICPROPERTYVALUETABLE");
+                        || norm.equals("PROPERTYVALUETABLE") || norm.equals("VALUEOFTHEPROPERTYTABLE") || norm.equals("VALUEOFPROPERTYTABLE") || norm.equals("DYNAMICPROPERTYVALUETABLE"));
 
                 // Dynamic Table Generation - ONLY triggered for explicit table directives
                 if (isExplicitTableDirective && (norm.contains("COMPOSITEPROPERTYTABLE") || norm.contains("COMPOSITETABLE"))) {
@@ -2174,9 +2165,14 @@ public class DocxTemplateEngine {
                     }
                     
                     org.docx4j.dml.picture.Pic pic = inline.getGraphic().getGraphicData().getPic();
-                    if (pic != null && pic.getSpPr() != null && pic.getSpPr().getXfrm() != null && pic.getSpPr().getXfrm().getExt() != null) {
-                        pic.getSpPr().getXfrm().getExt().setCx(originalCx);
-                        pic.getSpPr().getXfrm().getExt().setCy(originalCy);
+                    if (pic != null && pic.getSpPr() != null) {
+                        if (pic.getSpPr().getXfrm() != null && pic.getSpPr().getXfrm().getExt() != null) {
+                            pic.getSpPr().getXfrm().getExt().setCx(originalCx);
+                            pic.getSpPr().getXfrm().getExt().setCy(originalCy);
+                        }
+                        org.docx4j.dml.CTLineProperties ln = new org.docx4j.dml.CTLineProperties();
+                        ln.setNoFill(new org.docx4j.dml.CTNoFillProperties());
+                        pic.getSpPr().setLn(ln);
                     }
                 }
             }
@@ -2199,19 +2195,20 @@ public class DocxTemplateEngine {
                     BinaryPartAbstractImage imagePart = BinaryPartAbstractImage.createImagePart(wordMLPackage, imgBytes);
                     Inline inlineImage = imagePart.createImageInline("Uploaded Image", "Image", 10002, 10003, false);
                     
-                    anchor.setAllowOverlap(false);
-                    anchor.setLayoutInCell(true);
-                    anchor.setGraphic(inlineImage.getGraphic());
-                    if (anchor.getExtent() != null) {
-                        anchor.getExtent().setCx(originalCx);
-                        anchor.getExtent().setCy(originalCy);
-                    }
+                    inlineImage.getExtent().setCx(originalCx);
+                    inlineImage.getExtent().setCy(originalCy);
                     
-                    org.docx4j.dml.picture.Pic pic = anchor.getGraphic().getGraphicData().getPic();
-                    if (pic != null && pic.getSpPr() != null && pic.getSpPr().getXfrm() != null && pic.getSpPr().getXfrm().getExt() != null) {
-                        pic.getSpPr().getXfrm().getExt().setCx(originalCx);
-                        pic.getSpPr().getXfrm().getExt().setCy(originalCy);
+                    org.docx4j.dml.picture.Pic pic = inlineImage.getGraphic().getGraphicData().getPic();
+                    if (pic != null && pic.getSpPr() != null) {
+                        if (pic.getSpPr().getXfrm() != null && pic.getSpPr().getXfrm().getExt() != null) {
+                            pic.getSpPr().getXfrm().getExt().setCx(originalCx);
+                            pic.getSpPr().getXfrm().getExt().setCy(originalCy);
+                        }
+                        org.docx4j.dml.CTLineProperties ln = new org.docx4j.dml.CTLineProperties();
+                        ln.setNoFill(new org.docx4j.dml.CTNoFillProperties());
+                        pic.getSpPr().setLn(ln);
                     }
+                    replaceDrawingInParagraph(p, anchor, inlineImage);
                 }
             }
         }
@@ -2234,8 +2231,9 @@ public class DocxTemplateEngine {
                         boolean substituted = false;
                         
                         // Check if the entire run is just an image placeholder like <<IMG_XYZ>>
-                        if (val.startsWith("<<") && val.endsWith(">>")) {
-                            String possibleKey = val.substring(2, val.length() - 2).trim().toUpperCase();
+                        String trimmedVal = val.trim();
+                        if (trimmedVal.startsWith("<<") && trimmedVal.endsWith(">>")) {
+                            String possibleKey = trimmedVal.substring(2, trimmedVal.length() - 2).trim().toUpperCase();
                             if (possibleKey.contains("IMG_") || possibleKey.contains("_IMAGE") || possibleKey.startsWith("PHOTO_")) {
                                 byte[] imgBytes = getUploadedOrPlaceholderImage(possibleKey, images, inputs);
                                 if (imgBytes != null) {
@@ -2250,9 +2248,14 @@ public class DocxTemplateEngine {
                                     inlineImage.getExtent().setCy(frameCy);
                                     
                                     org.docx4j.dml.picture.Pic pic = inlineImage.getGraphic().getGraphicData().getPic();
-                                    if (pic != null && pic.getSpPr() != null && pic.getSpPr().getXfrm() != null && pic.getSpPr().getXfrm().getExt() != null) {
-                                        pic.getSpPr().getXfrm().getExt().setCx(frameCx);
-                                        pic.getSpPr().getXfrm().getExt().setCy(frameCy);
+                                    if (pic != null && pic.getSpPr() != null) {
+                                        if (pic.getSpPr().getXfrm() != null && pic.getSpPr().getXfrm().getExt() != null) {
+                                            pic.getSpPr().getXfrm().getExt().setCx(frameCx);
+                                            pic.getSpPr().getXfrm().getExt().setCy(frameCy);
+                                        }
+                                        org.docx4j.dml.CTLineProperties ln = new org.docx4j.dml.CTLineProperties();
+                                        ln.setNoFill(new org.docx4j.dml.CTNoFillProperties());
+                                        pic.getSpPr().setLn(ln);
                                     }
                                     
                                     ObjectFactory factory = new ObjectFactory();
@@ -2382,12 +2385,28 @@ public class DocxTemplateEngine {
             case "FLAT_AREA":
             case "SALEABLE_AREA_SQFT":
                 return List.of("SALEABLE_AREA", "SUPER_BUILT_UP_AREA", "PROPERTY_AREA_SFT", "SBUA", "FLAT_AREA", "SALEABLE_AREA_SQFT", "SALEABLE_AREA_NUMERIC");
+            case "SALEABLE_RATE":
             case "MARKET_RATE_FLAT":
             case "COMPOSITE_RATE":
             case "CURRENT_MARKET_RATE":
             case "FLAT_MARKET_RATE":
             case "BUILDING_MARKET_RATE":
-                return List.of("MARKET_RATE_FLAT", "COMPOSITE_RATE", "CURRENT_MARKET_RATE", "FLAT_MARKET_RATE", "MARKET_RATE_FLAT_NUMERIC");
+                return List.of("SALEABLE_RATE", "MARKET_RATE_FLAT", "COMPOSITE_RATE", "CURRENT_MARKET_RATE", "FLAT_MARKET_RATE", "MARKET_RATE_FLAT_NUMERIC", "saleable_rate", "market_rate_flat");
+            case "GOVT_VALUE":
+            case "GOVERNMENT_VALUE":
+            case "GOVT_GUIDELINE_VALUE":
+            case "GOVT_RATE_VALUE":
+                return List.of("GOVT_VALUE", "GOVERNMENT_VALUE", "govt_value", "government_value", "GOVT_GUIDELINE_VALUE", "GOVT_RATE_VALUE");
+            case "GOVT_VALUE_WORDS":
+            case "GOVERNMENT_VALUE_WORDS":
+            case "GOVT_VALUE_IN_WORDS":
+            case "GOVERNMENT_VALUE_IN_WORDS":
+                return List.of("GOVT_VALUE_WORDS", "GOVERNMENT_VALUE_WORDS", "govt_value_words", "government_value_words", "GOVT_VALUE_IN_WORDS", "GOVERNMENT_VALUE_IN_WORDS");
+            case "IMG_COVER_PAGE":
+            case "IMG_FRONT_PAGE":
+            case "COVER_IMAGE":
+            case "FRONT_PAGE":
+                return List.of("IMG_COVER_PAGE", "IMG_FRONT_PAGE", "COVER_IMAGE", "FRONT_PAGE", "img_cover_page", "img_front_page");
             default:
                 return Collections.emptyList();
         }
@@ -2430,43 +2449,48 @@ public class DocxTemplateEngine {
 
     private byte[] getUploadedOrPlaceholderImage(String key, Map<String, byte[]> images, Map<String, String> inputs) {
         String upperKey = key.toUpperCase();
-        // 1. Try bytes map (direct key or uppercase)
+        List<String> searchKeys = new ArrayList<>();
+        searchKeys.add(key);
+        searchKeys.add(upperKey);
+        searchKeys.addAll(getKnownAliases(upperKey));
+
+        // 1. Try bytes map (direct key or uppercase or alias)
         if (images != null) {
-            if (images.containsKey(key) && images.get(key) != null) {
-                return images.get(key);
-            }
-            if (images.containsKey(upperKey) && images.get(upperKey) != null) {
-                return images.get(upperKey);
-            }
-            for (Map.Entry<String, byte[]> e : images.entrySet()) {
-                if (e.getKey() != null && e.getKey().equalsIgnoreCase(upperKey) && e.getValue() != null) {
-                    return e.getValue();
+            for (String k : searchKeys) {
+                if (images.containsKey(k) && images.get(k) != null) {
+                    return images.get(k);
+                }
+                for (Map.Entry<String, byte[]> e : images.entrySet()) {
+                    if (e.getKey() != null && e.getKey().equalsIgnoreCase(k) && e.getValue() != null) {
+                        return e.getValue();
+                    }
                 }
             }
         }
         
         // 2. Try inputs map (e.g. if it contains base64 string or mock filename)
         if (inputs != null) {
-            String val = inputs.get(key);
-            if (val == null) val = inputs.get(upperKey);
-            if (val == null) {
-                for (Map.Entry<String, String> e : inputs.entrySet()) {
-                    if (e.getKey() != null && e.getKey().equalsIgnoreCase(upperKey)) {
-                        val = e.getValue();
-                        break;
+            for (String k : searchKeys) {
+                String val = inputs.get(k);
+                if (val == null) {
+                    for (Map.Entry<String, String> e : inputs.entrySet()) {
+                        if (e.getKey() != null && e.getKey().equalsIgnoreCase(k)) {
+                            val = e.getValue();
+                            break;
+                        }
                     }
                 }
-            }
-            if (val != null && !val.trim().isEmpty()) {
-                if (val.startsWith("data:image") && val.contains(";base64,")) {
+                if (val != null && !val.trim().isEmpty()) {
+                    if (val.startsWith("data:image") && val.contains(";base64,")) {
+                        try {
+                            String base64Data = val.substring(val.indexOf(";base64,") + 8).replaceAll("\\s+", "");
+                            return Base64.getDecoder().decode(base64Data);
+                        } catch (Exception ignored) {}
+                    }
                     try {
-                        String base64Data = val.substring(val.indexOf(";base64,") + 8).replaceAll("\\s+", "");
-                        return Base64.getDecoder().decode(base64Data);
+                        return Base64.getDecoder().decode(val.replaceAll("\\s+", ""));
                     } catch (Exception ignored) {}
                 }
-                try {
-                    return Base64.getDecoder().decode(val.replaceAll("\\s+", ""));
-                } catch (Exception ignored) {}
             }
         }
         

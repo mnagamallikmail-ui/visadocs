@@ -159,45 +159,49 @@ class DocumentWorkspaceVm {
 
           final upperPKeys = pKeys.map((k) => k.replaceAll('<<', '').replaceAll('>>', '').toUpperCase().trim()).toList();
 
-          if (isComposite) {
-            if (upperPKeys.contains('LAND_TABLE') || upperPKeys.contains('DYNAMIC_LAND_TABLE') ||
-                upperPKeys.contains('BUILDING_TABLE') || upperPKeys.contains('DYNAMIC_BUILDING_TABLE') ||
-                upperPKeys.contains('VALUATION_SUMMARY_TABLE') || upperPKeys.contains('DYNAMIC_VALUATION_SUMMARY_TABLE') ||
-                upperPKeys.contains('PROPERTY_VALUE_TABLE') || upperPKeys.contains('VALUE_OF_THE_PROPERTY') ||
-                upperPKeys.contains('VALUE_OF_THE_PROPERTY_TABLE') ||
-                (upperPKeys.contains('TOTAL_LAND_VALUE') && upperPKeys.contains('FAIR_VALUE') && upperPKeys.contains('SAY_VALUE'))) {
-              if (!compositeBlockAdded) {
-                orderedBlocks.add(ValuationCompositeBlockVm(el.id));
-                compositeBlockAdded = true;
+          final isCertificateSection = s.title.toUpperCase().contains('CERTIFICATE');
+
+          if (!isCertificateSection) {
+            if (isComposite) {
+              if (upperPKeys.contains('LAND_TABLE') || upperPKeys.contains('DYNAMIC_LAND_TABLE') ||
+                  upperPKeys.contains('BUILDING_TABLE') || upperPKeys.contains('DYNAMIC_BUILDING_TABLE') ||
+                  upperPKeys.contains('VALUATION_SUMMARY_TABLE') || upperPKeys.contains('DYNAMIC_VALUATION_SUMMARY_TABLE') ||
+                  upperPKeys.contains('PROPERTY_VALUE_TABLE') || upperPKeys.contains('VALUE_OF_THE_PROPERTY') ||
+                  upperPKeys.contains('VALUE_OF_THE_PROPERTY_TABLE') ||
+                  text.toUpperCase().contains('VALUE OF THE PROPERTY')) {
+                if (!compositeBlockAdded) {
+                  orderedBlocks.add(ValuationCompositeBlockVm(el.id));
+                  compositeBlockAdded = true;
+                }
+                continue;
               }
+            }
+
+            if (upperPKeys.contains('LAND_TABLE') || upperPKeys.contains('DYNAMIC_LAND_TABLE')) {
+              orderedBlocks.add(ValuationLandBlockVm(el.id));
               continue;
             }
-          }
-
-          if (upperPKeys.contains('LAND_TABLE') || upperPKeys.contains('DYNAMIC_LAND_TABLE')) {
-            orderedBlocks.add(ValuationLandBlockVm(el.id));
-            continue;
-          }
-          if (upperPKeys.contains('BUILDING_TABLE') || upperPKeys.contains('DYNAMIC_BUILDING_TABLE')) {
-            orderedBlocks.add(ValuationBuildingBlockVm(el.id));
-            continue;
-          }
-          if (upperPKeys.contains('VALUATION_SUMMARY_TABLE') || upperPKeys.contains('DYNAMIC_VALUATION_SUMMARY_TABLE')) {
-            orderedBlocks.add(ValuationSummaryBlockVm(el.id));
-            continue;
-          }
-          if (upperPKeys.contains('COMPARABLES_TABLE') ||
-              upperPKeys.contains('COMPARABLE_SALES_TABLE') ||
-              upperPKeys.contains('DYNAMIC_COMPARABLES_TABLE')) {
-            orderedBlocks.add(ValuationComparableBlockVm(el.id));
-            continue;
-          }
-          if (upperPKeys.contains('PROPERTY_VALUE_TABLE') ||
-              upperPKeys.contains('VALUE_OF_THE_PROPERTY') ||
-              upperPKeys.contains('VALUE_OF_THE_PROPERTY_TABLE') ||
-              (upperPKeys.contains('TOTAL_LAND_VALUE') && upperPKeys.contains('FAIR_VALUE') && upperPKeys.contains('SAY_VALUE'))) {
-            orderedBlocks.add(ValuationPropertyBlockVm(el.id));
-            continue;
+            if (upperPKeys.contains('BUILDING_TABLE') || upperPKeys.contains('DYNAMIC_BUILDING_TABLE')) {
+              orderedBlocks.add(ValuationBuildingBlockVm(el.id));
+              continue;
+            }
+            if (upperPKeys.contains('VALUATION_SUMMARY_TABLE') || upperPKeys.contains('DYNAMIC_VALUATION_SUMMARY_TABLE')) {
+              orderedBlocks.add(ValuationSummaryBlockVm(el.id));
+              continue;
+            }
+            if (upperPKeys.contains('COMPARABLES_TABLE') ||
+                upperPKeys.contains('COMPARABLE_SALES_TABLE') ||
+                upperPKeys.contains('DYNAMIC_COMPARABLES_TABLE')) {
+              orderedBlocks.add(ValuationComparableBlockVm(el.id));
+              continue;
+            }
+            if (upperPKeys.contains('PROPERTY_VALUE_TABLE') ||
+                upperPKeys.contains('VALUE_OF_THE_PROPERTY') ||
+                upperPKeys.contains('VALUE_OF_THE_PROPERTY_TABLE') ||
+                text.toUpperCase().contains('VALUE OF THE PROPERTY')) {
+              orderedBlocks.add(ValuationPropertyBlockVm(el.id));
+              continue;
+            }
           }
 
           final List<DocumentRunNode> docNodes = [];
@@ -555,6 +559,8 @@ bool isCalculatedValuationKey(String key) {
       upper == 'INSURABLE_VALUE_WORDS' ||
       upper == 'GOVERNMENT_VALUE' ||
       upper == 'GOVERNMENT_VALUE_WORDS' ||
+      upper == 'COMPOSITE_VALUE' ||
+      upper == 'COMPOSITE_VALUE_WORDS' ||
       upper == 'REALIZABLE_PERCENTAGE' ||
       upper == 'DISTRESS_SALE_PERCENTAGE' ||
       upper == 'TOTAL_INTERIOR_AMOUNT' ||

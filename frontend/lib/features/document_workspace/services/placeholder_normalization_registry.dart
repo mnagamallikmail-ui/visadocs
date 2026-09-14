@@ -22,6 +22,7 @@ class PlaceholderNormalizationRegistry {
   };
 
   static const Set<String> _rateKeys = {
+    'SALEABLE_RATE',
     'MARKET_RATE_FLAT',
     'COMPOSITE_RATE',
     'CURRENT_MARKET_RATE',
