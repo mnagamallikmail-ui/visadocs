@@ -479,29 +479,10 @@ public class DocxTemplateEngine {
         }
 
         ObjectNode schema = objectMapper.createObjectNode();
-        
-        // Post-processing to enforce same-line text positioning and push images to the end
-        List<com.fasterxml.jackson.databind.JsonNode> nonImages = new ArrayList<>();
-        List<com.fasterxml.jackson.databind.JsonNode> images = new ArrayList<>();
-        for (int i = 0; i < fieldsArray.size(); i++) {
-            com.fasterxml.jackson.databind.JsonNode node = fieldsArray.get(i);
-            String type = node.get("type").asText();
-            if ("IMAGE".equalsIgnoreCase(type)) {
-                images.add(node);
-            } else {
-                nonImages.add(node);
-            }
-        }
-        
-        ArrayNode finalFieldsArray = objectMapper.createArrayNode();
-        for (com.fasterxml.jackson.databind.JsonNode node : nonImages) {
-            finalFieldsArray.add(node);
-        }
-        for (com.fasterxml.jackson.databind.JsonNode node : images) {
-            finalFieldsArray.add(node);
-        }
 
-        schema.set("fields", finalFieldsArray);
+        // Preserve exact DOCX template field order — DO NOT reorder by type.
+        // Template document order is authoritative (Defect 10 governance).
+        schema.set("fields", fieldsArray);
         return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(schema);
     }
 
@@ -898,9 +879,30 @@ public class DocxTemplateEngine {
         }
     }
 
+    /**
+     * Returns true when the given paragraph text identifies a Valuation Certificate section heading.
+     * Matching is intentionally broad to cover common template phrasings.
+     * When a certificate heading is detected, ALL dynamic table injection is disabled for that
+     * section — only placeholder text substitution may occur (Defect 1 governance).
+     */
+    private static boolean isCertificateHeading(String paragraphText) {
+        if (paragraphText == null || paragraphText.trim().isEmpty()) return false;
+        String u = paragraphText.replaceAll("[\\s]+", " ").toUpperCase().trim();
+        return u.contains("VALUATION CERTIFICATE")
+                || u.contains("CERTIFICATE OF VALUE")
+                || u.contains("CERTIFICATE OF VALUATION")
+                || u.contains("VALUATION CERT")
+                || u.contains("CERTIFICATE OF MARKET VALUE")
+                || u.contains("CERTIFICATE:");
+    }
+
     private void generateElements(WordprocessingMLPackage wordMLPackage, List<Object> elements, Map<String, String> inputs, Map<String, byte[]> images) throws Exception {
         boolean isComposite = isCompositeProperty(inputs);
         boolean compositeTableRendered = false;
+        // Defect 1 governance: track when we enter a Valuation Certificate section.
+        // Once inside, ALL dynamic table injection is forbidden; only plain placeholder
+        // substitution is allowed. The template is the ONLY source of truth for page content.
+        boolean inCertificateSection = false;
 
         for (int i = 0; i < elements.size(); i++) {
             Object elem = elements.get(i);
@@ -908,11 +910,19 @@ public class DocxTemplateEngine {
             if (unwrapped instanceof P) {
                 P p = (P) unwrapped;
                 String pText = getParagraphText(p).trim();
+
+                // Detect certificate section entry (Defect 1 — once entered, never reset within the pass)
+                if (!inCertificateSection && isCertificateHeading(pText)) {
+                    inCertificateSection = true;
+                }
+
                 // Normalize paragraph text for ultra-robust placeholder matching
                 String norm = pText.replaceAll("[\\s_<>]+", "").toUpperCase();
-                
+
+                // isExplicitTableDirective: only honoured OUTSIDE certificate sections.
+                // Inside certificate sections, placeholders are treated as plain text substitutions only.
                 boolean isPlaceholderFormat = (pText.startsWith("<<") && pText.endsWith(">>")) || (pText.startsWith("<<") && pText.contains(">>"));
-                boolean isExplicitTableDirective = isPlaceholderFormat && (
+                boolean isExplicitTableDirective = !inCertificateSection && isPlaceholderFormat && (
                         norm.equals("COMPOSITEPROPERTYTABLE") || norm.equals("DYNAMICCOMPOSITEPROPERTYTABLE") || norm.equals("COMPOSITETABLE")
                         || norm.equals("LANDTABLE") || norm.equals("DYNAMICLANDTABLE")
                         || norm.equals("BUILDINGTABLE") || norm.equals("DYNAMICBUILDINGTABLE")
@@ -920,7 +930,7 @@ public class DocxTemplateEngine {
                         || norm.equals("COMPARABLESTABLE") || norm.equals("COMPARABLETABLE") || norm.equals("DYNAMICCOMPARABLESTABLE")
                         || norm.equals("PROPERTYVALUETABLE") || norm.equals("VALUEOFTHEPROPERTYTABLE") || norm.equals("VALUEOFPROPERTYTABLE") || norm.equals("DYNAMICPROPERTYVALUETABLE"));
 
-                // Dynamic Table Generation - ONLY triggered for explicit table directives
+                // Dynamic Table Generation - ONLY triggered for explicit table directives OUTSIDE certificate sections
                 if (isExplicitTableDirective && (norm.contains("COMPOSITEPROPERTYTABLE") || norm.contains("COMPOSITETABLE"))) {
                     Tbl compTable = buildDynamicCompositePropertyTable(inputs);
                     Tbl summaryTable = buildDynamicCompositeSummaryTable(inputs);
@@ -1009,11 +1019,12 @@ public class DocxTemplateEngine {
                         continue;
                     }
                 }
-                
+
+                // Always perform plain text substitution — for ALL paragraphs including certificate section
                 substituteInParagraph(wordMLPackage, p, inputs, images);
             } else if (unwrapped instanceof Tbl) {
                 Tbl tbl = (Tbl) unwrapped;
-                
+
                 // Enforce FIXED layout to prevent horizontal expansion of columns
                 TblPr tblPr = tbl.getTblPr();
                 if (tblPr == null) {
@@ -2189,26 +2200,35 @@ public class DocxTemplateEngine {
                 if (imgBytes != null) {
                     long originalCx = anchor.getExtent() != null ? anchor.getExtent().getCx() : 2743200L;
                     long originalCy = anchor.getExtent() != null ? anchor.getExtent().getCy() : 1828800L;
-                    
+
                     imgBytes = padImageToFitEmu(imgBytes, originalCx, originalCy);
 
                     BinaryPartAbstractImage imagePart = BinaryPartAbstractImage.createImagePart(wordMLPackage, imgBytes);
                     Inline inlineImage = imagePart.createImageInline("Uploaded Image", "Image", 10002, 10003, false);
-                    
-                    inlineImage.getExtent().setCx(originalCx);
-                    inlineImage.getExtent().setCy(originalCy);
-                    
-                    org.docx4j.dml.picture.Pic pic = inlineImage.getGraphic().getGraphicData().getPic();
-                    if (pic != null && pic.getSpPr() != null) {
-                        if (pic.getSpPr().getXfrm() != null && pic.getSpPr().getXfrm().getExt() != null) {
-                            pic.getSpPr().getXfrm().getExt().setCx(originalCx);
-                            pic.getSpPr().getXfrm().getExt().setCy(originalCy);
+
+                    // Defect 3: Replace the anchor's graphic IN-PLACE instead of converting the anchor
+                    // to an Inline element. Converting to Inline destroys the floating position/wrap
+                    // attributes that the template author defined (e.g. cover page position), causing
+                    // the image to not render at the correct location.
+                    anchor.setGraphic(inlineImage.getGraphic());
+                    if (anchor.getExtent() != null) {
+                        anchor.getExtent().setCx(originalCx);
+                        anchor.getExtent().setCy(originalCy);
+                    }
+
+                    org.docx4j.dml.picture.Pic anchorPic = anchor.getGraphic() != null
+                            && anchor.getGraphic().getGraphicData() != null
+                            ? anchor.getGraphic().getGraphicData().getPic() : null;
+                    if (anchorPic != null && anchorPic.getSpPr() != null) {
+                        if (anchorPic.getSpPr().getXfrm() != null && anchorPic.getSpPr().getXfrm().getExt() != null) {
+                            anchorPic.getSpPr().getXfrm().getExt().setCx(originalCx);
+                            anchorPic.getSpPr().getXfrm().getExt().setCy(originalCy);
                         }
+                        // Clear any border/outline so no artifact frame appears
                         org.docx4j.dml.CTLineProperties ln = new org.docx4j.dml.CTLineProperties();
                         ln.setNoFill(new org.docx4j.dml.CTNoFillProperties());
-                        pic.getSpPr().setLn(ln);
+                        anchorPic.getSpPr().setLn(ln);
                     }
-                    replaceDrawingInParagraph(p, anchor, inlineImage);
                 }
             }
         }
@@ -2467,7 +2487,7 @@ public class DocxTemplateEngine {
                 }
             }
         }
-        
+
         // 2. Try inputs map (e.g. if it contains base64 string or mock filename)
         if (inputs != null) {
             for (String k : searchKeys) {
@@ -2493,23 +2513,13 @@ public class DocxTemplateEngine {
                 }
             }
         }
-        
-        // 3. Fallback: Generate a clean solid white image maintaining exact dimensions and spacing (Defect 7)
-        try {
-            int width = 800;
-            int height = 500;
-            BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-            Graphics2D g = image.createGraphics();
-            g.setColor(java.awt.Color.WHITE);
-            g.fillRect(0, 0, width, height);
-            g.dispose();
-            
-            ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(image, "jpg", baos);
-            return baos.toByteArray();
-        } catch (Exception e) {
-            return null;
-        }
+
+        // 3. No image available for this slot.
+        // Defect 9 governance: do NOT inject a white placeholder image.
+        // Returning null causes the caller to skip the drawing replacement entirely.
+        // The drawing element remains in template state and is cleaned by stripRemainingPlaceholders().
+        // Result: no visible border, no white block, no artifact in the generated DOCX/PDF.
+        return null;
     }
 
     /**

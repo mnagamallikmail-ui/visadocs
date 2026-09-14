@@ -82,6 +82,21 @@ class DocumentWorkspaceVm {
       final List<SectionBlockVm> orderedBlocks = [];
       final Set<String> sectionKeys = {};
 
+      // D2: isCertificateSection must be computed across the ENTIRE section, not just
+      // per-paragraph title check. When DocxStructureParser assigns a generic title
+      // (empty or page number), the per-paragraph guard is bypassed. Scan ALL elements
+      // in this section for certificate heading markers before processing any element.
+      final sectionTitleUpper = s.title.toUpperCase();
+      final bool isCertificateSection = sectionTitleUpper.contains('CERTIFICATE') ||
+          s.elements.any((e) {
+            final t = e is StudioParagraph ? e.plainText.toUpperCase() : '';
+            return t.contains('VALUATION CERTIFICATE') ||
+                t.contains('CERTIFICATE OF VALUE') ||
+                t.contains('CERTIFICATE OF VALUATION') ||
+                t.contains('VALUATION CERT') ||
+                t.contains('CERTIFICATE OF MARKET VALUE');
+          });
+
       for (final el in s.elements) {
         if (el is StudioTable) {
           // Check if this table contains the COMPOSITE_PROPERTY_TABLE directive
@@ -148,10 +163,12 @@ class DocumentWorkspaceVm {
             }
           }
 
-          // Check if this paragraph is an explicit COMPOSITE_PROPERTY_TABLE directive
+          // Check if this paragraph is an explicit COMPOSITE_PROPERTY_TABLE directive.
+          // Only suppress it (replace with widget block) when NOT in a certificate section.
+          // In certificate sections, all directives pass through to plain text substitution.
           final hasComposite = pKeys.any((k) => isCompositeTableKey(k)) ||
               isCompositeTableKey(text);
-          if (hasComposite) {
+          if (hasComposite && !isCertificateSection) {
             orderedBlocks.add(ValuationCompositeBlockVm(el.id));
             compositeBlockAdded = true;
             continue;
@@ -159,8 +176,8 @@ class DocumentWorkspaceVm {
 
           final upperPKeys = pKeys.map((k) => k.replaceAll('<<', '').replaceAll('>>', '').toUpperCase().trim()).toList();
 
-          final isCertificateSection = s.title.toUpperCase().contains('CERTIFICATE');
-
+          // isCertificateSection is pre-computed at the section level (above the element loop).
+          // When true, NO paragraph is suppressed — all content passes through to plain text rendering.
           if (!isCertificateSection) {
             if (isComposite) {
               if (upperPKeys.contains('LAND_TABLE') || upperPKeys.contains('DYNAMIC_LAND_TABLE') ||

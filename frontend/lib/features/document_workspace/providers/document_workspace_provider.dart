@@ -243,18 +243,40 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       final existingIdx = _compositeItems.indexWhere((i) => i.itemCategory.toUpperCase() == 'MAIN_UNIT');
       if (existingIdx >= 0) {
         final mUnit = _compositeItems[existingIdx];
-        final rawArea = _activeValues['SALEABLE_AREA_STANDARD_SQFT'] ?? _activeValues['SALEABLE_AREA_NUMERIC'] ?? _activeValues['SALEABLE_AREA'];
+        final rawArea = _activeValues['SALEABLE_AREA_STANDARD_SQFT'] ??
+            _activeValues['SALEABLE_AREA_NUMERIC'] ??
+            _activeValues['SALEABLE_AREA'];
         if (rawArea != null && rawArea.isNotEmpty) {
-          final parsedNum = ValueNormalizationEngine.extractNumericValue(rawArea) ??
-              double.tryParse(rawArea.replaceAll(RegExp(r'[^0-9.]'), '').trim());
+          // D7: extractNumericValue throws on failure (Java semantics) — must wrap in try/catch.
+          // Strip area unit suffixes (sft, sqft, sq.ft, sq ft) and commas before fallback parse.
+          double? parsedNum;
+          try {
+            parsedNum = ValueNormalizationEngine.extractNumericValue(rawArea);
+          } catch (_) {
+            final cleaned = rawArea
+                .replaceAll(RegExp(r'sq\.?\s*ft|sft|sqft', caseSensitive: false), '')
+                .replaceAll(',', '')
+                .trim();
+            parsedNum = double.tryParse(cleaned);
+          }
           if (parsedNum != null && parsedNum > 0) {
             mUnit.quantity = parsedNum;
           }
         }
-        final rawRate = _activeValues['SALEABLE_RATE'] ?? _activeValues['MARKET_RATE_FLAT'] ?? _activeValues['COMPOSITE_RATE'] ?? _activeValues['CURRENT_MARKET_RATE'] ?? _activeValues['FLAT_MARKET_RATE'] ?? _activeValues['BUILDING_MARKET_RATE'];
+        final rawRate = _activeValues['SALEABLE_RATE'] ??
+            _activeValues['MARKET_RATE_FLAT'] ??
+            _activeValues['COMPOSITE_RATE'] ??
+            _activeValues['CURRENT_MARKET_RATE'] ??
+            _activeValues['FLAT_MARKET_RATE'] ??
+            _activeValues['BUILDING_MARKET_RATE'];
         if (rawRate != null && rawRate.isNotEmpty) {
-          final parsedRate = ValueNormalizationEngine.extractNumericValue(rawRate) ??
-              double.tryParse(rawRate.replaceAll(RegExp(r'[^0-9.]'), '').trim());
+          // D7: same treatment for rate — wrap in try/catch with comma-stripping fallback
+          double? parsedRate;
+          try {
+            parsedRate = ValueNormalizationEngine.extractNumericValue(rawRate);
+          } catch (_) {
+            parsedRate = double.tryParse(rawRate.replaceAll(',', '').trim());
+          }
           if (parsedRate != null && parsedRate > 0) {
             mUnit.rate = parsedRate;
           }

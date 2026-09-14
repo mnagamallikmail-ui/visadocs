@@ -395,6 +395,9 @@ class ValuationCalculator {
 
       map['government_value'] = IndianNumberFormatter.format(data.governmentValue);
       map['government_value_words'] = IndianCurrencyToWords.convertToWords(data.governmentValue);
+      // D5: explicit GOVT_VALUE aliases so backend resolvePlaceholderValue() finds them
+      map['govt_value'] = map['government_value']!;
+      map['govt_value_words'] = map['government_value_words']!;
 
       map['composite_government_rate'] = IndianNumberFormatter.format(data.compositeGovernmentRate);
       map['composite_construction_cost'] = IndianNumberFormatter.format(data.compositeConstructionCost);
@@ -616,6 +619,9 @@ class ValuationCalculator {
       map['building_government_value_words'] = IndianCurrencyToWords.convertToWords(data.buildingGovernmentValue);
       map['government_value'] = IndianNumberFormatter.format(totalGovt);
       map['government_value_words'] = IndianCurrencyToWords.convertToWords(totalGovt);
+      // D5: explicit GOVT_VALUE aliases so backend resolvePlaceholderValue() finds them
+      map['govt_value'] = map['government_value']!;
+      map['govt_value_words'] = map['government_value_words']!;
     }
 
     // Single Parcel / Building backward compatibility
@@ -642,7 +648,7 @@ class ValuationCalculator {
       map['building_value_words'] = IndianCurrencyToWords.convertToWords(b.buildingValue);
     }
 
-    // Statutory Guideline Variance & 20% Justification (Phase 4A Deliverable 6.4)
+    // Statutory Guideline Variance & 20% Justification
     final effectiveFair = isComposite
         ? (data.sayFairValue > 0 ? data.sayFairValue : computeSayValue(data.rawFairValue))
         : (data.sayLandValue > 0 || data.sayBuildingValue > 0
@@ -655,6 +661,15 @@ class ValuationCalculator {
     if (effectiveGovt > 0) {
       final variancePct = ((effectiveFair - effectiveGovt) / effectiveGovt) * 100.0;
       map['variance_percentage'] = '${variancePct.toStringAsFixed(2)}%';
+
+      // D4: <<20%_MORE>> and <<20%_LESS>> must output ONLY the numeric ratio (FAIR_VALUE / GOVT_VALUE).
+      // No explanatory text, no labels, no sentences — only the calculated numeric value.
+      final ratio = effectiveGovt > 0 ? (effectiveFair / effectiveGovt) : 0.0;
+      final ratioStr = ratio.toStringAsFixed(2);
+      map['20%_more'] = ratioStr;
+      map['20%_less'] = ratioStr;
+
+      // Full justification paragraph available via separate placeholders:
       String justification;
       if (variancePct >= 20.0) {
         justification = 'The assessed Fair Market Value of ₹ ${IndianNumberFormatter.format(effectiveFair)} is ${variancePct.toStringAsFixed(2)}% higher than the Statutory Guideline Value of ₹ ${IndianNumberFormatter.format(effectiveGovt)} due to superior location advantages, commercial absorption rates, premium micro-market infrastructure, and higher prevailing transaction prices compared to historical government registration values.';
@@ -663,17 +678,14 @@ class ValuationCalculator {
       } else {
         justification = 'The assessed Fair Market Value is broadly in alignment with prevailing government guideline rates with a standard variation of ${variancePct.toStringAsFixed(2)}%.';
       }
-      map['20%_more'] = justification;
-      map['20%_less'] = justification;
       map['variance_justification'] = justification;
       map['govt_variance_note'] = justification;
     } else {
       map['variance_percentage'] = '0.00%';
-      const fallbackNote = 'Statutory guideline valuation baseline not established.';
-      map['20%_more'] = fallbackNote;
-      map['20%_less'] = fallbackNote;
-      map['variance_justification'] = fallbackNote;
-      map['govt_variance_note'] = fallbackNote;
+      map['20%_more'] = '0.00';
+      map['20%_less'] = '0.00';
+      map['variance_justification'] = 'Statutory guideline valuation baseline not established.';
+      map['govt_variance_note'] = 'Statutory guideline valuation baseline not established.';
     }
 
     // Add uppercase aliases
