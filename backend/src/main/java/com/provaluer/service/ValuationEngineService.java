@@ -50,6 +50,9 @@ public class ValuationEngineService {
     private ValuationAuditLogRepository auditLogRepository;
 
     @Autowired
+    private OrderInputRepository orderInputRepository;
+
+    @Autowired
     private OrderRepository orderRepository;
 
     @Autowired
@@ -93,35 +96,108 @@ public class ValuationEngineService {
         if (isComposite) {
             data.setValuationMethodology("COMPOSITE_RATE");
             if (compositeItems == null || compositeItems.isEmpty()) {
-                ValuationCompositeItem mainUnit = new ValuationCompositeItem();
-                mainUnit.setOrderId(orderId);
-                mainUnit.setItemCategory("MAIN_UNIT");
-                mainUnit.setDescription(order.getPropertyCategory() != null ? order.getPropertyCategory() : "Commercial Flat/Unit");
-                mainUnit.setEnteredUnit("Sq.Ft");
-                mainUnit.setQuantity(BigDecimal.ZERO);
-                mainUnit.setRate(BigDecimal.ZERO);
-                mainUnit.setAmount(BigDecimal.ZERO);
-                mainUnit.setConstructionCost(data.getCompositeConstructionCost() != null ? data.getCompositeConstructionCost() : new BigDecimal("2000.00"));
-                mainUnit.setTotalLife(60);
-                mainUnit.setBuildingAge(BigDecimal.ZERO);
-                mainUnit.setSortOrder(1);
-                compositeItemRepository.save(mainUnit);
+                boolean restoredFromInputs = false;
+                if (orderInputRepository != null) {
+                    Optional<OrderInput> compInput = orderInputRepository.findByOrderIdAndFieldKey(orderId, "RAW_COMPOSITE_ITEMS_JSON");
+                    if (compInput.isPresent() && compInput.get().getFieldValue() != null && !compInput.get().getFieldValue().trim().isEmpty()) {
+                        try {
+                            List<ValuationCompositeItem> items = objectMapper.readValue(
+                                    compInput.get().getFieldValue(),
+                                    objectMapper.getTypeFactory().constructCollectionType(List.class, ValuationCompositeItem.class)
+                            );
+                            if (items != null && !items.isEmpty()) {
+                                int s = 1;
+                                for (ValuationCompositeItem itm : items) {
+                                    itm.setOrderId(orderId);
+                                    itm.setSortOrder(s++);
+                                    compositeItemRepository.save(itm);
+                                }
+                                compositeItems = compositeItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
+                                restoredFromInputs = true;
+                            }
+                        } catch (Exception e) {
+                            log.warn("Failed to restore composite items from RAW_COMPOSITE_ITEMS_JSON: {}", e.getMessage());
+                        }
+                    }
+                }
 
-                ValuationCompositeItem interior = new ValuationCompositeItem();
-                interior.setOrderId(orderId);
-                interior.setItemCategory("INTERIOR_WORK");
-                interior.setDescription("Interior Works & Improvements");
-                interior.setEnteredUnit("LS");
-                interior.setQuantity(BigDecimal.ONE);
-                interior.setRate(BigDecimal.ZERO);
-                interior.setAmount(BigDecimal.ZERO);
-                interior.setDepreciationMode("PERCENTAGE");
-                interior.setDepreciationPercentage(BigDecimal.ZERO);
-                interior.setDepreciationAmount(BigDecimal.ZERO);
-                interior.setSortOrder(2);
-                compositeItemRepository.save(interior);
+                if (!restoredFromInputs) {
+                    BigDecimal initialQuantity = BigDecimal.ZERO;
+                    String enteredUnit = "Sq.Ft";
+                    if (orderInputRepository != null) {
+                        Optional<OrderInput> areaInput = orderInputRepository.findByOrderIdAndFieldKey(orderId, "SALEABLE_AREA_NUMERIC");
+                        if (areaInput.isEmpty()) {
+                            areaInput = orderInputRepository.findByOrderIdAndFieldKey(orderId, "SALEABLE_AREA");
+                        }
+                        if (areaInput.isPresent() && areaInput.get().getFieldValue() != null) {
+                            String raw = areaInput.get().getFieldValue().replaceAll("[^0-9.]", "").trim();
+                            if (!raw.isEmpty()) {
+                                try {
+                                    initialQuantity = new BigDecimal(raw);
+                                } catch (Exception ignored) {}
+                            }
+                        }
+                        Optional<OrderInput> unitInput = orderInputRepository.findByOrderIdAndFieldKey(orderId, "SALEABLE_AREA_UNIT");
+                        if (unitInput.isPresent() && unitInput.get().getFieldValue() != null && !unitInput.get().getFieldValue().trim().isEmpty()) {
+                            enteredUnit = unitInput.get().getFieldValue().trim();
+                        }
+                    }
 
-                compositeItems = compositeItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
+                    ValuationCompositeItem mainUnit = new ValuationCompositeItem();
+                    mainUnit.setOrderId(orderId);
+                    mainUnit.setItemCategory("MAIN_UNIT");
+                    mainUnit.setDescription(order.getPropertyCategory() != null ? order.getPropertyCategory() : "Commercial Flat/Unit");
+                    mainUnit.setEnteredUnit(enteredUnit);
+                    mainUnit.setQuantity(initialQuantity);
+                    mainUnit.setRate(BigDecimal.ZERO);
+                    mainUnit.setAmount(BigDecimal.ZERO);
+                    mainUnit.setConstructionCost(data.getCompositeConstructionCost() != null ? data.getCompositeConstructionCost() : new BigDecimal("2000.00"));
+                    mainUnit.setTotalLife(60);
+                    mainUnit.setBuildingAge(BigDecimal.ZERO);
+                    mainUnit.setSortOrder(1);
+                    compositeItemRepository.save(mainUnit);
+
+                    ValuationCompositeItem interior = new ValuationCompositeItem();
+                    interior.setOrderId(orderId);
+                    interior.setItemCategory("INTERIOR_WORK");
+                    interior.setDescription("Interior Works & Improvements");
+                    interior.setEnteredUnit("LS");
+                    interior.setQuantity(BigDecimal.ONE);
+                    interior.setRate(BigDecimal.ZERO);
+                    interior.setAmount(BigDecimal.ZERO);
+                    interior.setDepreciationMode("PERCENTAGE");
+                    interior.setDepreciationPercentage(BigDecimal.ZERO);
+                    interior.setDepreciationAmount(BigDecimal.ZERO);
+                    interior.setSortOrder(2);
+                    compositeItemRepository.save(interior);
+
+                    compositeItems = compositeItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
+                }
+            } else {
+                // If composite items already exist, ensure main unit quantity is hydrated if currently 0
+                ValuationCompositeItem mainUnit = compositeItems.stream()
+                        .filter(i -> "MAIN_UNIT".equalsIgnoreCase(i.getItemCategory()))
+                        .findFirst().orElse(null);
+                if (mainUnit != null && (mainUnit.getQuantity() == null || mainUnit.getQuantity().compareTo(BigDecimal.ZERO) == 0)) {
+                    if (orderInputRepository != null) {
+                        Optional<OrderInput> areaInput = orderInputRepository.findByOrderIdAndFieldKey(orderId, "SALEABLE_AREA_NUMERIC");
+                        if (areaInput.isEmpty()) {
+                            areaInput = orderInputRepository.findByOrderIdAndFieldKey(orderId, "SALEABLE_AREA");
+                        }
+                        if (areaInput.isPresent() && areaInput.get().getFieldValue() != null) {
+                            String raw = areaInput.get().getFieldValue().replaceAll("[^0-9.]", "").trim();
+                            if (!raw.isEmpty()) {
+                                try {
+                                    BigDecimal parsedArea = new BigDecimal(raw);
+                                    if (parsedArea.compareTo(BigDecimal.ZERO) > 0) {
+                                        mainUnit.setQuantity(parsedArea);
+                                        compositeItemRepository.save(mainUnit);
+                                    }
+                                } catch (Exception ignored) {}
+                            }
+                        }
+                    }
+                }
             }
             formulaService.calculateCompositeSummary(data, compositeItems);
         } else {

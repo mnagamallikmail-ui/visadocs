@@ -115,7 +115,9 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
 
     if (activeIdx != _lastDispatchedIndex && activeIdx != provider.activeSectionIndex) {
       _lastDispatchedIndex = activeIdx;
-      provider.setActiveSectionIndex(activeIdx);
+      if (provider.scrollMode == DocumentScrollMode.sectionBySection) {
+        provider.setActiveSectionIndex(activeIdx);
+      }
     }
   }
 
@@ -1629,10 +1631,12 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                         Expanded(
                           flex: 2,
                           child: TextFormField(
-                            key: const ValueKey('main_unit_saleable_area_input'),
-                            initialValue: provider.getValue('SALEABLE_AREA').isNotEmpty
-                                ? provider.getValue('SALEABLE_AREA')
-                                : (item.quantity > 0 ? ValueNormalizationEngine.formatNormalizedString(item.quantity) : ''),
+                            key: ValueKey('main_unit_saleable_area_${item.quantity}_${provider.getValue('SALEABLE_AREA_NUMERIC')}'),
+                            initialValue: item.quantity > 0
+                                ? ValueNormalizationEngine.formatNormalizedString(item.quantity)
+                                : (provider.getValue('SALEABLE_AREA_NUMERIC').isNotEmpty
+                                    ? provider.getValue('SALEABLE_AREA_NUMERIC')
+                                    : (provider.getValue('SALEABLE_AREA').isNotEmpty ? provider.getValue('SALEABLE_AREA') : '')),
                             enabled: !isReadOnly,
                             keyboardType: const TextInputType.numberWithOptions(decimal: true),
                             decoration: const InputDecoration(

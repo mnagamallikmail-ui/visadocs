@@ -11,6 +11,7 @@ import '../../../utils/date_picker_helper.dart';
 import '../models/workspace_view_model.dart';
 import '../providers/document_workspace_provider.dart';
 import '../services/placeholder_registry.dart';
+import '../services/placeholder_normalization_registry.dart';
 
 class DocumentInputSlotWidget extends StatefulWidget {
   final InputFieldVm fieldVm;
@@ -63,19 +64,34 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
 
     _controller.addListener(() {
       if (_focusNode.hasFocus) {
-        provider.updateValue(widget.fieldVm.key, _controller.text);
+        final key = widget.fieldVm.key;
+        final upperKey = key.toUpperCase();
+        final isReactive = isCalculatedValuationKey(upperKey) ||
+            widget.fieldVm.isNumber ||
+            PlaceholderNormalizationRegistry.isAreaKey(upperKey) ||
+            PlaceholderNormalizationRegistry.isRateKey(upperKey) ||
+            PlaceholderNormalizationRegistry.isPercentageKey(upperKey) ||
+            upperKey == 'GOVERNMENT_VALUE' ||
+            upperKey == 'COMPOSITE_GOVERNMENT_RATE' ||
+            upperKey.contains('CONSTRUCTION_COST');
+
+        // Continuous typing in plain text inputs updates provider state without causing expensive full-workspace widget rebuilds
+        provider.updateValue(widget.fieldVm.key, _controller.text, notify: isReactive);
       }
     });
 
     _focusNode.addListener(() {
       if (!mounted) return;
       setState(() {});
-      if (!_focusNode.hasFocus && widget.fieldVm.isNumber) {
-        final currentText = _controller.text;
-        final normalized = _normalizeValue(currentText);
-        if (normalized != currentText) {
-          _controller.text = normalized;
-          provider.updateValue(widget.fieldVm.key, normalized);
+      if (!_focusNode.hasFocus) {
+        provider.notifyChanges();
+        if (widget.fieldVm.isNumber) {
+          final currentText = _controller.text;
+          final normalized = _normalizeValue(currentText);
+          if (normalized != currentText) {
+            _controller.text = normalized;
+            provider.updateValue(widget.fieldVm.key, normalized);
+          }
         }
       }
     });

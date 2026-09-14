@@ -47,6 +47,9 @@ public class DocumentWorkspaceService {
     private OrderDocumentRepository orderDocumentRepository;
 
     @Autowired
+    private ValuationCompositeItemRepository compositeItemRepository;
+
+    @Autowired
     private DocxPreviewGenerator previewGenerator;
 
     @Autowired
@@ -559,6 +562,54 @@ public class DocumentWorkspaceService {
             for (Map.Entry<String, String> entry : expandedInputs.entrySet()) {
                 saveOrUpdateInput(orderId, entry.getKey(), entry.getValue());
             }
+
+            // 3. Sync Composite Items Repository if RAW_COMPOSITE_ITEMS_JSON or SALEABLE_AREA was updated
+            if (expandedInputs.containsKey("RAW_COMPOSITE_ITEMS_JSON")) {
+                String compJson = expandedInputs.get("RAW_COMPOSITE_ITEMS_JSON");
+                if (compJson != null && !compJson.trim().isEmpty() && !compJson.equals("[]")) {
+                    try {
+                        List<ValuationCompositeItem> items = objectMapper.readValue(
+                                compJson,
+                                objectMapper.getTypeFactory().constructCollectionType(List.class, ValuationCompositeItem.class)
+                        );
+                        if (items != null && !items.isEmpty() && compositeItemRepository != null) {
+                            compositeItemRepository.deleteByOrderId(orderId);
+                            int s = 1;
+                            for (ValuationCompositeItem itm : items) {
+                                itm.setOrderId(orderId);
+                                itm.setSortOrder(s++);
+                                if (itm.getItemCategory() == null) itm.setItemCategory("OTHER");
+                                compositeItemRepository.save(itm);
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.warn("Failed to sync compositeItemRepository from saveDocumentValues: {}", e.getMessage());
+                    }
+                }
+            } else if (expandedInputs.containsKey("SALEABLE_AREA_NUMERIC") || expandedInputs.containsKey("SALEABLE_AREA")) {
+                String saleableArea = expandedInputs.get("SALEABLE_AREA_NUMERIC");
+                if (saleableArea == null || saleableArea.trim().isEmpty()) {
+                    saleableArea = expandedInputs.get("SALEABLE_AREA");
+                }
+                if (saleableArea != null && !saleableArea.trim().isEmpty() && compositeItemRepository != null) {
+                    String cleanNum = saleableArea.replaceAll("[^0-9.]", "").trim();
+                    if (!cleanNum.isEmpty()) {
+                        try {
+                            BigDecimal qty = new BigDecimal(cleanNum);
+                            if (qty.compareTo(BigDecimal.ZERO) > 0) {
+                                List<ValuationCompositeItem> compList = compositeItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
+                                for (ValuationCompositeItem itm : compList) {
+                                    if ("MAIN_UNIT".equalsIgnoreCase(itm.getItemCategory())) {
+                                        itm.setQuantity(qty);
+                                        compositeItemRepository.save(itm);
+                                        break;
+                                    }
+                                }
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
         }
 
         return Map.of("status", "SAVED");
@@ -956,7 +1007,18 @@ public class DocumentWorkspaceService {
                     map.put("RAW_COMPARABLES_JSON", objectMapper.writeValueAsString(valBundle.getComparableSales()));
                 }
                 if (valBundle.getCompositeItems() != null && !valBundle.getCompositeItems().isEmpty()) {
-                    map.put("RAW_COMPOSITE_ITEMS_JSON", objectMapper.writeValueAsString(valBundle.getCompositeItems()));
+                    String existingComp = map.get("RAW_COMPOSITE_ITEMS_JSON");
+                    boolean shouldOverride = true;
+                    if (existingComp != null && !existingComp.trim().isEmpty() && !existingComp.equals("[]")) {
+                        boolean bundleHasPositiveQty = valBundle.getCompositeItems().stream()
+                                .anyMatch(i -> i.getQuantity() != null && i.getQuantity().compareTo(BigDecimal.ZERO) > 0);
+                        if (!bundleHasPositiveQty) {
+                            shouldOverride = false;
+                        }
+                    }
+                    if (shouldOverride) {
+                        map.put("RAW_COMPOSITE_ITEMS_JSON", objectMapper.writeValueAsString(valBundle.getCompositeItems()));
+                    }
                 }
             }
         } catch (Exception e) {

@@ -238,6 +238,20 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         _compositeItems = decoded.map((j) => ValuationCompositeItemModel.fromJson(j as Map<String, dynamic>)).toList();
       } catch (_) {}
     }
+    if (_compositeItems.isNotEmpty) {
+      final existingIdx = _compositeItems.indexWhere((i) => i.itemCategory.toUpperCase() == 'MAIN_UNIT');
+      if (existingIdx >= 0) {
+        final mUnit = _compositeItems[existingIdx];
+        final rawArea = _activeValues['SALEABLE_AREA_STANDARD_SQFT'] ?? _activeValues['SALEABLE_AREA_NUMERIC'] ?? _activeValues['SALEABLE_AREA'];
+        if (rawArea != null && rawArea.isNotEmpty) {
+          final parsedNum = ValueNormalizationEngine.extractNumericValue(rawArea) ??
+              double.tryParse(rawArea.replaceAll(RegExp(r'[^0-9.]'), '').trim());
+          if (parsedNum != null && parsedNum > 0 && mUnit.quantity == 0) {
+            mUnit.quantity = parsedNum;
+          }
+        }
+      }
+    }
 
     // 4. Percentages & Overrides
     final landRealStr = _activeValues['LAND_REALIZABLE_PERCENTAGE'];
@@ -497,9 +511,6 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     }
 
     _isDirty = true;
-    if (_workspaceModel?.documentDom != null) {
-      _workspaceVm = DocumentWorkspaceVm.fromDocumentDom(_workspaceModel!.documentDom!, _activeValues);
-    }
     notifyListeners();
   }
 
@@ -762,7 +773,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
 
   /// Updates an in-document input value directly with reactive dependency cascade
   /// and Value Normalization Engine integration.
-  void updateValue(String key, String value) {
+  void updateValue(String key, String value, {bool notify = true}) {
     final upperKey = key.toUpperCase();
 
     // Phase 4B: Value Normalization Engine Validation & Normalization
@@ -917,9 +928,15 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         _deltaValues[upperKey] = value;
         _isDirty = true;
         _validationError = null;
-        notifyListeners();
+        if (notify) {
+          notifyListeners();
+        }
       }
     }
+  }
+
+  void notifyChanges() {
+    notifyListeners();
   }
 
   String getValue(String key) {
@@ -928,8 +945,9 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
 
   void ensureCompositeMainUnit() {
     final orderId = _workspaceModel?.orderId ?? 0;
-    final areaStr = _activeValues['SALEABLE_AREA_STANDARD_SQFT'] ?? _activeValues['SALEABLE_AREA'] ?? '1000';
-    final area = double.tryParse(areaStr.replaceAll(',', '').trim()) ?? 1000.0;
+    final areaStr = _activeValues['SALEABLE_AREA_STANDARD_SQFT'] ?? _activeValues['SALEABLE_AREA_NUMERIC'] ?? _activeValues['SALEABLE_AREA'] ?? '1000';
+    final parsedArea = ValueNormalizationEngine.extractNumericValue(areaStr);
+    final area = parsedArea ?? (double.tryParse(areaStr.replaceAll(RegExp(r'[^0-9.]'), '').trim()) ?? 1000.0);
     final rateStr = _activeValues['MARKET_RATE_FLAT_NUMERIC'] ?? _activeValues['MARKET_RATE_FLAT'] ?? '0';
     final rate = double.tryParse(rateStr.replaceAll(',', '').trim()) ?? 0.0;
     final costStr = _activeValues['COMPOSITE_CONSTRUCTION_COST'] ?? '2000';
@@ -983,8 +1001,12 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     final existingIdx = _compositeItems.indexWhere((i) => i.itemCategory.toUpperCase() == 'MAIN_UNIT');
     if (existingIdx >= 0) {
       final item = _compositeItems[existingIdx];
-      if (_activeValues.containsKey('SALEABLE_AREA_STANDARD_SQFT') || _activeValues.containsKey('SALEABLE_AREA')) {
-        item.quantity = area;
+      if (_activeValues.containsKey('SALEABLE_AREA_STANDARD_SQFT') || _activeValues.containsKey('SALEABLE_AREA_NUMERIC') || _activeValues.containsKey('SALEABLE_AREA')) {
+        if (parsedArea != null && parsedArea > 0) {
+          item.quantity = parsedArea;
+        } else if (area > 0) {
+          item.quantity = area;
+        }
         if (_activeValues.containsKey('SALEABLE_AREA_UNIT')) {
           item.enteredUnit = _activeValues['SALEABLE_AREA_UNIT']!;
         }

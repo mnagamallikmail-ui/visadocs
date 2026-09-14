@@ -952,7 +952,7 @@ public class DocxStructureParser {
         if (upper.equals("VALUATION_SUMMARY_TABLE") || upper.equals("DYNAMIC_VALUATION_SUMMARY_TABLE")) {
             return "DYNAMIC_VALUATION_SUMMARY_TABLE";
         }
-        if (upper.equals("PROPERTY_VALUE_TABLE") || upper.equals("VALUE_OF_THE_PROPERTY_TABLE") || upper.equals("VALUE_OF_THE_PROPERTY")) {
+        if (upper.equals("PROPERTY_VALUE_TABLE") || upper.equals("VALUE_OF_THE_PROPERTY_TABLE")) {
             return "DYNAMIC_PROPERTY_VALUE_TABLE";
         }
         if (upper.equals("COMPARABLES_TABLE") || upper.equals("DYNAMIC_COMPARABLES_TABLE")) {
@@ -995,6 +995,7 @@ public class DocxStructureParser {
                 || upper.equals("REPORT_FAIR_VALUE") || upper.equals("REPORT_FAIR_VALUE_WORDS")
                 || upper.equals("MARKET_VALUE") || upper.equals("MARKET_VALUE_WORDS")
                 || upper.equals("PROPERTY_VALUE") || upper.equals("PROPERTY_VALUE_WORDS")
+                || upper.equals("VALUE_OF_THE_PROPERTY") || upper.equals("VALUE_OF_THE_PROPERTY_WORDS")
                 || upper.equals("FINAL_VALUE") || upper.equals("FINAL_VALUE_WORDS")
                 || upper.equals("VALUATION_AMOUNT") || upper.equals("VALUATION_AMOUNT_WORDS")
                 || upper.equals("OPINION_OF_VALUE") || upper.equals("OPINION_OF_VALUE_WORDS")

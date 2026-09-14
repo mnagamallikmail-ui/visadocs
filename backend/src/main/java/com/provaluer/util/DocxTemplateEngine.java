@@ -274,7 +274,12 @@ public class DocxTemplateEngine {
                     String generatedKey;
                     int occurrence;
                     String reportSlug;
-                    if ("TEXT".equalsIgnoreCase(genericToken)) {
+                    if (questionText != null && !questionText.trim().isEmpty()) {
+                        String baseSlug = GenericPlaceholderNormalizer.generateBaseSlug(questionText);
+                        occurrence = slugCounter.merge(baseSlug, 1, Integer::sum);
+                        generatedKey = baseSlug + "_" + occurrence;
+                        reportSlug = baseSlug;
+                    } else if ("TEXT".equalsIgnoreCase(genericToken)) {
                         occurrence = slugCounter.merge("TEXT", 1, Integer::sum);
                         generatedKey = String.format("TEXT_%03d", occurrence);
                         reportSlug = "TEXT";
@@ -846,9 +851,61 @@ public class DocxTemplateEngine {
         // 5. Ensure MS Word dynamic field updating is enabled in settings.xml
         enableUpdateFields(wordMLPackage);
 
+        // 6. Zero-placeholder guarantee: Strip any remaining unresolved <<...>> tokens
+        stripRemainingPlaceholders(wordMLPackage.getMainDocumentPart().getContent());
+        for (org.docx4j.openpackaging.parts.Part part : wordMLPackage.getParts().getParts().values()) {
+            if (part instanceof org.docx4j.openpackaging.parts.WordprocessingML.HeaderPart) {
+                stripRemainingPlaceholders(((org.docx4j.openpackaging.parts.WordprocessingML.HeaderPart) part).getContent());
+            } else if (part instanceof org.docx4j.openpackaging.parts.WordprocessingML.FooterPart) {
+                stripRemainingPlaceholders(((org.docx4j.openpackaging.parts.WordprocessingML.FooterPart) part).getContent());
+            }
+        }
+
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         wordMLPackage.save(out);
         return out.toByteArray();
+    }
+
+    private void stripRemainingPlaceholders(List<Object> elements) {
+        if (elements == null) return;
+        for (Object elem : elements) {
+            Object unwrapped = unwrap(elem);
+            if (unwrapped instanceof P) {
+                P p = (P) unwrapped;
+                for (Object rObj : p.getContent()) {
+                    Object unwrappedR = unwrap(rObj);
+                    if (unwrappedR instanceof R) {
+                        R r = (R) unwrappedR;
+                        for (Object tObj : r.getContent()) {
+                            Object unwrappedT = unwrap(tObj);
+                            if (unwrappedT instanceof Text) {
+                                Text t = (Text) unwrappedT;
+                                String textVal = t.getValue();
+                                if (textVal != null && textVal.contains("<<") && textVal.contains(">>")) {
+                                    String cleaned = textVal.replaceAll("<<[^>]+>>", "");
+                                    t.setValue(cleaned);
+                                }
+                            }
+                        }
+                    }
+                }
+            } else if (unwrapped instanceof Tbl) {
+                Tbl tbl = (Tbl) unwrapped;
+                for (Object rowObj : tbl.getContent()) {
+                    Object unwrappedRow = unwrap(rowObj);
+                    if (unwrappedRow instanceof Tr) {
+                        Tr row = (Tr) unwrappedRow;
+                        for (Object cellObj : row.getContent()) {
+                            Object unwrappedCell = unwrap(cellObj);
+                            if (unwrappedCell instanceof Tc) {
+                                Tc cell = (Tc) unwrappedCell;
+                                stripRemainingPlaceholders(cell.getContent());
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     private void generateElements(WordprocessingMLPackage wordMLPackage, List<Object> elements, Map<String, String> inputs, Map<String, byte[]> images) throws Exception {
@@ -864,8 +921,16 @@ public class DocxTemplateEngine {
                 // Normalize paragraph text for ultra-robust placeholder matching
                 String norm = pText.replaceAll("[\\s_<>]+", "").toUpperCase();
                 
-                // Dynamic Table Generation
-                if (norm.contains("COMPOSITEPROPERTYTABLE") || norm.contains("COMPOSITETABLE")) {
+                boolean isExplicitTableDirective = (pText.startsWith("<<") && pText.endsWith(">>"))
+                        || norm.equals("COMPOSITEPROPERTYTABLE") || norm.equals("DYNAMICCOMPOSITEPROPERTYTABLE") || norm.equals("COMPOSITETABLE")
+                        || norm.equals("LANDTABLE") || norm.equals("DYNAMICLANDTABLE")
+                        || norm.equals("BUILDINGTABLE") || norm.equals("DYNAMICBUILDINGTABLE")
+                        || norm.equals("VALUATIONSUMMARYTABLE") || norm.equals("DYNAMICVALUATIONSUMMARYTABLE")
+                        || norm.equals("COMPARABLESTABLE") || norm.equals("COMPARABLETABLE") || norm.equals("DYNAMICCOMPARABLESTABLE")
+                        || norm.equals("PROPERTYVALUETABLE") || norm.equals("VALUEOFTHEPROPERTYTABLE") || norm.equals("VALUEOFPROPERTYTABLE") || norm.equals("DYNAMICPROPERTYVALUETABLE");
+
+                // Dynamic Table Generation - ONLY triggered for explicit table directives
+                if (isExplicitTableDirective && (norm.contains("COMPOSITEPROPERTYTABLE") || norm.contains("COMPOSITETABLE"))) {
                     Tbl compTable = buildDynamicCompositePropertyTable(inputs);
                     Tbl summaryTable = buildDynamicCompositeSummaryTable(inputs);
                     if (compTable != null) {
@@ -879,13 +944,12 @@ public class DocxTemplateEngine {
                     }
                 }
 
-                if (isComposite) {
-                    if (norm.contains("LANDTABLE") || norm.contains("BUILDINGTABLE") 
-                            || norm.contains("VALUATIONSUMMARYTABLE") || (norm.contains("VALUATIONSUMMARY") && norm.contains("TABLE"))
-                            || norm.contains("PROPERTYVALUETABLE") || norm.contains("VALUEOFTHEPROPERTYTABLE") 
-                            || norm.contains("VALUEOFPROPERTYTABLE") || norm.contains("PROPERTYVALUE")
-                            || norm.contains("VALUEOFTHEPROPERTY") || norm.contains("VALUEOFPROPERTY")
-                            || norm.contains("PROPERTYVALUES")) {
+                if (isComposite && isExplicitTableDirective) {
+                    if (norm.equals("LANDTABLE") || norm.equals("DYNAMICLANDTABLE")
+                            || norm.equals("BUILDINGTABLE") || norm.equals("DYNAMICBUILDINGTABLE")
+                            || norm.equals("VALUATIONSUMMARYTABLE") || norm.equals("DYNAMICVALUATIONSUMMARYTABLE")
+                            || norm.equals("PROPERTYVALUETABLE") || norm.equals("VALUEOFTHEPROPERTYTABLE")
+                            || norm.equals("VALUEOFPROPERTYTABLE") || norm.equals("DYNAMICPROPERTYVALUETABLE")) {
                         if (!compositeTableRendered) {
                             Tbl compTable = buildDynamicCompositePropertyTable(inputs);
                             Tbl summaryTable = buildDynamicCompositeSummaryTable(inputs);
@@ -907,7 +971,7 @@ public class DocxTemplateEngine {
                     }
                 }
 
-                if (norm.contains("LANDTABLE")) {
+                if (isExplicitTableDirective && (norm.equals("LANDTABLE") || norm.equals("DYNAMICLANDTABLE"))) {
                     Tbl landTable = buildDynamicLandTable(inputs);
                     if (landTable != null) {
                         elements.set(i, landTable);
@@ -916,7 +980,7 @@ public class DocxTemplateEngine {
                         i += 2;
                         continue;
                     }
-                } else if (norm.contains("BUILDINGTABLE")) {
+                } else if (isExplicitTableDirective && (norm.equals("BUILDINGTABLE") || norm.equals("DYNAMICBUILDINGTABLE"))) {
                     Tbl buildingTable = buildDynamicBuildingTable(inputs);
                     if (buildingTable != null) {
                         elements.set(i, buildingTable);
@@ -925,7 +989,7 @@ public class DocxTemplateEngine {
                         i += 2;
                         continue;
                     }
-                } else if (norm.contains("VALUATIONSUMMARYTABLE") || (norm.contains("VALUATIONSUMMARY") && norm.contains("TABLE"))) {
+                } else if (isExplicitTableDirective && (norm.equals("VALUATIONSUMMARYTABLE") || norm.equals("DYNAMICVALUATIONSUMMARYTABLE"))) {
                     Tbl summaryTable = buildDynamicValuationSummaryTable(inputs);
                     if (summaryTable != null) {
                         elements.set(i, summaryTable);
@@ -934,7 +998,7 @@ public class DocxTemplateEngine {
                         i += 2;
                         continue;
                     }
-                } else if (norm.contains("COMPARABLESTABLE") || norm.contains("COMPARABLETABLE")) {
+                } else if (isExplicitTableDirective && (norm.equals("COMPARABLESTABLE") || norm.equals("COMPARABLETABLE") || norm.equals("DYNAMICCOMPARABLESTABLE"))) {
                     Tbl compTable = buildDynamicComparablesTable(inputs);
                     if (compTable != null) {
                         elements.set(i, compTable);
@@ -943,10 +1007,8 @@ public class DocxTemplateEngine {
                         i += 2;
                         continue;
                     }
-                } else if (norm.contains("PROPERTYVALUETABLE") || norm.contains("VALUEOFTHEPROPERTYTABLE") 
-                        || norm.contains("VALUEOFPROPERTYTABLE") || norm.contains("PROPERTYVALUE")
-                        || norm.contains("VALUEOFTHEPROPERTY") || norm.contains("VALUEOFPROPERTY")
-                        || norm.contains("PROPERTYVALUES")) {
+                } else if (isExplicitTableDirective && (norm.equals("PROPERTYVALUETABLE") || norm.equals("VALUEOFTHEPROPERTYTABLE") 
+                        || norm.equals("VALUEOFPROPERTYTABLE") || norm.equals("DYNAMICPROPERTYVALUETABLE"))) {
                     Tbl propTable = buildDynamicPropertyValueTable(inputs);
                     if (propTable != null) {
                         elements.set(i, propTable);
@@ -1129,7 +1191,7 @@ public class DocxTemplateEngine {
         }
 
         List<Map.Entry<String, String>> totals = new ArrayList<>();
-        totals.add(Map.entry("Total Fair Value", "₹ " + formatIndian(rawFairValBd.toPlainString())));
+        totals.add(Map.entry("Fair Value Of Property", "₹ " + formatIndian(rawFairValBd.toPlainString())));
 
         if (sayFairValBd.compareTo(BigDecimal.ZERO) > 0 && sayFairValBd.compareTo(rawFairValBd) != 0) {
             totals.add(Map.entry("Say", "₹ " + formatIndian(sayFairValBd.toPlainString())));
@@ -2137,6 +2199,8 @@ public class DocxTemplateEngine {
                     BinaryPartAbstractImage imagePart = BinaryPartAbstractImage.createImagePart(wordMLPackage, imgBytes);
                     Inline inlineImage = imagePart.createImageInline("Uploaded Image", "Image", 10002, 10003, false);
                     
+                    anchor.setAllowOverlap(false);
+                    anchor.setLayoutInCell(true);
                     anchor.setGraphic(inlineImage.getGraphic());
                     if (anchor.getExtent() != null) {
                         anchor.getExtent().setCx(originalCx);
@@ -2202,9 +2266,9 @@ public class DocxTemplateEngine {
                         }
                         
                         while (matcher.find()) {
-                            String key = matcher.group(1).trim().toUpperCase();
-                            String rawVal = inputs.getOrDefault(key, "<<" + key + ">>");
-                            String replacement = formatIfDate(key, rawVal);
+                            String key = matcher.group(1).trim();
+                            String rawVal = resolvePlaceholderValue(key, inputs);
+                            String replacement = formatIfDate(key.toUpperCase(), rawVal);
                             matcher.appendReplacement(sb, Matcher.quoteReplacement(replacement));
                             substituted = true;
                         }
@@ -2233,6 +2297,99 @@ public class DocxTemplateEngine {
                     }
                 }
             }
+        }
+    }
+
+    public String resolvePlaceholderValue(String key, Map<String, String> inputs) {
+        if (inputs == null || key == null) return "";
+        String cleanKey = key.trim();
+        String upperKey = cleanKey.toUpperCase();
+        String lowerKey = cleanKey.toLowerCase();
+
+        // 1. Direct checks
+        if (inputs.containsKey(cleanKey) && inputs.get(cleanKey) != null && !inputs.get(cleanKey).trim().isEmpty()) {
+            return inputs.get(cleanKey);
+        }
+        if (inputs.containsKey(upperKey) && inputs.get(upperKey) != null && !inputs.get(upperKey).trim().isEmpty()) {
+            return inputs.get(upperKey);
+        }
+        if (inputs.containsKey(lowerKey) && inputs.get(lowerKey) != null && !inputs.get(lowerKey).trim().isEmpty()) {
+            return inputs.get(lowerKey);
+        }
+
+        // 2. Case-insensitive search across inputs
+        for (Map.Entry<String, String> entry : inputs.entrySet()) {
+            if (entry.getKey() != null && entry.getKey().equalsIgnoreCase(upperKey)) {
+                if (entry.getValue() != null && !entry.getValue().trim().isEmpty()) {
+                    return entry.getValue();
+                }
+            }
+        }
+
+        // 3. Known Aliases
+        List<String> aliases = getKnownAliases(upperKey);
+        for (String alias : aliases) {
+            if (inputs.containsKey(alias) && inputs.get(alias) != null && !inputs.get(alias).trim().isEmpty()) {
+                return inputs.get(alias);
+            }
+            for (Map.Entry<String, String> entry : inputs.entrySet()) {
+                if (entry.getKey() != null && entry.getKey().equalsIgnoreCase(alias)) {
+                    if (entry.getValue() != null && !entry.getValue().trim().isEmpty()) {
+                        return entry.getValue();
+                    }
+                }
+            }
+        }
+
+        // Unresolved placeholder: ALWAYS return empty string, NEVER <<KEY>>
+        return "";
+    }
+
+    private List<String> getKnownAliases(String key) {
+        String u = key.toUpperCase().trim();
+        switch (u) {
+            case "OWNER_NAME":
+            case "NAME_OF_THE_OWNER":
+            case "NAME_OF_OWNER":
+            case "BORROWER_NAME":
+            case "CLIENT_NAME":
+                return List.of("OWNER_NAME", "NAME_OF_THE_OWNER", "NAME_OF_OWNER", "CLIENT_NAME", "BORROWER_NAME", "owner_name", "client_name");
+            case "PROPERTY_ADDRESS":
+            case "ADDRESS":
+            case "LOCATION":
+            case "SITE_ADDRESS":
+            case "PROPERTY_LOCATION":
+                return List.of("PROPERTY_ADDRESS", "ADDRESS", "SITE_ADDRESS", "LOCATION", "PROPERTY_LOCATION", "property_address", "address");
+            case "PROPERTY_DESCRIPTION":
+            case "DESCRIPTION":
+            case "PROPERTY_SUB_TYPE":
+            case "PROPERTY_TYPE":
+                return List.of("PROPERTY_DESCRIPTION", "DESCRIPTION", "PROPERTY_SUB_TYPE", "PROPERTY_TYPE", "property_description", "property_sub_type");
+            case "REPORT_REF_NO":
+            case "REPORT_NUMBER":
+            case "REF_NO":
+            case "REFERENCE_NO":
+                return List.of("REPORT_REF_NO", "REPORT_NUMBER", "REF_NO", "REFERENCE_NO", "report_number", "report_ref_no");
+            case "DATE_OF_REPORT":
+            case "REPORT_DATE":
+            case "DATE":
+            case "INSPECTION_DATE":
+                return List.of("DATE_OF_REPORT", "REPORT_DATE", "INSPECTION_DATE", "DATE", "report_date", "date_of_report");
+            case "SALEABLE_AREA":
+            case "SUPER_BUILT_UP_AREA":
+            case "PROPERTY_AREA_SFT":
+            case "SBUA":
+            case "FLAT_AREA":
+            case "SALEABLE_AREA_SQFT":
+                return List.of("SALEABLE_AREA", "SUPER_BUILT_UP_AREA", "PROPERTY_AREA_SFT", "SBUA", "FLAT_AREA", "SALEABLE_AREA_SQFT", "SALEABLE_AREA_NUMERIC");
+            case "MARKET_RATE_FLAT":
+            case "COMPOSITE_RATE":
+            case "CURRENT_MARKET_RATE":
+            case "FLAT_MARKET_RATE":
+            case "BUILDING_MARKET_RATE":
+                return List.of("MARKET_RATE_FLAT", "COMPOSITE_RATE", "CURRENT_MARKET_RATE", "FLAT_MARKET_RATE", "MARKET_RATE_FLAT_NUMERIC");
+            default:
+                return Collections.emptyList();
         }
     }
 
@@ -2313,58 +2470,18 @@ public class DocxTemplateEngine {
             }
         }
         
-        // 3. Fallback: Generate a nice styled placeholder image
+        // 3. Fallback: Generate a clean solid white image maintaining exact dimensions and spacing (Defect 7)
         try {
             int width = 800;
             int height = 500;
             BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
             Graphics2D g = image.createGraphics();
-            
-            // Background
-            g.setColor(new java.awt.Color(30, 87, 164)); // Brand blue
-            g.fillRect(0, 0, width, height);
-            
-            // Subtle border
-            g.setColor(new java.awt.Color(255, 255, 255, 100));
-            g.setStroke(new BasicStroke(4));
-            g.drawRect(20, 20, width - 40, height - 40);
-            
-            // Blueprint-style grid
-            g.setColor(new java.awt.Color(255, 255, 255, 30));
-            g.setStroke(new BasicStroke(1));
-            for (int x = 40; x < width; x += 40) {
-                g.drawLine(x, 20, x, height - 20);
-            }
-            for (int y = 40; y < height; y += 40) {
-                g.drawLine(20, y, width - 20, y);
-            }
-            
-            // Text rendering
             g.setColor(java.awt.Color.WHITE);
-            g.setRenderingHint(RenderingHints.KEY_TEXT_ANTIALIASING, RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
-            
-            g.setFont(new Font("Arial", Font.BOLD, 24));
-            String title = "VALUATION REPORT IMAGE SLOT";
-            FontMetrics fm = g.getFontMetrics();
-            int titleX = (width - fm.stringWidth(title)) / 2;
-            g.drawString(title, titleX, 180);
-            
-            g.setFont(new Font("Monospaced", Font.PLAIN, 20));
-            String keyLabel = "<< " + key + " >>";
-            FontMetrics fm2 = g.getFontMetrics();
-            int labelX = (width - fm2.stringWidth(keyLabel)) / 2;
-            g.drawString(keyLabel, labelX, 260);
-            
-            g.setFont(new Font("Arial", Font.ITALIC, 15));
-            String note = "Status: Placeholder Asset Bound (Scale-To-Fit)";
-            FontMetrics fm3 = g.getFontMetrics();
-            int noteX = (width - fm3.stringWidth(note)) / 2;
-            g.drawString(note, noteX, 330);
-            
+            g.fillRect(0, 0, width, height);
             g.dispose();
             
             ByteArrayOutputStream baos = new ByteArrayOutputStream();
-            ImageIO.write(image, "png", baos);
+            ImageIO.write(image, "jpg", baos);
             return baos.toByteArray();
         } catch (Exception e) {
             return null;
@@ -2400,7 +2517,6 @@ public class DocxTemplateEngine {
             if (imgAspect > frameAspect) {
                 // Image is wider than frame -> width determines canvas width, letterbox top/bottom
                 canvasW = Math.min(srcW, maxDimension);
-                if (canvasW < 800) canvasW = Math.min(maxDimension, Math.max(srcW, 800));
                 canvasH = (int) Math.max(1, Math.round(canvasW / frameAspect));
                 if (canvasH > maxDimension) {
                     canvasH = maxDimension;
@@ -2409,7 +2525,6 @@ public class DocxTemplateEngine {
             } else {
                 // Image is taller than frame -> height determines canvas height, pillarbox left/right
                 canvasH = Math.min(srcH, maxDimension);
-                if (canvasH < 800) canvasH = Math.min(maxDimension, Math.max(srcH, 800));
                 canvasW = (int) Math.max(1, Math.round(canvasH * frameAspect));
                 if (canvasW > maxDimension) {
                     canvasW = maxDimension;
