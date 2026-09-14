@@ -1,6 +1,5 @@
 package com.provaluer.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.provaluer.dto.DocumentWorkspaceResponse;
 import com.provaluer.dto.SaveDocumentValuesRequest;
 import com.provaluer.model.Order;
@@ -58,8 +57,6 @@ public class ValuationTemplateUatCertificationTest {
 
     @Autowired
     private DocxPreviewGenerator previewGenerator;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     @DisplayName("Valuation Template 'Value Tables' UAT Verification for 13 Criteria")

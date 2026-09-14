@@ -1,6 +1,5 @@
 package com.provaluer.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.provaluer.dto.DocumentWorkspaceResponse;
 import com.provaluer.dto.SaveDocumentValuesRequest;
 import com.provaluer.dto.SpaApproveDocumentRequest;
@@ -10,7 +9,6 @@ import com.provaluer.repository.TemplateRepository;
 import com.provaluer.repository.ValuationSnapshotRepository;
 import com.provaluer.security.UserDetailsImpl;
 import com.provaluer.util.DocxStructureParser;
-import com.provaluer.util.DocxTemplateEngine;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,9 +41,6 @@ import static org.junit.jupiter.api.Assertions.*;
 public class PlatformCertificationRegressionTest {
 
     @Autowired
-    private DocxTemplateEngine templateEngine;
-
-    @Autowired
     private DocxStructureParser docxStructureParser;
 
     @Autowired
@@ -59,8 +54,6 @@ public class PlatformCertificationRegressionTest {
 
     @Autowired
     private ValuationSnapshotRepository snapshotRepository;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
     @DisplayName("REGRESSION 1-10: End-to-End Certification Lifecycle & Option A Immutability")

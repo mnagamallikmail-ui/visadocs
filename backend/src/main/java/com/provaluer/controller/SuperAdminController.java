@@ -910,7 +910,6 @@ public class SuperAdminController {
     public ResponseEntity<?> purgeAllReports() {
         log.warn("SUPER_ADMIN #{} initiated purge of ALL report and order data.", actorId());
         
-        long valAuditDeleted = valuationAuditLogRepository.count();
         valuationAuditLogRepository.deleteAll();
 
         long landDeleted = valuationLandItemRepository.count();
@@ -919,7 +918,6 @@ public class SuperAdminController {
         long bldgDeleted = valuationBuildingItemRepository.count();
         valuationBuildingItemRepository.deleteAll();
 
-        long compsDeleted = valuationComparableSaleRepository.count();
         valuationComparableSaleRepository.deleteAll();
 
         long snapshotsDeleted = valuationSnapshotRepository.count();
@@ -937,10 +935,8 @@ public class SuperAdminController {
         long revisionsDeleted = revisionRepository.count();
         revisionRepository.deleteAll();
 
-        long ledgerDeleted = performanceLedgerRepository.count();
         performanceLedgerRepository.deleteAll();
 
-        long transactionsDeleted = transactionRepository.count();
         transactionRepository.deleteAll();
 
         long ordersDeleted = orderRepository.count();
@@ -978,7 +974,6 @@ public class SuperAdminController {
         long studioConfigsDeleted = documentStudioConfigRepository.count();
         documentStudioConfigRepository.deleteAll();
 
-        long questionsDeleted = templateQuestionRepository.count();
         templateQuestionRepository.deleteAll();
 
         long versionsDeleted = templateVersionRepository.count();

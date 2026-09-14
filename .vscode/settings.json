@@ -1,4 +1,7 @@
 {
-    "java.configuration.updateBuildConfiguration": "interactive",
-    "java.compile.nullAnalysis.mode": "automatic"
+    "java.configuration.updateBuildConfiguration": "automatic",
+    "java.compile.nullAnalysis.mode": "disabled",
+    "java.compile.nullAnalysis.nullable": [],
+    "java.compile.nullAnalysis.nonnull": [],
+    "java.compile.nullAnalysis.nonnullbydefault": []
 }

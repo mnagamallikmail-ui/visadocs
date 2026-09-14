@@ -1,11 +1,7 @@
 package com.provaluer.service;
 
 import com.provaluer.dto.SaveDocumentValuesRequest;
-import com.provaluer.dto.SaveValuationRequest;
-import com.provaluer.dto.ValuationBundleResponse;
 import com.provaluer.model.Order;
-import com.provaluer.model.OrderInput;
-import com.provaluer.model.ValuationData;
 import com.provaluer.repository.OrderInputRepository;
 import com.provaluer.repository.OrderRepository;
 import com.provaluer.repository.ValuationDataRepository;
@@ -23,10 +19,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -59,7 +51,6 @@ public class PaEditDuringSpaGateAndCleanDocumentTest {
 
     private UserDetailsImpl paUser;
     private UserDetailsImpl otherPaUser;
-    private UserDetailsImpl spaUser;
     private Order testOrder;
 
     @BeforeEach
@@ -72,11 +63,6 @@ public class PaEditDuringSpaGateAndCleanDocumentTest {
         otherPaUser = new UserDetailsImpl(
                 99L, "otherpa@provaluer.com", "password",
                 List.of(new SimpleGrantedAuthority("ROLE_PA")), false, false
-        );
-
-        spaUser = new UserDetailsImpl(
-                20L, "spa@provaluer.com", "password",
-                List.of(new SimpleGrantedAuthority("ROLE_SPA")), false, false
         );
 
         testOrder = new Order();

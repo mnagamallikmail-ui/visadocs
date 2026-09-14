@@ -1,14 +1,9 @@
 package com.provaluer.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.provaluer.dto.SaveDocumentValuesRequest;
 import com.provaluer.dto.ValuationBundleResponse;
 import com.provaluer.model.Order;
-import com.provaluer.model.Template;
-import com.provaluer.model.User;
 import com.provaluer.repository.OrderRepository;
-import com.provaluer.repository.TemplateRepository;
-import com.provaluer.repository.UserRepository;
 import com.provaluer.security.UserDetailsImpl;
 import com.provaluer.util.DocxTemplateEngine;
 import org.docx4j.XmlUtils;
@@ -45,13 +40,6 @@ public class CriticalRuntimeGovernanceTest {
     @Autowired
     private OrderRepository orderRepository;
 
-    @Autowired
-    private TemplateRepository templateRepository;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
     private UserDetailsImpl testUser;
 
     @BeforeEach

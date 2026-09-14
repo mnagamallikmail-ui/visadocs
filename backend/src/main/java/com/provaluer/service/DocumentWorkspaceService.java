@@ -53,9 +53,6 @@ public class DocumentWorkspaceService {
     private DocxPreviewGenerator previewGenerator;
 
     @Autowired
-    private DocxCoordinateExtractor coordinateExtractor;
-
-    @Autowired
     private DocxStructureParser docxStructureParser;
 
     @Autowired
@@ -66,9 +63,6 @@ public class DocumentWorkspaceService {
 
     @Autowired
     private AuditLogService auditLogService;
-
-    @Autowired
-    private PerformanceLedgerRepository performanceLedgerRepository;
 
     @Autowired
     private UserRepository userRepository;
@@ -331,7 +325,7 @@ public class DocumentWorkspaceService {
                 log.warn("Failed to parse documentDomSnapshot JSON for order {}: {}", orderId, e.getMessage());
             }
         }
-        if (domNode == null && template.getDocumentDom() != null && !template.getDocumentDom().trim().isEmpty()) {
+        if (domNode == null && template != null && template.getDocumentDom() != null && !template.getDocumentDom().trim().isEmpty()) {
             try {
                 domNode = objectMapper.readTree(template.getDocumentDom());
             } catch (Exception e) {

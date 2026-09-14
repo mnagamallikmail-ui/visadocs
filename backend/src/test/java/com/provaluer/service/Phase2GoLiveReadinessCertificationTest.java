@@ -9,7 +9,6 @@ import com.provaluer.security.UserDetailsImpl;
 import com.provaluer.util.DocxTemplateEngine;
 import com.provaluer.util.IndianCurrencyToWords;
 import com.provaluer.util.IndianNumberFormatter;
-import com.provaluer.util.UnitConversionEngine;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -23,7 +22,6 @@ import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.time.LocalDateTime;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -49,9 +47,6 @@ public class Phase2GoLiveReadinessCertificationTest {
 
     @Autowired
     private SystemSettingRepository systemSettingRepository;
-
-    @Autowired
-    private ValuationSnapshotRepository snapshotRepository;
 
     @Autowired
     private ValuationAuditLogRepository auditLogRepository;
@@ -199,8 +194,6 @@ public class Phase2GoLiveReadinessCertificationTest {
     @Transactional
     @DisplayName("UAT Scenario 2: Dynamic Recalculation on Building Age Mutation")
     public void testUatScenario2_DynamicRecalculationOnAgeMutation() {
-        UserDetailsImpl valuerPrincipal = UserDetailsImpl.build(testValuer);
-
         ValuationData data = new ValuationData(testOrder.getId());
         List<ValuationLandItem> landItems = new ArrayList<>();
         ValuationLandItem land = new ValuationLandItem();
@@ -240,9 +233,6 @@ public class Phase2GoLiveReadinessCertificationTest {
     @Transactional
     @DisplayName("UAT Scenario 3: Master Settings Propagation to New Reports Without Corrupting Existing Reports")
     public void testUatScenario3_MasterSettingsDefaultsPropagation() {
-        UserDetailsImpl adminPrincipal = UserDetailsImpl.build(testSuperAdmin);
-        UserDetailsImpl valuerPrincipal = UserDetailsImpl.build(testValuer);
-
         // 1. Create Report 1 with current defaults (85% & 75%)
         ValuationBundleResponse bundle1 = valuationEngineService.getValuationBundle(testOrder.getId());
         assertEquals(0, new BigDecimal("85.00").compareTo(bundle1.getValuationData().getRealizablePercentage()));

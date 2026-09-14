@@ -141,7 +141,6 @@ public class DocxCoordinateExtractor {
      */
     private static class CoordinateStripper extends PDFTextStripper {
 
-        private final int pageIndex;
         private final float pageWidth;
         private final float pageHeight;
 
@@ -152,7 +151,6 @@ public class DocxCoordinateExtractor {
 
         CoordinateStripper(int pageIndex, float pageWidth, float pageHeight) throws IOException {
             super();
-            this.pageIndex = pageIndex;
             this.pageWidth = pageWidth;
             this.pageHeight = pageHeight;
         }

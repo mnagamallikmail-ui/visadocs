@@ -2,11 +2,7 @@ package com.provaluer.service;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.provaluer.model.*;
-import com.provaluer.repository.OrderRepository;
-import com.provaluer.repository.TemplateRepository;
-import com.provaluer.repository.UserRepository;
 import com.provaluer.util.DocxTemplateEngine;
-import com.provaluer.util.IndianNumberFormatter;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.*;
 import org.junit.jupiter.api.DisplayName;
@@ -27,15 +23,6 @@ public class GenerateEvidenceReportTest {
     @Autowired
     private DocxTemplateEngine templateEngine;
 
-    @Autowired
-    private ValuationCalculationFormulaService formulaService;
-
-    @Autowired
-    private TemplateRepository templateRepository;
-
-    @Autowired
-    private OrderRepository orderRepository;
-
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
@@ -47,7 +34,6 @@ public class GenerateEvidenceReportTest {
 
         // 1. Template Structure Setup (Value Tables)
         WordprocessingMLPackage templateDocx = WordprocessingMLPackage.createPackage();
-        org.docx4j.wml.ObjectFactory factory = new org.docx4j.wml.ObjectFactory();
 
         templateDocx.getMainDocumentPart().addParagraphOfText("VALUATION REPORT: <<PROPERTY_DESCRIPTION>>");
         templateDocx.getMainDocumentPart().addParagraphOfText("Report Number: <<REPORT_NO>> | Client: <<CLIENT_NAME>>");

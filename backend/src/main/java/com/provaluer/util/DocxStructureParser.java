@@ -325,7 +325,6 @@ public class DocxStructureParser {
     private void parseDrawingElement(Object unwrappedDrawing, ArrayNode runsArray, Map<String, PlaceholderTracker> trackerMap) {
         String key = null;
         String descr = null;
-        String title = null;
         String name = null;
 
         List<Object> inlinesAndAnchors = new ArrayList<>();
@@ -1223,7 +1222,6 @@ public class DocxStructureParser {
     }
 
     private static class PlaceholderTracker {
-        final String key;
         String type;
         int occurrences = 0;
         String tableQuestionText;
@@ -1234,7 +1232,6 @@ public class DocxStructureParser {
         JsonNode tableContext;
 
         PlaceholderTracker(String key, String type) {
-            this.key = key;
             this.type = type;
         }
     }

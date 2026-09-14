@@ -26,9 +26,6 @@ import java.math.BigInteger;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import java.awt.BasicStroke;
-import java.awt.Font;
-import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
 import java.awt.image.BufferedImage;
@@ -563,22 +560,18 @@ public class DocxTemplateEngine {
             } else if (unwrapped instanceof Tbl) {
                 Tbl tbl = (unwrapped instanceof Tbl) ? (Tbl) unwrapped : null;
                 if (tbl == null) continue;
-                int rowIndex = 0;
                 for (Object rowObj : tbl.getContent()) {
                     Object unwrappedRow = unwrap(rowObj);
                     if (unwrappedRow instanceof Tr) {
                         Tr row = (Tr) unwrappedRow;
-                        int colIndex = 0;
                         int currentLineGroup = ctx.getNextLineGroup();
                         for (Object cellObj : row.getContent()) {
                             Object unwrappedCell = unwrap(cellObj);
                             if (unwrappedCell instanceof Tc) {
                                 Tc cell = (Tc) unwrappedCell;
                                 parseCellElements(cell.getContent(), section, cellContext, colHeader, rowHeader, fieldsArray, uniqueKeys, currentLineGroup, ctx);
-                                colIndex++;
                             }
                         }
-                        rowIndex++;
                     }
                 }
             }
@@ -1429,19 +1422,6 @@ public class DocxTemplateEngine {
         return createDocxTable(headers, colWidths, rows, null, 18, alignments);
     }
 
-    private P createBlankParagraph() {
-        ObjectFactory factory = new ObjectFactory();
-        P p = factory.createP();
-        PPr ppr = factory.createPPr();
-        org.docx4j.wml.PPrBase.Spacing spacing = factory.createPPrBaseSpacing();
-        spacing.setBefore(BigInteger.valueOf(120));
-        spacing.setAfter(BigInteger.valueOf(120));
-        spacing.setLine(BigInteger.valueOf(240));
-        ppr.setSpacing(spacing);
-        p.setPPr(ppr);
-        return p;
-    }
-
     private long parseLongSafe(String raw) {
         if (raw == null || raw.trim().isEmpty()) return 0L;
         try {
@@ -1521,14 +1501,6 @@ public class DocxTemplateEngine {
         );
 
         return createDocxTableWithMultipleMergedTotals("Value Of The Property", headers, colWidths, rows, totals, 20, alignments);
-    }
-
-    private Tbl createDocxTableWithMergedTotal(List<String> headers, List<Integer> colWidths, List<List<String>> dataRows, String totalLabel, String totalValue, int fontSizeHalfPts, List<JcEnumeration> alignments) {
-        return createDocxTableWithMultipleMergedTotals(null, headers, colWidths, dataRows, List.of(Map.entry(totalLabel, totalValue)), fontSizeHalfPts, alignments);
-    }
-
-    private Tbl createDocxTableWithMultipleMergedTotals(List<String> headers, List<Integer> colWidths, List<List<String>> dataRows, List<Map.Entry<String, String>> totals, int fontSizeHalfPts, List<JcEnumeration> alignments) {
-        return createDocxTableWithMultipleMergedTotals(null, headers, colWidths, dataRows, totals, fontSizeHalfPts, alignments);
     }
 
     private Tbl createDocxTableWithMultipleMergedTotals(String tableTitle, List<String> headers, List<Integer> colWidths, List<List<String>> dataRows, List<Map.Entry<String, String>> totals, int fontSizeHalfPts, List<JcEnumeration> alignments) {
@@ -2452,20 +2424,6 @@ public class DocxTemplateEngine {
         return value;
     }
 
-    private void replaceDrawingInParagraph(P p, Object originalDrawingPart, Inline newInline) {
-        ClassFinder drawingFinder = new ClassFinder(Drawing.class);
-        new TraversalUtil(p, drawingFinder);
-        for (Object dObj : drawingFinder.results) {
-            Drawing drawing = (Drawing) dObj;
-            for (int j = 0; j < drawing.getAnchorOrInline().size(); j++) {
-                Object anchorOrInline = unwrap(drawing.getAnchorOrInline().get(j));
-                if (anchorOrInline == originalDrawingPart) {
-                    drawing.getAnchorOrInline().set(j, newInline);
-                    return;
-                }
-            }
-        }
-    }
 
     private byte[] getUploadedOrPlaceholderImage(String key, Map<String, byte[]> images, Map<String, String> inputs) {
         String upperKey = key.toUpperCase();

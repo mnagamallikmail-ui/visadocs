@@ -4,7 +4,6 @@ import com.provaluer.model.ValuationBuildingItem;
 import com.provaluer.model.ValuationData;
 import com.provaluer.model.ValuationLandItem;
 import com.provaluer.util.DocxTemplateEngine;
-import com.provaluer.util.IndianNumberFormatter;
 import org.docx4j.XmlUtils;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.P;
@@ -27,9 +26,6 @@ public class ValuationEnhancementV4Test {
 
     @Autowired
     private ValuationCalculationFormulaService formulaService;
-
-    @Autowired
-    private ValuationEngineService valuationEngineService;
 
     @Autowired
     private DocxTemplateEngine templateEngine;

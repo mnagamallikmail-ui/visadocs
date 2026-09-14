@@ -1,2 +1,0 @@
--- V2 migration is a no-op because its contents are now merged into V1__init_schema.sql
--- (status column on templates and template_id column on orders)

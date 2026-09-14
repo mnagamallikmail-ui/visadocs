@@ -1,7 +1,6 @@
 package com.provaluer.util;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import org.docx4j.Docx4J;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.openpackaging.parts.WordprocessingML.MainDocumentPart;
 import org.docx4j.wml.*;
@@ -9,7 +8,6 @@ import org.junit.jupiter.api.Test;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.math.BigDecimal;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -24,7 +22,6 @@ public class ReportGenerationUatTest {
         // 1. Create a mock DOCX template with all dynamic table directives
         WordprocessingMLPackage templatePkg = WordprocessingMLPackage.createPackage();
         MainDocumentPart mainPart = templatePkg.getMainDocumentPart();
-        ObjectFactory factory = new ObjectFactory();
 
         mainPart.addParagraphOfText("OFFICIAL VALUATION REPORT");
         mainPart.addParagraphOfText("Client: <<CLIENT_NAME>> | Report No: <<REPORT_NO>>");
@@ -93,7 +90,6 @@ public class ReportGenerationUatTest {
 
         int tableCount = 0;
         int blankParagraphCount = 0;
-        List<String> foundTableHeaders = new ArrayList<>();
         List<List<String>> allRows = new ArrayList<>();
 
         for (Object obj : content) {

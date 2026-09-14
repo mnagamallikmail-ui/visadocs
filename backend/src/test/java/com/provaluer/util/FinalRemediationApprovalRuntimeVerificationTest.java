@@ -1,14 +1,10 @@
 package com.provaluer.util;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.provaluer.service.ValuationEngineService;
-import org.docx4j.dml.wordprocessingDrawing.Anchor;
 import org.docx4j.dml.wordprocessingDrawing.Inline;
 import org.docx4j.finders.ClassFinder;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
-import org.docx4j.wml.P;
-import org.docx4j.wml.Tbl;
 import org.docx4j.wml.Text;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -20,7 +16,6 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.nio.file.Files;
-import java.util.Base64;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +27,6 @@ public class FinalRemediationApprovalRuntimeVerificationTest {
     private final DocxTemplateEngine templateEngine = new DocxTemplateEngine();
     private final DocxStructureParser parser = new DocxStructureParser();
     private final ValuationEngineService valuationEngine = new ValuationEngineService();
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private byte[] createDummyImage(int w, int h, Color color) throws Exception {
         BufferedImage img = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
@@ -185,11 +179,9 @@ public class FinalRemediationApprovalRuntimeVerificationTest {
         JsonNode parsedDom = parser.parseDocumentStructure(generatedDocx);
         assertNotNull(parsedDom);
         JsonNode sections = parsedDom.get("sections");
-        boolean certChecked = false;
         for (JsonNode sec : sections) {
             String title = sec.has("title") ? sec.get("title").asText() : "";
-            if (title.toUpperCase().contains("CERTIFICATE")) {
-                certChecked = true;
+            if (title.toUpperCase().contains("CERTIFICATE") || title.toUpperCase().contains("CERTIF")) {
                 // Verify no auto-injected composite tables inside certificate section
                 JsonNode elements = sec.get("elements");
                 int tblCount = 0;

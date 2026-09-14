@@ -25,9 +25,6 @@ import static org.junit.jupiter.api.Assertions.*;
 public class ValueOfThePropertyTableTest {
 
     @Autowired
-    private ValuationEngineService valuationEngineService;
-
-    @Autowired
     private DocxTemplateEngine templateEngine;
 
     @Test
@@ -127,6 +124,7 @@ public class ValueOfThePropertyTableTest {
         // 85,56,21,695 -> Say Value rounded to nearest Lakh = 85,56,00,000
         BigDecimal fVal = new BigDecimal("855621695.00");
         BigDecimal sVal = ValuationEngineService.computeSayValue(fVal);
+        assertEquals(new BigDecimal("855600000"), sVal);
         inputs.put("say_value", "85,56,00,000");
         inputs.put("say_value_words", "Rupees Eighty Five Crore Fifty Six Lakh Only");
 

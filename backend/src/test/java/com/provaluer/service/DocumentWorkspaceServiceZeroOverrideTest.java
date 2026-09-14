@@ -1,7 +1,6 @@
 package com.provaluer.service;
 
 import com.provaluer.dto.ValuationBundleResponse;
-import com.provaluer.model.Order;
 import com.provaluer.model.OrderInput;
 import com.provaluer.model.ValuationData;
 import com.provaluer.model.ValuationLandItem;

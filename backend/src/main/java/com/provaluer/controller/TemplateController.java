@@ -54,12 +54,6 @@ public class TemplateController {
     @Autowired
     private com.provaluer.repository.TemplateQuestionRepository templateQuestionRepository;
 
-    @Autowired
-    private com.provaluer.repository.DocumentStudioConfigRepository studioConfigRepository;
-
-    @Autowired
-    private org.springframework.jdbc.core.JdbcTemplate jdbcTemplate;
-
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private Long currentUserId() {

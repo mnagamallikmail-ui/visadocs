@@ -33,9 +33,6 @@ public class UserAuthenticationRestructureTest {
     private UserRepository userRepository;
 
     @Autowired
-    private com.provaluer.repository.PerformanceLedgerRepository performanceLedgerRepository;
-
-    @Autowired
     private ObjectMapper objectMapper;
 
     @Test

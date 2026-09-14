@@ -5,14 +5,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.provaluer.service.ValuationEngineService;
 import org.apache.pdfbox.Loader;
 import org.apache.pdfbox.pdmodel.PDDocument;
-import org.apache.pdfbox.text.PDFTextStripper;
 import org.docx4j.dml.wordprocessingDrawing.Anchor;
 import org.docx4j.dml.wordprocessingDrawing.Inline;
 import org.docx4j.finders.ClassFinder;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
-import org.docx4j.wml.P;
-import org.docx4j.wml.Tbl;
-import org.docx4j.wml.Text;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -46,15 +42,6 @@ public class ComprehensiveRuntimeReportVerificationTest {
         return baos.toByteArray();
     }
 
-    private String extractText(P p) {
-        StringBuilder sb = new StringBuilder();
-        ClassFinder cf = new ClassFinder(Text.class);
-        new org.docx4j.TraversalUtil(p, cf);
-        for (Object o : cf.results) {
-            sb.append(((Text) o).getValue()).append(" ");
-        }
-        return sb.toString().trim();
-    }
 
     @Test
     @DisplayName("RUNTIME PROOF: Comprehensive Verification of All 7 Open Items")
@@ -198,7 +185,6 @@ public class ComprehensiveRuntimeReportVerificationTest {
 
         JsonNode resultDom = parser.parseDocumentStructure(generatedDocx);
         JsonNode resultSections = resultDom.get("sections");
-        boolean certFound = false;
         boolean compTableInCert = false;
         boolean valSummaryTableInCert = false;
         List<String> generatedCertParagraphs = new ArrayList<>();
@@ -207,7 +193,6 @@ public class ComprehensiveRuntimeReportVerificationTest {
             JsonNode sec = resultSections.get(i);
             String title = sec.has("title") ? sec.get("title").asText() : "";
             if (title.toUpperCase().contains("CERTIF")) {
-                certFound = true;
                 System.out.println("-> Result Certificate Section " + i + ": [" + title + "]");
                 JsonNode elements = sec.get("elements");
                 if (elements != null) {
@@ -237,10 +222,8 @@ public class ComprehensiveRuntimeReportVerificationTest {
         assertFalse(valSummaryTableInCert, "Valuation Summary Table must NOT be present on Valuation Certificate Page");
 
         // Verify inline paragraph preservation: e.g. "This is to certify that..."
-        boolean foundCertifyParagraph = false;
         for (String pText : generatedCertParagraphs) {
             if (pText.toLowerCase().contains("certify") || pText.toLowerCase().contains("market value")) {
-                foundCertifyParagraph = true;
                 System.out.println("Found preserved inline paragraph: [" + pText + "]");
                 assertFalse(pText.contains("<<FAIR_VALUE>>"), "Placeholder <<FAIR_VALUE>> must be substituted");
             }

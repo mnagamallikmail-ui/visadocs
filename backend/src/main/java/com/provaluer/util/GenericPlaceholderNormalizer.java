@@ -29,7 +29,6 @@ public class GenericPlaceholderNormalizer {
             "PLINTH_AREA"
     );
 
-    private static final Pattern GENERIC_PATTERN = Pattern.compile("<<\\s*(" + String.join("|", GENERIC_TOKENS) + ")\\s*>>", Pattern.CASE_INSENSITIVE);
     private static final Pattern LEADING_BULLET_PATTERN = Pattern.compile("^(?:(?:[\\-\\•\\*]|(?:\\d+|[a-zA-Z])[\\.\\)\\-])\\s*)+");
     private static final Pattern YES_NO_PATTERN = Pattern.compile("(?i)\\b(yes\\s*/\\s*no|yes/no)\\b");
 

@@ -1,8 +1,6 @@
 package com.provaluer.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.provaluer.dto.DocumentWorkspaceResponse;
 import com.provaluer.dto.SaveDocumentValuesRequest;
 import com.provaluer.model.Order;
@@ -59,7 +57,6 @@ public class ProductionValuationReportUatTest {
     @Autowired
     private DocxPreviewGenerator docxPreviewGenerator;
 
-    private final ObjectMapper objectMapper = new ObjectMapper();
     private static final String PRODUCTION_DOCX_PATH = "D:\\naga\\Valuation Report.docx";
 
     private byte[] productionDocxBytes;

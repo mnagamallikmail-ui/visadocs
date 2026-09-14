@@ -12,7 +12,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -23,23 +22,12 @@ public class SystemResetAndPurgeVerificationTest {
     @Autowired private SuperAdminController superAdminController;
     @Autowired private UserRepository userRepository;
     @Autowired private OrderRepository orderRepository;
-    @Autowired private OrderInputRepository orderInputRepository;
-    @Autowired private OrderDocumentRepository orderDocumentRepository;
-    @Autowired private RevisionRepository revisionRepository;
-    @Autowired private TransactionRepository transactionRepository;
-    @Autowired private PerformanceLedgerRepository performanceLedgerRepository;
-    @Autowired private SystemSettingRepository systemSettingRepository;
     @Autowired private TemplateRepository templateRepository;
     @Autowired private TemplateVersionRepository templateVersionRepository;
-    @Autowired private TemplateQuestionRepository templateQuestionRepository;
-    @Autowired private DocumentStudioConfigRepository documentStudioConfigRepository;
     @Autowired private ValuationDataRepository valuationDataRepository;
     @Autowired private ValuationLandItemRepository valuationLandItemRepository;
     @Autowired private ValuationBuildingItemRepository valuationBuildingItemRepository;
-    @Autowired private ValuationComparableSaleRepository valuationComparableSaleRepository;
     @Autowired private ValuationSnapshotRepository valuationSnapshotRepository;
-    @Autowired private ValuationAuditLogRepository valuationAuditLogRepository;
-    @Autowired private AuditLogRepository auditLogRepository;
 
     @Test
     @Transactional

@@ -7,7 +7,6 @@ import com.provaluer.util.DocxTemplateEngine;
 import org.docx4j.XmlUtils;
 import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
 import org.docx4j.wml.P;
-import org.docx4j.wml.Tbl;
 import org.docx4j.wml.Text;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -87,17 +86,17 @@ public class CompositeValuationEngineTest {
         // Raw Fair Value = 98,40,000 + 13,36,250 = 1,11,76,250
         assertEquals(0, new BigDecimal("11176250.00").compareTo(data.getRawFairValue()));
 
-        // Say Fair Value (Tiered rounding for >= 1 Crore -> nearest 1 Lakh) = 1,12,00,000
-        assertEquals(0, new BigDecimal("11200000.00").compareTo(data.getSayFairValue()));
+        // Say Fair Value (Authoritative rounding to nearest ₹ 10,000) = 1,11,80,000
+        assertEquals(0, new BigDecimal("11180000.00").compareTo(data.getSayFairValue()));
 
         // Fair Value in Summary consumes Say Fair Value
-        assertEquals(0, new BigDecimal("11200000.00").compareTo(data.getFairValue()));
+        assertEquals(0, new BigDecimal("11180000.00").compareTo(data.getFairValue()));
 
-        // Realizable Value = 1,12,00,000 * 85% = 95,20,000
-        assertEquals(0, new BigDecimal("9520000.00").compareTo(data.getRealizableValue()));
+        // Realizable Value = 1,11,80,000 * 85% = 95,03,000
+        assertEquals(0, new BigDecimal("9503000.00").compareTo(data.getRealizableValue()));
 
-        // Distress Sale Value = 1,12,00,000 * 75% = 84,00,000
-        assertEquals(0, new BigDecimal("8400000.00").compareTo(data.getDistressSaleValue()));
+        // Distress Sale Value = 1,11,80,000 * 75% = 83,85,000
+        assertEquals(0, new BigDecimal("8385000.00").compareTo(data.getDistressSaleValue()));
 
         // Government Value = Area * Government Composite Rate = 1,200 * 4,687.50 = 56,25,000
         assertEquals(0, new BigDecimal("5625000.00").compareTo(data.getGovernmentValue()));

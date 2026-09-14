@@ -1,7 +1,6 @@
 package com.provaluer.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.provaluer.dto.DocumentWorkspaceResponse;
 import com.provaluer.dto.VisualPreviewResponse;
 import com.provaluer.model.Order;
@@ -11,12 +10,10 @@ import com.provaluer.model.User;
 import com.provaluer.model.UserRole;
 import com.provaluer.repository.OrderInputRepository;
 import com.provaluer.repository.OrderRepository;
-import com.provaluer.repository.TemplateQuestionRepository;
 import com.provaluer.repository.TemplateRepository;
 import com.provaluer.repository.UserRepository;
 import com.provaluer.security.UserDetailsImpl;
 import com.provaluer.util.DocxStructureParser;
-import com.provaluer.util.DocxTemplateEngine;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -25,16 +22,10 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
-import java.util.zip.GZIPOutputStream;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -46,16 +37,7 @@ public class WorkspacePerformanceBenchmarkTest {
     private DocxStructureParser docxStructureParser;
 
     @Autowired
-    private DocxTemplateEngine templateEngine;
-
-    @Autowired
     private DocumentWorkspaceService documentWorkspaceService;
-
-    @Autowired
-    private DocxPreviewGenerator previewGenerator;
-
-    @Autowired
-    private DocxCoordinateExtractor coordinateExtractor;
 
     @Autowired
     private TemplateRepository templateRepository;
@@ -69,10 +51,6 @@ public class WorkspacePerformanceBenchmarkTest {
     @Autowired
     private UserRepository userRepository;
 
-    @Autowired
-    private TemplateQuestionRepository templateQuestionRepository;
-
-    private final ObjectMapper objectMapper = new ObjectMapper();
     private static final String PRODUCTION_DOCX_PATH = "D:\\naga\\Valuation Report.docx";
 
     private byte[] docxBytes;
@@ -128,14 +106,6 @@ public class WorkspacePerformanceBenchmarkTest {
         OrderInput oi3 = new OrderInput(order.getId(), "VALUATION_PURPOSE", "Mortgage Assessment");
         OrderInput oi4 = new OrderInput(order.getId(), "INSPECTION_DATE", "2026-08-30");
         orderInputRepository.saveAll(List.of(oi1, oi2, oi3, oi4));
-    }
-
-    private static byte[] gzipCompress(byte[] data) throws IOException {
-        ByteArrayOutputStream baos = new ByteArrayOutputStream();
-        try (GZIPOutputStream gzos = new GZIPOutputStream(baos)) {
-            gzos.write(data);
-        }
-        return baos.toByteArray();
     }
 
     @Test
