@@ -82,7 +82,22 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
         clean == 'COMPOSITE_TABLE') {
       return 'COMPOSITE_TABLE';
     }
-    if (clean.startsWith('IMG_') || clean.endsWith('_IMAGE') || clean.contains('PHOTO') || clean.contains('SIGNATURE')) {
+    if (clean == 'TEXT' || clean.startsWith('TEXT_') || clean == 'TXT' || clean.startsWith('TXT_') || clean == 'TEXT_PLACEHOLDER') {
+      return 'TEXT';
+    }
+    if (clean == 'OWNER_NAME' || clean == 'PROPERTY_REMARKS' || clean.contains('NAME') || clean.contains('REMARK') || clean.contains('ADDRESS')) {
+      return 'TEXT';
+    }
+    if (clean.startsWith('IMG_') ||
+        clean.startsWith('IMAGE_') ||
+        clean.endsWith('_IMAGE') ||
+        clean.endsWith('_IMG') ||
+        clean.startsWith('PHOTO_') ||
+        clean.endsWith('_PHOTO') ||
+        clean == 'PHOTO' ||
+        clean == 'PROPERTY_PHOTO' ||
+        clean.contains('SIGNATURE') ||
+        clean.contains('SELFIE')) {
       return 'IMAGE';
     }
     if (DatePickerHelper.isDateKey(clean)) {

@@ -84,26 +84,63 @@ class DatePickerHelper {
   }
 
   /// Centralized date placeholder classification rule:
-  /// Matches 'DATE', '*DATE*', 'DT_*', '*_DT', '*_DT_*'.
-  /// Rejects composite tables, images, numbers, etc.
+  /// Matches 'DATE', '*DATE*', 'DT_*', '*_DT', '*_DT_*', and known date aliases.
+  /// Strictly rejects text, names, remarks, addresses, composite tables, images, numbers.
   static bool isDateKey(String key, [String? fieldType]) {
     final k = key.trim().toUpperCase().replaceAll('<<', '').replaceAll('>>', '');
-    if (k == 'COMPOSITE_PROPERTY_TABLE' ||
+    if (k.isEmpty ||
+        k == 'COMPOSITE_PROPERTY_TABLE' ||
         k == 'DYNAMIC_COMPOSITE_PROPERTY_TABLE' ||
         k == 'COMPOSITE_TABLE') {
       return false;
     }
-    if (k == 'TEXT' || k.startsWith('TEXT_') || k == 'TXT' || k.startsWith('TXT_')) {
+    // Explicit non-date placeholders must never become DATE
+    if (k == 'TEXT' ||
+        k.startsWith('TEXT_') ||
+        k.endsWith('_TEXT') ||
+        k == 'TXT' ||
+        k.startsWith('TXT_') ||
+        k.endsWith('_TXT') ||
+        k == 'TEXT_PLACEHOLDER' ||
+        k == 'OWNER_NAME' ||
+        k == 'PROPERTY_REMARKS' ||
+        k.contains('NAME') ||
+        k.contains('REMARK') ||
+        k.contains('ADDRESS') ||
+        k.contains('RATE') ||
+        k.contains('VALUE') ||
+        k.contains('AREA') ||
+        k.contains('DESC') ||
+        k.contains('COMMENT') ||
+        k.contains('NOTE') ||
+        k.contains('CAPTION')) {
       return false;
     }
-    final t = (fieldType ?? '').trim().toUpperCase();
-    if (t == 'DATE') return true;
 
-    return k == 'DATE' ||
-        k.contains('DATE') ||
+    final isExplicitDate = k == 'DATE' ||
+        k.startsWith('DATE_') ||
+        k.endsWith('_DATE') ||
+        k.contains('_DATE_') ||
         k.startsWith('DT_') ||
         k.endsWith('_DT') ||
-        k.contains('_DT_');
+        k.contains('_DT_') ||
+        k == 'INSPECTION_DATE' ||
+        k == 'VALUATION_DATE' ||
+        k == 'REPORT_DATE' ||
+        k == 'VISIT_DATE' ||
+        k == 'APPLICATION_DATE' ||
+        k == 'LEGAL_DATE' ||
+        k == 'DATE_OF_INSPECTION' ||
+        k == 'DATE_OF_REPORT' ||
+        k == 'DATE_OF_VALUATION' ||
+        k == 'DATE_OF_VISIT';
+
+    if (isExplicitDate) return true;
+
+    final t = (fieldType ?? '').trim().toUpperCase();
+    if (t == 'DATE' && k.contains('DATE')) return true;
+
+    return false;
   }
 
   /// Displays the full-featured, accessible calendar picker dialog:

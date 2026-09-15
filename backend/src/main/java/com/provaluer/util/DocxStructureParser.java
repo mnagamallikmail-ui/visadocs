@@ -419,19 +419,49 @@ public class DocxStructureParser {
     public static boolean isTextPlaceholder(String key) {
         if (key == null) return false;
         String upper = key.toUpperCase().trim();
-        return upper.equals("TEXT") || upper.startsWith("TEXT_") || upper.equals("TXT") || upper.startsWith("TXT_");
+        return upper.equals("TEXT") || upper.startsWith("TEXT_") || upper.endsWith("_TEXT")
+                || upper.equals("TXT") || upper.startsWith("TXT_") || upper.endsWith("_TXT")
+                || upper.equals("TEXT_PLACEHOLDER");
+    }
+
+    public static boolean isDatePlaceholder(String key) {
+        if (key == null) return false;
+        String upper = key.toUpperCase().trim();
+        if (isTextPlaceholder(upper)) return false;
+        if (upper.equals("OWNER_NAME") || upper.equals("BANK_NAME") || upper.equals("CLIENT_NAME")
+                || upper.equals("BRANCH_NAME") || upper.equals("REMARKS") || upper.equals("PROPERTY_REMARKS")
+                || upper.contains("ADDRESS") || upper.contains("RATE") || upper.contains("VALUE")
+                || upper.contains("AREA") || upper.contains("DESC") || upper.contains("COMMENT")
+                || upper.contains("NOTE") || upper.contains("NAME")) {
+            return false;
+        }
+        return upper.startsWith("DATE_") || upper.equals("DATE") || upper.endsWith("_DATE") || upper.contains("_DATE_")
+                || upper.startsWith("DT_") || upper.endsWith("_DT") || upper.contains("_DT_")
+                || upper.equals("INSPECTION_DATE") || upper.equals("VALUATION_DATE")
+                || upper.equals("REPORT_DATE") || upper.equals("VISIT_DATE")
+                || upper.equals("APPLICATION_DATE") || upper.equals("LEGAL_DATE")
+                || upper.equals("DATE_OF_INSPECTION") || upper.equals("DATE_OF_REPORT")
+                || upper.equals("DATE_OF_VALUATION") || upper.equals("DATE_OF_VISIT");
     }
 
     public static boolean isExplicitImagePlaceholder(String key) {
         if (key == null) return false;
         String upper = key.toUpperCase().trim();
         if (isTextPlaceholder(upper)) return false;
+        if (upper.equals("OWNER_NAME") || upper.equals("BANK_NAME") || upper.equals("CLIENT_NAME")
+                || upper.equals("BRANCH_NAME") || upper.equals("REMARKS") || upper.equals("PROPERTY_REMARKS")
+                || upper.contains("ADDRESS") || upper.contains("RATE") || upper.contains("VALUE")
+                || upper.contains("AREA") || upper.contains("DESC") || upper.contains("COMMENT")
+                || upper.contains("NOTE") || upper.contains("CAPTION") || upper.contains("NAME")) {
+            return false;
+        }
         return upper.startsWith("IMG_") || upper.startsWith("IMAGE_") || upper.startsWith("PHOTO_")
                 || upper.startsWith("PICTURE_") || upper.startsWith("MAP_")
                 || upper.startsWith("LOGO_") || upper.endsWith("_IMAGE") || upper.endsWith("_IMG")
-                || upper.endsWith("_PHOTO") || upper.contains("PHOTO") || upper.contains("SIGNATURE")
+                || upper.endsWith("_PHOTO") || upper.equals("PHOTO") || upper.equals("IMAGE")
                 || upper.equals("PROPERTY_PHOTO") || upper.equals("LOCATION_MAP") || upper.equals("SITE_PLAN")
-                || upper.endsWith("_MAP") || upper.endsWith("_PLAN") || upper.contains("SITE_PHOTO");
+                || upper.endsWith("_MAP") || upper.endsWith("_PLAN") || upper.contains("SITE_PHOTO")
+                || upper.contains("SIGNATURE") || upper.contains("SELFIE");
     }
 
     private boolean isLikelyImageKey(String key) {
@@ -966,7 +996,7 @@ public class DocxStructureParser {
         if (isExplicitImagePlaceholder(upper)) {
             return "IMAGE";
         }
-        if (upper.contains("DATE")) {
+        if (isDatePlaceholder(upper)) {
             return "DATE";
         }
         if (upper.contains("AREA") || upper.contains("RATE") || upper.contains("VALUE") ||

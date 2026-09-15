@@ -183,9 +183,7 @@ class DocumentWorkspaceVm {
               if (upperPKeys.contains('LAND_TABLE') || upperPKeys.contains('DYNAMIC_LAND_TABLE') ||
                   upperPKeys.contains('BUILDING_TABLE') || upperPKeys.contains('DYNAMIC_BUILDING_TABLE') ||
                   upperPKeys.contains('VALUATION_SUMMARY_TABLE') || upperPKeys.contains('DYNAMIC_VALUATION_SUMMARY_TABLE') ||
-                  upperPKeys.contains('PROPERTY_VALUE_TABLE') || upperPKeys.contains('VALUE_OF_THE_PROPERTY') ||
-                  upperPKeys.contains('VALUE_OF_THE_PROPERTY_TABLE') ||
-                  text.toUpperCase().contains('VALUE OF THE PROPERTY')) {
+                  upperPKeys.contains('PROPERTY_VALUE_TABLE') || upperPKeys.contains('DYNAMIC_PROPERTY_VALUE_TABLE')) {
                 if (!compositeBlockAdded) {
                   orderedBlocks.add(ValuationCompositeBlockVm(el.id));
                   compositeBlockAdded = true;
@@ -213,9 +211,7 @@ class DocumentWorkspaceVm {
               continue;
             }
             if (upperPKeys.contains('PROPERTY_VALUE_TABLE') ||
-                upperPKeys.contains('VALUE_OF_THE_PROPERTY') ||
-                upperPKeys.contains('VALUE_OF_THE_PROPERTY_TABLE') ||
-                text.toUpperCase().contains('VALUE OF THE PROPERTY')) {
+                upperPKeys.contains('DYNAMIC_PROPERTY_VALUE_TABLE')) {
               orderedBlocks.add(ValuationPropertyBlockVm(el.id));
               continue;
             }
@@ -242,14 +238,41 @@ class DocumentWorkspaceVm {
             }
 
             String fieldType = summaryItem?.type ?? 'TEXT';
-            if (kUpper == 'TEXT' || kUpper.startsWith('TEXT_') || kUpper == 'TXT' || kUpper.startsWith('TXT_')) {
+            if (kUpper == 'TEXT' || kUpper.startsWith('TEXT_') || kUpper == 'TXT' || kUpper.startsWith('TXT_') || kUpper == 'TEXT_PLACEHOLDER') {
               fieldType = 'TEXT';
-            } else if (fieldType.toUpperCase() == 'IMAGE' ||
-                kUpper.startsWith('IMG_') ||
+            } else if (kUpper == 'OWNER_NAME' ||
+                kUpper == 'PROPERTY_REMARKS' ||
+                kUpper.contains('NAME') ||
+                kUpper.contains('REMARK') ||
+                kUpper.contains('ADDRESS') ||
+                kUpper.contains('DESC') ||
+                kUpper.contains('COMMENT') ||
+                kUpper.contains('NOTE')) {
+              if (DatePickerHelper.isDateKey(kUpper)) {
+                fieldType = 'DATE';
+              } else if (kUpper.contains('OBSERVATION') ||
+                  kUpper.contains('ADVANTAGE') ||
+                  kUpper.contains('DISADVANTAGE') ||
+                  kUpper.contains('DOCUMENT') ||
+                  kUpper.contains('DESCRIPTION') ||
+                  kUpper.contains('ADDRESS')) {
+                fieldType = 'MULTILINE';
+              } else {
+                fieldType = 'TEXT';
+              }
+            } else if (kUpper.startsWith('IMG_') ||
+                kUpper.startsWith('IMAGE_') ||
                 kUpper.endsWith('_IMAGE') ||
-                kUpper.contains('PHOTO') ||
+                kUpper.endsWith('_IMG') ||
+                kUpper.startsWith('PHOTO_') ||
+                kUpper.endsWith('_PHOTO') ||
+                kUpper == 'PHOTO' ||
+                kUpper == 'IMAGE' ||
+                kUpper == 'IMG' ||
+                kUpper == 'PROPERTY_PHOTO' ||
+                kUpper.contains('SIGNATURE') ||
                 kUpper.contains('SELFIE') ||
-                kUpper.contains('SIGNATURE')) {
+                kUpper.startsWith('PICTURE_')) {
               fieldType = 'IMAGE';
             } else if (DatePickerHelper.isDateKey(kUpper, fieldType)) {
               fieldType = 'DATE';
@@ -260,6 +283,8 @@ class DocumentWorkspaceVm {
                 kUpper.contains('DESCRIPTION') ||
                 kUpper.contains('ADDRESS')) {
               fieldType = 'MULTILINE';
+            } else {
+              fieldType = 'TEXT';
             }
 
             final fVm = InputFieldVm(
@@ -280,17 +305,24 @@ class DocumentWorkspaceVm {
           if (el.runs.isNotEmpty) {
             for (final run in el.runs) {
               final runKey = (run.placeholderKey ?? '').toUpperCase().trim();
-              final isRunImage = run.isImage ||
-                  (runKey.isNotEmpty &&
-                      (runKey.startsWith('IMG_') ||
-                          runKey.startsWith('IMAGE_') ||
-                          runKey.endsWith('_IMAGE') ||
-                          runKey.endsWith('_IMG') ||
-                          runKey.contains('PHOTO') ||
-                          runKey.contains('SELFIE') ||
-                          runKey.contains('SIGNATURE') ||
-                          runKey == 'IMAGE' ||
-                          runKey == 'IMG'));
+              final isRunImage = !runKey.contains('NAME') &&
+                  !runKey.contains('REMARK') &&
+                  !runKey.contains('TEXT') &&
+                  !runKey.contains('ADDRESS') &&
+                  (run.isImage ||
+                      (runKey.isNotEmpty &&
+                          (runKey.startsWith('IMG_') ||
+                              runKey.startsWith('IMAGE_') ||
+                              runKey.endsWith('_IMAGE') ||
+                              runKey.endsWith('_IMG') ||
+                              runKey.startsWith('PHOTO_') ||
+                              runKey.endsWith('_PHOTO') ||
+                              runKey == 'PHOTO' ||
+                              runKey == 'PROPERTY_PHOTO' ||
+                              runKey.contains('SELFIE') ||
+                              runKey.contains('SIGNATURE') ||
+                              runKey == 'IMAGE' ||
+                              runKey == 'IMG')));
 
               if (isRunImage) {
                 final keyUpper = (run.placeholderKey ?? 'IMAGE').toUpperCase().trim();
@@ -821,8 +853,16 @@ class TableRowVm {
             prompt = DocumentWorkspaceVm.toHumanizedLabel(keyUpper);
           }
 
-          final isGenericText = keyUpper == 'TEXT' || keyUpper.startsWith('TEXT_') || keyUpper == 'TXT' || keyUpper.startsWith('TXT_');
-          final resolvedFieldType = isGenericText ? 'TEXT' : b.fieldType;
+          final isGenericText = keyUpper == 'TEXT' || keyUpper.startsWith('TEXT_') || keyUpper == 'TXT' || keyUpper.startsWith('TXT_') || keyUpper == 'TEXT_PLACEHOLDER';
+          final isExplicitNonImageNonDate = keyUpper == 'OWNER_NAME' ||
+              keyUpper == 'PROPERTY_REMARKS' ||
+              keyUpper.contains('NAME') ||
+              keyUpper.contains('REMARK') ||
+              keyUpper.contains('ADDRESS');
+          String resolvedFieldType = b.fieldType;
+          if (isGenericText || (isExplicitNonImageNonDate && (b.fieldType == 'IMAGE' || b.fieldType == 'DATE'))) {
+            resolvedFieldType = 'TEXT';
+          }
 
           fields.add(InputFieldVm(
             key: keyUpper,
@@ -899,24 +939,11 @@ class InputFieldVm {
 
   bool get isImage {
     if (isCompositeTable) return false;
-    final k = key.toUpperCase();
-    if (isGenericText) return false;
-    final t = fieldType.toUpperCase();
-    if (t == 'IMAGE') return true;
-    final isExplicitImageKey = k.startsWith('IMG_') ||
-        k.startsWith('IMAGE_') ||
-        k == 'IMAGE' ||
-        k == 'IMG' ||
-        k.endsWith('_IMAGE') ||
-        k.endsWith('_IMG') ||
-        k.contains('_IMAGE_') ||
-        k.contains('_IMG_') ||
-        k.contains('PHOTO') ||
-        k.contains('SELFIE') ||
-        k.contains('SIGNATURE') ||
-        k.contains('PICTURE');
-    if (isExplicitImageKey) return true;
-    if (k.contains('CAPTION') ||
+    final k = key.toUpperCase().trim().replaceAll('<<', '').replaceAll('>>', '');
+    if (isGenericText || k == 'TEXT_PLACEHOLDER') return false;
+    if (k == 'OWNER_NAME' ||
+        k == 'PROPERTY_REMARKS' ||
+        k.contains('CAPTION') ||
         k.contains('DESC') ||
         k.contains('REMARK') ||
         k.contains('NOTE') ||
@@ -926,10 +953,28 @@ class InputFieldVm {
         k.contains('NAME') ||
         k.contains('RATE') ||
         k.contains('VALUE') ||
-        k.contains('AREA')) {
+        k.contains('AREA') ||
+        k.contains('DATE')) {
       return false;
     }
-    if (t == 'MULTILINE' || t == 'NUMBER' || t == 'DATE') return false;
+    final isExplicitImageKey = k.startsWith('IMG_') ||
+        k.startsWith('IMAGE_') ||
+        k == 'IMAGE' ||
+        k == 'IMG' ||
+        k.endsWith('_IMAGE') ||
+        k.endsWith('_IMG') ||
+        k.contains('_IMAGE_') ||
+        k.contains('_IMG_') ||
+        k.startsWith('PHOTO_') ||
+        k.endsWith('_PHOTO') ||
+        k == 'PHOTO' ||
+        k == 'PROPERTY_PHOTO' ||
+        k.contains('SELFIE') ||
+        k.contains('SIGNATURE') ||
+        k.startsWith('PICTURE_');
+    if (isExplicitImageKey) return true;
+    final t = fieldType.toUpperCase();
+    if (t == 'IMAGE') return true;
     return false;
   }
 

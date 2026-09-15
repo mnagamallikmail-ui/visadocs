@@ -165,21 +165,34 @@ class StudioRun {
         rawKeyUpper.contains('REMARK') ||
         rawKeyUpper.contains('NOTE') ||
         rawKeyUpper.contains('COMMENT') ||
-        rawKeyUpper.contains('TEXT');
+        rawKeyUpper.contains('TEXT') ||
+        rawKeyUpper.contains('NAME') ||
+        rawKeyUpper.contains('ADDRESS') ||
+        rawKeyUpper.contains('RATE') ||
+        rawKeyUpper.contains('VALUE') ||
+        rawKeyUpper.contains('AREA') ||
+        rawKeyUpper.contains('DATE') ||
+        rawKeyUpper == 'OWNER_NAME' ||
+        rawKeyUpper == 'PROPERTY_REMARKS' ||
+        rawKeyUpper == 'TEXT_PLACEHOLDER';
+
+    final isExplicitImageKey = placeholderKey != null &&
+        (rawKeyUpper.startsWith('IMG_') ||
+            rawKeyUpper.startsWith('IMAGE_') ||
+            rawKeyUpper.endsWith('_IMAGE') ||
+            rawKeyUpper.endsWith('_IMG') ||
+            rawKeyUpper.startsWith('PHOTO_') ||
+            rawKeyUpper.endsWith('_PHOTO') ||
+            rawKeyUpper == 'PHOTO' ||
+            rawKeyUpper == 'PROPERTY_PHOTO' ||
+            rawKeyUpper.contains('SELFIE') ||
+            rawKeyUpper.contains('SIGNATURE') ||
+            rawKeyUpper == 'IMAGE' ||
+            rawKeyUpper == 'IMG');
 
     final isImage = !isExplicitText &&
-        (type == 'IMAGE' ||
-            fieldType == 'IMAGE' ||
-            (placeholderKey != null &&
-                (rawKeyUpper.startsWith('IMG_') ||
-                    rawKeyUpper.startsWith('IMAGE_') ||
-                    rawKeyUpper.endsWith('_IMAGE') ||
-                    rawKeyUpper.endsWith('_IMG') ||
-                    rawKeyUpper.contains('PHOTO') ||
-                    rawKeyUpper.contains('SELFIE') ||
-                    rawKeyUpper.contains('SIGNATURE') ||
-                    rawKeyUpper == 'IMAGE' ||
-                    rawKeyUpper == 'IMG')));
+        (isExplicitImageKey ||
+            (placeholderKey == null && (type == 'IMAGE' || fieldType == 'IMAGE')));
 
     return StudioRun(
       text: json['text'] as String? ?? (placeholderKey != null ? '<<$placeholderKey>>' : ''),

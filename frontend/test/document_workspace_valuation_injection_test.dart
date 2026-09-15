@@ -32,11 +32,7 @@ void main() {
               StudioParagraph(
                 id: 'p_prop_value_directive',
                 runs: [
-                  StudioRun(text: 'VALUE OF THE PROPERTY', isPlaceholder: false),
-                  StudioRun(text: '<<total_land_value>>', isPlaceholder: true, placeholderKey: 'TOTAL_LAND_VALUE'),
-                  StudioRun(text: '<<total_building_value>>', isPlaceholder: true, placeholderKey: 'TOTAL_BUILDING_VALUE'),
-                  StudioRun(text: '<<fair_value>>', isPlaceholder: true, placeholderKey: 'FAIR_VALUE'),
-                  StudioRun(text: '<<say_value>>', isPlaceholder: true, placeholderKey: 'SAY_VALUE'),
+                  StudioRun(text: '<<PROPERTY_VALUE_TABLE>>', isPlaceholder: true, placeholderKey: 'PROPERTY_VALUE_TABLE'),
                 ],
               ),
               StudioParagraph(
@@ -57,6 +53,7 @@ void main() {
         placeholdersSummary: [
           PlaceholderSummaryItem(key: 'LAND_TABLE', label: 'Land Table', occurrences: 1, type: 'DYNAMIC_LAND_TABLE'),
           PlaceholderSummaryItem(key: 'BUILDING_TABLE', label: 'Building Table', occurrences: 1, type: 'DYNAMIC_BUILDING_TABLE'),
+          PlaceholderSummaryItem(key: 'PROPERTY_VALUE_TABLE', label: 'Property Value Table', occurrences: 1, type: 'DYNAMIC_PROPERTY_VALUE_TABLE'),
           PlaceholderSummaryItem(key: 'VALUATION_SUMMARY_TABLE', label: 'Valuation Summary Table', occurrences: 1, type: 'DYNAMIC_VALUATION_SUMMARY_TABLE'),
           PlaceholderSummaryItem(key: 'TOTAL_LAND_VALUE', label: 'Total Land Value', occurrences: 1, type: 'CALCULATED'),
           PlaceholderSummaryItem(key: 'TOTAL_BUILDING_VALUE', label: 'Total Building Value', occurrences: 1, type: 'CALCULATED'),
@@ -110,6 +107,35 @@ void main() {
       expect(allInputKeys.contains('LAND_TABLE'), isFalse, reason: 'LAND_TABLE directive must not be a question card');
       expect(allInputKeys.contains('BUILDING_TABLE'), isFalse, reason: 'BUILDING_TABLE directive must not be a question card');
       expect(allInputKeys.contains('VALUATION_SUMMARY_TABLE'), isFalse, reason: 'VALUATION_SUMMARY_TABLE directive must not be a question card');
+    });
+
+    test('DOM Parser does NOT generate ValuationPropertyBlockVm when paragraph text is VALUE OF THE PROPERTY without placeholder', () {
+      final dom = StudioDocumentModel(
+        sections: [
+          StudioSection(
+            sectionIndex: 0,
+            title: 'VALUATION SECTION',
+            elements: [
+              StudioParagraph(
+                id: 'p_plain_heading',
+                runs: [
+                  StudioRun(text: 'Value of the Property', isPlaceholder: false),
+                ],
+              ),
+            ],
+          ),
+        ],
+        placeholdersSummary: [],
+      );
+
+      final vm = DocumentWorkspaceVm.fromDocumentDom(dom, {});
+      final section = vm.sections.first;
+
+      final propBlocks = section.orderedBlocks.whereType<ValuationPropertyBlockVm>().toList();
+      final paragraphBlocks = section.orderedBlocks.whereType<ParagraphBlockWrapperVm>().toList();
+
+      expect(propBlocks.isEmpty, isTrue, reason: 'Must NOT generate ValuationPropertyBlockVm without explicit <<PROPERTY_VALUE_TABLE>> placeholder');
+      expect(paragraphBlocks.length, 1, reason: 'Plain heading must remain a standard paragraph block');
     });
 
     testWidgets('DocumentTableWorkspaceWidget renders Land, Building, Property Value, and Summary sections inline', (tester) async {

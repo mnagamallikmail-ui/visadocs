@@ -469,6 +469,79 @@ public class DocxStructureParserTest {
         assertEquals("TEXT", summary.get(0).get("type").asText());
     }
 
+    @Test
+    @DisplayName("Critical Defect Verification: Adjacent Table Labels Never Alter Placeholder Classification")
+    public void testTableAdjacentLabelsDoNotAlterPlaceholderType() throws Exception {
+        WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.createPackage();
+        Tbl tbl = factory.createTbl();
+
+        // Row 1: Photograph | <<OWNER_NAME>> -> TEXT
+        Tr r1 = factory.createTr();
+        r1.getContent().add(createCellWithText("Photograph"));
+        r1.getContent().add(createCellWithText("<<OWNER_NAME>>"));
+        tbl.getContent().add(r1);
+
+        // Row 2: Date of Inspection | <<PROPERTY_REMARKS>> -> TEXT
+        Tr r2 = factory.createTr();
+        r2.getContent().add(createCellWithText("Date of Inspection"));
+        r2.getContent().add(createCellWithText("<<PROPERTY_REMARKS>>"));
+        tbl.getContent().add(r2);
+
+        // Row 3: Date of Inspection | <<DATE_OF_INSPECTION>> -> DATE
+        Tr r3 = factory.createTr();
+        r3.getContent().add(createCellWithText("Date of Inspection"));
+        r3.getContent().add(createCellWithText("<<DATE_OF_INSPECTION>>"));
+        tbl.getContent().add(r3);
+
+        // Row 4: Photograph | <<IMG_SITE_1>> -> IMAGE
+        Tr r4 = factory.createTr();
+        r4.getContent().add(createCellWithText("Photograph"));
+        r4.getContent().add(createCellWithText("<<IMG_SITE_1>>"));
+        tbl.getContent().add(r4);
+
+        // Row 5: Photograph | <<TEXT_PLACEHOLDER>> -> TEXT
+        Tr r5 = factory.createTr();
+        r5.getContent().add(createCellWithText("Photograph"));
+        r5.getContent().add(createCellWithText("<<TEXT_PLACEHOLDER>>"));
+        tbl.getContent().add(r5);
+
+        // Row 6: Date | <<TEXT_PLACEHOLDER>> -> TEXT
+        Tr r6 = factory.createTr();
+        r6.getContent().add(createCellWithText("Date"));
+        r6.getContent().add(createCellWithText("<<TEXT_PLACEHOLDER>>"));
+        tbl.getContent().add(r6);
+
+        // Row 7: Image | <<TEXT_PLACEHOLDER>> -> TEXT
+        Tr r7 = factory.createTr();
+        r7.getContent().add(createCellWithText("Image"));
+        r7.getContent().add(createCellWithText("<<TEXT_PLACEHOLDER>>"));
+        tbl.getContent().add(r7);
+
+        wordMLPackage.getMainDocumentPart().getContent().add(tbl);
+
+        byte[] bytes = packageToBytes(wordMLPackage);
+        JsonNode root = parser.parseDocumentStructure(bytes);
+
+        JsonNode summary = root.get("placeholdersSummary");
+        assertNotNull(summary);
+
+        for (JsonNode item : summary) {
+            String key = item.get("key").asText();
+            String type = item.get("type").asText();
+            if ("OWNER_NAME".equals(key)) {
+                assertEquals("TEXT", type, "OWNER_NAME must be TEXT despite Photograph label");
+            } else if ("PROPERTY_REMARKS".equals(key)) {
+                assertEquals("TEXT", type, "PROPERTY_REMARKS must be TEXT despite Date of Inspection label");
+            } else if ("DATE_OF_INSPECTION".equals(key)) {
+                assertEquals("DATE", type, "DATE_OF_INSPECTION must be DATE");
+            } else if ("IMG_SITE_1".equals(key)) {
+                assertEquals("IMAGE", type, "IMG_SITE_1 must be IMAGE");
+            } else if ("TEXT_PLACEHOLDER".equals(key)) {
+                assertEquals("TEXT", type, "TEXT_PLACEHOLDER must remain TEXT despite adjacent labels");
+            }
+        }
+    }
+
     private Tc createCellWithText(String text) {
         Tc cell = factory.createTc();
         P p = factory.createP();

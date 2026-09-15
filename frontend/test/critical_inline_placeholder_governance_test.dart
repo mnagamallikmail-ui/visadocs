@@ -6,6 +6,7 @@ import 'package:provaluer_frontend/features/document_workspace/providers/documen
 import 'package:provaluer_frontend/features/document_workspace/widgets/document_input_slot_widget.dart';
 import 'package:provaluer_frontend/features/document_workspace/widgets/inline_editable_placeholder_widget.dart';
 import 'package:provaluer_frontend/utils/date_picker_helper.dart';
+import 'package:provaluer_frontend/features/document_studio/models/studio_document_model.dart';
 import 'package:provider/provider.dart';
 
 void main() {
@@ -230,6 +231,273 @@ void main() {
       final textField = tester.widget<TextField>(find.byType(TextField));
       expect(textField.minLines, equals(1), reason: 'REMARKS must start single-line');
       expect(textField.maxLines, isNull, reason: 'REMARKS must auto-expand dynamically');
+    });
+
+    group('CRITICAL DEFECT FIX: PLACEHOLDER CLASSIFICATION GOVERNANCE', () {
+      test('Photograph | <<OWNER_NAME>> -> Expected: TEXT', () {
+        final vm = InputFieldVm(
+          key: 'OWNER_NAME',
+          questionText: 'Photograph',
+          fieldType: 'TEXT',
+        );
+        expect(vm.isImage, isFalse, reason: 'OWNER_NAME must be TEXT even when label is Photograph');
+        expect(vm.isDate, isFalse);
+        expect(vm.type, equals('TEXT'));
+      });
+
+      test('Date of Inspection | <<PROPERTY_REMARKS>> -> Expected: TEXT', () {
+        final vm = InputFieldVm(
+          key: 'PROPERTY_REMARKS',
+          questionText: 'Date of Inspection',
+          fieldType: 'TEXT',
+        );
+        expect(vm.isImage, isFalse);
+        expect(vm.isDate, isFalse, reason: 'PROPERTY_REMARKS must be TEXT even when label is Date of Inspection');
+        expect(vm.type, equals('TEXT'));
+      });
+
+      test('Date of Inspection | <<DATE_OF_INSPECTION>> -> Expected: DATE', () {
+        final vm = InputFieldVm(
+          key: 'DATE_OF_INSPECTION',
+          questionText: 'Date of Inspection',
+          fieldType: 'DATE',
+        );
+        expect(vm.isDate, isTrue);
+        expect(vm.isImage, isFalse);
+        expect(vm.type, equals('DATE'));
+      });
+
+      test('Photograph | <<IMG_SITE_1>> -> Expected: IMAGE', () {
+        final vm = InputFieldVm(
+          key: 'IMG_SITE_1',
+          questionText: 'Photograph',
+          fieldType: 'IMAGE',
+        );
+        expect(vm.isImage, isTrue);
+        expect(vm.isDate, isFalse);
+        expect(vm.type, equals('IMAGE'));
+      });
+
+      test('Photograph | <<TEXT_PLACEHOLDER>> -> Expected: TEXT', () {
+        final vm = InputFieldVm(
+          key: 'TEXT_PLACEHOLDER',
+          questionText: 'Photograph',
+          fieldType: 'TEXT',
+        );
+        expect(vm.isImage, isFalse);
+        expect(vm.isDate, isFalse);
+        expect(vm.type, equals('TEXT'));
+      });
+
+      test('Date | <<TEXT_PLACEHOLDER>> -> Expected: TEXT', () {
+        final vm = InputFieldVm(
+          key: 'TEXT_PLACEHOLDER',
+          questionText: 'Date',
+          fieldType: 'TEXT',
+        );
+        expect(vm.isImage, isFalse);
+        expect(vm.isDate, isFalse);
+        expect(vm.type, equals('TEXT'));
+      });
+
+      test('Image | <<TEXT_PLACEHOLDER>> -> Expected: TEXT', () {
+        final vm = InputFieldVm(
+          key: 'TEXT_PLACEHOLDER',
+          questionText: 'Image',
+          fieldType: 'TEXT',
+        );
+        expect(vm.isImage, isFalse);
+        expect(vm.isDate, isFalse);
+        expect(vm.type, equals('TEXT'));
+      });
+
+      test('Table row binding with surrounding label does not alter placeholder type', () {
+        final studioRowPhoto = StudioTableRow(
+          rowIndex: 1,
+          rowType: 'QUESTION_ANSWER',
+          cells: [
+            const StudioTableCell(
+              cellId: 'c0',
+              cellRole: 'QUESTION',
+              plainText: 'Photograph',
+            ),
+            const StudioTableCell(
+              cellId: 'c1',
+              cellRole: 'ANSWER',
+              placeholderBindings: [
+                PlaceholderBinding(
+                  key: 'OWNER_NAME',
+                  questionText: 'Photograph',
+                  fieldType: 'TEXT',
+                ),
+              ],
+            ),
+          ],
+        );
+
+        final rowVmPhoto = TableRowVm.fromStudioTableRow(
+          studioRowPhoto,
+          {'OWNER_NAME': 1},
+          {},
+          {},
+        );
+        expect(rowVmPhoto.inputFields.first.isImage, isFalse);
+        expect(rowVmPhoto.inputFields.first.type, equals('TEXT'));
+
+        final studioRowDate = StudioTableRow(
+          rowIndex: 2,
+          rowType: 'QUESTION_ANSWER',
+          cells: [
+            const StudioTableCell(
+              cellId: 'c0',
+              cellRole: 'QUESTION',
+              plainText: 'Date of Inspection',
+            ),
+            const StudioTableCell(
+              cellId: 'c1',
+              cellRole: 'ANSWER',
+              placeholderBindings: [
+                PlaceholderBinding(
+                  key: 'PROPERTY_REMARKS',
+                  questionText: 'Date of Inspection',
+                  fieldType: 'TEXT',
+                ),
+              ],
+            ),
+          ],
+        );
+
+        final rowVmDate = TableRowVm.fromStudioTableRow(
+          studioRowDate,
+          {'PROPERTY_REMARKS': 1},
+          {},
+          {},
+        );
+        expect(rowVmDate.inputFields.first.isDate, isFalse);
+        expect(rowVmDate.inputFields.first.type, equals('TEXT'));
+      });
+
+      testWidgets('WIDGET VERIFICATION: Photograph | <<OWNER_NAME>> renders TEXT field, NO image widget, NO date picker', (tester) async {
+        final provider = DocumentWorkspaceProvider();
+        final fieldVm = InputFieldVm(
+          key: 'OWNER_NAME',
+          questionText: 'Photograph',
+          fieldType: 'TEXT',
+          currentValue: 'Acme Enterprises',
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ChangeNotifierProvider<DocumentWorkspaceProvider>.value(
+                value: provider,
+                child: DocumentInputSlotWidget(fieldVm: fieldVm),
+              ),
+            ),
+          ),
+        );
+
+        expect(find.byType(TextFormField), findsOneWidget);
+        expect(find.byIcon(Icons.cloud_upload_outlined), findsNothing, reason: 'Must NOT render image upload control');
+        expect(find.byIcon(Icons.calendar_today_rounded), findsNothing, reason: 'Must NOT render date picker icon');
+        expect(find.text('dd-MMM-yyyy'), findsNothing);
+      });
+
+      testWidgets('WIDGET VERIFICATION: Photograph | <<TEXT_PLACEHOLDER>> renders TEXT field, NO image widget, NO date picker', (tester) async {
+        final provider = DocumentWorkspaceProvider();
+        final fieldVm = InputFieldVm(
+          key: 'TEXT_PLACEHOLDER',
+          questionText: 'Photograph',
+          fieldType: 'TEXT',
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ChangeNotifierProvider<DocumentWorkspaceProvider>.value(
+                value: provider,
+                child: DocumentInputSlotWidget(fieldVm: fieldVm),
+              ),
+            ),
+          ),
+        );
+
+        expect(find.byType(TextFormField), findsOneWidget);
+        expect(find.byIcon(Icons.cloud_upload_outlined), findsNothing, reason: 'Must NOT render image upload control');
+        expect(find.byIcon(Icons.calendar_today_rounded), findsNothing, reason: 'Must NOT render date picker icon');
+      });
+
+      testWidgets('WIDGET VERIFICATION: Date | <<TEXT_PLACEHOLDER>> renders TEXT field, NO image widget, NO date picker', (tester) async {
+        final provider = DocumentWorkspaceProvider();
+        final fieldVm = InputFieldVm(
+          key: 'TEXT_PLACEHOLDER',
+          questionText: 'Date',
+          fieldType: 'TEXT',
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ChangeNotifierProvider<DocumentWorkspaceProvider>.value(
+                value: provider,
+                child: DocumentInputSlotWidget(fieldVm: fieldVm),
+              ),
+            ),
+          ),
+        );
+
+        expect(find.byType(TextFormField), findsOneWidget);
+        expect(find.byIcon(Icons.calendar_today_rounded), findsNothing, reason: 'Must NOT render date picker icon');
+        expect(find.byIcon(Icons.cloud_upload_outlined), findsNothing);
+      });
+
+      testWidgets('WIDGET VERIFICATION: Date | <<PROPERTY_REMARKS>> renders TEXT field, NO date picker, NO image widget', (tester) async {
+        final provider = DocumentWorkspaceProvider();
+        final fieldVm = InputFieldVm(
+          key: 'PROPERTY_REMARKS',
+          questionText: 'Date',
+          fieldType: 'TEXT',
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ChangeNotifierProvider<DocumentWorkspaceProvider>.value(
+                value: provider,
+                child: DocumentInputSlotWidget(fieldVm: fieldVm),
+              ),
+            ),
+          ),
+        );
+
+        expect(find.byType(TextFormField), findsOneWidget);
+        expect(find.byIcon(Icons.calendar_today_rounded), findsNothing, reason: 'Must NOT render date picker icon');
+        expect(find.byIcon(Icons.cloud_upload_outlined), findsNothing);
+      });
+
+      testWidgets('WIDGET VERIFICATION: Inspection Date / Date of Visit beside TEXT placeholders render TEXT field only', (tester) async {
+        final provider = DocumentWorkspaceProvider();
+        final fieldVm = InputFieldVm(
+          key: 'PERSON_COORDINATED_FOR_INSPECTION',
+          questionText: 'Inspection Date Coordinator',
+          fieldType: 'TEXT',
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ChangeNotifierProvider<DocumentWorkspaceProvider>.value(
+                value: provider,
+                child: DocumentInputSlotWidget(fieldVm: fieldVm),
+              ),
+            ),
+          ),
+        );
+
+        expect(find.byType(TextFormField), findsOneWidget);
+        expect(find.byIcon(Icons.calendar_today_rounded), findsNothing);
+        expect(find.byIcon(Icons.cloud_upload_outlined), findsNothing);
+      });
     });
   });
 }
