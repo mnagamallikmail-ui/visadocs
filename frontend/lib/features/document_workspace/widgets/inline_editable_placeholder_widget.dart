@@ -135,21 +135,23 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
     };
 
     // Register with centralized PlaceholderRegistry for keyboard-first traversal
-    provider.placeholderRegistry.register(
-      PlaceholderRegistration(
-        id: effectiveId,
-        key: widget.fieldVm.key,
-        onActivate: () {
-          if (widget.fieldVm.isDate) {
-            _pickDate(context, provider);
-          } else {
-            _enterEditMode();
-          }
-        },
-        onDeactivate: _commitAndExitEditMode,
-        getContext: () => context,
-      ),
-    );
+    if (!widget.fieldVm.isFormulaCalc) {
+      provider.placeholderRegistry.register(
+        PlaceholderRegistration(
+          id: effectiveId,
+          key: widget.fieldVm.key,
+          onActivate: () {
+            if (widget.fieldVm.isDate) {
+              _pickDate(context, provider);
+            } else {
+              _enterEditMode();
+            }
+          },
+          onDeactivate: _commitAndExitEditMode,
+          getContext: () => context,
+        ),
+      );
+    }
   }
 
   void _insertNewline(DocumentWorkspaceProvider provider) {
@@ -202,7 +204,7 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
   }
 
   void _enterEditMode() {
-    if (widget.readOnly) return;
+    if (widget.readOnly || widget.fieldVm.isFormulaCalc) return;
     final provider = context.read<DocumentWorkspaceProvider>();
     if (widget.fieldVm.isDate) {
       _pickDate(context, provider);
@@ -349,28 +351,38 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
   Widget _buildReadMode(BuildContext context, DocumentWorkspaceProvider provider, String val, bool isEmpty, TextStyle baseStyle) {
     final isRepeated = widget.fieldVm.isRepeated;
     final isDate = widget.fieldVm.isDate;
+    final isFormulaCalc = widget.fieldVm.isFormulaCalc;
 
-    // GOVERNANCE (DEFECT 13): Empty TEXT placeholders must render a blank, clickable
-    // area with NO generated labels, no questionText, no key name, no hints.
-    // Only DATE fields may show a format indicator as it is an operational cue.
-    final promptStyle = isEmpty
-        ? baseStyle.copyWith(
-            color: AppColors.workspaceSecondaryText.withValues(alpha: 0.5),
-            fontStyle: FontStyle.italic,
-            fontWeight: FontWeight.w400,
-          )
-        : baseStyle.copyWith(
-            color: AppColors.workspaceCorporateNavy,
-            fontWeight: FontWeight.w700,
-          );
+    final promptStyle = isFormulaCalc
+        ? (val.startsWith('[Error:')
+            ? GoogleFonts.montserrat(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Colors.red.shade700,
+              )
+            : GoogleFonts.montserrat(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.workspaceCorporateNavy,
+              ))
+        : (isEmpty
+            ? baseStyle.copyWith(
+                color: AppColors.workspaceSecondaryText.withValues(alpha: 0.5),
+                fontStyle: FontStyle.italic,
+                fontWeight: FontWeight.w400,
+              )
+            : baseStyle.copyWith(
+                color: AppColors.workspaceCorporateNavy,
+                fontWeight: FontWeight.w700,
+              ));
 
     return MouseRegion(
-      cursor: widget.readOnly ? SystemMouseCursors.basic : SystemMouseCursors.click,
+      cursor: (widget.readOnly || isFormulaCalc) ? SystemMouseCursors.basic : SystemMouseCursors.click,
       onEnter: (_) => setState(() => _isHovered = true),
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
         onTap: () {
-          if (widget.readOnly) return;
+          if (widget.readOnly || isFormulaCalc) return;
           if (isDate) {
             _pickDate(context, provider);
           } else {
@@ -382,22 +394,32 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
           margin: const EdgeInsets.symmetric(horizontal: 2.5, vertical: 1.0),
           padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 1.5),
           decoration: BoxDecoration(
-            color: _isHovered && !widget.readOnly
-                ? AppColors.workspaceCorporateNavy.withValues(alpha: 0.08)
-                : (isEmpty ? AppColors.workspaceCanvas : AppColors.workspaceCorporateNavy.withValues(alpha: 0.035)),
+            color: isFormulaCalc
+                ? const Color(0xFFF3F6FC)
+                : (_isHovered && !widget.readOnly
+                    ? AppColors.workspaceCorporateNavy.withValues(alpha: 0.08)
+                    : (isEmpty ? AppColors.workspaceCanvas : AppColors.workspaceCorporateNavy.withValues(alpha: 0.035))),
             borderRadius: BorderRadius.circular(4),
             border: Border.all(
-              color: _isHovered && !widget.readOnly
-                  ? AppColors.primaryBlue
-                  : (isEmpty
-                      ? AppColors.workspaceBorder
-                      : AppColors.workspaceCorporateNavy.withValues(alpha: 0.25)),
+              color: isFormulaCalc
+                  ? const Color(0xFFD0DCF0)
+                  : (_isHovered && !widget.readOnly
+                      ? AppColors.primaryBlue
+                      : (isEmpty
+                          ? AppColors.workspaceBorder
+                          : AppColors.workspaceCorporateNavy.withValues(alpha: 0.25))),
               width: 1.0,
             ),
           ),
           child: Wrap(
             crossAxisAlignment: WrapCrossAlignment.center,
             children: [
+              if (isFormulaCalc) ...[
+                const Padding(
+                  padding: EdgeInsets.only(right: 3),
+                  child: Icon(Icons.calculate_outlined, size: 12, color: AppColors.workspaceCorporateNavy),
+                ),
+              ],
               if (!isEmpty)
                 Text(val, style: promptStyle),
               // DATE: show a minimal format cue only — never show key name or questionText.
@@ -473,9 +495,12 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
           color: AppColors.workspacePrimaryText,
           fontWeight: FontWeight.w600,
         ),
-        keyboardType: widget.fieldVm.isNumber ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.multiline,
+        keyboardType: (widget.fieldVm.isNumber || widget.fieldVm.isNumericInputN) ? const TextInputType.numberWithOptions(decimal: true) : TextInputType.multiline,
+        inputFormatters: widget.fieldVm.isNumericInputN
+            ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.-]'))]
+            : null,
         minLines: 1,
-        maxLines: widget.fieldVm.isNumber ? 1 : null, // Starts single-line, expands dynamically with ALT+ENTER
+        maxLines: (widget.fieldVm.isNumber || widget.fieldVm.isNumericInputN) ? 1 : null, // Starts single-line, expands dynamically with ALT+ENTER
         scrollPhysics: const NeverScrollableScrollPhysics(), // No internal scrollbars, grows with content
         onChanged: (newText) {
           provider.updateValue(widget.fieldVm.key, newText);

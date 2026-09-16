@@ -176,23 +176,17 @@ class StudioRun {
         rawKeyUpper == 'PROPERTY_REMARKS' ||
         rawKeyUpper == 'TEXT_PLACEHOLDER';
 
+    // IMAGE PLACEHOLDER GOVERNANCE:
+    // A run is IMAGE only if its key starts with IMG_ or IMAGE_,
+    // or if fieldType == 'IMAGE' from schema metadata (set by backend DocPr/AltText extraction).
     final isExplicitImageKey = placeholderKey != null &&
         (rawKeyUpper.startsWith('IMG_') ||
-            rawKeyUpper.startsWith('IMAGE_') ||
-            rawKeyUpper.endsWith('_IMAGE') ||
-            rawKeyUpper.endsWith('_IMG') ||
-            rawKeyUpper.startsWith('PHOTO_') ||
-            rawKeyUpper.endsWith('_PHOTO') ||
-            rawKeyUpper == 'PHOTO' ||
-            rawKeyUpper == 'PROPERTY_PHOTO' ||
-            rawKeyUpper.contains('SELFIE') ||
-            rawKeyUpper.contains('SIGNATURE') ||
-            rawKeyUpper == 'IMAGE' ||
-            rawKeyUpper == 'IMG');
+            rawKeyUpper.startsWith('IMAGE_'));
 
     final isImage = !isExplicitText &&
         (isExplicitImageKey ||
-            (placeholderKey == null && (type == 'IMAGE' || fieldType == 'IMAGE')));
+            (placeholderKey == null && (type == 'IMAGE' || fieldType == 'IMAGE')) ||
+            (!isExplicitImageKey && fieldType == 'IMAGE'));
 
     return StudioRun(
       text: json['text'] as String? ?? (placeholderKey != null ? '<<$placeholderKey>>' : ''),

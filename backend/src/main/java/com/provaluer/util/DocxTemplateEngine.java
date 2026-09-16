@@ -203,18 +203,117 @@ public class DocxTemplateEngine {
     }
 
     /**
-     * Traverses tables across the document package, resolves question text from left-side cells,
-     * and normalizes generic placeholders (e.g., <<TEXT>>) into unique deterministic keys.
+     * GENERIC PLACEHOLDER GOVERNANCE — <<TEXT>> Uniquification:
+     *
+     * Every occurrence of <<TEXT>> (and <<NUMBER>>, <<DATE>>, <<IMAGE>>) in the document
+     * must receive a unique, independent key so that each occurrence has its own independent value.
+     *
+     * Processing order: document body elements are iterated in order. For each element:
+     *   - If it is a standalone paragraph (P): normalize any generic tokens found in its runs.
+     *   - If it is a table (Tbl):             normalize any generic tokens found in its answer cells.
+     *
+     * The slugCounter is SHARED across both pass types so that keys are globally unique
+     * throughout the entire document (TEXT_001, TEXT_002, TEXT_003, ...).
+     *
+     * Named placeholders (<<OWNER_NAME>>, <<BANK_NAME>>, etc.) are NEVER altered.
      */
     private void normalizeGenericTablePlaceholders(WordprocessingMLPackage wordMLPackage, GenericPlaceholderNormalizer.TemplateAnalysisReport analysisReport) {
         Map<String, Integer> slugCounter = new LinkedHashMap<>();
         int tableIndex = 0;
+        int paragraphIndex = 0;
 
         List<Object> content = wordMLPackage.getMainDocumentPart().getContent();
         for (Object elem : content) {
             Object unwrapped = unwrap(elem);
-            if (unwrapped instanceof Tbl) {
-                processTableForGenericPlaceholders((Tbl) unwrapped, "tbl_" + (tableIndex++), slugCounter, analysisReport);
+            if (unwrapped instanceof P) {
+                // Standalone paragraph outside any table — uniquify generic tokens in-place
+                normalizeGenericParagraphPlaceholders(
+                        (P) unwrapped, "p_" + (paragraphIndex++), slugCounter, analysisReport);
+            } else if (unwrapped instanceof Tbl) {
+                processTableForGenericPlaceholders(
+                        (Tbl) unwrapped, "tbl_" + (tableIndex++), slugCounter, analysisReport);
+            }
+        }
+    }
+
+    /**
+     * Substitutes every generic placeholder token (TEXT, NUMBER, DATE, IMAGE, CHECKBOX)
+     * found in a standalone paragraph's text runs with a globally-unique numbered key.
+     *
+     * Example: <<TEXT>> → <<TEXT_001>>, next <<TEXT>> → <<TEXT_002>>, etc.
+     *
+     * Named placeholders are left completely unchanged.
+     */
+    private void normalizeGenericParagraphPlaceholders(
+            P p, String paragraphId, Map<String, Integer> slugCounter,
+            GenericPlaceholderNormalizer.TemplateAnalysisReport analysisReport) {
+
+        for (Object rObj : p.getContent()) {
+            Object unwrappedR = unwrap(rObj);
+            if (!(unwrappedR instanceof R)) continue;
+            R run = (R) unwrappedR;
+
+            for (Object elem : run.getContent()) {
+                Object unwrappedElem = unwrap(elem);
+                if (!(unwrappedElem instanceof Text)) continue;
+                Text textElem = (Text) unwrappedElem;
+                String val = textElem.getValue();
+                if (val == null || !val.contains("<<")) continue;
+
+                Matcher m = PLACEHOLDER_PATTERN.matcher(val);
+                StringBuffer sb = new StringBuffer();
+                boolean changed = false;
+
+                while (m.find()) {
+                    String token = m.group(1).trim();
+                    // Leave named (non-generic) placeholders untouched
+                    if (!GenericPlaceholderNormalizer.isGenericPlaceholder(token)) {
+                        m.appendReplacement(sb, Matcher.quoteReplacement(m.group(0)));
+                        continue;
+                    }
+
+                    String genericType = GenericPlaceholderNormalizer.extractGenericType(token);
+                    String generatedKey;
+                    String reportSlug;
+
+                    if ("TEXT".equalsIgnoreCase(genericType)) {
+                        int occurrence = slugCounter.merge("TEXT", 1, Integer::sum);
+                        generatedKey = String.format("TEXT_%03d", occurrence);
+                        reportSlug = "TEXT";
+                    } else if ("NUMBER".equalsIgnoreCase(genericType)) {
+                        int occurrence = slugCounter.merge("NUMBER", 1, Integer::sum);
+                        generatedKey = String.format("NUMBER_%03d", occurrence);
+                        reportSlug = "NUMBER";
+                    } else if ("DATE".equalsIgnoreCase(genericType)) {
+                        int occurrence = slugCounter.merge("DATE", 1, Integer::sum);
+                        generatedKey = String.format("DATE_%03d", occurrence);
+                        reportSlug = "DATE";
+                    } else if ("IMAGE".equalsIgnoreCase(genericType)) {
+                        int occurrence = slugCounter.merge("IMAGE", 1, Integer::sum);
+                        generatedKey = String.format("IMAGE_%03d", occurrence);
+                        reportSlug = "IMAGE";
+                    } else {
+                        int occurrence = slugCounter.merge(genericType, 1, Integer::sum);
+                        generatedKey = genericType + "_" + String.format("%03d", occurrence);
+                        reportSlug = genericType;
+                    }
+
+                    m.appendReplacement(sb, Matcher.quoteReplacement("<<" + generatedKey + ">>"));
+                    changed = true;
+
+                    if (analysisReport != null) {
+                        GenericPlaceholderNormalizer.NormalizedField field =
+                                new GenericPlaceholderNormalizer.NormalizedField(
+                                        generatedKey, null, genericType,
+                                        slugCounter.get(reportSlug), paragraphId);
+                        analysisReport.recordGeneratedField(field, reportSlug);
+                    }
+                }
+
+                if (changed) {
+                    m.appendTail(sb);
+                    textElem.setValue(sb.toString());
+                }
             }
         }
     }
@@ -2110,11 +2209,14 @@ public class DocxTemplateEngine {
             String trimmed = c.trim();
             if (trimmed.isEmpty()) continue;
             Matcher m = Pattern.compile("<<([^>]+)>>").matcher(trimmed);
-            if (m.find()) return m.group(1).trim().toUpperCase();
+            if (m.find()) {
+                String token = m.group(1).trim().toUpperCase();
+                if (token.startsWith("IMG_") || token.startsWith("IMAGE_")) {
+                    return token;
+                }
+            }
             String upper = trimmed.toUpperCase();
-            if (upper.startsWith("IMG_") || upper.startsWith("PHOTO_") || upper.startsWith("IMAGE_") || upper.startsWith("LOGO_")
-                    || upper.endsWith("_IMAGE") || upper.endsWith("_IMG") || upper.endsWith("_PHOTO")
-                    || upper.contains("IMAGE_") || upper.contains("PHOTO_") || upper.contains("SITE_PHOTO")) {
+            if (upper.startsWith("IMG_") || upper.startsWith("IMAGE_")) {
                 return trimmed.replaceAll("[<>]", "").trim().toUpperCase();
             }
         }
@@ -2226,7 +2328,7 @@ public class DocxTemplateEngine {
                         String trimmedVal = val.trim();
                         if (trimmedVal.startsWith("<<") && trimmedVal.endsWith(">>")) {
                             String possibleKey = trimmedVal.substring(2, trimmedVal.length() - 2).trim().toUpperCase();
-                            if (possibleKey.contains("IMG_") || possibleKey.contains("_IMAGE") || possibleKey.startsWith("PHOTO_")) {
+                            if (possibleKey.startsWith("IMG_") || possibleKey.startsWith("IMAGE_")) {
                                 byte[] imgBytes = getUploadedOrPlaceholderImage(possibleKey, images, inputs);
                                 if (imgBytes != null) {
                                     long frameCx = 2743200L; // 3 inches default frame
@@ -2300,6 +2402,22 @@ public class DocxTemplateEngine {
         String cleanKey = key.trim();
         String upperKey = cleanKey.toUpperCase();
         String lowerKey = cleanKey.toLowerCase();
+
+        // Formula calculation placeholders <<CALC:expression>>
+        if (NumericFormulaEngine.isFormulaCalcKey(cleanKey)) {
+            String expr = NumericFormulaEngine.extractFormulaExpression(cleanKey);
+            NumericFormulaEngine.EvaluationResult res = NumericFormulaEngine.evaluate(expr, inputs);
+            if (res.isValid()) {
+                return res.getFormattedValue();
+            }
+            if (inputs.containsKey(cleanKey) && inputs.get(cleanKey) != null && !inputs.get(cleanKey).trim().isEmpty()) {
+                return inputs.get(cleanKey);
+            }
+            if (inputs.containsKey(upperKey) && inputs.get(upperKey) != null && !inputs.get(upperKey).trim().isEmpty()) {
+                return inputs.get(upperKey);
+            }
+            return "";
+        }
 
         // 1. Direct checks
         if (inputs.containsKey(cleanKey) && inputs.get(cleanKey) != null && !inputs.get(cleanKey).trim().isEmpty()) {

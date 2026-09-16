@@ -94,11 +94,26 @@ public class DocxStructureParser {
             pSum.put("label", labelToUse);
             pSum.put("questionText", resolvedQuestion);
 
+            if (NumericFormulaEngine.isFormulaCalcKey(key)) {
+                pSum.put("type", "CALCULATED");
+                pSum.put("isCalculated", true);
+                pSum.put("isReadOnly", true);
+                String expr = NumericFormulaEngine.extractFormulaExpression(key);
+                pSum.put("formula", expr);
+                if (labelToUse.equals(humanizedLabel) || labelToUse.isEmpty()) {
+                    pSum.put("label", "Formula: " + expr);
+                }
+            } else if (NumericFormulaEngine.isNumericInputKey(key)) {
+                pSum.put("type", "NUMBER");
+                pSum.put("isNumeric", true);
+            } else {
+                pSum.put("type", tracker.type);
+            }
+
             if (tracker.serialNo != null && !tracker.serialNo.trim().isEmpty()) {
                 pSum.put("serialNo", tracker.serialNo.trim());
             }
             pSum.put("occurrences", tracker.occurrences);
-            pSum.put("type", tracker.type);
             pSum.put("source", tracker.source != null ? tracker.source : "PARAGRAPH");
             if (tracker.tableContext != null) {
                 pSum.set("tableContext", tracker.tableContext);
@@ -444,41 +459,29 @@ public class DocxStructureParser {
                 || upper.equals("DATE_OF_VALUATION") || upper.equals("DATE_OF_VISIT");
     }
 
+    /**
+     * IMAGE PLACEHOLDER GOVERNANCE:
+     * A key is IMAGE only if it starts with IMG_ or IMAGE_.
+     * No suffix-based, content-based, or contextual inference is permitted.
+     * AltText / DocPr Name detection follows the same rule (IMG_ or IMAGE_ prefix).
+     */
     public static boolean isExplicitImagePlaceholder(String key) {
         if (key == null) return false;
         String upper = key.toUpperCase().trim();
         if (isTextPlaceholder(upper)) return false;
-        if (upper.equals("OWNER_NAME") || upper.equals("BANK_NAME") || upper.equals("CLIENT_NAME")
-                || upper.equals("BRANCH_NAME") || upper.equals("REMARKS") || upper.equals("PROPERTY_REMARKS")
-                || upper.contains("ADDRESS") || upper.contains("RATE") || upper.contains("VALUE")
-                || upper.contains("AREA") || upper.contains("DESC") || upper.contains("COMMENT")
-                || upper.contains("NOTE") || upper.contains("CAPTION") || upper.contains("NAME")) {
-            return false;
-        }
-        return upper.startsWith("IMG_") || upper.startsWith("IMAGE_") || upper.startsWith("PHOTO_")
-                || upper.startsWith("PICTURE_") || upper.startsWith("MAP_")
-                || upper.startsWith("LOGO_") || upper.endsWith("_IMAGE") || upper.endsWith("_IMG")
-                || upper.endsWith("_PHOTO") || upper.equals("PHOTO") || upper.equals("IMAGE")
-                || upper.equals("PROPERTY_PHOTO") || upper.equals("LOCATION_MAP") || upper.equals("SITE_PLAN")
-                || upper.endsWith("_MAP") || upper.endsWith("_PLAN") || upper.contains("SITE_PHOTO")
-                || upper.contains("SIGNATURE") || upper.contains("SELFIE");
+        return upper.startsWith("IMG_") || upper.startsWith("IMAGE_");
     }
 
+    /**
+     * IMAGE PLACEHOLDER GOVERNANCE:
+     * A drawing key is only an image key if it explicitly starts with IMG_ or IMAGE_.
+     * Presence of an actual image embed in the drawing does NOT promote arbitrary keys to IMAGE.
+     * Only IMG_/IMAGE_ prefixed keys are eligible regardless of drawing content.
+     */
     private boolean isLikelyImageKey(String key) {
         if (key == null) return false;
         String upper = key.toUpperCase().trim();
-        if (isTextPlaceholder(upper)) return false;
-        if (isExplicitImagePlaceholder(upper)) return true;
-        // Never treat known non-image fields as image
-        if (upper.equals("OWNER_NAME") || upper.equals("BANK_NAME") || upper.equals("CLIENT_NAME")
-                || upper.equals("BRANCH_NAME") || upper.equals("TEXT") || upper.equals("REMARKS")
-                || upper.contains("NAME") || upper.contains("ADDRESS") || upper.contains("AREA")
-                || upper.contains("RATE") || upper.contains("VALUE") || upper.contains("DATE")
-                || upper.contains("DESC") || upper.contains("TYPE") || upper.contains("NUMBER")
-                || upper.contains("NO")) {
-            return false;
-        }
-        return true;
+        return isExplicitImagePlaceholder(upper);
     }
 
     private boolean hasActualImageEmbed(Object item) {
@@ -495,6 +498,13 @@ public class DocxStructureParser {
         return false;
     }
 
+    /**
+     * IMAGE PLACEHOLDER GOVERNANCE — AltText / DocPr Name Extraction:
+     * A DocPr is treated as an image placeholder if:
+     *   1. Its descr/name contains a <<KEY>> token (extracted and typed by key rules), OR
+     *   2. Its descr/name starts with IMG_ or IMAGE_ (after uppercasing).
+     * No other AltText patterns qualify.
+     */
     private String extractImageKeyFromDocPr(String descr, String name) {
         String[] candidates = new String[]{descr, name};
         for (String c : candidates) {
@@ -502,11 +512,13 @@ public class DocxStructureParser {
             String trimmed = c.trim();
             if (trimmed.isEmpty()) continue;
 
+            // Priority 1: explicit <<KEY>> token inside the AltText/DocPr name
             Matcher m = PLACEHOLDER_PATTERN.matcher(trimmed);
             if (m.find()) {
                 return m.group(1).trim();
             }
 
+            // Priority 2: AltText/DocPr name itself starts with IMG_ or IMAGE_
             String upper = trimmed.toUpperCase();
             if (isExplicitImagePlaceholder(upper)) {
                 return trimmed.replaceAll("[<>]", "").trim();
@@ -998,6 +1010,12 @@ public class DocxStructureParser {
         }
         if (isDatePlaceholder(upper)) {
             return "DATE";
+        }
+        if (NumericFormulaEngine.isFormulaCalcKey(upper)) {
+            return "CALCULATED";
+        }
+        if (NumericFormulaEngine.isNumericInputKey(upper)) {
+            return "NUMBER";
         }
         if (upper.contains("AREA") || upper.contains("RATE") || upper.contains("VALUE") ||
                 upper.contains("AMOUNT") || upper.contains("FEE") || upper.contains("TOTAL") ||

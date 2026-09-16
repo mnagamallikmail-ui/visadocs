@@ -237,42 +237,21 @@ class DocumentWorkspaceVm {
               prompt = _toHumanizedLabel(kUpper);
             }
 
+            // IMAGE PLACEHOLDER GOVERNANCE:
+            // A placeholder is IMAGE only if its key starts with IMG_ or IMAGE_,
+            // or the schema (fieldType) explicitly says IMAGE.
+            // No suffix, content, or context patterns are permitted.
             String fieldType = summaryItem?.type ?? 'TEXT';
             if (kUpper == 'TEXT' || kUpper.startsWith('TEXT_') || kUpper == 'TXT' || kUpper.startsWith('TXT_') || kUpper == 'TEXT_PLACEHOLDER') {
               fieldType = 'TEXT';
-            } else if (kUpper == 'OWNER_NAME' ||
-                kUpper == 'PROPERTY_REMARKS' ||
-                kUpper.contains('NAME') ||
-                kUpper.contains('REMARK') ||
-                kUpper.contains('ADDRESS') ||
-                kUpper.contains('DESC') ||
-                kUpper.contains('COMMENT') ||
-                kUpper.contains('NOTE')) {
-              if (DatePickerHelper.isDateKey(kUpper)) {
-                fieldType = 'DATE';
-              } else if (kUpper.contains('OBSERVATION') ||
-                  kUpper.contains('ADVANTAGE') ||
-                  kUpper.contains('DISADVANTAGE') ||
-                  kUpper.contains('DOCUMENT') ||
-                  kUpper.contains('DESCRIPTION') ||
-                  kUpper.contains('ADDRESS')) {
-                fieldType = 'MULTILINE';
-              } else {
-                fieldType = 'TEXT';
+            } else if (kUpper.startsWith('CALC:') || fieldType.toUpperCase() == 'CALCULATED') {
+              fieldType = 'CALCULATED';
+              if (prompt.isEmpty || prompt == _toHumanizedLabel(kUpper)) {
+                prompt = 'Formula: ${kUpper.startsWith('CALC:') ? kUpper.substring(5) : kUpper}';
               }
-            } else if (kUpper.startsWith('IMG_') ||
-                kUpper.startsWith('IMAGE_') ||
-                kUpper.endsWith('_IMAGE') ||
-                kUpper.endsWith('_IMG') ||
-                kUpper.startsWith('PHOTO_') ||
-                kUpper.endsWith('_PHOTO') ||
-                kUpper == 'PHOTO' ||
-                kUpper == 'IMAGE' ||
-                kUpper == 'IMG' ||
-                kUpper == 'PROPERTY_PHOTO' ||
-                kUpper.contains('SIGNATURE') ||
-                kUpper.contains('SELFIE') ||
-                kUpper.startsWith('PICTURE_')) {
+            } else if (RegExp(r'^N\d+$').hasMatch(kUpper)) {
+              fieldType = 'NUMBER';
+            } else if (kUpper.startsWith('IMG_') || kUpper.startsWith('IMAGE_')) {
               fieldType = 'IMAGE';
             } else if (DatePickerHelper.isDateKey(kUpper, fieldType)) {
               fieldType = 'DATE';
@@ -283,8 +262,11 @@ class DocumentWorkspaceVm {
                 kUpper.contains('DESCRIPTION') ||
                 kUpper.contains('ADDRESS')) {
               fieldType = 'MULTILINE';
+            } else if (fieldType.toUpperCase() == 'IMAGE') {
+              // Explicit schema type from backend registry — honoured as explicit metadata
+              fieldType = 'IMAGE';
             } else {
-              fieldType = 'TEXT';
+              fieldType = summaryItem?.type ?? 'TEXT';
             }
 
             final fVm = InputFieldVm(
@@ -305,24 +287,14 @@ class DocumentWorkspaceVm {
           if (el.runs.isNotEmpty) {
             for (final run in el.runs) {
               final runKey = (run.placeholderKey ?? '').toUpperCase().trim();
-              final isRunImage = !runKey.contains('NAME') &&
-                  !runKey.contains('REMARK') &&
-                  !runKey.contains('TEXT') &&
-                  !runKey.contains('ADDRESS') &&
-                  (run.isImage ||
-                      (runKey.isNotEmpty &&
-                          (runKey.startsWith('IMG_') ||
-                              runKey.startsWith('IMAGE_') ||
-                              runKey.endsWith('_IMAGE') ||
-                              runKey.endsWith('_IMG') ||
-                              runKey.startsWith('PHOTO_') ||
-                              runKey.endsWith('_PHOTO') ||
-                              runKey == 'PHOTO' ||
-                              runKey == 'PROPERTY_PHOTO' ||
-                              runKey.contains('SELFIE') ||
-                              runKey.contains('SIGNATURE') ||
-                              runKey == 'IMAGE' ||
-                              runKey == 'IMG')));
+              // IMAGE PLACEHOLDER GOVERNANCE:
+              // A run is IMAGE only if its key starts with IMG_ or IMAGE_,
+              // or if run.isImage is true (set by backend DocPr/AltText extraction).
+              // No suffix, content, or context patterns are permitted.
+              final isRunImage = run.isImage ||
+                  (runKey.isNotEmpty &&
+                      (runKey.startsWith('IMG_') ||
+                          runKey.startsWith('IMAGE_')));
 
               if (isRunImage) {
                 final keyUpper = (run.placeholderKey ?? 'IMAGE').toUpperCase().trim();
@@ -937,53 +909,44 @@ class InputFieldVm {
     return k == 'TEXT' || k.startsWith('TEXT_') || k == 'TXT' || k.startsWith('TXT_');
   }
 
+  // IMAGE PLACEHOLDER GOVERNANCE:
+  // A placeholder is IMAGE only if:
+  //   1. Key starts with IMG_   (e.g. <<IMG_SITE_1>>, <<IMG_FRONT_PAGE>>)
+  //   2. Key starts with IMAGE_ (e.g. <<IMAGE_SITE_PHOTO_1>>, <<IMAGE_LOCATION>>)
+  //   3. fieldType is explicitly 'IMAGE' (from backend schema / AltText registry).
+  // No suffix-based, content-based, or named-pattern rules are permitted.
   bool get isImage {
     if (isCompositeTable) return false;
     final k = key.toUpperCase().trim().replaceAll('<<', '').replaceAll('>>', '');
     if (isGenericText || k == 'TEXT_PLACEHOLDER') return false;
-    if (k == 'OWNER_NAME' ||
-        k == 'PROPERTY_REMARKS' ||
-        k.contains('CAPTION') ||
-        k.contains('DESC') ||
-        k.contains('REMARK') ||
-        k.contains('NOTE') ||
-        k.contains('COMMENT') ||
-        k.contains('TEXT') ||
-        k.contains('ADDRESS') ||
-        k.contains('NAME') ||
-        k.contains('RATE') ||
-        k.contains('VALUE') ||
-        k.contains('AREA') ||
-        k.contains('DATE')) {
-      return false;
-    }
-    final isExplicitImageKey = k.startsWith('IMG_') ||
-        k.startsWith('IMAGE_') ||
-        k == 'IMAGE' ||
-        k == 'IMG' ||
-        k.endsWith('_IMAGE') ||
-        k.endsWith('_IMG') ||
-        k.contains('_IMAGE_') ||
-        k.contains('_IMG_') ||
-        k.startsWith('PHOTO_') ||
-        k.endsWith('_PHOTO') ||
-        k == 'PHOTO' ||
-        k == 'PROPERTY_PHOTO' ||
-        k.contains('SELFIE') ||
-        k.contains('SIGNATURE') ||
-        k.startsWith('PICTURE_');
-    if (isExplicitImageKey) return true;
+    // Explicit key-prefix rule
+    if (k.startsWith('IMG_') || k.startsWith('IMAGE_')) return true;
+    // Explicit schema metadata from backend registry
     final t = fieldType.toUpperCase();
     if (t == 'IMAGE') return true;
     return false;
   }
 
+  bool get isFormulaCalc {
+    final k = key.toUpperCase().trim().replaceAll('<<', '').replaceAll('>>', '');
+    return k.startsWith('CALC:') || fieldType.toUpperCase() == 'CALCULATED';
+  }
+
+  bool get isReadOnly => isFormulaCalc;
+
+  bool get isNumericInputN {
+    final k = key.toUpperCase().trim().replaceAll('<<', '').replaceAll('>>', '');
+    return RegExp(r'^N\d+$').hasMatch(k);
+  }
+
   bool get isDate {
-    if (isCompositeTable || isGenericText || isBlockNarrative || fieldType.toUpperCase() == 'TEXT') return false;
+    if (isCompositeTable || isGenericText || isBlockNarrative || fieldType.toUpperCase() == 'TEXT' || isFormulaCalc) return false;
     return DatePickerHelper.isDateKey(key, fieldType);
   }
 
   bool get isNumber {
+    if (isFormulaCalc) return false;
+    if (isNumericInputN) return true;
     if (isCompositeTable || isImage || isDate || isGenericText || isBlockNarrative) return false;
     final t = fieldType.toUpperCase();
     if (t == 'MULTILINE') return false;

@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../../../theme/app_colors.dart';
 import '../../../theme/app_spacing.dart';
@@ -61,6 +62,9 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
 
     _controller = TextEditingController(text: initialValue);
     _focusNode = FocusNode(onKeyEvent: _handleKeyEvent);
+    if (widget.fieldVm.isFormulaCalc) {
+      _focusNode.canRequestFocus = false;
+    }
 
     _controller.addListener(() {
       if (_focusNode.hasFocus) {
@@ -68,6 +72,8 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
         final upperKey = key.toUpperCase();
         final isReactive = isCalculatedValuationKey(upperKey) ||
             widget.fieldVm.isNumber ||
+            widget.fieldVm.isNumericInputN ||
+            widget.fieldVm.isFormulaCalc ||
             PlaceholderNormalizationRegistry.isAreaKey(upperKey) ||
             PlaceholderNormalizationRegistry.isRateKey(upperKey) ||
             PlaceholderNormalizationRegistry.isPercentageKey(upperKey) ||
@@ -98,7 +104,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
 
     // Register with centralized PlaceholderRegistry for keyboard-first traversal
     final effectiveId = widget.fieldVm.key;
-    if (!widget.readOnly && !widget.fieldVm.isImage && !widget.fieldVm.isCompositeTable) {
+    if (!widget.readOnly && !widget.fieldVm.isImage && !widget.fieldVm.isCompositeTable && !widget.fieldVm.isFormulaCalc) {
       provider.placeholderRegistry.register(
         PlaceholderRegistration(
           id: effectiveId,
@@ -274,6 +280,8 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
     final isNumber = widget.fieldVm.isNumber;
     final isCurrency = widget.fieldVm.isCurrency;
     final isCompositeTable = widget.fieldVm.isCompositeTable;
+    final isFormulaCalc = widget.fieldVm.isFormulaCalc;
+    final isNumericN = widget.fieldVm.isNumericInputN;
 
     // Must NEVER render as generic input or image upload
     if (isCompositeTable) {
@@ -312,19 +320,34 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                 child: TextFormField(
                   controller: _controller,
                   focusNode: _focusNode,
-                  readOnly: widget.readOnly || isDate,
+                  readOnly: widget.readOnly || isDate || isFormulaCalc,
                   onTap: isDate ? () => _pickDate(context, provider) : null,
                   textAlign: widget.fieldVm.effectiveTextAlign,
-                  keyboardType: isNumber
+                  keyboardType: (isNumber || isNumericN)
                       ? const TextInputType.numberWithOptions(decimal: true)
                       : TextInputType.multiline,
+                  inputFormatters: isNumericN
+                      ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.-]'))]
+                      : null,
                   minLines: 1, // All text inputs start compact as single-line
-                  maxLines: isNumber ? 1 : null, // Dynamic auto-growing height following content lines
+                  maxLines: (isNumber || isNumericN || isFormulaCalc) ? 1 : null, // Dynamic auto-growing height following content lines
                   scrollPhysics: const NeverScrollableScrollPhysics(), // No internal scrollbars
                   onFieldSubmitted: (_) => provider.placeholderRegistry.next(widget.fieldVm.key),
-                  style: AppTypography.workspaceInput(
-                    color: widget.readOnly ? AppColors.workspaceSecondaryText : AppColors.workspacePrimaryText,
-                  ),
+                  style: isFormulaCalc
+                      ? (latestVal.startsWith('[Error:')
+                          ? GoogleFonts.montserrat(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.red.shade700,
+                            )
+                          : GoogleFonts.montserrat(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.workspaceCorporateNavy,
+                            ))
+                      : AppTypography.workspaceInput(
+                          color: widget.readOnly ? AppColors.workspaceSecondaryText : AppColors.workspacePrimaryText,
+                        ),
                   decoration: InputDecoration(
                     // GOVERNANCE: TEXT placeholders must render a completely blank field.
                     // No hints, no labels, no question-text-derived descriptions.
@@ -334,13 +357,15 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                     filled: true,
                     fillColor: _focusNode.hasFocus
                         ? Colors.white
-                        : (widget.readOnly ? AppColors.workspaceSegmentBg : AppColors.workspaceCanvas),
+                        : (isFormulaCalc
+                            ? const Color(0xFFF3F6FC)
+                            : (widget.readOnly ? AppColors.workspaceSegmentBg : AppColors.workspaceCanvas)),
                     isDense: true,
                     contentPadding: EdgeInsets.symmetric(
                       horizontal: 11,
                       vertical: isMultiline ? 9 : 8,
                     ),
-                    prefixText: (isCurrency && !isDate && !isMultiline) ? '₹ ' : null,
+                    prefixText: (isCurrency && !isDate && !isMultiline && !isFormulaCalc) ? '₹ ' : null,
                     suffixIcon: isDate
                         ? InkWell(
                             onTap: () => _pickDate(context, provider),
@@ -349,15 +374,23 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                               child: Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.workspaceCorporateNavy),
                             ),
                           )
-                        : (isRepeated
+                        : (isFormulaCalc
                             ? Tooltip(
-                                message: 'Synchronized across ${widget.fieldVm.occurrences} locations in document',
+                                message: 'Calculated: ${widget.fieldVm.key}',
                                 child: const Padding(
                                   padding: EdgeInsets.only(right: 8),
-                                  child: Icon(Icons.sync_rounded, size: 14, color: AppColors.workspaceSecondaryText),
+                                  child: Icon(Icons.calculate_outlined, size: 16, color: AppColors.workspaceCorporateNavy),
                                 ),
                               )
-                            : null),
+                            : (isRepeated
+                                ? Tooltip(
+                                    message: 'Synchronized across ${widget.fieldVm.occurrences} locations in document',
+                                    child: const Padding(
+                                      padding: EdgeInsets.only(right: 8),
+                                      child: Icon(Icons.sync_rounded, size: 14, color: AppColors.workspaceSecondaryText),
+                                    ),
+                                  )
+                                : null)),
                     border: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(8),
                       borderSide: const BorderSide(color: AppColors.workspaceBorder, width: 1.0),

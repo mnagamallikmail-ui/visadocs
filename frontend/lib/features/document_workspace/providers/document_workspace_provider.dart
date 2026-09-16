@@ -10,9 +10,9 @@ import '../services/document_workspace_api_service.dart';
 import '../services/placeholder_registry.dart';
 import '../services/valuation_calculator.dart';
 
-import '../services/alias_resolution_engine.dart';
 import '../services/placeholder_normalization_registry.dart';
 import '../services/value_normalization_engine.dart';
+import '../services/numeric_formula_engine.dart';
 
 enum DocumentScrollMode {
   continuous,
@@ -162,6 +162,8 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       } else {
         _workspaceVm = null;
       }
+
+      _recalculateFormulas(notify: false);
 
       _isDirty = false;
       _lastSavedAt = DateTime.now();
@@ -543,6 +545,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       } catch (_) {}
     }
 
+    _recalculateFormulas(notify: false);
     _isDirty = true;
     notifyListeners();
   }
@@ -979,6 +982,10 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         }
         _isDirty = true;
         _validationError = null;
+
+        // LIVE DYNAMIC RECALCULATION: Recalculate dependent CALC fields immediately
+        _recalculateFormulas(notify: false);
+
         if (notify) {
           notifyListeners();
         }
@@ -990,6 +997,72 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Discovers all <<CALC:...>> formula placeholders across workspace DOM and active values.
+  Set<String> _getAllFormulaKeys() {
+    final formulaKeys = <String>{};
+    if (_workspaceVm != null) {
+      for (final pk in _workspaceVm!.placeholderSummaries.keys) {
+        if (NumericFormulaEngine.isFormulaCalcKey(pk)) {
+          formulaKeys.add(pk.toUpperCase().trim());
+        }
+      }
+      for (final section in _workspaceVm!.sections) {
+        for (final bk in section.boundKeys) {
+          if (NumericFormulaEngine.isFormulaCalcKey(bk)) {
+            formulaKeys.add(bk.toUpperCase().trim());
+          }
+        }
+      }
+    }
+    for (final k in _activeValues.keys) {
+      if (NumericFormulaEngine.isFormulaCalcKey(k)) {
+        formulaKeys.add(k.toUpperCase().trim());
+      }
+    }
+    return formulaKeys;
+  }
+
+  /// LIVE DYNAMIC RECALCULATION ENGINE
+  /// Evaluates all CALC fields without manual refresh or regenerate button.
+  void _recalculateFormulas({bool notify = true}) {
+    final formulaKeys = _getAllFormulaKeys();
+    if (formulaKeys.isEmpty) return;
+
+    final formulaMap = <String, String>{};
+    for (final fKey in formulaKeys) {
+      final expr = NumericFormulaEngine.extractFormulaExpression(fKey);
+      formulaMap[fKey] = expr;
+    }
+
+    final cycleError = NumericFormulaEngine.detectCircularDependencies(formulaMap);
+
+    bool changed = false;
+    for (final fKey in formulaKeys) {
+      final expr = formulaMap[fKey]!;
+      String calcResultStr;
+      if (cycleError != null) {
+        calcResultStr = '[Error: $cycleError]';
+      } else {
+        final evalResult = NumericFormulaEngine.evaluate(expr, _activeValues);
+        if (evalResult.isValid) {
+          calcResultStr = evalResult.formattedValue;
+        } else {
+          calcResultStr = '[Error: ${evalResult.errorMessage}]';
+        }
+      }
+
+      if (_activeValues[fKey] != calcResultStr) {
+        _activeValues[fKey] = calcResultStr;
+        _deltaValues[fKey] = calcResultStr;
+        changed = true;
+      }
+    }
+
+    if (changed && notify) {
+      notifyListeners();
+    }
+  }
+
   String getValue(String key) {
     final upper = key.toUpperCase();
     if (upper == 'IMG_COVER_PAGE' || upper == 'IMG_FRONT_PAGE' || upper == 'COVER_IMAGE') {
@@ -999,6 +1072,13 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     if (upper == 'SALEABLE_RATE' || upper == 'MARKET_RATE_FLAT') {
       final rate = _activeValues['SALEABLE_RATE'] ?? _activeValues['MARKET_RATE_FLAT'] ?? _activeValues['MARKET_RATE_FLAT_NUMERIC'];
       if (rate != null && rate.isNotEmpty) return rate;
+    }
+    if (NumericFormulaEngine.isFormulaCalcKey(upper)) {
+      final cached = _activeValues[upper] ?? _activeValues[key];
+      if (cached != null && cached.isNotEmpty) return cached;
+      final expr = NumericFormulaEngine.extractFormulaExpression(upper);
+      final res = NumericFormulaEngine.evaluate(expr, _activeValues);
+      return res.isValid ? res.formattedValue : '[Error: ${res.errorMessage}]';
     }
     return _activeValues[key.toUpperCase()] ?? _activeValues[key.toLowerCase()] ?? _activeValues[key] ?? '';
   }

@@ -498,6 +498,47 @@ void main() {
         expect(find.byIcon(Icons.calendar_today_rounded), findsNothing);
         expect(find.byIcon(Icons.cloud_upload_outlined), findsNothing);
       });
+
+      test('IMAGE PLACEHOLDER GOVERNANCE: Only IMG_ and IMAGE_ prefixes qualify as IMAGE', () {
+        // Permitted image placeholders
+        expect(InputFieldVm(key: 'IMG_SITE_1', questionText: 'Site 1', fieldType: 'IMAGE').isImage, isTrue);
+        expect(InputFieldVm(key: 'IMG_SITE_2', questionText: 'Site 2', fieldType: 'IMAGE').isImage, isTrue);
+        expect(InputFieldVm(key: 'IMG_FRONT_PAGE', questionText: 'Front', fieldType: 'IMAGE').isImage, isTrue);
+        expect(InputFieldVm(key: 'IMG_COVER_PAGE', questionText: 'Cover', fieldType: 'IMAGE').isImage, isTrue);
+        expect(InputFieldVm(key: 'IMG_LOCATION', questionText: 'Loc', fieldType: 'IMAGE').isImage, isTrue);
+        expect(InputFieldVm(key: 'IMG_GOVT_RATE', questionText: 'Govt Rate', fieldType: 'IMAGE').isImage, isTrue);
+        expect(InputFieldVm(key: 'IMAGE_SITE_PHOTO_1', questionText: 'Site Photo', fieldType: 'IMAGE').isImage, isTrue);
+        // Even if fieldType is default TEXT, key starting with IMG_ or IMAGE_ is IMAGE
+        expect(InputFieldVm(key: 'IMG_SITE_1', questionText: 'Site 1', fieldType: 'TEXT').isImage, isTrue);
+        expect(InputFieldVm(key: 'IMAGE_LOCATION', questionText: 'Loc', fieldType: 'TEXT').isImage, isTrue);
+
+        // Prohibited image patterns: MUST NOT BE IMAGE
+        expect(InputFieldVm(key: 'PROPERTY_PHOTO', questionText: 'Photo', fieldType: 'TEXT').isImage, isFalse);
+        expect(InputFieldVm(key: 'PHOTO', questionText: 'Photo', fieldType: 'TEXT').isImage, isFalse);
+        expect(InputFieldVm(key: 'SELFIE', questionText: 'Selfie', fieldType: 'TEXT').isImage, isFalse);
+        expect(InputFieldVm(key: 'SIGNATURE', questionText: 'Sign', fieldType: 'TEXT').isImage, isFalse);
+        expect(InputFieldVm(key: 'FRONT_PAGE_IMAGE', questionText: 'Front Page', fieldType: 'TEXT').isImage, isFalse);
+        expect(InputFieldVm(key: 'LOCATION_IMG', questionText: 'Location', fieldType: 'TEXT').isImage, isFalse);
+        expect(InputFieldVm(key: 'PHOTO_1', questionText: 'Photo 1', fieldType: 'TEXT').isImage, isFalse);
+        expect(InputFieldVm(key: 'OWNER_NAME', questionText: 'Owner', fieldType: 'TEXT').isImage, isFalse);
+      });
+
+      test('GENERIC TEXT PLACEHOLDER GOVERNANCE: Independent field state across TEXT fields', () {
+        final provider = DocumentWorkspaceProvider();
+        provider.updateValue('TEXT_001', 'Introduction');
+        provider.updateValue('TEXT_002', 'Observation');
+        provider.updateValue('TEXT_003', 'Remarks');
+
+        expect(provider.getValue('TEXT_001'), equals('Introduction'));
+        expect(provider.getValue('TEXT_002'), equals('Observation'));
+        expect(provider.getValue('TEXT_003'), equals('Remarks'));
+
+        // Modifying one TEXT field must never affect another
+        provider.updateValue('TEXT_001', 'Updated Introduction');
+        expect(provider.getValue('TEXT_001'), equals('Updated Introduction'));
+        expect(provider.getValue('TEXT_002'), equals('Observation'));
+        expect(provider.getValue('TEXT_003'), equals('Remarks'));
+      });
     });
   });
 }

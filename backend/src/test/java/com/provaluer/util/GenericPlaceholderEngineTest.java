@@ -364,6 +364,108 @@ public class GenericPlaceholderEngineTest {
         assertNotEquals(textR3, textR4);
     }
 
+    @Test
+    @DisplayName("8. Standalone paragraphs with <<TEXT>> receive independent unique keys and values")
+    public void testStandaloneParagraphGenericTextUniquification() throws Exception {
+        WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.createPackage();
+
+        // Paragraph A: Introduction section: <<TEXT>>
+        wordMLPackage.getMainDocumentPart().getContent().add(createParagraphWithText("Introduction section: <<TEXT>>"));
+        // Paragraph B: Observation section: <<TEXT>>
+        wordMLPackage.getMainDocumentPart().getContent().add(createParagraphWithText("Observation section: <<TEXT>>"));
+        // Paragraph C: Remarks section: <<TEXT>>
+        wordMLPackage.getMainDocumentPart().getContent().add(createParagraphWithText("Remarks section: <<TEXT>>"));
+
+        byte[] rawBytes = packageToBytes(wordMLPackage);
+
+        // 1. Template normalization
+        GenericPlaceholderNormalizer.TemplateAnalysisReport report = new GenericPlaceholderNormalizer.TemplateAnalysisReport();
+        byte[] normalizedBytes = templateEngine.normalizeTemplate(rawBytes, report);
+
+        assertEquals(3, report.getTotalGeneratedFields());
+
+        // Parse DOM structure to verify workspace summary fields
+        JsonNode dom = parser.parseDocumentStructure(normalizedBytes);
+        JsonNode summary = dom.get("placeholdersSummary");
+        assertEquals(3, summary.size());
+        assertEquals("TEXT_001", summary.get(0).get("key").asText());
+        assertEquals("TEXT_002", summary.get(1).get("key").asText());
+        assertEquals("TEXT_003", summary.get(2).get("key").asText());
+
+        // 2. Hydrate with distinct values
+        Map<String, String> inputs = new HashMap<>();
+        inputs.put("TEXT_001", "Introduction");
+        inputs.put("TEXT_002", "Observation");
+        inputs.put("TEXT_003", "Remarks");
+
+        byte[] compiledDocx = templateEngine.generateReport(normalizedBytes, inputs, new HashMap<>());
+        assertNotNull(compiledDocx);
+
+        // 3. Verify final hydrated document
+        WordprocessingMLPackage resultDoc = WordprocessingMLPackage.load(new ByteArrayInputStream(compiledDocx));
+        StringBuilder fullText = new StringBuilder();
+        for (Object o : resultDoc.getMainDocumentPart().getContent()) {
+            Object unwrapped = unwrap(o);
+            if (unwrapped instanceof P) {
+                fullText.append(getParagraphContentText((P) unwrapped)).append("\n");
+            }
+        }
+
+        String docText = fullText.toString();
+        assertTrue(docText.contains("Introduction section: Introduction"));
+        assertTrue(docText.contains("Observation section: Observation"));
+        assertTrue(docText.contains("Remarks section: Remarks"));
+        assertFalse(docText.contains("<<TEXT>>"));
+    }
+
+    @Test
+    @DisplayName("9. Image Governance: only IMG_ and IMAGE_ prefixes qualify as IMAGE; all others are non-image")
+    public void testImagePlaceholderGovernance() throws Exception {
+        assertTrue(DocxStructureParser.isExplicitImagePlaceholder("IMG_SITE_1"));
+        assertTrue(DocxStructureParser.isExplicitImagePlaceholder("IMG_SITE_2"));
+        assertTrue(DocxStructureParser.isExplicitImagePlaceholder("IMG_FRONT_PAGE"));
+        assertTrue(DocxStructureParser.isExplicitImagePlaceholder("IMG_COVER_PAGE"));
+        assertTrue(DocxStructureParser.isExplicitImagePlaceholder("IMG_LOCATION"));
+        assertTrue(DocxStructureParser.isExplicitImagePlaceholder("IMG_GOVT_RATE"));
+        assertTrue(DocxStructureParser.isExplicitImagePlaceholder("IMAGE_SITE_PHOTO_1"));
+
+        // Non-image placeholders MUST be rejected by image classification
+        assertFalse(DocxStructureParser.isExplicitImagePlaceholder("PROPERTY_PHOTO"));
+        assertFalse(DocxStructureParser.isExplicitImagePlaceholder("OWNER_NAME"));
+        assertFalse(DocxStructureParser.isExplicitImagePlaceholder("SELFIE"));
+        assertFalse(DocxStructureParser.isExplicitImagePlaceholder("SIGNATURE"));
+        assertFalse(DocxStructureParser.isExplicitImagePlaceholder("SITE_PHOTO"));
+        assertFalse(DocxStructureParser.isExplicitImagePlaceholder("FRONT_PAGE_IMAGE"));
+        assertFalse(DocxStructureParser.isExplicitImagePlaceholder("LOCATION_IMG"));
+    }
+
+    private P createParagraphWithText(String text) {
+        P p = factory.createP();
+        R r = factory.createR();
+        Text t = factory.createText();
+        t.setValue(text);
+        r.getContent().add(t);
+        p.getContent().add(r);
+        return p;
+    }
+
+    private String getParagraphContentText(P p) {
+        StringBuilder sb = new StringBuilder();
+        for (Object rObj : p.getContent()) {
+            Object unwrappedR = unwrap(rObj);
+            if (unwrappedR instanceof R) {
+                R r = (R) unwrappedR;
+                for (Object tObj : r.getContent()) {
+                    Object unwrappedT = unwrap(tObj);
+                    if (unwrappedT instanceof Text) {
+                        sb.append(((Text) unwrappedT).getValue());
+                    }
+                }
+            }
+        }
+        return sb.toString();
+    }
+
     private Object unwrap(Object obj) {
         if (obj instanceof jakarta.xml.bind.JAXBElement) {
             return ((jakarta.xml.bind.JAXBElement<?>) obj).getValue();
