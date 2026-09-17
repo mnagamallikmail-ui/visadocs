@@ -13,7 +13,7 @@ import java.util.zip.CRC32;
 public class GenericPlaceholderNormalizer {
 
     public static final Set<String> GENERIC_TOKENS = Set.of(
-            "TEXT", "NUMBER", "DATE", "IMAGE", "CHECKBOX"
+            "TEXT", "NUMBER", "DATE", "IMAGE", "CHECKBOX", "MULTILINE"
     );
 
     public static final Set<String> MASTER_PLACEHOLDERS = Set.of(
@@ -171,6 +171,20 @@ public class GenericPlaceholderNormalizer {
         public Map<String, Integer> getFieldsByType() { return Collections.unmodifiableMap(fieldsByType); }
         public Set<String> getMasterPlaceholders() { return Collections.unmodifiableSet(masterPlaceholders); }
         public List<NormalizedField> getGeneratedFields() { return Collections.unmodifiableList(generatedFields); }
+
+        /**
+         * Maps generated placeholder keys to their authoritative original generic types
+         * (Priority 0 Governance: Original Placeholder Type strictly wins over generated slugs).
+         */
+        public Map<String, String> toExplicitTypeOverrides() {
+            Map<String, String> overrides = new LinkedHashMap<>();
+            for (NormalizedField field : generatedFields) {
+                if (field.getKey() != null && field.getGenericType() != null) {
+                    overrides.put(field.getKey().toUpperCase().trim(), field.getGenericType().toUpperCase().trim());
+                }
+            }
+            return Collections.unmodifiableMap(overrides);
+        }
 
         /**
          * Produces the structured text report for logs and debugging.

@@ -108,13 +108,17 @@ public class TemplateProcessingService {
                 byte[] normalizedBytes = templateEngine.normalizeTemplate(rawBytes, analysisReport);
                 log.info("Template ID: {} parser analysis report:{}", templateId, analysisReport.toFormattedReport());
 
-                // Step 2: Extract canonical DOM and Placeholder Registry
-                JsonNode domNode = docxStructureParser.parseDocumentStructure(normalizedBytes);
-                String documentDomJson = domNode.toString();
-                String placeholderRegistryJson = docxStructureParser.generatePlaceholderRegistry(domNode);
+                // Priority 0 Governance: Authoritative Original Placeholder Types extracted during normalization
+                Map<String, String> explicitOverrides = analysisReport.toExplicitTypeOverrides();
 
-                // Step 3: Backward compatible field mapping
-                String fieldMappingJson = templateEngine.parseTemplate(normalizedBytes);
+                // Step 2: Extract canonical DOM and Placeholder Registry with authoritative explicit type overrides
+                JsonNode domNode = docxStructureParser.parseDocumentStructure(normalizedBytes, explicitOverrides);
+                docxStructureParser.applyTypeOverridesToDom(domNode, explicitOverrides);
+                String documentDomJson = domNode.toString();
+                String placeholderRegistryJson = docxStructureParser.generatePlaceholderRegistry(domNode, explicitOverrides);
+
+                // Step 3: Backward compatible field mapping with authoritative explicit type overrides
+                String fieldMappingJson = templateEngine.parseTemplate(normalizedBytes, explicitOverrides);
 
                 // Step 4: Persist finalized results
                 templateRepository.findById(templateId).ifPresent(t -> {
@@ -332,14 +336,22 @@ public class TemplateProcessingService {
         validateDocxPackage(docxBytes, "revised_template.docx");
 
         // Extract authoritative type overrides from existing template to ensure manual overrides survive new binary upload
-        Map<String, String> typeOverrides = extractTypeOverrides(template);
+        Map<String, String> adminOverrides = extractTypeOverrides(template);
 
-        byte[] normalized = templateEngine.normalizeTemplate(docxBytes);
-        JsonNode domNode = docxStructureParser.parseDocumentStructure(normalized, typeOverrides);
-        docxStructureParser.applyTypeOverridesToDom(domNode, typeOverrides);
+        com.provaluer.util.GenericPlaceholderNormalizer.TemplateAnalysisReport analysisReport =
+                new com.provaluer.util.GenericPlaceholderNormalizer.TemplateAnalysisReport();
+        byte[] normalized = templateEngine.normalizeTemplate(docxBytes, analysisReport);
+
+        // Priority 0: Original placeholder types from newly uploaded binary
+        Map<String, String> effectiveOverrides = new HashMap<>(analysisReport.toExplicitTypeOverrides());
+        // Priority 1 / 2: Administrator overrides previously configured strictly take precedence
+        effectiveOverrides.putAll(adminOverrides);
+
+        JsonNode domNode = docxStructureParser.parseDocumentStructure(normalized, effectiveOverrides);
+        docxStructureParser.applyTypeOverridesToDom(domNode, effectiveOverrides);
         String documentDomJson = domNode.toString();
-        String placeholderRegistryJson = docxStructureParser.generatePlaceholderRegistry(domNode, typeOverrides);
-        String fieldMappingJson = templateEngine.parseTemplate(normalized, typeOverrides);
+        String placeholderRegistryJson = docxStructureParser.generatePlaceholderRegistry(domNode, effectiveOverrides);
+        String fieldMappingJson = templateEngine.parseTemplate(normalized, effectiveOverrides);
 
         // Pre-commit diff calculation
         TemplateDiffDTO diff = computeTemplateDiff(templateId, docxBytes);

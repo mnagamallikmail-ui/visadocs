@@ -465,10 +465,27 @@ public class DocxStructureParser {
                 || clean.equals("TEXT_PLACEHOLDER");
     }
 
+    public static boolean isMultilinePlaceholder(String key) {
+        if (key == null) return false;
+        String clean = key.toUpperCase().replaceAll("[<>]", "").trim();
+        return clean.equals("MULTILINE") || clean.matches("^MULTILINE_\\d+$") || clean.startsWith("MULTILINE_") || clean.endsWith("_MULTILINE")
+                || clean.equals("TEXTAREA") || clean.matches("^TEXTAREA_\\d+$") || clean.startsWith("TEXTAREA_") || clean.endsWith("_TEXTAREA");
+    }
+
+    public static boolean isNumberPlaceholder(String key) {
+        if (key == null) return false;
+        String clean = key.toUpperCase().replaceAll("[<>]", "").trim();
+        return clean.equals("NUMBER") || clean.matches("^NUMBER_\\d+$") || clean.startsWith("NUMBER_") || clean.endsWith("_NUMBER")
+                || clean.equals("NUM") || clean.matches("^NUM_\\d+$") || clean.startsWith("NUM_") || clean.endsWith("_NUM")
+                || NumericFormulaEngine.isNumericInputKey(clean);
+    }
+
     public static boolean isDatePlaceholder(String key) {
         if (key == null) return false;
-        String upper = key.toUpperCase().trim();
-        if (isTextPlaceholder(upper)) return false;
+        String upper = key.toUpperCase().replaceAll("[<>]", "").trim();
+        if (isTextPlaceholder(upper) || isMultilinePlaceholder(upper) || isNumberPlaceholder(upper) || isExplicitImagePlaceholder(upper)) {
+            return false;
+        }
         if (upper.equals("OWNER_NAME") || upper.equals("BANK_NAME") || upper.equals("CLIENT_NAME")
                 || upper.equals("BRANCH_NAME") || upper.equals("REMARKS") || upper.equals("PROPERTY_REMARKS")
                 || upper.contains("ADDRESS") || upper.contains("RATE") || upper.contains("VALUE")
@@ -487,15 +504,17 @@ public class DocxStructureParser {
 
     /**
      * IMAGE PLACEHOLDER GOVERNANCE:
-     * A key is IMAGE only if it starts with IMG_ or IMAGE_.
+     * A key is IMAGE only if it starts with IMG_ or IMAGE_, or is explicitly IMAGE/IMG.
      * No suffix-based, content-based, or contextual inference is permitted.
      * AltText / DocPr Name detection follows the same rule (IMG_ or IMAGE_ prefix).
      */
     public static boolean isExplicitImagePlaceholder(String key) {
         if (key == null) return false;
-        String upper = key.toUpperCase().trim();
-        if (isTextPlaceholder(upper)) return false;
-        return upper.startsWith("IMG_") || upper.startsWith("IMAGE_");
+        String upper = key.toUpperCase().replaceAll("[<>]", "").trim();
+        if (isTextPlaceholder(upper) || isMultilinePlaceholder(upper) || isNumberPlaceholder(upper)) return false;
+        return upper.equals("IMAGE") || upper.equals("IMG")
+                || upper.startsWith("IMG_") || upper.startsWith("IMAGE_")
+                || upper.matches("^IMAGE_\\d+$") || upper.matches("^IMG_\\d+$");
     }
 
     /**
@@ -1006,10 +1025,26 @@ public class DocxStructureParser {
     }
 
     public String inferFieldType(String key) {
-        String upper = key.toUpperCase();
+        String upper = key.toUpperCase().trim();
+
+        // 1. Explicit Original Placeholder Types (Priority 0: Explicit types strictly win, no inference)
         if (isTextPlaceholder(upper)) {
             return "TEXT";
         }
+        if (isMultilinePlaceholder(upper)) {
+            return "MULTILINE";
+        }
+        if (isNumberPlaceholder(upper)) {
+            return "NUMBER";
+        }
+        if (isExplicitImagePlaceholder(upper)) {
+            return "IMAGE";
+        }
+        if (isDatePlaceholder(upper)) {
+            return "DATE";
+        }
+
+        // 2. Dynamic Tables & Calculated Formulas
         if (upper.equals("LAND_TABLE") || upper.equals("DYNAMIC_LAND_TABLE")) {
             return "DYNAMIC_LAND_TABLE";
         }
@@ -1031,18 +1066,14 @@ public class DocxStructureParser {
         if (isCalculatedValuationKey(upper)) {
             return "CALCULATED";
         }
-        if (isExplicitImagePlaceholder(upper)) {
-            return "IMAGE";
-        }
-        if (isDatePlaceholder(upper)) {
-            return "DATE";
-        }
         if (NumericFormulaEngine.isFormulaCalcKey(upper)) {
             return "CALCULATED";
         }
         if (NumericFormulaEngine.isNumericInputKey(upper)) {
             return "NUMBER";
         }
+
+        // 3. Fallback Naming Heuristics (ONLY executed when explicit placeholder type is unknown)
         if (upper.contains("AREA") || upper.contains("RATE") || upper.contains("VALUE") ||
                 upper.contains("AMOUNT") || upper.contains("FEE") || upper.contains("TOTAL") ||
                 upper.contains("PRICE") || upper.contains("PERCENT") || upper.contains("RATIO")) {

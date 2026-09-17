@@ -292,6 +292,10 @@ public class DocxTemplateEngine {
                         int occurrence = slugCounter.merge("IMAGE", 1, Integer::sum);
                         generatedKey = String.format("IMAGE_%03d", occurrence);
                         reportSlug = "IMAGE";
+                    } else if ("MULTILINE".equalsIgnoreCase(genericType)) {
+                        int occurrence = slugCounter.merge("MULTILINE", 1, Integer::sum);
+                        generatedKey = String.format("MULTILINE_%03d", occurrence);
+                        reportSlug = "MULTILINE";
                     } else {
                         int occurrence = slugCounter.merge(genericType, 1, Integer::sum);
                         generatedKey = genericType + "_" + String.format("%03d", occurrence);
@@ -391,6 +395,10 @@ public class DocxTemplateEngine {
                         occurrence = slugCounter.merge("IMAGE", 1, Integer::sum);
                         generatedKey = String.format("IMAGE_%03d", occurrence);
                         reportSlug = "IMAGE";
+                    } else if ("MULTILINE".equalsIgnoreCase(genericToken)) {
+                        occurrence = slugCounter.merge("MULTILINE", 1, Integer::sum);
+                        generatedKey = String.format("MULTILINE_%03d", occurrence);
+                        reportSlug = "MULTILINE";
                     } else {
                         String baseSlug = GenericPlaceholderNormalizer.generateBaseSlug(questionText);
                         occurrence = slugCounter.merge(baseSlug, 1, Integer::sum);
@@ -730,18 +738,24 @@ public class DocxTemplateEngine {
             uniqueKeys.add(key);
 
             // Determine Field Type:
-            // Priority 1: Administrator / Persisted Type Override
-            // Priority 4: Initial Parser Inference
+            // Priority 0 / 1: Authoritative Override (from Original Placeholder Type or Admin Override)
             // Priority 5: Fallback Heuristics
             String fieldType;
             if (upperOverrides != null && upperOverrides.containsKey(key)) {
+                // HARD-STOP: Authoritative override strictly wins. Heuristics must never execute!
                 fieldType = upperOverrides.get(key);
             } else if (DocxStructureParser.isTextPlaceholder(key)) {
-                fieldType = "TEXT"; // HARD-STOP: Generic text placeholders strictly remain TEXT
+                fieldType = "TEXT";
+            } else if (DocxStructureParser.isMultilinePlaceholder(key)) {
+                fieldType = "MULTILINE";
+            } else if (DocxStructureParser.isNumberPlaceholder(key)) {
+                fieldType = "NUMBER";
+            } else if (DocxStructureParser.isExplicitImagePlaceholder(key)) {
+                fieldType = "IMAGE";
+            } else if (DocxStructureParser.isDatePlaceholder(key)) {
+                fieldType = "DATE";
             } else if (key.toLowerCase().contains("image") || key.toLowerCase().contains("img_") || key.toLowerCase().contains("_image")) {
                 fieldType = "IMAGE";
-            } else if (key.toLowerCase().contains("date_") || key.toLowerCase().contains("_date") || key.toLowerCase().equals("date")) {
-                fieldType = "DATE";
             } else {
                 fieldType = "TEXT";
             }
@@ -773,6 +787,7 @@ public class DocxTemplateEngine {
             fieldNode.put("label", label);
             fieldNode.put("question", question);
             fieldNode.put("type", fieldType);
+            fieldNode.put("fieldType", fieldType);
             fieldNode.put("section", section);
             fieldNode.put("isRequired", true);
             fieldNode.put("lineGroupId", lineGroupId);
