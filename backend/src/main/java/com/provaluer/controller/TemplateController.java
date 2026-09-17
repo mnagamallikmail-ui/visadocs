@@ -8,6 +8,7 @@ import com.provaluer.dto.TemplateDetailDTO;
 import com.provaluer.dto.TemplateListDTO;
 import com.provaluer.dto.TemplateVersionDTO;
 import com.provaluer.model.Template;
+import com.provaluer.model.TemplateVersion;
 import com.provaluer.repository.TemplateRepository;
 import com.provaluer.repository.TemplateVersionRepository;
 import com.provaluer.security.UserDetailsImpl;
@@ -269,14 +270,142 @@ public class TemplateController {
             Template template = templateOpt.get();
             try {
                 // Verify valid JSON
-                objectMapper.readTree(fieldMappingUpdates);
+                JsonNode inputNode = objectMapper.readTree(fieldMappingUpdates);
+
+                // Extract authoritative type and question overrides from payload
+                Map<String, String> typeOverrides = new HashMap<>();
+                Map<String, String> questionOverrides = new HashMap<>();
+
+                if (inputNode.has("fields") && inputNode.get("fields").isArray()) {
+                    for (JsonNode f : inputNode.get("fields")) {
+                        if (f.has("key")) {
+                            String key = f.get("key").asText().toUpperCase();
+                            if (f.has("type")) {
+                                typeOverrides.put(key, f.get("type").asText().toUpperCase());
+                            }
+                            if (f.has("question")) {
+                                questionOverrides.put(key, f.get("question").asText());
+                            }
+                        }
+                    }
+                } else if (inputNode.isArray()) {
+                    for (JsonNode f : inputNode) {
+                        if (f.has("key")) {
+                            String key = f.get("key").asText().toUpperCase();
+                            if (f.has("type")) {
+                                typeOverrides.put(key, f.get("type").asText().toUpperCase());
+                            }
+                            if (f.has("question")) {
+                                questionOverrides.put(key, f.get("question").asText());
+                            }
+                        }
+                    }
+                } else if (inputNode.isObject()) {
+                    Iterator<Map.Entry<String, JsonNode>> it = inputNode.fields();
+                    while (it.hasNext()) {
+                        Map.Entry<String, JsonNode> entry = it.next();
+                        String key = entry.getKey().toUpperCase();
+                        JsonNode val = entry.getValue();
+                        if (val.isTextual()) {
+                            typeOverrides.put(key, val.asText().toUpperCase());
+                        } else if (val.isObject()) {
+                            if (val.has("type")) {
+                                typeOverrides.put(key, val.get("type").asText().toUpperCase());
+                            }
+                            if (val.has("questionText") || val.has("question")) {
+                                String q = val.has("questionText") ? val.get("questionText").asText() : val.get("question").asText();
+                                questionOverrides.put(key, q);
+                            }
+                        }
+                    }
+                }
+
+                // Merge existing overrides as baseline
+                Map<String, String> existingOverrides = TemplateProcessingService.extractTypeOverrides(template);
+                for (Map.Entry<String, String> entry : existingOverrides.entrySet()) {
+                    typeOverrides.putIfAbsent(entry.getKey(), entry.getValue());
+                }
+
+                // Synchronize 1: field_mapping
                 template.setFieldMapping(fieldMappingUpdates);
+
+                // Synchronize 2: document_dom
+                JsonNode domNode = null;
+                if (template.getDocumentDom() != null && !template.getDocumentDom().trim().isEmpty()) {
+                    domNode = objectMapper.readTree(template.getDocumentDom());
+                } else if (template.getTemplateContent() != null && template.getTemplateContent().length > 0) {
+                    domNode = docxStructureParser.parseDocumentStructure(template.getTemplateContent(), typeOverrides);
+                }
+                if (domNode != null) {
+                    docxStructureParser.applyTypeOverridesToDom(domNode, typeOverrides);
+                    template.setDocumentDom(domNode.toString());
+                }
+
+                // Synchronize 3: placeholder_registry
+                ObjectNode registryNode;
+                if (template.getPlaceholderRegistry() != null && !template.getPlaceholderRegistry().trim().isEmpty()) {
+                    registryNode = (ObjectNode) objectMapper.readTree(template.getPlaceholderRegistry());
+                } else if (domNode != null) {
+                    registryNode = (ObjectNode) objectMapper.readTree(docxStructureParser.generatePlaceholderRegistry(domNode, typeOverrides));
+                } else {
+                    registryNode = objectMapper.createObjectNode();
+                }
+
+                for (Map.Entry<String, String> entry : typeOverrides.entrySet()) {
+                    String key = entry.getKey();
+                    String type = entry.getValue();
+                    ObjectNode item;
+                    if (registryNode.has(key)) {
+                        item = (ObjectNode) registryNode.get(key);
+                    } else {
+                        item = registryNode.putObject(key);
+                        item.put("source", "ADMIN_OVERRIDE");
+                        item.put("isCalculated", false);
+                    }
+                    item.put("type", type);
+                    if (questionOverrides.containsKey(key)) {
+                        item.put("questionText", questionOverrides.get(key));
+                    }
+                }
+                template.setPlaceholderRegistry(registryNode.toString());
+
                 template.setIsActive("Y");
                 template.setStatus(Template.STATUS_ACTIVE);
                 Template saved = templateRepository.save(template);
 
-                // Create version snapshot on confirmation
+                // Synchronize 4: template_versions (active copies)
+                List<TemplateVersion> versions = templateVersionRepository.findAllByTemplateIdOrderByVersionDesc(saved.getId());
+                for (TemplateVersion tv : versions) {
+                    if ("ACTIVE".equalsIgnoreCase(tv.getStatus())) {
+                        tv.setFieldMapping(saved.getFieldMapping());
+                        tv.setDocumentDom(saved.getDocumentDom());
+                        tv.setPlaceholderRegistry(saved.getPlaceholderRegistry());
+                        templateVersionRepository.save(tv);
+                    }
+                }
+
+                // Synchronize 5: Create version snapshot on confirmation
                 templateProcessingService.saveVersionSnapshot(saved, "Template confirmed and activated", currentUserId());
+
+                // Synchronize 6: Active draft orders referencing this template
+                List<com.provaluer.model.Order> orders = orderRepository.findAllByTemplateId(saved.getId());
+                for (com.provaluer.model.Order o : orders) {
+                    if (!"FINAL_DELIVERY".equalsIgnoreCase(o.getStatus()) && !"SPA_CONFIRMED".equalsIgnoreCase(o.getStatus())) {
+                        o.setFieldMappingSnapshot(saved.getFieldMapping());
+                        if (saved.getDocumentDom() != null) {
+                            try {
+                                JsonNode oDom = o.getDocumentDomSnapshot() != null
+                                        ? objectMapper.readTree(o.getDocumentDomSnapshot())
+                                        : objectMapper.readTree(saved.getDocumentDom());
+                                docxStructureParser.applyTypeOverridesToDom(oDom, typeOverrides);
+                                o.setDocumentDomSnapshot(oDom.toString());
+                            } catch (Exception ignored) {
+                                o.setDocumentDomSnapshot(saved.getDocumentDom());
+                            }
+                        }
+                        orderRepository.save(o);
+                    }
+                }
 
                 return ResponseEntity.ok(new TemplateDetailDTO(saved));
             } catch (Exception e) {
@@ -477,8 +606,10 @@ public class TemplateController {
             byte[] rawBytes = file.getBytes();
             templateProcessingService.validateDocxPackage(rawBytes, file.getOriginalFilename());
 
+            Map<String, String> typeOverrides = TemplateProcessingService.extractTypeOverrides(oldTemplate);
+
             byte[] normalizedBytes = templateEngine.normalizeTemplate(rawBytes);
-            String newFieldMappingJson = templateEngine.parseTemplate(normalizedBytes);
+            String newFieldMappingJson = templateEngine.parseTemplate(normalizedBytes, typeOverrides);
 
             JsonNode oldSchema = objectMapper.readTree(oldTemplate.getFieldMapping());
             JsonNode newSchema = objectMapper.readTree(newFieldMappingJson);
@@ -490,7 +621,7 @@ public class TemplateController {
                 }
             }
 
-            // Inherit configurations (display label, question, validations) for unchanged placeholders
+            // Inherit configurations (display label, question, validations, field type) for unchanged placeholders
             if (newSchema.has("fields")) {
                 ArrayNode newFields = (ArrayNode) newSchema.get("fields");
                 for (int i = 0; i < newFields.size(); i++) {
@@ -501,6 +632,12 @@ public class TemplateController {
                         newField.put("label", oldField.get("label").asText());
                         newField.put("question", oldField.get("question").asText());
                         newField.put("isRequired", oldField.get("isRequired").asBoolean());
+                        if (oldField.has("type")) {
+                            newField.put("type", oldField.get("type").asText());
+                        }
+                    }
+                    if (typeOverrides.containsKey(key.toUpperCase())) {
+                        newField.put("type", typeOverrides.get(key.toUpperCase()));
                     }
                 }
             }
@@ -511,9 +648,10 @@ public class TemplateController {
             templateRepository.save(oldTemplate);
 
             // Create new inherited active template
-            JsonNode domNode = docxStructureParser.parseDocumentStructure(normalizedBytes);
+            JsonNode domNode = docxStructureParser.parseDocumentStructure(normalizedBytes, typeOverrides);
+            docxStructureParser.applyTypeOverridesToDom(domNode, typeOverrides);
             String documentDomJson = domNode.toString();
-            String placeholderRegistryJson = docxStructureParser.generatePlaceholderRegistry(domNode);
+            String placeholderRegistryJson = docxStructureParser.generatePlaceholderRegistry(domNode, typeOverrides);
 
             Template newTemplate = new Template();
             newTemplate.setName(oldTemplate.getName() + " (v" + (oldTemplate.getVersion() + 1) + ")");

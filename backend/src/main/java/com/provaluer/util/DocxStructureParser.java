@@ -33,17 +33,25 @@ public class DocxStructureParser {
      * Primary entry point: parses raw .docx byte stream into structured JsonNode DOM.
      */
     public JsonNode parseDocumentStructure(byte[] docxBytes) throws Exception {
+        return parseDocumentStructure(docxBytes, Collections.emptyMap());
+    }
+
+    public JsonNode parseDocumentStructure(byte[] docxBytes, Map<String, String> typeOverrides) throws Exception {
         if (docxBytes == null || docxBytes.length == 0) {
             throw new IllegalArgumentException("DOCX byte content must not be null or empty");
         }
         WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(new ByteArrayInputStream(docxBytes));
-        return parseDocumentStructure(wordMLPackage);
+        return parseDocumentStructure(wordMLPackage, typeOverrides);
     }
 
     /**
      * Parses an in-memory WordprocessingMLPackage package in a single pass.
      */
     public JsonNode parseDocumentStructure(WordprocessingMLPackage wordMLPackage) {
+        return parseDocumentStructure(wordMLPackage, Collections.emptyMap());
+    }
+
+    public JsonNode parseDocumentStructure(WordprocessingMLPackage wordMLPackage, Map<String, String> typeOverrides) {
         ObjectNode root = objectMapper.createObjectNode();
         ArrayNode sections = root.putArray("sections");
         ArrayNode placeholdersSummary = root.putArray("placeholdersSummary");
@@ -79,11 +87,19 @@ public class DocxStructureParser {
             }
         }
 
+        Map<String, String> upperOverrides = new HashMap<>();
+        if (typeOverrides != null) {
+            typeOverrides.forEach((k, v) -> {
+                if (k != null && v != null) upperOverrides.put(k.toUpperCase().trim(), v.toUpperCase().trim());
+            });
+        }
+
         // Build placeholdersSummary with 4-tier priority hierarchy
         for (Map.Entry<String, PlaceholderTracker> entry : trackerMap.entrySet()) {
             PlaceholderTracker tracker = entry.getValue();
             ObjectNode pSum = placeholdersSummary.addObject();
             String key = entry.getKey();
+            String upperKey = key.toUpperCase().trim();
             String humanizedLabel = toHumanizedLabel(key);
             String resolvedQuestion = resolveQuestionText(tracker, key);
             String labelToUse = (tracker.tableContext != null && tracker.questionText != null && !tracker.questionText.trim().isEmpty())
@@ -94,8 +110,12 @@ public class DocxStructureParser {
             pSum.put("label", labelToUse);
             pSum.put("questionText", resolvedQuestion);
 
-            if (NumericFormulaEngine.isFormulaCalcKey(key)) {
-                pSum.put("type", "CALCULATED");
+            String effectiveType;
+            if (upperOverrides.containsKey(upperKey)) {
+                // Priority 1 / 2: Authoritative Override Strictly Wins
+                effectiveType = upperOverrides.get(upperKey);
+            } else if (NumericFormulaEngine.isFormulaCalcKey(key)) {
+                effectiveType = "CALCULATED";
                 pSum.put("isCalculated", true);
                 pSum.put("isReadOnly", true);
                 String expr = NumericFormulaEngine.extractFormulaExpression(key);
@@ -104,11 +124,13 @@ public class DocxStructureParser {
                     pSum.put("label", "Formula: " + expr);
                 }
             } else if (NumericFormulaEngine.isNumericInputKey(key)) {
-                pSum.put("type", "NUMBER");
+                effectiveType = "NUMBER";
                 pSum.put("isNumeric", true);
             } else {
-                pSum.put("type", tracker.type);
+                effectiveType = tracker.type;
             }
+            pSum.put("type", effectiveType);
+            pSum.put("fieldType", effectiveType);
 
             if (tracker.serialNo != null && !tracker.serialNo.trim().isEmpty()) {
                 pSum.put("serialNo", tracker.serialNo.trim());
@@ -118,6 +140,10 @@ public class DocxStructureParser {
             if (tracker.tableContext != null) {
                 pSum.set("tableContext", tracker.tableContext);
             }
+        }
+
+        if (!upperOverrides.isEmpty()) {
+            applyTypeOverridesToDom(root, upperOverrides);
         }
 
         return root;
@@ -1244,12 +1270,110 @@ public class DocxStructureParser {
         return words.isEmpty() ? cleanKey : String.join(" ", words);
     }
 
+    /**
+     * Applies authoritative type overrides across all DOM nodes: placeholdersSummary, runs, and placeholderBindings.
+     */
+    public JsonNode applyTypeOverridesToDom(JsonNode domRoot, Map<String, String> typeOverrides) {
+        if (domRoot == null || typeOverrides == null || typeOverrides.isEmpty()) {
+            return domRoot;
+        }
+        Map<String, String> upperOverrides = new HashMap<>();
+        typeOverrides.forEach((k, v) -> {
+            if (k != null && v != null) {
+                upperOverrides.put(k.toUpperCase().trim(), v.toUpperCase().trim());
+            }
+        });
+
+        // 1. Update placeholdersSummary
+        if (domRoot.has("placeholdersSummary") && domRoot.get("placeholdersSummary").isArray()) {
+            for (JsonNode ps : domRoot.get("placeholdersSummary")) {
+                if (ps instanceof ObjectNode psObj && psObj.has("key")) {
+                    String k = psObj.get("key").asText().toUpperCase().trim();
+                    if (upperOverrides.containsKey(k)) {
+                        String t = upperOverrides.get(k);
+                        psObj.put("type", t);
+                        psObj.put("fieldType", t);
+                    }
+                }
+            }
+        }
+
+        // 2. Traverse sections -> elements -> paragraphs & tables
+        if (domRoot.has("sections") && domRoot.get("sections").isArray()) {
+            for (JsonNode sec : domRoot.get("sections")) {
+                if (sec.has("elements") && sec.get("elements").isArray()) {
+                    for (JsonNode elem : sec.get("elements")) {
+                        updateDomElementTypes(elem, upperOverrides);
+                    }
+                }
+            }
+        }
+
+        return domRoot;
+    }
+
+    private void updateDomElementTypes(JsonNode element, Map<String, String> upperOverrides) {
+        if (element == null) return;
+        String type = element.path("type").asText("");
+        if ("PARAGRAPH".equalsIgnoreCase(type)) {
+            if (element.has("runs") && element.get("runs").isArray()) {
+                for (JsonNode run : element.get("runs")) {
+                    if (run instanceof ObjectNode runObj && runObj.path("isPlaceholder").asBoolean(false)) {
+                        String pk = runObj.path("placeholderKey").asText("").toUpperCase().trim();
+                        if (upperOverrides.containsKey(pk)) {
+                            runObj.put("fieldType", upperOverrides.get(pk));
+                        }
+                    }
+                }
+            }
+        } else if ("TABLE".equalsIgnoreCase(type)) {
+            if (element.has("rows") && element.get("rows").isArray()) {
+                for (JsonNode row : element.get("rows")) {
+                    if (row.has("cells") && row.get("cells").isArray()) {
+                        for (JsonNode cell : row.get("cells")) {
+                            if (cell instanceof ObjectNode cellObj) {
+                                if (cellObj.has("placeholderBindings") && cellObj.get("placeholderBindings").isArray()) {
+                                    for (JsonNode b : cellObj.get("placeholderBindings")) {
+                                        if (b instanceof ObjectNode bObj && bObj.has("key")) {
+                                            String bk = bObj.get("key").asText().toUpperCase().trim();
+                                            if (upperOverrides.containsKey(bk)) {
+                                                bObj.put("fieldType", upperOverrides.get(bk));
+                                            }
+                                        }
+                                    }
+                                }
+                                if (cellObj.has("paragraphs") && cellObj.get("paragraphs").isArray()) {
+                                    for (JsonNode cp : cellObj.get("paragraphs")) {
+                                        updateDomElementTypes(cp, upperOverrides);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     public String generatePlaceholderRegistry(JsonNode domRoot) {
+        return generatePlaceholderRegistry(domRoot, Collections.emptyMap());
+    }
+
+    public String generatePlaceholderRegistry(JsonNode domRoot, Map<String, String> typeOverrides) {
         ObjectNode registry = objectMapper.createObjectNode();
+        Map<String, String> upperOverrides = new HashMap<>();
+        if (typeOverrides != null) {
+            typeOverrides.forEach((k, v) -> {
+                if (k != null && v != null) upperOverrides.put(k.toUpperCase().trim(), v.toUpperCase().trim());
+            });
+        }
+
         if (domRoot != null && domRoot.has("placeholdersSummary")) {
             for (JsonNode summary : domRoot.get("placeholdersSummary")) {
-                String key = summary.get("key").asText().toUpperCase();
-                String type = summary.has("type") ? summary.get("type").asText().toUpperCase() : "TEXT";
+                String key = summary.get("key").asText().toUpperCase().trim();
+                String type = upperOverrides.containsKey(key)
+                        ? upperOverrides.get(key)
+                        : (summary.has("type") ? summary.get("type").asText().toUpperCase().trim() : "TEXT");
                 String source = summary.has("source") ? summary.get("source").asText() : "EXPLICIT";
                 ObjectNode item = registry.putObject(key);
                 item.put("type", type);

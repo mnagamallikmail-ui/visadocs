@@ -38,4 +38,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     long countByTemplateIdAndStatusIn(Long templateId, List<String> statuses);
 
     long countByTemplateVersionId(Long templateVersionId);
+
+    List<Order> findAllByTemplateId(Long templateId);
 }

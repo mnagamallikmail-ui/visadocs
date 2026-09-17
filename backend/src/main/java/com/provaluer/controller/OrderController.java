@@ -88,6 +88,10 @@ public class OrderController {
         if (request.getTemplateId() != null && order.getFieldMappingSnapshot() == null) {
             templateRepository.findById(request.getTemplateId()).ifPresent(t -> {
                 order.setFieldMappingSnapshot(t.getFieldMapping());
+                if (t.getDocumentDom() != null) {
+                    order.setDocumentDomSnapshot(t.getDocumentDom());
+                }
+                order.setTemplateVersion(t.getVersion());
             });
         }
         
@@ -349,6 +353,10 @@ public class OrderController {
             if (order.getTemplateId() != null && order.getFieldMappingSnapshot() == null) {
                 templateRepository.findById(order.getTemplateId()).ifPresent(t -> {
                     order.setFieldMappingSnapshot(t.getFieldMapping());
+                    if (t.getDocumentDom() != null) {
+                        order.setDocumentDomSnapshot(t.getDocumentDom());
+                    }
+                    order.setTemplateVersion(t.getVersion());
                 });
             }
 
@@ -662,6 +670,10 @@ public class OrderController {
             order.setTemplateId(templateId);
             templateRepository.findById(templateId).ifPresent(t -> {
                 order.setFieldMappingSnapshot(t.getFieldMapping());
+                if (t.getDocumentDom() != null) {
+                    order.setDocumentDomSnapshot(t.getDocumentDom());
+                }
+                order.setTemplateVersion(t.getVersion());
             });
             Order saved = orderRepository.save(order);
             return ResponseEntity.ok(saved);
@@ -815,6 +827,9 @@ public class OrderController {
         order.setLastHeartbeat(LocalDateTime.now());
 
         order.setFieldMappingSnapshot(template.getFieldMapping());
+        if (template.getDocumentDom() != null) {
+            order.setDocumentDomSnapshot(template.getDocumentDom());
+        }
         order.setTemplateVersion(template.getVersion());
 
         // Link immutable template_version_id for Option A historical preservation

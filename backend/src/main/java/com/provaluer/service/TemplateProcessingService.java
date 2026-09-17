@@ -3,6 +3,7 @@ package com.provaluer.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.provaluer.model.Order;
 import com.provaluer.model.Template;
 import com.provaluer.model.TemplateVersion;
 import com.provaluer.repository.TemplateRepository;
@@ -330,11 +331,15 @@ public class TemplateProcessingService {
 
         validateDocxPackage(docxBytes, "revised_template.docx");
 
+        // Extract authoritative type overrides from existing template to ensure manual overrides survive new binary upload
+        Map<String, String> typeOverrides = extractTypeOverrides(template);
+
         byte[] normalized = templateEngine.normalizeTemplate(docxBytes);
-        JsonNode domNode = docxStructureParser.parseDocumentStructure(normalized);
+        JsonNode domNode = docxStructureParser.parseDocumentStructure(normalized, typeOverrides);
+        docxStructureParser.applyTypeOverridesToDom(domNode, typeOverrides);
         String documentDomJson = domNode.toString();
-        String placeholderRegistryJson = docxStructureParser.generatePlaceholderRegistry(domNode);
-        String fieldMappingJson = templateEngine.parseTemplate(normalized);
+        String placeholderRegistryJson = docxStructureParser.generatePlaceholderRegistry(domNode, typeOverrides);
+        String fieldMappingJson = templateEngine.parseTemplate(normalized, typeOverrides);
 
         // Pre-commit diff calculation
         TemplateDiffDTO diff = computeTemplateDiff(templateId, docxBytes);
@@ -496,9 +501,21 @@ public class TemplateProcessingService {
             }
         }
 
+        // 3. Extract authoritative type overrides from registryNode (which contains all existing types and latest updates)
+        Map<String, String> authoritativeOverrides = new HashMap<>();
+        Iterator<Map.Entry<String, JsonNode>> regFields = registryNode.fields();
+        while (regFields.hasNext()) {
+            Map.Entry<String, JsonNode> e = regFields.next();
+            if (e.getValue().has("type")) {
+                authoritativeOverrides.put(e.getKey().toUpperCase(), e.getValue().get("type").asText().toUpperCase());
+            }
+        }
+
+        docxStructureParser.applyTypeOverridesToDom(domRoot, authoritativeOverrides);
+
         String updatedPlaceholderRegistryJson = registryNode.toString();
         String updatedDocumentDomJson = domRoot.toString();
-        String updatedFieldMappingJson = templateEngine.parseTemplate(existingContent);
+        String updatedFieldMappingJson = templateEngine.parseTemplate(existingContent, authoritativeOverrides);
 
         // Archive previous versions
         List<TemplateVersion> prevVersions = templateVersionRepository.findAllByTemplateIdOrderByVersionDesc(templateId);
@@ -538,10 +555,32 @@ public class TemplateProcessingService {
         template.setVersion(nextVersion);
         template.setDocumentDom(updatedDocumentDomJson);
         template.setPlaceholderRegistry(updatedPlaceholderRegistryJson);
+        template.setFieldMapping(updatedFieldMappingJson);
         template.setStatus(Template.STATUS_ACTIVE);
         template.setIsActive("Y");
         template.setProcessingError(null);
         Template saved = templateRepository.save(template);
+
+        // Synchronize active draft orders with updated metadata snapshots
+        List<Order> draftOrders = orderRepository.findAllByTemplateId(templateId);
+        for (Order o : draftOrders) {
+            if (!"FINAL_DELIVERY".equalsIgnoreCase(o.getStatus()) && !"SPA_CONFIRMED".equalsIgnoreCase(o.getStatus())) {
+                o.setFieldMappingSnapshot(updatedFieldMappingJson);
+                if (o.getDocumentDomSnapshot() != null) {
+                    try {
+                        JsonNode oDom = objectMapper.readTree(o.getDocumentDomSnapshot());
+                        docxStructureParser.applyTypeOverridesToDom(oDom, authoritativeOverrides);
+                        o.setDocumentDomSnapshot(oDom.toString());
+                    } catch (Exception ex) {
+                        o.setDocumentDomSnapshot(updatedDocumentDomJson);
+                    }
+                } else {
+                    o.setDocumentDomSnapshot(updatedDocumentDomJson);
+                }
+                o.setTemplateVersion(nextVersion);
+                orderRepository.save(o);
+            }
+        }
 
         log.info("Template #{} published new metadata version v{} successfully without modifying binary.", templateId, nextVersion);
         return saved;
@@ -636,5 +675,104 @@ public class TemplateProcessingService {
 
         byte[] raw = template.getTemplateContent();
         return templateEngine.generateReport(raw, sampleInputs, Collections.emptyMap());
+    }
+
+    /**
+     * Extracts authoritative field type overrides from a Template based on mandatory governance precedence:
+     * Priority 2: Persisted Placeholder Registry
+     * Priority 3: Persisted Document DOM
+     * Priority 4: Field Mapping
+     */
+    public static Map<String, String> extractTypeOverrides(Template template) {
+        if (template == null) {
+            return Collections.emptyMap();
+        }
+        return extractTypeOverrides(template.getPlaceholderRegistry(), template.getDocumentDom(), template.getFieldMapping());
+    }
+
+    /**
+     * Extracts authoritative field type overrides from a TemplateVersion based on mandatory governance precedence.
+     */
+    public static Map<String, String> extractTypeOverrides(TemplateVersion version) {
+        if (version == null) {
+            return Collections.emptyMap();
+        }
+        return extractTypeOverrides(version.getPlaceholderRegistry(), version.getDocumentDom(), version.getFieldMapping());
+    }
+
+    /**
+     * Extracts authoritative field type overrides across storage layers with strict precedence:
+     * 1. placeholderRegistry (highest persisted priority)
+     * 2. documentDom
+     * 3. fieldMapping
+     */
+    public static Map<String, String> extractTypeOverrides(String placeholderRegistryJson, String documentDomJson, String fieldMappingJson) {
+        Map<String, String> overrides = new LinkedHashMap<>();
+        ObjectMapper mapper = new ObjectMapper();
+
+        // Baseline: Field Mapping
+        if (fieldMappingJson != null && !fieldMappingJson.trim().isEmpty()) {
+            try {
+                JsonNode fmNode = mapper.readTree(fieldMappingJson);
+                if (fmNode.has("fields") && fmNode.get("fields").isArray()) {
+                    for (JsonNode field : fmNode.get("fields")) {
+                        if (field.has("key") && field.has("type")) {
+                            overrides.put(field.get("key").asText().toUpperCase(), field.get("type").asText().toUpperCase());
+                        }
+                    }
+                } else if (fmNode.isObject()) {
+                    Iterator<Map.Entry<String, JsonNode>> it = fmNode.fields();
+                    while (it.hasNext()) {
+                        Map.Entry<String, JsonNode> entry = it.next();
+                        if (entry.getValue().isTextual()) {
+                            overrides.put(entry.getKey().toUpperCase(), entry.getValue().asText().toUpperCase());
+                        } else if (entry.getValue().isObject() && entry.getValue().has("type")) {
+                            overrides.put(entry.getKey().toUpperCase(), entry.getValue().get("type").asText().toUpperCase());
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        // Priority 3: Persisted Document DOM (overrides field mapping)
+        if (documentDomJson != null && !documentDomJson.trim().isEmpty()) {
+            try {
+                JsonNode domNode = mapper.readTree(documentDomJson);
+                if (domNode.has("placeholdersSummary") && domNode.get("placeholdersSummary").isArray()) {
+                    for (JsonNode ph : domNode.get("placeholdersSummary")) {
+                        if (ph.has("key")) {
+                            String k = ph.get("key").asText().toUpperCase();
+                            if (ph.has("type") && !ph.get("type").asText().trim().isEmpty()) {
+                                overrides.put(k, ph.get("type").asText().toUpperCase());
+                            } else if (ph.has("fieldType") && !ph.get("fieldType").asText().trim().isEmpty()) {
+                                overrides.put(k, ph.get("fieldType").asText().toUpperCase());
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        // Priority 2: Persisted Placeholder Registry (Authoritative persisted catalog)
+        if (placeholderRegistryJson != null && !placeholderRegistryJson.trim().isEmpty()) {
+            try {
+                JsonNode regNode = mapper.readTree(placeholderRegistryJson);
+                if (regNode.isObject()) {
+                    Iterator<Map.Entry<String, JsonNode>> it = regNode.fields();
+                    while (it.hasNext()) {
+                        Map.Entry<String, JsonNode> entry = it.next();
+                        String key = entry.getKey().toUpperCase();
+                        JsonNode val = entry.getValue();
+                        if (val.isObject() && val.has("type")) {
+                            overrides.put(key, val.get("type").asText().toUpperCase());
+                        } else if (val.isTextual()) {
+                            overrides.put(key, val.asText().toUpperCase());
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        return overrides;
     }
 }

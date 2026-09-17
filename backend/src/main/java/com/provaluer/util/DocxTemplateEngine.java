@@ -552,8 +552,26 @@ public class DocxTemplateEngine {
      * Parses the .docx template elements sequentially to build a dynamic form metadata scheme.
      */
     public String parseTemplate(byte[] content) throws Exception {
+        return parseTemplate(content, null);
+    }
+
+    /**
+     * Parses the .docx template elements sequentially with authoritative type overrides.
+     * When an administrator or persisted registry defines a field type, that type is strictly
+     * honored instead of inferring from naming heuristics.
+     */
+    public String parseTemplate(byte[] content, Map<String, String> typeOverrides) throws Exception {
         WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(new ByteArrayInputStream(content));
         
+        Map<String, String> upperOverrides = new HashMap<>();
+        if (typeOverrides != null) {
+            for (Map.Entry<String, String> entry : typeOverrides.entrySet()) {
+                if (entry.getKey() != null && entry.getValue() != null) {
+                    upperOverrides.put(entry.getKey().toUpperCase(), entry.getValue().toUpperCase());
+                }
+            }
+        }
+
         ArrayNode fieldsArray = objectMapper.createArrayNode();
         Set<String> uniqueKeys = new HashSet<>();
 
@@ -561,16 +579,16 @@ public class DocxTemplateEngine {
         ParseContext ctx = new ParseContext();
 
         // 1. Process Main Document Part
-        currentSection = parseElements(wordMLPackage.getMainDocumentPart().getContent(), currentSection, fieldsArray, uniqueKeys, ctx);
+        currentSection = parseElements(wordMLPackage.getMainDocumentPart().getContent(), currentSection, fieldsArray, uniqueKeys, ctx, upperOverrides);
 
         // 2. Process Headers and Footers
         for (org.docx4j.openpackaging.parts.Part part : wordMLPackage.getParts().getParts().values()) {
             if (part instanceof org.docx4j.openpackaging.parts.WordprocessingML.HeaderPart) {
                 org.docx4j.openpackaging.parts.WordprocessingML.HeaderPart header = (org.docx4j.openpackaging.parts.WordprocessingML.HeaderPart) part;
-                parseElements(header.getContent(), "Header Content", fieldsArray, uniqueKeys, ctx);
+                parseElements(header.getContent(), "Header Content", fieldsArray, uniqueKeys, ctx, upperOverrides);
             } else if (part instanceof org.docx4j.openpackaging.parts.WordprocessingML.FooterPart) {
                 org.docx4j.openpackaging.parts.WordprocessingML.FooterPart footer = (org.docx4j.openpackaging.parts.WordprocessingML.FooterPart) part;
-                parseElements(footer.getContent(), "Footer Content", fieldsArray, uniqueKeys, ctx);
+                parseElements(footer.getContent(), "Footer Content", fieldsArray, uniqueKeys, ctx, upperOverrides);
             }
         }
 
@@ -582,7 +600,7 @@ public class DocxTemplateEngine {
         return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(schema);
     }
 
-    private String parseElements(List<Object> elements, String initialSection, ArrayNode fieldsArray, Set<String> uniqueKeys, ParseContext ctx) {
+    private String parseElements(List<Object> elements, String initialSection, ArrayNode fieldsArray, Set<String> uniqueKeys, ParseContext ctx, Map<String, String> upperOverrides) {
         String currentSection = initialSection;
         int tableIndex = 0;
         for (Object element : elements) {
@@ -611,10 +629,10 @@ public class DocxTemplateEngine {
                 }
 
                 // Parse standard placeholders
-                parsePlaceholdersInText(pText, currentSection, null, null, null, fieldsArray, uniqueKeys, currentLineGroup);
+                parsePlaceholdersInText(pText, currentSection, null, null, null, fieldsArray, uniqueKeys, currentLineGroup, upperOverrides);
                 
                 // Parse image dimensions
-                parseImageDrawing(p, currentSection, fieldsArray, uniqueKeys, currentLineGroup);
+                parseImageDrawing(p, currentSection, fieldsArray, uniqueKeys, currentLineGroup, upperOverrides);
 
             } else if (unwrapped instanceof Tbl) {
                 Tbl tbl = (Tbl) unwrapped;
@@ -635,7 +653,7 @@ public class DocxTemplateEngine {
                                 String colHeader = rowIndex > 0 ? getCellText(tbl, 0, colIndex) : "";
                                 String rowHeader = colIndex > 0 ? getCellText(tbl, rowIndex, 0) : "";
 
-                                parseCellElements(cell.getContent(), currentSection, cellContext, colHeader, rowHeader, fieldsArray, uniqueKeys, currentLineGroup, ctx);
+                                parseCellElements(cell.getContent(), currentSection, cellContext, colHeader, rowHeader, fieldsArray, uniqueKeys, currentLineGroup, ctx, upperOverrides);
                                 colIndex++;
                             }
                         }
@@ -648,14 +666,14 @@ public class DocxTemplateEngine {
         return currentSection;
     }
 
-    private void parseCellElements(List<Object> elements, String section, String cellContext, String colHeader, String rowHeader, ArrayNode fieldsArray, Set<String> uniqueKeys, int lineGroupId, ParseContext ctx) {
+    private void parseCellElements(List<Object> elements, String section, String cellContext, String colHeader, String rowHeader, ArrayNode fieldsArray, Set<String> uniqueKeys, int lineGroupId, ParseContext ctx, Map<String, String> upperOverrides) {
         for (Object elem : elements) {
             Object unwrapped = unwrap(elem);
             if (unwrapped instanceof P) {
                 P p = (P) unwrapped;
                 String text = getParagraphText(p);
-                parsePlaceholdersInText(text, section, cellContext, colHeader, rowHeader, fieldsArray, uniqueKeys, lineGroupId);
-                parseImageDrawing(p, section, fieldsArray, uniqueKeys, lineGroupId);
+                parsePlaceholdersInText(text, section, cellContext, colHeader, rowHeader, fieldsArray, uniqueKeys, lineGroupId, upperOverrides);
+                parseImageDrawing(p, section, fieldsArray, uniqueKeys, lineGroupId, upperOverrides);
             } else if (unwrapped instanceof Tbl) {
                 Tbl tbl = (unwrapped instanceof Tbl) ? (Tbl) unwrapped : null;
                 if (tbl == null) continue;
@@ -668,7 +686,7 @@ public class DocxTemplateEngine {
                             Object unwrappedCell = unwrap(cellObj);
                             if (unwrappedCell instanceof Tc) {
                                 Tc cell = (Tc) unwrappedCell;
-                                parseCellElements(cell.getContent(), section, cellContext, colHeader, rowHeader, fieldsArray, uniqueKeys, currentLineGroup, ctx);
+                                parseCellElements(cell.getContent(), section, cellContext, colHeader, rowHeader, fieldsArray, uniqueKeys, currentLineGroup, ctx, upperOverrides);
                             }
                         }
                     }
@@ -700,7 +718,7 @@ public class DocxTemplateEngine {
         return "";
     }
 
-    private void parsePlaceholdersInText(String text, String section, String tableContext, String colHeader, String rowHeader, ArrayNode fieldsArray, Set<String> uniqueKeys, int lineGroupId) {
+    private void parsePlaceholdersInText(String text, String section, String tableContext, String colHeader, String rowHeader, ArrayNode fieldsArray, Set<String> uniqueKeys, int lineGroupId, Map<String, String> upperOverrides) {
         Matcher matcher = PLACEHOLDER_PATTERN.matcher(text);
         while (matcher.find()) {
             String rawKey = matcher.group(1).trim();
@@ -711,14 +729,21 @@ public class DocxTemplateEngine {
             }
             uniqueKeys.add(key);
 
-            // Determine Field Type: text placeholders between << >>, image as image placeholders, date as date placeholders
-            String fieldType = "TEXT";
-            if (DocxStructureParser.isTextPlaceholder(key)) {
+            // Determine Field Type:
+            // Priority 1: Administrator / Persisted Type Override
+            // Priority 4: Initial Parser Inference
+            // Priority 5: Fallback Heuristics
+            String fieldType;
+            if (upperOverrides != null && upperOverrides.containsKey(key)) {
+                fieldType = upperOverrides.get(key);
+            } else if (DocxStructureParser.isTextPlaceholder(key)) {
                 fieldType = "TEXT"; // HARD-STOP: Generic text placeholders strictly remain TEXT
             } else if (key.toLowerCase().contains("image") || key.toLowerCase().contains("img_") || key.toLowerCase().contains("_image")) {
                 fieldType = "IMAGE";
             } else if (key.toLowerCase().contains("date_") || key.toLowerCase().contains("_date") || key.toLowerCase().equals("date")) {
                 fieldType = "DATE";
+            } else {
+                fieldType = "TEXT";
             }
 
             // Auto Label Generation
@@ -736,7 +761,7 @@ public class DocxTemplateEngine {
             }
 
             if (question == null) {
-                if (fieldType.equals("IMAGE")) {
+                if ("IMAGE".equalsIgnoreCase(fieldType)) {
                     question = "Upload the " + label + " image";
                 } else {
                     question = "What is the " + label + "?";
@@ -765,7 +790,7 @@ public class DocxTemplateEngine {
         }
     }
 
-    private void parseImageDrawing(P p, String section, ArrayNode fieldsArray, Set<String> uniqueKeys, int lineGroupId) {
+    private void parseImageDrawing(P p, String section, ArrayNode fieldsArray, Set<String> uniqueKeys, int lineGroupId, Map<String, String> upperOverrides) {
         // 1. Inline drawings
         ClassFinder inlineFinder = new ClassFinder(Inline.class);
         new TraversalUtil(p, inlineFinder);
@@ -785,7 +810,7 @@ public class DocxTemplateEngine {
                     emuCy = inline.getExtent().getCy();
                 }
                 
-                addImageSlot(key, section, emuCx, emuCy, fieldsArray, lineGroupId);
+                addImageSlot(key, section, emuCx, emuCy, fieldsArray, lineGroupId, upperOverrides);
             }
         }
 
@@ -808,22 +833,26 @@ public class DocxTemplateEngine {
                     emuCy = anchor.getExtent().getCy();
                 }
                 
-                addImageSlot(key, section, emuCx, emuCy, fieldsArray, lineGroupId);
+                addImageSlot(key, section, emuCx, emuCy, fieldsArray, lineGroupId, upperOverrides);
             }
         }
     }
 
-    private void addImageSlot(String key, String section, long emuCx, long emuCy, ArrayNode fieldsArray, int lineGroupId) {
+    private void addImageSlot(String key, String section, long emuCx, long emuCy, ArrayNode fieldsArray, int lineGroupId, Map<String, String> upperOverrides) {
         double inchesW = (double) emuCx / 914400.0;
         double inchesH = (double) emuCy / 914400.0;
         double pixelsW = (double) emuCx / 9144.0;
         double pixelsH = (double) emuCy / 9144.0;
 
+        String fieldType = (upperOverrides != null && upperOverrides.containsKey(key))
+                ? upperOverrides.get(key)
+                : "IMAGE";
+
         ObjectNode fieldNode = objectMapper.createObjectNode();
         fieldNode.put("key", key);
         fieldNode.put("label", makeDisplayLabel(key));
         fieldNode.put("question", "Upload the " + makeDisplayLabel(key) + " image");
-        fieldNode.put("type", "IMAGE");
+        fieldNode.put("type", fieldType);
         fieldNode.put("section", section);
         fieldNode.put("isRequired", true);
         fieldNode.put("lineGroupId", lineGroupId);

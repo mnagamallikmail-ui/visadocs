@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -26,8 +27,11 @@ public class DocumentStudioService {
     @Autowired
     private DocxStructureParser docxStructureParser;
 
+    private final com.fasterxml.jackson.databind.ObjectMapper objectMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+
     /**
-     * Loads a template's raw binary DOCX from PostgreSQL and parses its structure into a JsonNode DOM.
+     * Loads a template's raw binary DOCX from PostgreSQL and parses its structure into a JsonNode DOM,
+     * strictly honoring authoritative field type overrides from the registry and persisted DOM.
      *
      * @param templateId The unique ID of the template to inspect.
      * @return JsonNode containing sections, paragraphs, tables, runs, and placeholder summary.
@@ -41,13 +45,24 @@ public class DocumentStudioService {
         Template template = templateRepository.findById(templateId)
                 .orElseThrow(() -> new NoSuchElementException("Template not found with ID: " + templateId));
 
+        Map<String, String> typeOverrides = TemplateProcessingService.extractTypeOverrides(template);
+
+        // Priority 3 / Priority 2: Use persisted Document DOM if present, guaranteed with overrides applied
+        if (template.getDocumentDom() != null && !template.getDocumentDom().trim().isEmpty()) {
+            try {
+                JsonNode domNode = objectMapper.readTree(template.getDocumentDom());
+                docxStructureParser.applyTypeOverridesToDom(domNode, typeOverrides);
+                return domNode;
+            } catch (Exception ignored) {}
+        }
+
         byte[] content = template.getTemplateContent();
         if (content == null || content.length == 0) {
             throw new IllegalStateException("Template binary content is empty for template ID: " + templateId);
         }
 
         try {
-            return docxStructureParser.parseDocumentStructure(content);
+            return docxStructureParser.parseDocumentStructure(content, typeOverrides);
         } catch (Exception e) {
             throw new IllegalStateException("Failed to parse OpenXML document structure for template ID " + templateId + ": " + e.getMessage(), e);
         }

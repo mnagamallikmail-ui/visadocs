@@ -272,12 +272,19 @@ public class DocumentWorkspaceService {
         // 2. DOM Snapshot Management (Option A Mandate):
         //    Once created, an order's DOM snapshot is irrevocable and NEVER invalidated by subsequent template updates.
         if (order.getDocumentDomSnapshot() == null || order.getDocumentDomSnapshot().trim().isEmpty()) {
-            try {
-                JsonNode domNode = docxStructureParser.parseDocumentStructure(docxBytes);
-                order.setDocumentDomSnapshot(domNode.toString());
+            if (template != null && template.getDocumentDom() != null && !template.getDocumentDom().trim().isEmpty()) {
+                order.setDocumentDomSnapshot(template.getDocumentDom());
                 orderRepository.save(order);
-            } catch (Exception e) {
-                log.warn("Failed to generate document DOM snapshot on the fly: {}", e.getMessage());
+            } else {
+                try {
+                    Map<String, String> typeOverrides = TemplateProcessingService.extractTypeOverrides(template);
+                    JsonNode domNode = docxStructureParser.parseDocumentStructure(docxBytes, typeOverrides);
+                    docxStructureParser.applyTypeOverridesToDom(domNode, typeOverrides);
+                    order.setDocumentDomSnapshot(domNode.toString());
+                    orderRepository.save(order);
+                } catch (Exception e) {
+                    log.warn("Failed to generate document DOM snapshot on the fly: {}", e.getMessage());
+                }
             }
         }
 
@@ -331,6 +338,12 @@ public class DocumentWorkspaceService {
             } catch (Exception e) {
                 log.warn("Failed to parse template documentDom JSON for template {}: {}", templateId, e.getMessage());
             }
+        }
+
+        // Apply Hierarchical Field Type Overrides: Registry / Template / Order snapshot
+        Map<String, String> typeOverrides = TemplateProcessingService.extractTypeOverrides(template);
+        if (domNode != null && !typeOverrides.isEmpty()) {
+            docxStructureParser.applyTypeOverridesToDom(domNode, typeOverrides);
         }
 
         // Apply Hierarchical Text Overrides: SPA Order Override > Super Admin Template Override > Dictionary Baseline
@@ -1150,7 +1163,9 @@ public class DocumentWorkspaceService {
 
             if (needsRebuild) {
                 try {
-                    JsonNode domNode = docxStructureParser.parseDocumentStructure(template.getTemplateContent());
+                    Map<String, String> typeOverrides = TemplateProcessingService.extractTypeOverrides(template);
+                    JsonNode domNode = docxStructureParser.parseDocumentStructure(template.getTemplateContent(), typeOverrides);
+                    docxStructureParser.applyTypeOverridesToDom(domNode, typeOverrides);
                     String domJson = domNode.toString();
 
                     order.setDocumentDomSnapshot(domJson);
@@ -1159,7 +1174,7 @@ public class DocumentWorkspaceService {
 
                     // Also update template-level cached DOM
                     template.setDocumentDom(domJson);
-                    template.setPlaceholderRegistry(docxStructureParser.generatePlaceholderRegistry(domNode));
+                    template.setPlaceholderRegistry(docxStructureParser.generatePlaceholderRegistry(domNode, typeOverrides));
                     templateCache.put(tplId, template); // keep in-memory cache updated
 
                     // Verify image placeholders

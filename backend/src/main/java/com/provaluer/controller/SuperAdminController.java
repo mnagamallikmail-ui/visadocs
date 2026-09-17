@@ -884,6 +884,10 @@ public class SuperAdminController {
         if (req.getTemplateId() != null) {
             templateRepository.findById(req.getTemplateId()).ifPresent(t -> {
                 order.setFieldMappingSnapshot(t.getFieldMapping());
+                if (t.getDocumentDom() != null) {
+                    order.setDocumentDomSnapshot(t.getDocumentDom());
+                }
+                order.setTemplateVersion(t.getVersion());
             });
         }
         
