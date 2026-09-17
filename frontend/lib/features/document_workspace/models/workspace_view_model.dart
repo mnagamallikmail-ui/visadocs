@@ -844,8 +844,22 @@ class TableRowVm {
               keyUpper.contains('NAME') ||
               keyUpper.contains('REMARK') ||
               keyUpper.contains('ADDRESS');
-          String resolvedFieldType = b.fieldType;
-          if (isGenericText || (isExplicitNonImageNonDate && (b.fieldType == 'IMAGE' || b.fieldType == 'DATE'))) {
+
+          // GOVERNANCE PRECEDENCE FOR TABLE CELLS:
+          // Priority 1: placeholdersSummary[keyUpper].type (Explicit template configuration always wins)
+          // Priority 2: binding.fieldType (Fallback only when summary type is undeclared/empty)
+          // Priority 4: Fallback TEXT
+          final summaryType = summaries[keyUpper]?.type?.trim().toUpperCase();
+          String resolvedFieldType;
+          if (summaryType != null && summaryType.isNotEmpty) {
+            resolvedFieldType = summaryType;
+          } else if (b.fieldType.trim().isNotEmpty) {
+            resolvedFieldType = b.fieldType.trim().toUpperCase();
+          } else {
+            resolvedFieldType = 'TEXT';
+          }
+
+          if (isGenericText || (isExplicitNonImageNonDate && (resolvedFieldType == 'IMAGE' || resolvedFieldType == 'DATE'))) {
             resolvedFieldType = 'TEXT';
           }
 

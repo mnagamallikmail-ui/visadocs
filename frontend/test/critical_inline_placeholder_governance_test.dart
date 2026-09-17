@@ -403,6 +403,63 @@ void main() {
         expect(rowVmDate.inputFields.first.type, equals('TEXT'));
       });
 
+      test('TableRowVm Governance Precedence: summary.type=TEXT overrides binding.fieldType=DATE', () {
+        final testKeys = [
+          'DATE_OF_INSPECTION',
+          'VALUATION_DATE',
+          'DATE_001',
+          'DATE_OF_REPORT',
+          'INSPECTION_DATE',
+        ];
+
+        for (final key in testKeys) {
+          final studioRow = StudioTableRow(
+            rowIndex: 1,
+            rowType: 'QUESTION_ANSWER',
+            cells: [
+              const StudioTableCell(
+                cellId: 'c0',
+                cellRole: 'QUESTION',
+                plainText: 'Date Label',
+              ),
+              StudioTableCell(
+                cellId: 'c1',
+                cellRole: 'ANSWER',
+                placeholderBindings: [
+                  PlaceholderBinding(
+                    key: key,
+                    questionText: 'Date Label',
+                    fieldType: 'DATE', // Stale parser/binding type
+                  ),
+                ],
+              ),
+            ],
+          );
+
+          // placeholdersSummary provides explicit type = TEXT
+          final summaries = {
+            key: PlaceholderSummaryItem(
+              key: key,
+              label: 'Date Label',
+              questionText: 'Date Label',
+              type: 'TEXT', // Explicit template configuration
+              occurrences: 1,
+            ),
+          };
+
+          final rowVm = TableRowVm.fromStudioTableRow(
+            studioRow,
+            {key: 1},
+            summaries,
+            {},
+          );
+
+          final field = rowVm.inputFields.first;
+          expect(field.fieldType, equals('TEXT'), reason: '$key must adopt summary.type=TEXT over binding.fieldType=DATE');
+          expect(field.isDate, isFalse, reason: '$key must evaluate isDate=false when fieldType=TEXT');
+        }
+      });
+
       testWidgets('WIDGET VERIFICATION: Photograph | <<OWNER_NAME>> renders TEXT field, NO image widget, NO date picker', (tester) async {
         final provider = DocumentWorkspaceProvider();
         final fieldVm = InputFieldVm(
@@ -523,6 +580,78 @@ void main() {
         expect(find.byType(TextFormField), findsOneWidget);
         expect(find.byIcon(Icons.calendar_today_rounded), findsNothing);
         expect(find.byIcon(Icons.cloud_upload_outlined), findsNothing);
+      });
+
+      testWidgets('WIDGET VERIFICATION: Table-derived DATE_OF_INSPECTION with summary.type=TEXT -> Calendar icon absent, editable, no date picker opens', (tester) async {
+        final provider = DocumentWorkspaceProvider();
+        final studioRow = StudioTableRow(
+          rowIndex: 1,
+          rowType: 'QUESTION_ANSWER',
+          cells: [
+            const StudioTableCell(
+              cellId: 'c0',
+              cellRole: 'QUESTION',
+              plainText: 'Date of Inspection',
+            ),
+            const StudioTableCell(
+              cellId: 'c1',
+              cellRole: 'ANSWER',
+              placeholderBindings: [
+                PlaceholderBinding(
+                  key: 'DATE_OF_INSPECTION',
+                  questionText: 'Date of Inspection',
+                  fieldType: 'DATE', // Stale parser/binding type
+                ),
+              ],
+            ),
+          ],
+        );
+
+        final summaries = {
+          'DATE_OF_INSPECTION': const PlaceholderSummaryItem(
+            key: 'DATE_OF_INSPECTION',
+            label: 'Date of Inspection',
+            questionText: 'Date of Inspection',
+            type: 'TEXT',
+            occurrences: 1,
+          ),
+        };
+
+        final rowVm = TableRowVm.fromStudioTableRow(
+          studioRow,
+          {'DATE_OF_INSPECTION': 1},
+          summaries,
+          {'DATE_OF_INSPECTION': 'Inspected on 15-Sep-2026'},
+        );
+
+        final fieldVm = rowVm.inputFields.first;
+        expect(fieldVm.fieldType, equals('TEXT'));
+        expect(fieldVm.isDate, isFalse);
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ChangeNotifierProvider<DocumentWorkspaceProvider>.value(
+                value: provider,
+                child: DocumentInputSlotWidget(fieldVm: fieldVm),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Calendar icon must be absent
+        expect(find.byIcon(Icons.calendar_today_rounded), findsNothing);
+
+        // Text field must be present and editable (not readOnly)
+        final textField = tester.widget<TextField>(find.byType(TextField));
+        expect(textField.readOnly, isFalse);
+        expect(find.text('Inspected on 15-Sep-2026'), findsOneWidget);
+
+        // Tapping the field must NOT open CalendarDatePicker
+        await tester.tap(find.byType(TextFormField));
+        await tester.pumpAndSettle();
+        expect(find.byType(CalendarDatePicker), findsNothing);
       });
 
       test('IMAGE PLACEHOLDER GOVERNANCE: Only IMG_ and IMAGE_ prefixes qualify as IMAGE', () {
