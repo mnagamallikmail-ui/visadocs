@@ -87,5 +87,51 @@ void main() {
       expect(DatePickerHelper.isDateKey('ADDITIONAL_REMARKS'), isFalse);
       expect(DatePickerHelper.isDateKey('CREDIT_PERIOD'), isFalse);
     });
+
+    group('FIELD TYPE PRECEDENCE GOVERNANCE', () {
+      test('Priority 1: Explicit fieldType=TEXT overrides date keys unconditionally', () {
+        expect(DatePickerHelper.isDateKey('DATE_OF_INSPECTION', 'TEXT'), isFalse);
+        expect(DatePickerHelper.isDateKey('DATE_001', 'TEXT'), isFalse);
+        expect(DatePickerHelper.isDateKey('VALUATION_DATE', 'TEXT'), isFalse);
+        expect(DatePickerHelper.isDateKey('<<DATE>>', 'TEXT'), isFalse);
+        expect(DatePickerHelper.isDateKey('DT_INSPECTION', 'TEXT'), isFalse);
+        expect(DatePickerHelper.isDateKey('DATE_OF_REPORT', 'TEXT'), isFalse);
+        expect(DatePickerHelper.isDateKey('REPORT_DATE', 'TEXT'), isFalse);
+        expect(DatePickerHelper.isDateKey('SANCTION_DT', 'TEXT'), isFalse);
+      });
+
+      test('Priority 1: Explicit fieldType=NUMBER/IMAGE/MULTILINE overrides date keys', () {
+        expect(DatePickerHelper.isDateKey('DATE_OF_INSPECTION', 'NUMBER'), isFalse);
+        expect(DatePickerHelper.isDateKey('DATE_OF_INSPECTION', 'IMAGE'), isFalse);
+        expect(DatePickerHelper.isDateKey('DATE_OF_INSPECTION', 'MULTILINE'), isFalse);
+        expect(DatePickerHelper.isDateKey('DATE_OF_INSPECTION', 'CALCULATED'), isFalse);
+      });
+
+      test('Priority 1: Explicit fieldType=DATE activates date picker', () {
+        expect(DatePickerHelper.isDateKey('CUSTOM_FIELD', 'DATE'), isTrue);
+        expect(DatePickerHelper.isDateKey('DATE_OF_INSPECTION', 'DATE'), isTrue);
+      });
+
+      test('Priority 2: Placeholder classification hard-stops', () {
+        expect(DatePickerHelper.isDateKey('TEXT'), isFalse);
+        expect(DatePickerHelper.isDateKey('TXT'), isFalse);
+        expect(DatePickerHelper.isDateKey('TEXT_001'), isFalse);
+        expect(DatePickerHelper.isDateKey('TXT_002'), isFalse);
+        expect(DatePickerHelper.isDateKey('TEXT_PLACEHOLDER'), isFalse);
+      });
+
+      test('Priority 3: Name-based inference when fieldType is undeclared or empty', () {
+        expect(DatePickerHelper.isDateKey('DATE_OF_INSPECTION', null), isTrue);
+        expect(DatePickerHelper.isDateKey('DATE_OF_INSPECTION', ''), isTrue);
+        expect(DatePickerHelper.isDateKey('VALUATION_DATE', null), isTrue);
+        expect(DatePickerHelper.isDateKey('DATE_001', null), isTrue);
+        expect(DatePickerHelper.isDateKey('DT_INSPECTION', null), isTrue);
+      });
+
+      test('Priority 4: Fallback heuristics for non-date keys', () {
+        expect(DatePickerHelper.isDateKey('OWNER_NAME', null), isFalse);
+        expect(DatePickerHelper.isDateKey('PROPERTY_ADDRESS', ''), isFalse);
+      });
+    });
   });
 }

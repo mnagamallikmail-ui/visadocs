@@ -237,9 +237,12 @@ class DocumentWorkspaceVm {
               prompt = _toHumanizedLabel(kUpper);
             }
 
-            // IMAGE PLACEHOLDER GOVERNANCE:
-            // A placeholder is IMAGE only if its key starts with IMG_ or IMAGE_,
-            // or the schema (fieldType) explicitly says IMAGE.
+            // FIELD TYPE PRECEDENCE GOVERNANCE:
+            // Priority 1: Explicit fieldType (from summaryItem / schema) always wins.
+            // Priority 2: Generic text placeholder classification.
+            // Priority 3: Key name / formula / image inference.
+            // Priority 4: Fallback heuristic.
+            final explicitType = summaryItem?.type?.trim().toUpperCase();
             String fieldType = summaryItem?.type ?? 'TEXT';
             final cleanK = kUpper.replaceAll(RegExp(r'[<>\s]'), '');
             if (cleanK == 'TEXT' ||
@@ -250,6 +253,9 @@ class DocumentWorkspaceVm {
                 cleanK.startsWith('TXT_') ||
                 cleanK.endsWith('_TXT') ||
                 RegExp(r'^(TEXT|TXT)_\d+$').hasMatch(cleanK)) {
+              fieldType = 'TEXT';
+            } else if (explicitType == 'TEXT') {
+              // Priority 1: Explicit fieldType = TEXT always wins over name-based inference
               fieldType = 'TEXT';
             } else if (kUpper.startsWith('CALC:') || fieldType.toUpperCase() == 'CALCULATED') {
               fieldType = 'CALCULATED';

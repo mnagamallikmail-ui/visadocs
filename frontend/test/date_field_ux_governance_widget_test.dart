@@ -250,5 +250,131 @@ void main() {
       // Still in read mode - never switched to manual text edit
       expect(find.byType(TextFormField), findsNothing);
     });
+
+    group('FIELD TYPE PRECEDENCE WIDGET GOVERNANCE (Explicit fieldType=TEXT)', () {
+      testWidgets('DATE_OF_INSPECTION + fieldType=TEXT renders text input, NO calendar picker on tap', (tester) async {
+        final provider = DocumentWorkspaceProvider();
+        const fieldVm = InputFieldVm(
+          key: 'DATE_OF_INSPECTION',
+          questionText: 'Date of Inspection',
+          fieldType: 'TEXT',
+          currentValue: 'Inspection on 12-May-2026 by John',
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ChangeNotifierProvider<DocumentWorkspaceProvider>.value(
+                value: provider,
+                child: const DocumentInputSlotWidget(fieldVm: fieldVm),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Must render editable text field
+        expect(find.byType(TextFormField), findsOneWidget);
+        expect(find.text('Inspection on 12-May-2026 by John'), findsOneWidget);
+        // Calendar icon must NOT be present
+        expect(find.byIcon(Icons.calendar_today_rounded), findsNothing);
+
+        // Tap field: must NOT open CalendarDatePicker
+        await tester.tap(find.byType(TextFormField));
+        await tester.pumpAndSettle();
+        expect(find.byType(CalendarDatePicker), findsNothing);
+      });
+
+      testWidgets('VALUATION_DATE + fieldType=TEXT renders text input, NO calendar picker on tap', (tester) async {
+        final provider = DocumentWorkspaceProvider();
+        const fieldVm = InputFieldVm(
+          key: 'VALUATION_DATE',
+          questionText: 'Valuation Date',
+          fieldType: 'TEXT',
+          currentValue: 'As of Q3 2026',
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ChangeNotifierProvider<DocumentWorkspaceProvider>.value(
+                value: provider,
+                child: const DocumentInputSlotWidget(fieldVm: fieldVm),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(TextFormField), findsOneWidget);
+        expect(find.text('As of Q3 2026'), findsOneWidget);
+        expect(find.byIcon(Icons.calendar_today_rounded), findsNothing);
+
+        await tester.tap(find.byType(TextFormField));
+        await tester.pumpAndSettle();
+        expect(find.byType(CalendarDatePicker), findsNothing);
+      });
+
+      testWidgets('DATE_001 + fieldType=TEXT renders text input, NO calendar picker on tap', (tester) async {
+        final provider = DocumentWorkspaceProvider();
+        const fieldVm = InputFieldVm(
+          key: 'DATE_001',
+          questionText: 'Date Note',
+          fieldType: 'TEXT',
+          currentValue: 'Tentative schedule',
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ChangeNotifierProvider<DocumentWorkspaceProvider>.value(
+                value: provider,
+                child: const DocumentInputSlotWidget(fieldVm: fieldVm),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.byType(TextFormField), findsOneWidget);
+        expect(find.text('Tentative schedule'), findsOneWidget);
+        expect(find.byIcon(Icons.calendar_today_rounded), findsNothing);
+
+        await tester.tap(find.byType(TextFormField));
+        await tester.pumpAndSettle();
+        expect(find.byType(CalendarDatePicker), findsNothing);
+      });
+
+      testWidgets('InlineEditablePlaceholderWidget: DATE_OF_INSPECTION + fieldType=TEXT opens text editor on tap, NOT calendar', (tester) async {
+        final provider = DocumentWorkspaceProvider();
+        const fieldVm = InputFieldVm(
+          key: 'DATE_OF_INSPECTION',
+          questionText: 'Date of Inspection',
+          fieldType: 'TEXT',
+          currentValue: 'Pending verification',
+        );
+
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: ChangeNotifierProvider<DocumentWorkspaceProvider>.value(
+                value: provider,
+                child: const InlineEditablePlaceholderWidget(fieldVm: fieldVm),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Tap inline placeholder
+        await tester.tap(find.text('Pending verification'));
+        await tester.pumpAndSettle();
+
+        // Must NOT open CalendarDatePicker
+        expect(find.byType(CalendarDatePicker), findsNothing);
+        // Enters inline text editing mode (TextField)
+        expect(find.byType(TextField), findsOneWidget);
+      });
+    });
   });
 }

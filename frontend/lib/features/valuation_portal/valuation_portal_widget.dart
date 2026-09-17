@@ -3758,7 +3758,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                 );
               }
             );
-          } else if (DatePickerHelper.isDateKey(key, type)) {
+          } else if (type.toUpperCase() != 'TEXT' && DatePickerHelper.isDateKey(key, type)) {
             inputControl = TextFormField(
               controller: controller,
               readOnly: true,

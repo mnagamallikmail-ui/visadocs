@@ -74,6 +74,29 @@ The following tokens must immediately resolve to `fieldType = "TEXT"` and termin
 - Input values in ISO-8601 format (`YYYY-MM-DD`) render as `DD-MMM-YYYY` (e.g., `2026-09-17` → `17-Sep-2026`).
 - Date picker calendar widgets are restricted solely to date-classified fields.
 
+### 4.1 Field Type Precedence Governance
+When determining whether a placeholder renders as a date picker, text input, number, or other widget, the system strictly enforces the following 4-tier precedence hierarchy:
+
+1. **Priority 1: Explicit `fieldType` (Always Wins)**
+   - If `fieldType` is explicitly declared (`TEXT`, `DATE`, `NUMBER`, `IMAGE`, `MULTILINE`, `CALCULATED`), that explicit type unconditionally controls rendering and classification.
+   - `fieldType = "TEXT"` immediately halts date inference and forces text editing behavior. `TEXT` must never become `DATE` under any circumstances.
+   - Examples:
+     - `DATE_OF_INSPECTION` + `fieldType = "TEXT"` → **`TEXT`** (Text editing, zero date picker)
+     - `VALUATION_DATE` + `fieldType = "TEXT"` → **`TEXT`** (Text editing, zero date picker)
+     - `DATE_001` + `fieldType = "TEXT"` → **`TEXT`** (Text editing, zero date picker)
+     - `DATE` + `fieldType = "TEXT"` → **`TEXT`** (Text editing, zero date picker)
+     - `DATE_OF_INSPECTION` + `fieldType = "DATE"` → **`DATE`** (Calendar picker active)
+
+2. **Priority 2: Placeholder Classification Hard-Stops**
+   - Generic tokens matching `^(TEXT|TXT)(_\d+)?$`, `TEXT_PLACEHOLDER`, `TEXT`, `TXT` immediately resolve to `fieldType = "TEXT"` with zero date or image inference.
+
+3. **Priority 3: Name-Based Semantic Inference**
+   - Operates **ONLY** when `fieldType` is undeclared, null, or empty.
+   - Matches standard date naming conventions (`DATE_*`, `*_DATE`, `DT_*`, `*_DT`, `INSPECTION_DATE`, `VALUATION_DATE`, `DATE_OF_REPORT`).
+
+4. **Priority 4: Fallback Heuristics**
+   - Unclassified placeholders with no explicit type and no matching semantic patterns default to generic `TEXT`.
+
 ---
 
 ## 5. Numeric Formula Engine Governance

@@ -267,6 +267,32 @@ void main() {
         expect(vm.type, equals('DATE'));
       });
 
+      test('Governance Precedence: DATE_OF_INSPECTION / VALUATION_DATE / DATE_001 with fieldType=TEXT -> Expected: TEXT', () {
+        final vm1 = InputFieldVm(
+          key: 'DATE_OF_INSPECTION',
+          questionText: 'Date of Inspection',
+          fieldType: 'TEXT',
+        );
+        expect(vm1.isDate, isFalse);
+        expect(vm1.type, equals('TEXT'));
+
+        final vm2 = InputFieldVm(
+          key: 'VALUATION_DATE',
+          questionText: 'Valuation Date',
+          fieldType: 'TEXT',
+        );
+        expect(vm2.isDate, isFalse);
+        expect(vm2.type, equals('TEXT'));
+
+        final vm3 = InputFieldVm(
+          key: 'DATE_001',
+          questionText: 'Date 1',
+          fieldType: 'TEXT',
+        );
+        expect(vm3.isDate, isFalse);
+        expect(vm3.type, equals('TEXT'));
+      });
+
       test('Photograph | <<IMG_SITE_1>> -> Expected: IMAGE', () {
         final vm = InputFieldVm(
           key: 'IMG_SITE_1',

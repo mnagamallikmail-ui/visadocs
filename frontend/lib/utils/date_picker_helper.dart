@@ -83,9 +83,11 @@ class DatePickerHelper {
     return null;
   }
 
-  /// Centralized date placeholder classification rule:
-  /// Matches 'DATE', '*DATE*', 'DT_*', '*_DT', '*_DT_*', and known date aliases.
-  /// Strictly rejects text, names, remarks, addresses, composite tables, images, numbers.
+  /// Centralized date placeholder classification rule following Governance Precedence:
+  /// Priority 1: Explicit fieldType (explicit declaration always wins; 'TEXT' never becomes 'DATE')
+  /// Priority 2: Placeholder classification (generic text tokens always resolve to false)
+  /// Priority 3: Name-based inference (matches date patterns ONLY when fieldType is undeclared/empty)
+  /// Priority 4: Fallback heuristics (defaults to false)
   static bool isDateKey(String key, [String? fieldType]) {
     final k = key.replaceAll(RegExp(r'[<>\s]'), '').trim().toUpperCase();
     if (k.isEmpty ||
@@ -95,7 +97,19 @@ class DatePickerHelper {
         k.startsWith('CALC:')) {
       return false;
     }
-    // Explicit non-date placeholders must never become DATE
+
+    // ─── PRIORITY 1: Explicit fieldType (Always Wins) ───────────────────────
+    final t = (fieldType ?? '').trim().toUpperCase();
+    if (t.isNotEmpty) {
+      if (t == 'TEXT' || t == 'NUMBER' || t == 'IMAGE' || t == 'MULTILINE' || t == 'CALCULATED') {
+        return false;
+      }
+      if (t == 'DATE') {
+        return true;
+      }
+    }
+
+    // ─── PRIORITY 2: Placeholder Classification (Generic Text Hard-Stops) ────
     if (k == 'TEXT' ||
         k == 'TXT' ||
         k == 'TEXT_PLACEHOLDER' ||
@@ -119,6 +133,7 @@ class DatePickerHelper {
       return false;
     }
 
+    // ─── PRIORITY 3: Name-Based Semantic Inference ──────────────────────────
     final isExplicitDate = k == 'DATE' ||
         k.startsWith('DATE_') ||
         k.endsWith('_DATE') ||
@@ -139,9 +154,7 @@ class DatePickerHelper {
 
     if (isExplicitDate) return true;
 
-    final t = (fieldType ?? '').trim().toUpperCase();
-    if (t == 'DATE' && k.contains('DATE')) return true;
-
+    // ─── PRIORITY 4: Fallback Heuristics ────────────────────────────────────
     return false;
   }
 
