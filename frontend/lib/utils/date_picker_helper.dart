@@ -87,21 +87,23 @@ class DatePickerHelper {
   /// Matches 'DATE', '*DATE*', 'DT_*', '*_DT', '*_DT_*', and known date aliases.
   /// Strictly rejects text, names, remarks, addresses, composite tables, images, numbers.
   static bool isDateKey(String key, [String? fieldType]) {
-    final k = key.trim().toUpperCase().replaceAll('<<', '').replaceAll('>>', '');
+    final k = key.replaceAll(RegExp(r'[<>\s]'), '').trim().toUpperCase();
     if (k.isEmpty ||
         k == 'COMPOSITE_PROPERTY_TABLE' ||
         k == 'DYNAMIC_COMPOSITE_PROPERTY_TABLE' ||
-        k == 'COMPOSITE_TABLE') {
+        k == 'COMPOSITE_TABLE' ||
+        k.startsWith('CALC:')) {
       return false;
     }
     // Explicit non-date placeholders must never become DATE
     if (k == 'TEXT' ||
+        k == 'TXT' ||
+        k == 'TEXT_PLACEHOLDER' ||
         k.startsWith('TEXT_') ||
         k.endsWith('_TEXT') ||
-        k == 'TXT' ||
         k.startsWith('TXT_') ||
         k.endsWith('_TXT') ||
-        k == 'TEXT_PLACEHOLDER' ||
+        RegExp(r'^(TEXT|TXT)_\d+$').hasMatch(k) ||
         k == 'OWNER_NAME' ||
         k == 'PROPERTY_REMARKS' ||
         k.contains('NAME') ||

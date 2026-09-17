@@ -76,11 +76,42 @@ void main() {
   });
 
   group('Critical Numeric Formula Engine - Validation & Error Reporting', () {
-    test('Detects unknown variable e.g. CALC:N1+N99', () {
+    test('Detects unknown variable e.g. CALC:N1+UNKNOWN_VAR', () {
       final inputs = {'N1': '10'};
-      final result = NumericFormulaEngine.evaluate('N1+N99', inputs);
+      final result = NumericFormulaEngine.evaluate('N1+UNKNOWN_VAR', inputs);
       expect(result.isValid, isFalse);
-      expect(result.errorMessage, contains("Unknown variable: N99"));
+      expect(result.errorMessage, contains("Unknown variable: UNKNOWN_VAR"));
+    });
+
+    test('Issue 1: Default N values internally initialize to 0', () {
+      final inputs = <String, String>{};
+      final result = NumericFormulaEngine.evaluate('N1*N2', inputs);
+      expect(result.isValid, isTrue);
+      expect(result.value, 0.0);
+      expect(result.allInputsUntouched, isTrue);
+    });
+
+    test('Issue 2: Zero display governance - genuine calculation to 0', () {
+      final inputs = {'N1': '500', 'N2': '500'};
+      final result = NumericFormulaEngine.evaluate('N1-N2', inputs);
+      expect(result.isValid, isTrue);
+      expect(result.value, 0.0);
+      expect(result.allInputsUntouched, isFalse);
+      expect(result.formattedValue, '0');
+    });
+
+    test('Decision 1: Rounding governance - Lakhs nearest 1,000, Crores nearest 10,000', () {
+      // Lakhs
+      expect(NumericFormulaEngine.applyRoundingGovernance('REALIZABLE_VALUE', 9522650.0), 9523000.0);
+      expect(NumericFormulaEngine.applyRoundingGovernance('REALIZABLE_VALUE', 9522200.0), 9522000.0);
+
+      // Crores
+      expect(NumericFormulaEngine.applyRoundingGovernance('REALIZABLE_VALUE', 17048900.0), 17050000.0);
+      expect(NumericFormulaEngine.applyRoundingGovernance('REALIZABLE_VALUE', 17042350.0), 17040000.0);
+
+      // Never apply to Government Value or Fair Value
+      expect(NumericFormulaEngine.applyRoundingGovernance('GOVERNMENT_VALUE', 9522650.0), 9522650.0);
+      expect(NumericFormulaEngine.applyRoundingGovernance('FAIR_VALUE', 9522650.0), 9522650.0);
     });
 
     test('Detects division by zero e.g. CALC:N1/N2 where N2=0', () {

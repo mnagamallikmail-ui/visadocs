@@ -48,12 +48,18 @@ public class NumericFormulaEngine {
         private final Double value;
         private final String formattedValue;
         private final String errorMessage;
+        private final boolean allInputsUntouched;
 
         public EvaluationResult(Double value, String formattedValue) {
+            this(value, formattedValue, false);
+        }
+
+        public EvaluationResult(Double value, String formattedValue, boolean allInputsUntouched) {
             this.valid = true;
             this.value = value;
             this.formattedValue = formattedValue;
             this.errorMessage = null;
+            this.allInputsUntouched = allInputsUntouched;
         }
 
         public EvaluationResult(String errorMessage) {
@@ -61,12 +67,14 @@ public class NumericFormulaEngine {
             this.value = null;
             this.formattedValue = "";
             this.errorMessage = errorMessage;
+            this.allInputsUntouched = false;
         }
 
         public boolean isValid() { return valid; }
         public Double getValue() { return value; }
         public String getFormattedValue() { return formattedValue; }
         public String getErrorMessage() { return errorMessage; }
+        public boolean isAllInputsUntouched() { return allInputsUntouched; }
 
         @Override
         public String toString() {
@@ -367,8 +375,12 @@ public class NumericFormulaEngine {
 
             // Build map of required variables
             Map<String, Double> resolved = new LinkedHashMap<>();
+            int totalVariables = 0;
+            int untouchedVariables = 0;
+
             for (Token t : tokens) {
                 if (t.type == TokenType.VARIABLE) {
+                    totalVariables++;
                     String vName = t.text;
                     String upperVName = vName.toUpperCase();
 
@@ -381,19 +393,27 @@ public class NumericFormulaEngine {
                     }
 
                     if (rawStr == null || rawStr.trim().isEmpty()) {
-                        return new EvaluationResult("Unknown variable: " + vName);
-                    }
-
-                    // Clean currency/commas
-                    String cleaned = rawStr.replaceAll("[₹,\\s]", "").trim();
-                    try {
-                        double parsed = Double.parseDouble(cleaned);
-                        resolved.put(upperVName, parsed);
-                    } catch (NumberFormatException e) {
-                        return new EvaluationResult("Unknown variable: " + vName + " contains non-numeric value '" + rawStr + "'");
+                        // DECISION 2 & ISSUE 1: N1, N2... internally default to 0.0
+                        if (isNumericInputKey(upperVName)) {
+                            resolved.put(upperVName, 0.0);
+                            untouchedVariables++;
+                        } else {
+                            return new EvaluationResult("Unknown variable: " + vName);
+                        }
+                    } else {
+                        // Clean currency/commas
+                        String cleaned = rawStr.replaceAll("[₹,\\s]", "").trim();
+                        try {
+                            double parsed = Double.parseDouble(cleaned);
+                            resolved.put(upperVName, parsed);
+                        } catch (NumberFormatException e) {
+                            return new EvaluationResult("Unknown variable: " + vName + " contains non-numeric value '" + rawStr + "'");
+                        }
                     }
                 }
             }
+
+            boolean allUntouched = totalVariables > 0 && untouchedVariables == totalVariables;
 
             Parser parser = new Parser(tokens, resolved);
             double val = parser.parse();
@@ -403,13 +423,43 @@ public class NumericFormulaEngine {
             }
 
             String formatted = formatResult(val);
-            return new EvaluationResult(val, formatted);
+            return new EvaluationResult(val, formatted, allUntouched);
 
         } catch (FormulaException fe) {
             return new EvaluationResult(fe.getMessage());
         } catch (Exception e) {
             return new EvaluationResult("Invalid expression: " + e.getMessage());
         }
+    }
+
+    /**
+     * DECISION 1: ROUNDING GOVERNANCE
+     * Applies Approach A - True Rounding (HALF_UP):
+     * - Lakhs (>= 1,00,000 to < 1,00,00,000): Round to nearest ₹ 1,000
+     * - Crores (>= 1,00,00,000): Round to nearest ₹ 10,000
+     * - Apply ONLY to: REALIZABLE_VALUE, DISTRESS_SALE_VALUE, DISTRESS_VALUE, INSURABLE_VALUE
+     * - DO NOT APPLY TO: GOVERNMENT_VALUE, FAIR_VALUE
+     */
+    public static double applyRoundingGovernance(String fieldKey, double value) {
+        if (fieldKey == null || value <= 0) return value;
+        String upper = fieldKey.toUpperCase().replaceAll("[<>]", "").trim();
+
+        // Strict target check
+        boolean isTargetField = upper.equals("REALIZABLE_VALUE")
+                || upper.equals("DISTRESS_SALE_VALUE")
+                || upper.equals("DISTRESS_VALUE")
+                || upper.equals("INSURABLE_VALUE");
+
+        if (!isTargetField) {
+            return value; // Government Value & Fair Value are NEVER rounded here
+        }
+
+        if (value >= 10_000_000.0) { // Crores: nearest 10,000
+            return Math.round(value / 10000.0) * 10000.0;
+        } else if (value >= 100_000.0) { // Lakhs: nearest 1,000
+            return Math.round(value / 1000.0) * 1000.0;
+        }
+        return value;
     }
 
     /**

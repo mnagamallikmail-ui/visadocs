@@ -54,8 +54,12 @@ class NumericFormulaEngine {
       final tokens = _tokenize(expression.trim());
 
       final resolved = <String, double>{};
+      int totalVarCount = 0;
+      int untouchedVarCount = 0;
+
       for (final t in tokens) {
         if (t.type == _TokenType.variable) {
+          totalVarCount++;
           final vName = t.text;
           final upperVName = vName.toUpperCase();
 
@@ -69,6 +73,11 @@ class NumericFormulaEngine {
           }
 
           if (rawStr == null || rawStr.trim().isEmpty) {
+            untouchedVarCount++;
+            if (_nKeyPattern.hasMatch(upperVName)) {
+              resolved[upperVName] = 0.0;
+              continue;
+            }
             return FormulaEvaluationResult.error('Unknown variable: $vName');
           }
 
@@ -81,6 +90,8 @@ class NumericFormulaEngine {
         }
       }
 
+      final allUntouched = totalVarCount > 0 && totalVarCount == untouchedVarCount;
+
       final parser = _Parser(tokens, resolved);
       final val = parser.parse();
 
@@ -89,11 +100,50 @@ class NumericFormulaEngine {
       }
 
       final formatted = formatResult(val);
-      return FormulaEvaluationResult.success(val, formatted);
+      return FormulaEvaluationResult.success(val, formatted, allInputsUntouched: allUntouched);
     } on _FormulaException catch (fe) {
       return FormulaEvaluationResult.error(fe.message);
     } catch (e) {
       return FormulaEvaluationResult.error('Invalid expression: $e');
+    }
+  }
+
+  /// Applies Decision 1 Rounding Governance (Approach A: True Rounding HALF_UP):
+  /// - Lakhs (< 1,00,00,000): Round to nearest ₹1,000
+  /// - Crores (>= 1,00,00,000): Round to nearest ₹10,000
+  /// Apply ONLY to:
+  /// - Realizable Value
+  /// - Distress Sale Value
+  /// - Distress Value
+  /// - Insurable Value
+  /// DO NOT APPLY TO:
+  /// - Government Value (must remain exact)
+  /// - Fair Value
+  static double applyRoundingGovernance(String fieldKey, double value) {
+    if (value <= 0) return 0.0;
+    final lower = fieldKey.toLowerCase();
+
+    // Never apply to government value or fair value
+    if (lower.contains('government') || lower.contains('guideline') || lower.contains('fair')) {
+      return value;
+    }
+
+    final isTarget = lower.contains('realizable') ||
+        lower.contains('distress') ||
+        lower.contains('insurable');
+
+    if (!isTarget) {
+      return value;
+    }
+
+    const double oneCrore = 10000000.0;
+    const double tenThousand = 10000.0;
+    const double oneThousand = 1000.0;
+
+    if (value >= oneCrore) {
+      return (value / tenThousand).roundToDouble() * tenThousand;
+    } else {
+      return (value / oneThousand).roundToDouble() * oneThousand;
     }
   }
 
@@ -374,15 +424,17 @@ class FormulaEvaluationResult {
   final double? value;
   final String formattedValue;
   final String? errorMessage;
+  final bool allInputsUntouched;
 
-  const FormulaEvaluationResult.success(this.value, this.formattedValue)
+  const FormulaEvaluationResult.success(this.value, this.formattedValue, {this.allInputsUntouched = false})
       : isValid = true,
         errorMessage = null;
 
   const FormulaEvaluationResult.error(this.errorMessage)
       : isValid = false,
         value = null,
-        formattedValue = '';
+        formattedValue = '',
+        allInputsUntouched = false;
 
   @override
   String toString() => isValid ? formattedValue : '[Error: $errorMessage]';

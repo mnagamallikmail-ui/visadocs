@@ -336,6 +336,24 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
             _commitAndExitEditMode(navigateNext: true);
             return KeyEventResult.handled;
           }
+          if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+            final pos = _controller.selection.baseOffset >= 0 ? _controller.selection.baseOffset : _controller.text.length;
+            final firstNl = _controller.text.indexOf('\n');
+            if (firstNl == -1 || pos <= firstNl) {
+              _commitAndExitEditMode(navigatePrevious: true);
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          }
+          if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+            final pos = _controller.selection.baseOffset >= 0 ? _controller.selection.baseOffset : _controller.text.length;
+            final lastNl = _controller.text.lastIndexOf('\n');
+            if (lastNl == -1 || pos > lastNl) {
+              _commitAndExitEditMode(navigateNext: true);
+              return KeyEventResult.handled;
+            }
+            return KeyEventResult.ignored;
+          }
           if (event.logicalKey == LogicalKeyboardKey.escape) {
             _cancelEditMode();
             return KeyEventResult.handled;

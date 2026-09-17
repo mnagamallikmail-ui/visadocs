@@ -89,7 +89,9 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
     _focusNode.addListener(() {
       if (!mounted) return;
       setState(() {});
-      if (!_focusNode.hasFocus) {
+      if (_focusNode.hasFocus) {
+        provider.placeholderRegistry.setActive(widget.fieldVm.key);
+      } else {
         provider.notifyChanges();
         if (widget.fieldVm.isNumber) {
           final currentText = _controller.text;
@@ -162,9 +164,12 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
       return KeyEventResult.handled;
     }
 
-    // ENTER (plain): Always navigates to next placeholder. Never creates a newline.
-    // ONLY ALT+ENTER creates new lines per governance.
+    // ENTER (plain): Inserts newline for multiline fields, or navigates to next placeholder for single-line fields
     if (event.logicalKey == LogicalKeyboardKey.enter && !isAlt) {
+      if (widget.fieldVm.isMultiline) {
+        _insertNewline(provider);
+        return KeyEventResult.handled;
+      }
       provider.placeholderRegistry.next(effectiveId);
       return KeyEventResult.handled;
     }
@@ -184,7 +189,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
     if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
       final pos = _controller.selection.baseOffset >= 0 ? _controller.selection.baseOffset : _controller.text.length;
       final lastNl = _controller.text.lastIndexOf('\n');
-      if (lastNl == -1 || pos > lastNl) {
+      if (lastNl == -1 || pos >= lastNl) {
         provider.placeholderRegistry.next(effectiveId);
         return KeyEventResult.handled;
       }
@@ -329,7 +334,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                   inputFormatters: isNumericN
                       ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.-]'))]
                       : null,
-                  minLines: 1, // All text inputs start compact as single-line
+                  minLines: isMultiline ? 3 : 1,
                   maxLines: (isNumber || isNumericN || isFormulaCalc) ? 1 : null, // Dynamic auto-growing height following content lines
                   scrollPhysics: const NeverScrollableScrollPhysics(), // No internal scrollbars
                   onFieldSubmitted: (_) => provider.placeholderRegistry.next(widget.fieldVm.key),

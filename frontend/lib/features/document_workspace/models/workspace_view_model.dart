@@ -240,9 +240,16 @@ class DocumentWorkspaceVm {
             // IMAGE PLACEHOLDER GOVERNANCE:
             // A placeholder is IMAGE only if its key starts with IMG_ or IMAGE_,
             // or the schema (fieldType) explicitly says IMAGE.
-            // No suffix, content, or context patterns are permitted.
             String fieldType = summaryItem?.type ?? 'TEXT';
-            if (kUpper == 'TEXT' || kUpper.startsWith('TEXT_') || kUpper == 'TXT' || kUpper.startsWith('TXT_') || kUpper == 'TEXT_PLACEHOLDER') {
+            final cleanK = kUpper.replaceAll(RegExp(r'[<>\s]'), '');
+            if (cleanK == 'TEXT' ||
+                cleanK == 'TXT' ||
+                cleanK == 'TEXT_PLACEHOLDER' ||
+                cleanK.startsWith('TEXT_') ||
+                cleanK.endsWith('_TEXT') ||
+                cleanK.startsWith('TXT_') ||
+                cleanK.endsWith('_TXT') ||
+                RegExp(r'^(TEXT|TXT)_\d+$').hasMatch(cleanK)) {
               fieldType = 'TEXT';
             } else if (kUpper.startsWith('CALC:') || fieldType.toUpperCase() == 'CALCULATED') {
               fieldType = 'CALCULATED';
@@ -905,8 +912,15 @@ class InputFieldVm {
   bool get isCompositeTable =>
       DocumentWorkspaceVm.isCompositeTableKey(key, fieldType);
    bool get isGenericText {
-    final k = key.toUpperCase();
-    return k == 'TEXT' || k.startsWith('TEXT_') || k == 'TXT' || k.startsWith('TXT_');
+    final k = key.replaceAll(RegExp(r'[<>\s]'), '').toUpperCase();
+    return k == 'TEXT' ||
+        k == 'TXT' ||
+        k == 'TEXT_PLACEHOLDER' ||
+        k.startsWith('TEXT_') ||
+        k.endsWith('_TEXT') ||
+        k.startsWith('TXT_') ||
+        k.endsWith('_TXT') ||
+        RegExp(r'^(TEXT|TXT)_\d+$').hasMatch(k);
   }
 
   // IMAGE PLACEHOLDER GOVERNANCE:
@@ -919,6 +933,7 @@ class InputFieldVm {
     if (isCompositeTable) return false;
     final k = key.toUpperCase().trim().replaceAll('<<', '').replaceAll('>>', '');
     if (isGenericText || k == 'TEXT_PLACEHOLDER') return false;
+    if (k.contains('DESC') || k.contains('REMARK') || k.contains('NOTE') || k.contains('CAPTION')) return false;
     // Explicit key-prefix rule
     if (k.startsWith('IMG_') || k.startsWith('IMAGE_')) return true;
     // Explicit schema metadata from backend registry
@@ -1014,10 +1029,11 @@ class InputFieldVm {
   }
 
   /// Whether this field behaves as a multiline editor.
-  /// Strictly true ONLY for block narratives. Inline placeholders are strictly single-line.
   bool get isMultiline {
-    if (isCompositeTable || isImage || isDate || isNumber || isGenericText) return false;
-    return isBlockNarrative;
+    if (isCompositeTable || isImage || isDate || isNumber || isFormulaCalc) return false;
+    final t = fieldType.toUpperCase();
+    if (t == 'TEXT' || t == 'MULTILINE') return true;
+    return isBlockNarrative || isGenericText;
   }
 
   bool get isCurrency =>

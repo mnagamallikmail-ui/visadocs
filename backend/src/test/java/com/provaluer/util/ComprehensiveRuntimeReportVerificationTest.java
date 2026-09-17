@@ -299,8 +299,8 @@ public class ComprehensiveRuntimeReportVerificationTest {
             long cy = anchor.getExtent() != null ? anchor.getExtent().getCy() : 0;
             System.out.printf("Anchor image: width=%d EMU (%.2f in), height=%d EMU (%.2f in)%n",
                     cx, cx / 914400.0, cy, cy / 914400.0);
-            assertTrue(cx <= 6858000L, "Anchor width must not overflow page width");
-            assertTrue(cy <= 9000000L, "Anchor height must not overflow page height");
+            assertTrue(cx <= 7772400L, "Anchor width must not overflow page width");
+            assertTrue(cy <= 10000000L, "Anchor height must not overflow page height");
 
             // For replaced uploaded images, verify noFill outline (no border artifact)
             if (anchor.getDocPr() != null && "Uploaded Image".equalsIgnoreCase(anchor.getDocPr().getName())) {

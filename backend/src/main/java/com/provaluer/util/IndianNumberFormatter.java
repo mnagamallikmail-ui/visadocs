@@ -63,4 +63,13 @@ public class IndianNumberFormatter {
     public static String format(long value) {
         return format(BigDecimal.valueOf(value), false);
     }
+
+    public static String formatCurrency(BigDecimal number) {
+        if (number == null) return "Rs 0";
+        return "Rs " + format(number, false);
+    }
+
+    public static String formatCurrency(double value) {
+        return formatCurrency(BigDecimal.valueOf(value));
+    }
 }

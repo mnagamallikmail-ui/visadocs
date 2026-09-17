@@ -16,7 +16,6 @@ import org.springframework.stereotype.Component;
 import org.springframework.beans.factory.annotation.Autowired;
 import com.provaluer.repository.TemplateQuestionRepository;
 import com.provaluer.model.TemplateQuestion;
-import com.provaluer.service.ValuationCalculationFormulaService;
 
 
 import java.io.ByteArrayInputStream;
@@ -147,13 +146,14 @@ public class DocxTemplateEngine {
                     if (unwrappedElem instanceof Text) {
                         hasText = true;
                         runText.append(((Text) unwrappedElem).getValue());
-                    } else if (unwrappedElem instanceof Drawing) {
+                    } else {
+                        // AlternateContent, Choice, Fallback, Drawing, Pict, Anchor, Inline must be preserved
                         hasDrawing = true;
                     }
                 }
                 
                 if (hasDrawing) {
-                    preservedElements.add(obj); // Preserve the run wrapping the drawing
+                    preservedElements.add(obj); // Preserve the run wrapping the drawing or non-text element
                 }
                 if (hasText) {
                     fullText.append(runText);
@@ -713,7 +713,9 @@ public class DocxTemplateEngine {
 
             // Determine Field Type: text placeholders between << >>, image as image placeholders, date as date placeholders
             String fieldType = "TEXT";
-            if (key.toLowerCase().contains("image") || key.toLowerCase().contains("img_") || key.toLowerCase().contains("_image")) {
+            if (DocxStructureParser.isTextPlaceholder(key)) {
+                fieldType = "TEXT"; // HARD-STOP: Generic text placeholders strictly remain TEXT
+            } else if (key.toLowerCase().contains("image") || key.toLowerCase().contains("img_") || key.toLowerCase().contains("_image")) {
                 fieldType = "IMAGE";
             } else if (key.toLowerCase().contains("date_") || key.toLowerCase().contains("_date") || key.toLowerCase().equals("date")) {
                 fieldType = "DATE";
@@ -1196,17 +1198,21 @@ public class DocxTemplateEngine {
             return false;
         }
 
-        // Check if inputs contain land/building component keys
-        if (inputs.containsKey("say_land_value") || inputs.containsKey("say_building_value") || inputs.containsKey("total_land_value")) {
-            return false;
-        }
-
         String cat = inputs.getOrDefault("PROPERTY_CATEGORY", inputs.getOrDefault("property_category", ""));
         if (cat.isEmpty()) {
             cat = inputs.getOrDefault("PROPERTY_TYPE", inputs.getOrDefault("property_type", ""));
         }
         String cLower = cat.trim().toLowerCase();
-        return cLower.contains("flat") || cLower.contains("apartment") || cLower.contains("commercial unit");
+        if (cLower.contains("flat") || cLower.contains("apartment") || cLower.contains("commercial unit")) {
+            return true;
+        }
+
+        // Check if inputs contain land/building component keys
+        if (inputs.containsKey("say_land_value") || inputs.containsKey("say_building_value") || inputs.containsKey("total_land_value")) {
+            return false;
+        }
+
+        return false;
     }
 
     private Tbl buildDynamicCompositePropertyTable(Map<String, String> inputs) {
@@ -1232,10 +1238,10 @@ public class DocxTemplateEngine {
                         String desc = n.path("description").asText("Item");
                         String unit = n.path("enteredUnit").asText("Sq.Ft");
                         String qty = formatIndian(n.path("quantity").asText("0"));
-                        String rate = "₹ " + formatIndian(n.path("rate").asText("0"));
-                        String amount = "₹ " + formatIndian(n.path("amount").asText("0"));
-                        String dep = "₹ " + formatIndian(n.path("depreciationAmount").asText("0"));
-                        String fv = "₹ " + formatIndian(n.path("fairValue").asText("0"));
+                        String rate = "Rs " + formatIndian(n.path("rate").asText("0"));
+                        String amount = "Rs " + formatIndian(n.path("amount").asText("0"));
+                        String dep = "Rs " + formatIndian(n.path("depreciationAmount").asText("0"));
+                        String fv = "Rs " + formatIndian(n.path("fairValue").asText("0"));
 
                         try {
                             calculatedRawFairValue = calculatedRawFairValue.add(new BigDecimal(n.path("fairValue").asText("0")));
@@ -1255,40 +1261,34 @@ public class DocxTemplateEngine {
             String dep = inputs != null ? inputs.getOrDefault("COMPOSITE_DEPRECIATION", "0") : "0";
             String fv = inputs != null ? inputs.getOrDefault("COMPOSITE_FAIR_VALUE", inputs.getOrDefault("MAIN_UNIT_FAIR_VALUE", inputs.getOrDefault("UNIT_AMOUNT", "0"))) : "0";
 
-            rows.add(List.of("1", subType, "Sq.Ft", formatIndian(area), "₹ " + formatIndian(rate), "₹ " + formatIndian(amt), "₹ " + formatIndian(dep), "₹ " + formatIndian(fv)));
-            rows.add(List.of("2", "Interior Works & Improvements", "LS", "1", "₹ 0", "₹ 0", "₹ 0", "₹ 0"));
+            rows.add(List.of("1", subType, "Sq.Ft", formatIndian(area), "Rs " + formatIndian(rate), "Rs " + formatIndian(amt), "Rs " + formatIndian(dep), "Rs " + formatIndian(fv)));
+            rows.add(List.of("2", "Interior Works & Improvements", "LS", "1", "Rs 0", "Rs 0", "Rs 0", "Rs 0"));
             try {
-                calculatedRawFairValue = new BigDecimal(fv.replaceAll("[^0-9.-]", ""));
+                calculatedRawFairValue = calculatedRawFairValue.add(new BigDecimal(fv.replaceAll("[^0-9.]", "").trim()));
             } catch (Exception ignored) {}
         }
 
-        String rawFairValStr = inputs != null ? inputs.getOrDefault("TOTAL_FAIR_VALUE", inputs.getOrDefault("total_fair_value", inputs.getOrDefault("RAW_FAIR_VALUE", inputs.getOrDefault("raw_fair_value", "")))) : "";
-        if (rawFairValStr.trim().isEmpty() || rawFairValStr.equals("0")) {
-            rawFairValStr = calculatedRawFairValue.compareTo(BigDecimal.ZERO) > 0 ? calculatedRawFairValue.toPlainString() : "0";
+        BigDecimal rawFairValBd = calculatedRawFairValue;
+        String rawFairValInput = inputs != null ? inputs.get("RAW_FAIR_VALUE") : null;
+        if (rawFairValInput != null && !rawFairValInput.trim().isEmpty()) {
+            try {
+                rawFairValBd = new BigDecimal(rawFairValInput.replaceAll("[^0-9.]", "").trim());
+            } catch (Exception ignored) {}
         }
 
-        BigDecimal rawFairValBd = BigDecimal.ZERO;
-        try {
-            rawFairValBd = new BigDecimal(rawFairValStr.replaceAll("[^0-9.-]", ""));
-        } catch (Exception ignored) {}
-
-        String sayFairValStr = inputs != null ? inputs.getOrDefault("SAY_VALUE", inputs.getOrDefault("say_value", inputs.getOrDefault("SAY_FAIR_VALUE", inputs.getOrDefault("say_fair_value", "")))) : "";
+        String sayFairValStr = inputs != null ? inputs.getOrDefault("SAY_FAIR_VALUE", inputs.getOrDefault("SAY_VALUE", inputs.getOrDefault("say_value", inputs.getOrDefault("FAIR_VALUE", inputs.getOrDefault("fair_value", ""))))) : "";
         BigDecimal sayFairValBd = BigDecimal.ZERO;
-        try {
-            if (!sayFairValStr.trim().isEmpty() && !sayFairValStr.equals("0")) {
-                sayFairValBd = new BigDecimal(sayFairValStr.replaceAll("[^0-9.-]", ""));
-            } else {
-                sayFairValBd = ValuationCalculationFormulaService.computeSayValue(rawFairValBd);
-            }
-        } catch (Exception e) {
-            sayFairValBd = ValuationCalculationFormulaService.computeSayValue(rawFairValBd);
+        if (sayFairValStr != null && !sayFairValStr.trim().isEmpty()) {
+            try {
+                sayFairValBd = new BigDecimal(sayFairValStr.replaceAll("[^0-9.]", "").trim());
+            } catch (Exception ignored) {}
         }
 
         List<Map.Entry<String, String>> totals = new ArrayList<>();
-        totals.add(Map.entry("Fair Value Of Property", "₹ " + formatIndian(rawFairValBd.toPlainString())));
+        totals.add(Map.entry("Fair Value Of Property", "Rs " + formatIndian(rawFairValBd.toPlainString())));
 
         if (sayFairValBd.compareTo(BigDecimal.ZERO) > 0 && sayFairValBd.compareTo(rawFairValBd) != 0) {
-            totals.add(Map.entry("Say", "₹ " + formatIndian(sayFairValBd.toPlainString())));
+            totals.add(Map.entry("Say", "Rs " + formatIndian(sayFairValBd.toPlainString())));
         }
 
         return createDocxTableWithMultipleMergedTotals("Valuation of Property (Composite Rate Method)", headers, colWidths, rows, totals, 17, alignments);
@@ -1302,19 +1302,19 @@ public class DocxTemplateEngine {
 
         if (inputs != null) {
             String sayFairValStr = inputs.getOrDefault("SAY_VALUE", inputs.getOrDefault("say_value", inputs.getOrDefault("SAY_FAIR_VALUE", inputs.getOrDefault("say_fair_value", inputs.getOrDefault("FAIR_VALUE", inputs.getOrDefault("fair_value", "0"))))));
-            rows.add(List.of("Fair Value", "₹ " + formatIndian(sayFairValStr)));
+            rows.add(List.of("Fair Value", "Rs " + formatIndian(sayFairValStr)));
 
             String realizable = inputs.getOrDefault("REALIZABLE_VALUE", inputs.getOrDefault("realizable_value", "0"));
-            rows.add(List.of("Realizable Value", "₹ " + formatIndian(realizable)));
+            rows.add(List.of("Realizable Value", "Rs " + formatIndian(realizable)));
 
             String distress = inputs.getOrDefault("DISTRESS_SALE_VALUE", inputs.getOrDefault("distress_sale_value", "0"));
-            rows.add(List.of("Distress Sale Value", "₹ " + formatIndian(distress)));
+            rows.add(List.of("Distress Sale Value", "Rs " + formatIndian(distress)));
 
             String govt = inputs.getOrDefault("GOVERNMENT_VALUE", inputs.getOrDefault("government_value", "0"));
-            rows.add(List.of("Government Value", "₹ " + formatIndian(govt)));
+            rows.add(List.of("Government Value", "Rs " + formatIndian(govt)));
 
             String insurable = inputs.getOrDefault("INSURABLE_VALUE", inputs.getOrDefault("insurable_value", "0"));
-            rows.add(List.of("Insurable Value", "₹ " + formatIndian(insurable)));
+            rows.add(List.of("Insurable Value", "Rs " + formatIndian(insurable)));
         }
 
         return createDocxTable("Valuation Parameters Summary", headers, colWidths, rows, null, 18, alignments);
@@ -2408,6 +2408,9 @@ public class DocxTemplateEngine {
             String expr = NumericFormulaEngine.extractFormulaExpression(cleanKey);
             NumericFormulaEngine.EvaluationResult res = NumericFormulaEngine.evaluate(expr, inputs);
             if (res.isValid()) {
+                if (res.isAllInputsUntouched()) {
+                    return ""; // DECISION 2: Untouched formula inputs display blank
+                }
                 return res.getFormattedValue();
             }
             if (inputs.containsKey(cleanKey) && inputs.get(cleanKey) != null && !inputs.get(cleanKey).trim().isEmpty()) {
@@ -2417,6 +2420,35 @@ public class DocxTemplateEngine {
                 return inputs.get(upperKey);
             }
             return "";
+        }
+
+        // DECISION 2: Numeric inputs (N1, N2...) internally default to 0 but display blank
+        if (NumericFormulaEngine.isNumericInputKey(upperKey)) {
+            String val = null;
+            if (inputs.containsKey(cleanKey)) val = inputs.get(cleanKey);
+            else if (inputs.containsKey(upperKey)) val = inputs.get(upperKey);
+            else if (inputs.containsKey(lowerKey)) val = inputs.get(lowerKey);
+            if (val == null || val.trim().isEmpty() || val.trim().equals("0") || val.trim().equals("0.0")) {
+                return "";
+            }
+            return val.trim();
+        }
+
+        // DECISION 1 & INDIAN CURRENCY: Monetary valuation fields with rounding governance
+        if (upperKey.equals("REALIZABLE_VALUE") || upperKey.equals("DISTRESS_SALE_VALUE")
+                || upperKey.equals("DISTRESS_VALUE") || upperKey.equals("INSURABLE_VALUE")
+                || upperKey.equals("FAIR_VALUE") || upperKey.equals("GOVERNMENT_VALUE")
+                || upperKey.equals("GOVT_VALUE") || upperKey.equals("SAY_VALUE") || upperKey.equals("SAY_FAIR_VALUE")) {
+            String raw = inputs.get(cleanKey);
+            if (raw == null) raw = inputs.get(upperKey);
+            if (raw == null) raw = inputs.get(lowerKey);
+            if (raw != null && !raw.trim().isEmpty()) {
+                try {
+                    double dVal = Double.parseDouble(raw.replaceAll("[^0-9.]", "").trim());
+                    double roundedVal = NumericFormulaEngine.applyRoundingGovernance(upperKey, dVal);
+                    return IndianNumberFormatter.formatCurrency(roundedVal);
+                } catch (Exception ignored) {}
+            }
         }
 
         // 1. Direct checks

@@ -433,10 +433,10 @@ public class DocxStructureParser {
 
     public static boolean isTextPlaceholder(String key) {
         if (key == null) return false;
-        String upper = key.toUpperCase().trim();
-        return upper.equals("TEXT") || upper.startsWith("TEXT_") || upper.endsWith("_TEXT")
-                || upper.equals("TXT") || upper.startsWith("TXT_") || upper.endsWith("_TXT")
-                || upper.equals("TEXT_PLACEHOLDER");
+        String clean = key.toUpperCase().replaceAll("[<>]", "").trim();
+        return clean.equals("TEXT") || clean.matches("^TEXT_\\d+$") || clean.startsWith("TEXT_") || clean.endsWith("_TEXT")
+                || clean.equals("TXT") || clean.matches("^TXT_\\d+$") || clean.startsWith("TXT_") || clean.endsWith("_TXT")
+                || clean.equals("TEXT_PLACEHOLDER");
     }
 
     public static boolean isDatePlaceholder(String key) {
@@ -979,7 +979,7 @@ public class DocxStructureParser {
         return name.contains("Drawing") || name.contains("Inline") || name.contains("Anchor") || name.contains("Pict");
     }
 
-    private String inferFieldType(String key) {
+    public String inferFieldType(String key) {
         String upper = key.toUpperCase();
         if (isTextPlaceholder(upper)) {
             return "TEXT";

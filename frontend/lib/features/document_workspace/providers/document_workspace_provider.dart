@@ -1045,7 +1045,12 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       } else {
         final evalResult = NumericFormulaEngine.evaluate(expr, _activeValues);
         if (evalResult.isValid) {
-          calcResultStr = evalResult.formattedValue;
+          if (evalResult.allInputsUntouched) {
+            calcResultStr = '';
+          } else {
+            final roundedVal = NumericFormulaEngine.applyRoundingGovernance(fKey, evalResult.value ?? 0.0);
+            calcResultStr = NumericFormulaEngine.formatResult(roundedVal);
+          }
         } else {
           calcResultStr = '[Error: ${evalResult.errorMessage}]';
         }
@@ -1078,7 +1083,10 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       if (cached != null && cached.isNotEmpty) return cached;
       final expr = NumericFormulaEngine.extractFormulaExpression(upper);
       final res = NumericFormulaEngine.evaluate(expr, _activeValues);
-      return res.isValid ? res.formattedValue : '[Error: ${res.errorMessage}]';
+      if (!res.isValid) return '[Error: ${res.errorMessage}]';
+      if (res.allInputsUntouched) return '';
+      final roundedVal = NumericFormulaEngine.applyRoundingGovernance(upper, res.value ?? 0.0);
+      return NumericFormulaEngine.formatResult(roundedVal);
     }
     return _activeValues[key.toUpperCase()] ?? _activeValues[key.toLowerCase()] ?? _activeValues[key] ?? '';
   }

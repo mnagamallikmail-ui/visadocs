@@ -82,8 +82,21 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
         clean == 'COMPOSITE_TABLE') {
       return 'COMPOSITE_TABLE';
     }
-    if (clean == 'TEXT' || clean.startsWith('TEXT_') || clean == 'TXT' || clean.startsWith('TXT_') || clean == 'TEXT_PLACEHOLDER') {
+    if (clean == 'TEXT' ||
+        clean == 'TXT' ||
+        clean == 'TEXT_PLACEHOLDER' ||
+        clean.startsWith('TEXT_') ||
+        clean.endsWith('_TEXT') ||
+        clean.startsWith('TXT_') ||
+        clean.endsWith('_TXT') ||
+        RegExp(r'^(TEXT|TXT)_\d+$').hasMatch(clean)) {
       return 'TEXT';
+    }
+    if (clean.startsWith('CALC:')) {
+      return 'CALCULATED';
+    }
+    if (RegExp(r'^N\d+$').hasMatch(clean)) {
+      return 'NUMBER';
     }
     if (clean == 'OWNER_NAME' || clean == 'PROPERTY_REMARKS' || clean.contains('NAME') || clean.contains('REMARK') || clean.contains('ADDRESS')) {
       return 'TEXT';

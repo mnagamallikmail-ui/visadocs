@@ -118,14 +118,24 @@ public class NumericFormulaEngineTest {
     }
 
     @Test
-    @DisplayName("Validation 1: Unknown variable detection e.g. CALC:N1+N99")
+    @DisplayName("Validation 1: Unknown variable detection e.g. CALC:N1+UNKNOWN_VAR")
     public void testValidationUnknownVariable() {
         Map<String, String> inputs = new HashMap<>();
         inputs.put("N1", "10");
 
-        NumericFormulaEngine.EvaluationResult result = NumericFormulaEngine.evaluate("N1+N99", inputs);
+        NumericFormulaEngine.EvaluationResult result = NumericFormulaEngine.evaluate("N1+UNKNOWN_VAR", inputs);
         assertFalse(result.isValid());
-        assertTrue(result.getErrorMessage().contains("Unknown variable: N99") || result.getErrorMessage().contains("N99"), "Expected unknown variable error: " + result.getErrorMessage());
+        assertTrue(result.getErrorMessage().contains("Unknown variable: UNKNOWN_VAR") || result.getErrorMessage().contains("UNKNOWN_VAR"), "Expected unknown variable error: " + result.getErrorMessage());
+    }
+
+    @Test
+    @DisplayName("Governance Issue 1: Default N values internally initialize to 0")
+    public void testDefaultNValuesInitializeToZero() {
+        Map<String, String> emptyInputs = new HashMap<>();
+        NumericFormulaEngine.EvaluationResult result = NumericFormulaEngine.evaluate("N1*N2", emptyInputs);
+        assertTrue(result.isValid());
+        assertEquals(0.0, result.getValue());
+        assertTrue(result.isAllInputsUntouched());
     }
 
     @Test
