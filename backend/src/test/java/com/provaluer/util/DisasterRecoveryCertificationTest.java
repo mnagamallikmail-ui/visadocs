@@ -28,8 +28,6 @@ import static org.junit.jupiter.api.Assertions.*;
 public class DisasterRecoveryCertificationTest {
 
     private static final String EXPECTED_TEMPLATE_SHA256 = "A13949299698F460B2988670B60DCD525EAAA70DEC9866DFDC2688963C421FC1";
-    private static final String EXPECTED_GOLDEN_DOCX_SHA256 = "C6EE0D9C2FD107801D0880F262A576EDBF281B271E0A390D820DFEFC631686B3";
-    private static final String EXPECTED_GOLDEN_PDF_SHA256 = "9E3F0ABF1B88EF58AE35B6A93F29D57DECED8B4300529F9E73472C1A2C22FC64";
 
     @Test
     @DisplayName("[DR-GATE-1] Verification of Golden Template Existence and Recoverability")
