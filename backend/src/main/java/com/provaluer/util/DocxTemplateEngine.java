@@ -1035,8 +1035,6 @@ public class DocxTemplateEngine {
     }
 
     private void generateElements(WordprocessingMLPackage wordMLPackage, List<Object> elements, Map<String, String> inputs, Map<String, byte[]> images) throws Exception {
-        boolean isComposite = isCompositeProperty(inputs);
-        boolean compositeTableRendered = false;
         // Defect 1 governance: track when we enter a Valuation Certificate section.
         // Once inside, ALL dynamic table injection is forbidden; only plain placeholder
         // substitution is allowed. The template is the ONLY source of truth for page content.
@@ -1049,13 +1047,20 @@ public class DocxTemplateEngine {
                 P p = (P) unwrapped;
                 String pText = getParagraphText(p).trim();
 
-                // Detect certificate section entry (Defect 1 — once entered, never reset within the pass)
-                if (!inCertificateSection && isCertificateHeading(pText)) {
-                    inCertificateSection = true;
-                }
-
                 // Normalize paragraph text for ultra-robust placeholder matching
                 String norm = pText.replaceAll("[\\s_<>]+", "").toUpperCase();
+
+                // Detect certificate section entry & exit
+                if (inCertificateSection) {
+                    if (containsPageBreak(p) || pText.startsWith("PART-") || pText.contains("Section")
+                            || norm.equals("LANDTABLE") || norm.equals("DYNAMICLANDTABLE")
+                            || norm.equals("BUILDINGTABLE") || norm.equals("DYNAMICBUILDINGTABLE")
+                            || norm.equals("VALUATIONSUMMARYTABLE") || norm.equals("DYNAMICVALUATIONSUMMARYTABLE")) {
+                        inCertificateSection = false;
+                    }
+                } else if (isCertificateHeading(pText)) {
+                    inCertificateSection = true;
+                }
 
                 // isExplicitTableDirective: only honoured OUTSIDE certificate sections.
                 // Inside certificate sections, placeholders are treated as plain text substitutions only.
@@ -1068,6 +1073,61 @@ public class DocxTemplateEngine {
                         || norm.equals("COMPARABLESTABLE") || norm.equals("COMPARABLETABLE") || norm.equals("DYNAMICCOMPARABLESTABLE")
                         || norm.equals("PROPERTYVALUETABLE") || norm.equals("VALUEOFTHEPROPERTYTABLE") || norm.equals("VALUEOFPROPERTYTABLE") || norm.equals("DYNAMICPROPERTYVALUETABLE"));
 
+                // FIX #5, #7, #8, #9: Stable Photo Grid Container & Keep-Together Section Flow
+                boolean isPhotoSectionHeading = pText.equalsIgnoreCase("Property Photographs")
+                        || pText.toUpperCase().contains("PROPERTY PHOTOGRAPHS")
+                        || (!pText.isEmpty() && pText.toUpperCase().endsWith("PHOTOGRAPHS") && !pText.toUpperCase().contains("ADDITIONAL"));
+                boolean isFirstPhotoParagraph = !isPhotoSectionHeading && (
+                        paragraphContainsImageKey(p, "IMG_PIC1") || paragraphContainsImageKey(p, "IMG_PIC2")
+                );
+
+                if (isPhotoSectionHeading || isFirstPhotoParagraph) {
+                    Tbl photoTable = buildPhotoGridTable(wordMLPackage, inputs, images);
+
+                    if (isPhotoSectionHeading) {
+                        PPr pPr = p.getPPr();
+                        if (pPr == null) {
+                            pPr = new ObjectFactory().createPPr();
+                            p.setPPr(pPr);
+                        }
+                        pPr.setKeepNext(new ObjectFactory().createBooleanDefaultTrue());
+                        pPr.setPageBreakBefore(new ObjectFactory().createBooleanDefaultTrue());
+
+                        elements.add(i + 1, photoTable);
+                        i += 1;
+
+                        // Prune following paragraphs containing old floating PIC anchors or spacing
+                        while (i + 1 < elements.size()) {
+                            Object nextElem = unwrap(elements.get(i + 1));
+                            if (nextElem instanceof P nextP) {
+                                String nextText = getParagraphText(nextP).trim();
+                                boolean hasPic = paragraphContainsAnyPicKey(nextP);
+                                boolean isEmptySpacing = isParagraphEmpty(nextP) || nextText.isEmpty()
+                                        || (nextText.matches("^[0-9a-zA-Z\\s]+$") && nextText.length() > 15);
+                                if (hasPic || (isEmptySpacing && !nextText.contains("Valuation") && !nextText.contains("PART-"))) {
+                                    elements.remove(i + 1);
+                                    continue;
+                                }
+                            }
+                            break;
+                        }
+                        continue;
+                    } else {
+                        elements.set(i, photoTable);
+                        while (i + 1 < elements.size()) {
+                            Object nextElem = unwrap(elements.get(i + 1));
+                            if (nextElem instanceof P nextP) {
+                                if (paragraphContainsAnyPicKey(nextP) || isParagraphEmpty(nextP)) {
+                                    elements.remove(i + 1);
+                                    continue;
+                                }
+                            }
+                            break;
+                        }
+                        continue;
+                    }
+                }
+
                 // Dynamic Table Generation - ONLY triggered for explicit table directives OUTSIDE certificate sections
                 if (isExplicitTableDirective && (norm.contains("COMPOSITEPROPERTYTABLE") || norm.contains("COMPOSITETABLE"))) {
                     Tbl compTable = buildDynamicCompositePropertyTable(inputs);
@@ -1078,38 +1138,15 @@ public class DocxTemplateEngine {
                             elements.add(i + 1, summaryTable);
                             i += 1;
                         }
-                        compositeTableRendered = true;
                         continue;
                     }
                 }
 
-                if (isComposite && isExplicitTableDirective) {
-                    if (norm.equals("LANDTABLE") || norm.equals("DYNAMICLANDTABLE")
-                            || norm.equals("BUILDINGTABLE") || norm.equals("DYNAMICBUILDINGTABLE")
-                            || norm.equals("VALUATIONSUMMARYTABLE") || norm.equals("DYNAMICVALUATIONSUMMARYTABLE")
-                            || norm.equals("PROPERTYVALUETABLE") || norm.equals("VALUEOFTHEPROPERTYTABLE")
-                            || norm.equals("VALUEOFPROPERTYTABLE") || norm.equals("DYNAMICPROPERTYVALUETABLE")) {
-                        if (!compositeTableRendered) {
-                            Tbl compTable = buildDynamicCompositePropertyTable(inputs);
-                            Tbl summaryTable = buildDynamicCompositeSummaryTable(inputs);
-                            if (compTable != null) {
-                                elements.set(i, compTable);
-                                if (summaryTable != null) {
-                                    elements.add(i + 1, summaryTable);
-                                    i += 1;
-                                }
-                                compositeTableRendered = true;
-                                continue;
-                            }
-                        } else {
-                            // Suppress subsequent legacy tables for composite properties completely
-                            elements.remove(i);
-                            i--;
-                            continue;
-                        }
-                    }
-                }
-
+                // Template directives are authoritative:
+                // If template contains <<LAND_TABLE>>, render LAND_TABLE
+                // If template contains <<BUILDING_TABLE>>, render BUILDING_TABLE
+                // If template contains <<VALUATION_SUMMARY_TABLE>>, render VALUATION_SUMMARY_TABLE
+                // Never replace valid template directives. Never delete valid template directives.
                 if (isExplicitTableDirective && (norm.equals("LANDTABLE") || norm.equals("DYNAMICLANDTABLE"))) {
                     Tbl landTable = buildDynamicLandTable(inputs);
                     if (landTable != null) {
@@ -1220,43 +1257,6 @@ public class DocxTemplateEngine {
         ppr.setSpacing(spacing);
         p.setPPr(ppr);
         return p;
-    }
-
-    private boolean isCompositeProperty(Map<String, String> inputs) {
-        if (inputs == null) return false;
-        String meth = inputs.getOrDefault("VALUATION_METHODOLOGY", inputs.getOrDefault("valuation_methodology", ""));
-        if ("COMPOSITE".equalsIgnoreCase(meth) || "COMPOSITE_RATE".equalsIgnoreCase(meth)) return true;
-        if ("LAND_BUILDING".equalsIgnoreCase(meth)) return false;
-
-        String compJson = inputs.get("RAW_COMPOSITE_ITEMS_JSON");
-        if (compJson != null && !compJson.trim().isEmpty() && !compJson.trim().equals("[]")) {
-            return true;
-        }
-
-        String landJson = inputs.get("RAW_LAND_ITEMS_JSON");
-        if (landJson != null && !landJson.trim().isEmpty() && !landJson.trim().equals("[]")) {
-            return false;
-        }
-        String bldgJson = inputs.get("RAW_BUILDING_ITEMS_JSON");
-        if (bldgJson != null && !bldgJson.trim().isEmpty() && !bldgJson.trim().equals("[]")) {
-            return false;
-        }
-
-        String cat = inputs.getOrDefault("PROPERTY_CATEGORY", inputs.getOrDefault("property_category", ""));
-        if (cat.isEmpty()) {
-            cat = inputs.getOrDefault("PROPERTY_TYPE", inputs.getOrDefault("property_type", ""));
-        }
-        String cLower = cat.trim().toLowerCase();
-        if (cLower.contains("flat") || cLower.contains("apartment") || cLower.contains("commercial unit")) {
-            return true;
-        }
-
-        // Check if inputs contain land/building component keys
-        if (inputs.containsKey("say_land_value") || inputs.containsKey("say_building_value") || inputs.containsKey("total_land_value")) {
-            return false;
-        }
-
-        return false;
     }
 
     private Tbl buildDynamicCompositePropertyTable(Map<String, String> inputs) {
@@ -1644,6 +1644,156 @@ public class DocxTemplateEngine {
         );
 
         return createDocxTableWithMultipleMergedTotals("Value Of The Property", headers, colWidths, rows, totals, 20, alignments);
+    }
+
+    private boolean paragraphContainsImageKey(P p, String targetKey) {
+        if (p == null || targetKey == null) return false;
+        ClassFinder drawingFinder = new ClassFinder(org.docx4j.wml.Drawing.class);
+        new TraversalUtil(p, drawingFinder);
+        for (Object dObj : drawingFinder.results) {
+            org.docx4j.wml.Drawing d = (org.docx4j.wml.Drawing) dObj;
+            for (Object aOrI : d.getAnchorOrInline()) {
+                org.docx4j.dml.CTNonVisualDrawingProps docPr = null;
+                if (aOrI instanceof Anchor a) docPr = a.getDocPr();
+                else if (aOrI instanceof Inline in) docPr = in.getDocPr();
+                if (docPr != null) {
+                    String k = extractImageKey(docPr);
+                    if (targetKey.equalsIgnoreCase(k)) return true;
+                }
+            }
+        }
+        String pText = getParagraphText(p).toUpperCase();
+        return pText.contains("<<" + targetKey.toUpperCase() + ">>");
+    }
+
+    private boolean paragraphContainsAnyPicKey(P p) {
+        if (p == null) return false;
+        ClassFinder drawingFinder = new ClassFinder(org.docx4j.wml.Drawing.class);
+        new TraversalUtil(p, drawingFinder);
+        for (Object dObj : drawingFinder.results) {
+            org.docx4j.wml.Drawing d = (org.docx4j.wml.Drawing) dObj;
+            for (Object aOrI : d.getAnchorOrInline()) {
+                org.docx4j.dml.CTNonVisualDrawingProps docPr = null;
+                if (aOrI instanceof Anchor a) docPr = a.getDocPr();
+                else if (aOrI instanceof Inline in) docPr = in.getDocPr();
+                if (docPr != null) {
+                    String k = extractImageKey(docPr);
+                    if (k != null && k.toUpperCase().matches("^IMG_PIC[1-8]$")) return true;
+                }
+            }
+        }
+        String pText = getParagraphText(p).toUpperCase();
+        return pText.contains("<<IMG_PIC1>>") || pText.contains("<<IMG_PIC2>>")
+                || pText.contains("<<IMG_PIC3>>") || pText.contains("<<IMG_PIC4>>")
+                || pText.contains("<<IMG_PIC5>>") || pText.contains("<<IMG_PIC6>>")
+                || pText.contains("<<IMG_PIC7>>") || pText.contains("<<IMG_PIC8>>");
+    }
+
+    private Tbl buildPhotoGridTable(WordprocessingMLPackage wordMLPackage, Map<String, String> inputs, Map<String, byte[]> images) throws Exception {
+        ObjectFactory factory = new ObjectFactory();
+        Tbl tbl = factory.createTbl();
+
+        TblPr tblPr = factory.createTblPr();
+        TblWidth tblW = factory.createTblWidth();
+        tblW.setType("dxa");
+        tblW.setW(BigInteger.valueOf(9360));
+        tblPr.setTblW(tblW);
+
+        Jc jc = factory.createJc();
+        jc.setVal(JcEnumeration.CENTER);
+        tblPr.setJc(jc);
+
+        TblBorders borders = factory.createTblBorders();
+        CTBorder noneBorder = factory.createCTBorder();
+        noneBorder.setVal(STBorder.NONE);
+        borders.setTop(noneBorder);
+        borders.setBottom(noneBorder);
+        borders.setLeft(noneBorder);
+        borders.setRight(noneBorder);
+        borders.setInsideH(noneBorder);
+        borders.setInsideV(noneBorder);
+        tblPr.setTblBorders(borders);
+
+        CTTblLayoutType layout = factory.createCTTblLayoutType();
+        layout.setType(STTblLayoutType.FIXED);
+        tblPr.setTblLayout(layout);
+        tbl.setTblPr(tblPr);
+
+        TblGrid grid = factory.createTblGrid();
+        TblGridCol col1 = factory.createTblGridCol();
+        col1.setW(BigInteger.valueOf(4680));
+        grid.getGridCol().add(col1);
+        TblGridCol col2 = factory.createTblGridCol();
+        col2.setW(BigInteger.valueOf(4680));
+        grid.getGridCol().add(col2);
+        tbl.setTblGrid(grid);
+
+        String[][] photoPairs = {
+                {"IMG_PIC1", "IMG_PIC2"},
+                {"IMG_PIC3", "IMG_PIC4"},
+                {"IMG_PIC5", "IMG_PIC6"},
+                {"IMG_PIC7", "IMG_PIC8"}
+        };
+
+        long cellCx = 2969537L; // 3.2475 inches in EMU
+        long cellCy = 2018923L; // 2.2079 inches in EMU
+
+        for (String[] pair : photoPairs) {
+            Tr tr = factory.createTr();
+            TrPr trPr = factory.createTrPr();
+            trPr.getCnfStyleOrDivIdOrGridBefore().add(factory.createCTTrPrBaseCantSplit(factory.createBooleanDefaultTrue()));
+            tr.setTrPr(trPr);
+
+            for (String picKey : pair) {
+                Tc tc = factory.createTc();
+                TcPr tcPr = factory.createTcPr();
+                TblWidth tcW = factory.createTblWidth();
+                tcW.setType("dxa");
+                tcW.setW(BigInteger.valueOf(4680));
+                tcPr.setTcW(tcW);
+                tc.setTcPr(tcPr);
+
+                P cellP = factory.createP();
+                PPr pPr = factory.createPPr();
+                Jc pJc = factory.createJc();
+                pJc.setVal(JcEnumeration.CENTER);
+                pPr.setJc(pJc);
+                cellP.setPPr(pPr);
+
+                byte[] imgBytes = getUploadedOrPlaceholderImage(picKey, images, inputs);
+                if (imgBytes != null && imgBytes.length > 0) {
+                    byte[] padded = padImageToFitEmu(imgBytes, cellCx, cellCy);
+                    BinaryPartAbstractImage imagePart = BinaryPartAbstractImage.createImagePart(wordMLPackage, padded);
+                    Inline inlineImage = imagePart.createImageInline("Uploaded Image", picKey, 10002, 10003, false);
+                    if (inlineImage.getExtent() != null) {
+                        inlineImage.getExtent().setCx(cellCx);
+                        inlineImage.getExtent().setCy(cellCy);
+                    }
+                    org.docx4j.dml.picture.Pic pic = inlineImage.getGraphic() != null
+                            && inlineImage.getGraphic().getGraphicData() != null
+                            ? inlineImage.getGraphic().getGraphicData().getPic() : null;
+                    if (pic != null && pic.getSpPr() != null) {
+                        if (pic.getSpPr().getXfrm() != null && pic.getSpPr().getXfrm().getExt() != null) {
+                            pic.getSpPr().getXfrm().getExt().setCx(cellCx);
+                            pic.getSpPr().getXfrm().getExt().setCy(cellCy);
+                        }
+                        org.docx4j.dml.CTLineProperties ln = new org.docx4j.dml.CTLineProperties();
+                        ln.setNoFill(new org.docx4j.dml.CTNoFillProperties());
+                        pic.getSpPr().setLn(ln);
+                    }
+                    R r = factory.createR();
+                    org.docx4j.wml.Drawing drawing = factory.createDrawing();
+                    drawing.getAnchorOrInline().add(inlineImage);
+                    r.getContent().add(drawing);
+                    cellP.getContent().add(r);
+                }
+                tc.getContent().add(cellP);
+                tr.getContent().add(tc);
+            }
+            tbl.getContent().add(tr);
+        }
+
+        return tbl;
     }
 
     private Tbl createDocxTableWithMultipleMergedTotals(String tableTitle, List<String> headers, List<Integer> colWidths, List<List<String>> dataRows, List<Map.Entry<String, String>> totals, int fontSizeHalfPts, List<JcEnumeration> alignments) {
@@ -2279,8 +2429,16 @@ public class DocxTemplateEngine {
             if (key != null) {
                 byte[] imgBytes = getUploadedOrPlaceholderImage(key, images, inputs);
                 if (imgBytes != null) {
-                    long originalCx = inline.getExtent() != null ? inline.getExtent().getCx() : 2743200L;
-                    long originalCy = inline.getExtent() != null ? inline.getExtent().getCy() : 1828800L;
+                    long originalCx = 2969537L;
+                    long originalCy = 2018923L;
+                    if (key != null && (key.equalsIgnoreCase("IMG_FRONT_PAGE") || key.equalsIgnoreCase("IMG_COVER_PAGE") || key.equalsIgnoreCase("COVER_IMAGE"))) {
+                        originalCx = 6862445L;
+                        originalCy = 5060315L;
+                    }
+                    if (inline.getExtent() != null && inline.getExtent().getCx() > 0 && inline.getExtent().getCy() > 0) {
+                        originalCx = inline.getExtent().getCx();
+                        originalCy = inline.getExtent().getCy();
+                    }
                     
                     imgBytes = padImageToFitEmu(imgBytes, originalCx, originalCy);
 
@@ -2316,8 +2474,16 @@ public class DocxTemplateEngine {
             if (key != null) {
                 byte[] imgBytes = getUploadedOrPlaceholderImage(key, images, inputs);
                 if (imgBytes != null) {
-                    long originalCx = anchor.getExtent() != null ? anchor.getExtent().getCx() : 2743200L;
-                    long originalCy = anchor.getExtent() != null ? anchor.getExtent().getCy() : 1828800L;
+                    long originalCx = 2969537L;
+                    long originalCy = 2018923L;
+                    if (key != null && (key.equalsIgnoreCase("IMG_FRONT_PAGE") || key.equalsIgnoreCase("IMG_COVER_PAGE") || key.equalsIgnoreCase("COVER_IMAGE"))) {
+                        originalCx = 6862445L;
+                        originalCy = 5060315L;
+                    }
+                    if (anchor.getExtent() != null && anchor.getExtent().getCx() > 0 && anchor.getExtent().getCy() > 0) {
+                        originalCx = anchor.getExtent().getCx();
+                        originalCy = anchor.getExtent().getCy();
+                    }
 
                     imgBytes = padImageToFitEmu(imgBytes, originalCx, originalCy);
 

@@ -87,7 +87,60 @@ public class ValuationEngineService {
                 .orElseGet(() -> initializeDefaultValuationData(order));
 
         List<ValuationLandItem> landItems = landItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
+        if (landItems.isEmpty() && orderInputRepository != null) {
+            Optional<OrderInput> landInput = orderInputRepository.findByOrderIdAndFieldKey(orderId, "RAW_LAND_ITEMS_JSON");
+            if (landInput.isPresent() && landInput.get().getFieldValue() != null && !landInput.get().getFieldValue().trim().isEmpty() && !landInput.get().getFieldValue().equals("[]")) {
+                try {
+                    List<ValuationLandItem> items = objectMapper.readValue(
+                            landInput.get().getFieldValue(),
+                            objectMapper.getTypeFactory().constructCollectionType(List.class, ValuationLandItem.class)
+                    );
+                    if (items != null && !items.isEmpty()) {
+                        int s = 1;
+                        for (ValuationLandItem itm : items) {
+                            itm.setId(null);
+                            itm.setOrderId(orderId);
+                            itm.setSortOrder(s++);
+                            formulaService.calculateLandItem(itm);
+                            landItemRepository.save(itm);
+                        }
+                        landItems = landItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to restore land items from RAW_LAND_ITEMS_JSON: {}", e.getMessage());
+                }
+            }
+        }
+
         List<ValuationBuildingItem> buildingItems = buildingItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
+        if (buildingItems.isEmpty() && orderInputRepository != null) {
+            Optional<OrderInput> bldgInput = orderInputRepository.findByOrderIdAndFieldKey(orderId, "RAW_BUILDING_ITEMS_JSON");
+            if (bldgInput.isPresent() && bldgInput.get().getFieldValue() != null && !bldgInput.get().getFieldValue().trim().isEmpty() && !bldgInput.get().getFieldValue().equals("[]")) {
+                try {
+                    List<ValuationBuildingItem> items = objectMapper.readValue(
+                            bldgInput.get().getFieldValue(),
+                            objectMapper.getTypeFactory().constructCollectionType(List.class, ValuationBuildingItem.class)
+                    );
+                    if (items != null && !items.isEmpty()) {
+                        int s = 1;
+                        for (ValuationBuildingItem itm : items) {
+                            itm.setId(null);
+                            itm.setOrderId(orderId);
+                            itm.setSortOrder(s++);
+                            if (itm.getSalvagePercentage() == null) {
+                                itm.setSalvagePercentage(data.getDefaultSalvagePercentage());
+                            }
+                            formulaService.calculateBuildingItem(itm);
+                            buildingItemRepository.save(itm);
+                        }
+                        buildingItems = buildingItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
+                    }
+                } catch (Exception e) {
+                    log.warn("Failed to restore building items from RAW_BUILDING_ITEMS_JSON: {}", e.getMessage());
+                }
+            }
+        }
+
         List<ValuationComparableSale> comparables = comparableSaleRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
         List<ValuationCompositeItem> compositeItems = compositeItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
         List<ValuationSnapshot> snapshots = snapshotRepository.findByOrderIdOrderByVersionNumberDesc(orderId);
@@ -211,7 +264,7 @@ public class ValuationEngineService {
         return new ValuationBundleResponse(data, landItems, buildingItems, comparables, compositeItems, snapshots, placeholders, isLocked);
     }
 
-    private ValuationData initializeDefaultValuationData(Order order) {
+    public ValuationData initializeDefaultValuationData(Order order) {
         ValuationData data = new ValuationData(order.getId());
 
         // Load master default percentages if configured
@@ -939,13 +992,10 @@ public class ValuationEngineService {
         catalog.add(new PlaceholderCatalogItemDTO("<<say_value>>", "Say Value (Rounded Fair Value)", "1,88,00,000", "Valuation", "Presentation Say Value rounded to nearest Lakh if >= 1 Crore"));
         catalog.add(new PlaceholderCatalogItemDTO("<<say_value_words>>", "Say Value in Words", "Rupees One Crore Eighty Eight Lakh Only", "Valuation", "Certified words for Say Value"));
 
-        // Dynamic Tables
+        // Dynamic Tables - Only physical template directives
         catalog.add(new PlaceholderCatalogItemDTO("<<LAND_TABLE>>", "Dynamic Land Parcels Table", "Generated Land Table", "Dynamic Tables", "Auto-expands all parcels with survey numbers and totals"));
         catalog.add(new PlaceholderCatalogItemDTO("<<BUILDING_TABLE>>", "Dynamic Building Breakdown Table", "Generated Building Table", "Dynamic Tables", "Auto-expands structures, rates, depreciation & totals"));
-        catalog.add(new PlaceholderCatalogItemDTO("<<PROPERTY_VALUE_TABLE>>", "Dynamic Property Value Component Table", "Generated Property Value Table", "Dynamic Tables", "Renders Value of Land, Value of Building, Total, Say"));
         catalog.add(new PlaceholderCatalogItemDTO("<<VALUATION_SUMMARY_TABLE>>", "Dynamic Valuation Summary Table", "Generated Summary Table", "Dynamic Tables", "Complete financial breakdown table"));
-        catalog.add(new PlaceholderCatalogItemDTO("<<COMPARABLES_TABLE>>", "Market Comparable Sales Table", "Generated Comparables Table", "Dynamic Tables", "Comparable transactions matrix"));
-        catalog.add(new PlaceholderCatalogItemDTO("<<COMPOSITE_PROPERTY_TABLE>>", "Dynamic Composite Property Assessment Table", "Generated Composite Table", "Dynamic Tables", "Auto-expands unit, interior breakdown, depreciation, raw & say totals"));
 
         return catalog;
     }

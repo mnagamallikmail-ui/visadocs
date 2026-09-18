@@ -65,14 +65,6 @@ class DocumentWorkspaceVm {
     }
 
     final List<SectionVm> parsedSections = [];
-
-    final meth = values['VALUATION_METHODOLOGY'] ?? '';
-    final cat = (values['PROPERTY_CATEGORY'] ?? values['property_category'] ?? values['PROPERTY_TYPE'] ?? '').toLowerCase();
-    final isComposite = meth == 'COMPOSITE' ||
-        cat.contains('flat') || cat.contains('apartment') || cat.contains('commercial space') ||
-        cat.contains('office') || cat.contains('retail') || cat.contains('shop') || cat.contains('commercial unit') ||
-        (values['RAW_COMPOSITE_ITEMS_JSON'] != null && values['RAW_COMPOSITE_ITEMS_JSON']!.trim().isNotEmpty && values['RAW_COMPOSITE_ITEMS_JSON'] != '[]');
-
     bool compositeBlockAdded = false;
 
     for (final s in dom.sections) {
@@ -179,19 +171,6 @@ class DocumentWorkspaceVm {
           // isCertificateSection is pre-computed at the section level (above the element loop).
           // When true, NO paragraph is suppressed — all content passes through to plain text rendering.
           if (!isCertificateSection) {
-            if (isComposite) {
-              if (upperPKeys.contains('LAND_TABLE') || upperPKeys.contains('DYNAMIC_LAND_TABLE') ||
-                  upperPKeys.contains('BUILDING_TABLE') || upperPKeys.contains('DYNAMIC_BUILDING_TABLE') ||
-                  upperPKeys.contains('VALUATION_SUMMARY_TABLE') || upperPKeys.contains('DYNAMIC_VALUATION_SUMMARY_TABLE') ||
-                  upperPKeys.contains('PROPERTY_VALUE_TABLE') || upperPKeys.contains('DYNAMIC_PROPERTY_VALUE_TABLE')) {
-                if (!compositeBlockAdded) {
-                  orderedBlocks.add(ValuationCompositeBlockVm(el.id));
-                  compositeBlockAdded = true;
-                }
-                continue;
-              }
-            }
-
             if (upperPKeys.contains('LAND_TABLE') || upperPKeys.contains('DYNAMIC_LAND_TABLE')) {
               orderedBlocks.add(ValuationLandBlockVm(el.id));
               continue;

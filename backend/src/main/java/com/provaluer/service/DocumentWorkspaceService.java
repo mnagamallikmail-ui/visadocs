@@ -50,6 +50,18 @@ public class DocumentWorkspaceService {
     private ValuationCompositeItemRepository compositeItemRepository;
 
     @Autowired
+    private ValuationLandItemRepository landItemRepository;
+
+    @Autowired
+    private ValuationBuildingItemRepository buildingItemRepository;
+
+    @Autowired
+    private ValuationDataRepository valuationDataRepository;
+
+    @Autowired
+    private ValuationCalculationFormulaService formulaService;
+
+    @Autowired
     private DocxPreviewGenerator previewGenerator;
 
     @Autowired
@@ -570,7 +582,71 @@ public class DocumentWorkspaceService {
                 saveOrUpdateInput(orderId, entry.getKey(), entry.getValue());
             }
 
-            // 3. Sync Composite Items Repository if RAW_COMPOSITE_ITEMS_JSON or SALEABLE_AREA was updated
+            // 3. Synchronize Dynamic Table Items to Repositories (Single Source of Truth)
+            boolean tablesModified = false;
+
+            if (expandedInputs.containsKey("RAW_LAND_ITEMS_JSON")) {
+                String landJson = expandedInputs.get("RAW_LAND_ITEMS_JSON");
+                if (landJson != null && !landJson.trim().isEmpty() && !landJson.equals("[]")) {
+                    try {
+                        List<ValuationLandItem> items = objectMapper.readValue(
+                                landJson,
+                                objectMapper.getTypeFactory().constructCollectionType(List.class, ValuationLandItem.class)
+                        );
+                        if (items != null && landItemRepository != null) {
+                            landItemRepository.deleteByOrderId(orderId);
+                            int s = 1;
+                            for (ValuationLandItem itm : items) {
+                                itm.setId(null);
+                                itm.setOrderId(orderId);
+                                itm.setSortOrder(s++);
+                                if (formulaService != null) {
+                                    formulaService.calculateLandItem(itm);
+                                }
+                                landItemRepository.save(itm);
+                            }
+                            tablesModified = true;
+                        }
+                    } catch (Exception e) {
+                        log.warn("Failed to sync landItemRepository from saveDocumentValues: {}", e.getMessage());
+                    }
+                }
+            }
+
+            if (expandedInputs.containsKey("RAW_BUILDING_ITEMS_JSON")) {
+                String bldgJson = expandedInputs.get("RAW_BUILDING_ITEMS_JSON");
+                if (bldgJson != null && !bldgJson.trim().isEmpty() && !bldgJson.equals("[]")) {
+                    try {
+                        List<ValuationBuildingItem> items = objectMapper.readValue(
+                                bldgJson,
+                                objectMapper.getTypeFactory().constructCollectionType(List.class, ValuationBuildingItem.class)
+                        );
+                        if (items != null && buildingItemRepository != null) {
+                            buildingItemRepository.deleteByOrderId(orderId);
+                            int s = 1;
+                            ValuationData vData = valuationDataRepository != null ?
+                                    valuationDataRepository.findByOrderId(orderId).orElse(null) : null;
+                            BigDecimal defaultSalvage = vData != null ? vData.getDefaultSalvagePercentage() : new BigDecimal("10.00");
+                            for (ValuationBuildingItem itm : items) {
+                                itm.setId(null);
+                                itm.setOrderId(orderId);
+                                itm.setSortOrder(s++);
+                                if (itm.getSalvagePercentage() == null) {
+                                    itm.setSalvagePercentage(defaultSalvage);
+                                }
+                                if (formulaService != null) {
+                                    formulaService.calculateBuildingItem(itm);
+                                }
+                                buildingItemRepository.save(itm);
+                            }
+                            tablesModified = true;
+                        }
+                    } catch (Exception e) {
+                        log.warn("Failed to sync buildingItemRepository from saveDocumentValues: {}", e.getMessage());
+                    }
+                }
+            }
+
             if (expandedInputs.containsKey("RAW_COMPOSITE_ITEMS_JSON")) {
                 String compJson = expandedInputs.get("RAW_COMPOSITE_ITEMS_JSON");
                 if (compJson != null && !compJson.trim().isEmpty() && !compJson.equals("[]")) {
@@ -579,15 +655,20 @@ public class DocumentWorkspaceService {
                                 compJson,
                                 objectMapper.getTypeFactory().constructCollectionType(List.class, ValuationCompositeItem.class)
                         );
-                        if (items != null && !items.isEmpty() && compositeItemRepository != null) {
+                        if (items != null && compositeItemRepository != null) {
                             compositeItemRepository.deleteByOrderId(orderId);
                             int s = 1;
                             for (ValuationCompositeItem itm : items) {
+                                itm.setId(null);
                                 itm.setOrderId(orderId);
                                 itm.setSortOrder(s++);
                                 if (itm.getItemCategory() == null) itm.setItemCategory("OTHER");
+                                if (formulaService != null) {
+                                    formulaService.calculateCompositeItem(itm);
+                                }
                                 compositeItemRepository.save(itm);
                             }
+                            tablesModified = true;
                         }
                     } catch (Exception e) {
                         log.warn("Failed to sync compositeItemRepository from saveDocumentValues: {}", e.getMessage());
@@ -609,12 +690,67 @@ public class DocumentWorkspaceService {
                                     if ("MAIN_UNIT".equalsIgnoreCase(itm.getItemCategory())) {
                                         itm.setQuantity(qty);
                                         compositeItemRepository.save(itm);
+                                        tablesModified = true;
                                         break;
                                     }
                                 }
                             }
                         } catch (Exception ignored) {}
                     }
+                }
+            }
+
+            // If tables were updated, recalculate summary totals and synchronize order_inputs to match repository state
+            if (tablesModified && valuationDataRepository != null && formulaService != null && valuationEngineService != null) {
+                try {
+                    ValuationData valData = valuationDataRepository.findByOrderId(orderId)
+                            .orElseGet(() -> valuationEngineService.initializeDefaultValuationData(order));
+
+                    List<ValuationLandItem> landItems = landItemRepository != null ?
+                            landItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId) : List.of();
+                    List<ValuationBuildingItem> buildingItems = buildingItemRepository != null ?
+                            buildingItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId) : List.of();
+                    List<ValuationCompositeItem> compositeItems = compositeItemRepository != null ?
+                            compositeItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId) : List.of();
+
+                    boolean isComp = (compositeItems != null && !compositeItems.isEmpty())
+                            || "COMPOSITE_RATE".equalsIgnoreCase(valData.getValuationMethodology())
+                            || "COMPOSITE".equalsIgnoreCase(valData.getValuationMethodology());
+
+                    if (isComp) {
+                        valData.setValuationMethodology("COMPOSITE_RATE");
+                        formulaService.calculateCompositeSummary(valData, compositeItems);
+                    } else {
+                        formulaService.calculateSummary(valData, landItems, buildingItems);
+                    }
+
+                    valData.setUpdatedAt(LocalDateTime.now());
+                    valuationDataRepository.save(valData);
+
+                    order.setFinalValue(valData.getFairValue());
+                    if (order.getEstimatedValue() == null || order.getEstimatedValue().signum() == 0) {
+                        order.setEstimatedValue(valData.getFairValue());
+                    }
+
+                    // Single source of truth: synchronize calculated totals to order_inputs
+                    Map<String, String> calculatedPlaceholders = valuationEngineService.generatePlaceholders(
+                            order, valData, landItems, buildingItems, List.of(), compositeItems
+                    );
+                    for (Map.Entry<String, String> entry : calculatedPlaceholders.entrySet()) {
+                        saveOrUpdateInput(orderId, entry.getKey(), entry.getValue());
+                        existingValues.put(entry.getKey(), entry.getValue());
+                    }
+
+                    Map<String, String> textOnly = new HashMap<>();
+                    for (Map.Entry<String, String> entry : existingValues.entrySet()) {
+                        if (entry.getValue() != null && !entry.getValue().startsWith("data:image")) {
+                            textOnly.put(entry.getKey(), entry.getValue());
+                        }
+                    }
+                    order.setInputValues(objectMapper.writeValueAsString(textOnly));
+                    orderRepository.save(order);
+                } catch (Exception e) {
+                    log.warn("Failed to synchronize ValuationData totals from saveDocumentValues: {}", e.getMessage());
                 }
             }
         }
