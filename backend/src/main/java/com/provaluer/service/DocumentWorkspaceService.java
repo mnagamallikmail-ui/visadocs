@@ -700,11 +700,58 @@ public class DocumentWorkspaceService {
                 }
             }
 
+            if (expandedInputs.containsKey("COMPOSITE_GOVERNMENT_RATE")
+                    || expandedInputs.containsKey("composite_government_rate")
+                    || expandedInputs.containsKey("COMPOSITE_GOVT_RATE")) {
+                String compGovtRate = expandedInputs.get("COMPOSITE_GOVERNMENT_RATE");
+                if (compGovtRate == null || compGovtRate.trim().isEmpty()) {
+                    compGovtRate = expandedInputs.get("composite_government_rate");
+                }
+                if (compGovtRate == null || compGovtRate.trim().isEmpty()) {
+                    compGovtRate = expandedInputs.get("COMPOSITE_GOVT_RATE");
+                }
+                if (compGovtRate != null && !compGovtRate.trim().isEmpty()) {
+                    String cleanNum = compGovtRate.replaceAll("[^0-9.]", "").trim();
+                    if (!cleanNum.isEmpty()) {
+                        try {
+                            BigDecimal rateBd = new BigDecimal(cleanNum);
+                            ValuationData vData = valuationDataRepository != null ?
+                                    valuationDataRepository.findByOrderId(orderId).orElse(null) : null;
+                            if (vData != null) {
+                                vData.setCompositeGovernmentRate(rateBd);
+                                valuationDataRepository.save(vData);
+                                tablesModified = true;
+                            }
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
+
             // If tables were updated, recalculate summary totals and synchronize order_inputs to match repository state
             if (tablesModified && valuationDataRepository != null && formulaService != null && valuationEngineService != null) {
                 try {
                     ValuationData valData = valuationDataRepository.findByOrderId(orderId)
                             .orElseGet(() -> valuationEngineService.initializeDefaultValuationData(order));
+
+                    if (expandedInputs.containsKey("COMPOSITE_GOVERNMENT_RATE")
+                            || expandedInputs.containsKey("composite_government_rate")
+                            || expandedInputs.containsKey("COMPOSITE_GOVT_RATE")) {
+                        String compGovtRate = expandedInputs.get("COMPOSITE_GOVERNMENT_RATE");
+                        if (compGovtRate == null || compGovtRate.trim().isEmpty()) {
+                            compGovtRate = expandedInputs.get("composite_government_rate");
+                        }
+                        if (compGovtRate == null || compGovtRate.trim().isEmpty()) {
+                            compGovtRate = expandedInputs.get("COMPOSITE_GOVT_RATE");
+                        }
+                        if (compGovtRate != null && !compGovtRate.trim().isEmpty()) {
+                            String cleanNum = compGovtRate.replaceAll("[^0-9.]", "").trim();
+                            if (!cleanNum.isEmpty()) {
+                                try {
+                                    valData.setCompositeGovernmentRate(new BigDecimal(cleanNum));
+                                } catch (Exception ignored) {}
+                            }
+                        }
+                    }
 
                     List<ValuationLandItem> landItems = landItemRepository != null ?
                             landItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId) : List.of();

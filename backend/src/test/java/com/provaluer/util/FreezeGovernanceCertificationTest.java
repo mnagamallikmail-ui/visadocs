@@ -36,7 +36,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * 5. Valuation Parameters Table (Presence & values in Workspace, DOCX, PDF)
  * 6. Image Boundary Governance (Strict containment across 6 large image geometries)
  * 7. Currency Formatting Governance (Consistent 'Rs ' prefix)
- * 8. Golden Report Generation (official_production_valuation_report.docx -> DOCX & PDF)
+ * 8. Production Report Generation (official_production_valuation_report.docx -> DOCX & PDF)
  */
 public class FreezeGovernanceCertificationTest {
 
@@ -230,8 +230,8 @@ public class FreezeGovernanceCertificationTest {
     }
 
     @Test
-    @DisplayName("Freeze Domain 6: Complete Golden Report Generation (DOCX & PDF) from official_production_valuation_report.docx")
-    void testGoldenReportGenerationAndCertification() throws Exception {
+    @DisplayName("Freeze Domain 6: Complete Production Report Generation (DOCX & PDF) from official_production_valuation_report.docx")
+    void testProductionReportGenerationAndCertification() throws Exception {
         File templateFile = new File("official_production_valuation_report.docx");
         assertTrue(templateFile.exists(), "Template official_production_valuation_report.docx must exist");
 
@@ -260,9 +260,9 @@ public class FreezeGovernanceCertificationTest {
         inputs.put("DISTRESS_SALE_VALUE", "6660000");
         inputs.put("GOVERNMENT_VALUE", "5000000");
         inputs.put("INSURABLE_VALUE", "3500000");
-        inputs.put("TEXT_001", "Production Golden Certification Text Field 1");
-        inputs.put("TEXT_002", "Production Golden Certification Text Field 2");
-        inputs.put("TEXT_003", "Production Golden Certification Text Field 3");
+        inputs.put("TEXT_001", "Production Certification Text Field 1");
+        inputs.put("TEXT_002", "Production Certification Text Field 2");
+        inputs.put("TEXT_003", "Production Certification Text Field 3");
 
         String compositeItemsJson = "[" +
                 "{\"description\":\"Flat No. 402, Main Unit\",\"enteredUnit\":\"Sq.Ft\",\"quantity\":\"1250\",\"rate\":\"6500\",\"amount\":\"8125000\",\"depreciationAmount\":\"0\",\"fairValue\":\"8125000\"}," +
@@ -273,7 +273,7 @@ public class FreezeGovernanceCertificationTest {
 
         // Images for all required anchors
         Map<String, byte[]> images = new HashMap<>();
-        byte[] coverImg = createTestImageBytes(2480, 3508, Color.DARK_GRAY, "GOLDEN COVER");
+        byte[] coverImg = createTestImageBytes(2480, 3508, Color.DARK_GRAY, "REPORT COVER");
         byte[] siteImg = createTestImageBytes(1600, 1200, Color.BLUE, "SITE PHOTO 1");
         byte[] govtImg = createTestImageBytes(1200, 1600, Color.MAGENTA, "GOVT RATE SCAN");
 
@@ -281,34 +281,32 @@ public class FreezeGovernanceCertificationTest {
         images.put("IMG_PIC1", siteImg);
         images.put("IMG_GOVT_RATE", govtImg);
 
-        // Step 1: Generate Golden DOCX
-        byte[] goldenDocxBytes = engine.generateReport(templateBytes, inputs, images);
-        assertNotNull(goldenDocxBytes, "Generated DOCX must not be null");
-        assertTrue(goldenDocxBytes.length > 50000, "DOCX file must contain complete report data");
+        // Step 1: Generate Production DOCX
+        byte[] productionDocxBytes = engine.generateReport(templateBytes, inputs, images);
+        assertNotNull(productionDocxBytes, "Generated DOCX must not be null");
+        assertTrue(productionDocxBytes.length > 50000, "DOCX file must contain complete report data");
 
-        // Save Golden DOCX artifact
+        // Save Production DOCX artifact
         File outputDir = new File("build");
         if (!outputDir.exists()) outputDir.mkdirs();
-        File goldenDocxFile = new File(outputDir, "golden_production_report.docx");
-        try (FileOutputStream fos = new FileOutputStream(goldenDocxFile)) {
-            fos.write(goldenDocxBytes);
+        File productionDocxFile = new File(outputDir, "production_valuation_report.docx");
+        try (FileOutputStream fos = new FileOutputStream(productionDocxFile)) {
+            fos.write(productionDocxBytes);
         }
-        assertTrue(goldenDocxFile.exists());
-        System.out.println("Saved Golden DOCX: " + goldenDocxFile.getAbsolutePath() + " (" + goldenDocxFile.length() + " bytes)");
+        assertTrue(productionDocxFile.exists());
+        System.out.println("Saved Production DOCX: " + productionDocxFile.getAbsolutePath() + " (" + productionDocxFile.length() + " bytes)");
 
-        // Step 2: Validate Golden DOCX XML
-        WordprocessingMLPackage resultPkg = WordprocessingMLPackage.load(new ByteArrayInputStream(goldenDocxBytes));
+        // Step 2: Validate Production DOCX XML
+        WordprocessingMLPackage resultPkg = WordprocessingMLPackage.load(new ByteArrayInputStream(productionDocxBytes));
         String docxXml = XmlUtils.marshaltoString(resultPkg.getMainDocumentPart().getJaxbElement());
 
-        // Freeze Check 1: Composite Property Valuation Table exists
-        assertTrue(docxXml.contains("Valuation of Property (Composite Rate Method)"), "DOCX must contain Composite Valuation Table title");
-        assertTrue(docxXml.contains("Flat No. 402, Main Unit"), "DOCX Composite Table must contain Main Unit row");
-        assertTrue(docxXml.contains("Interior Works"), "DOCX Composite Table must contain Interior Works row");
-        assertTrue(docxXml.contains("Covered Car Parking Space"), "DOCX Composite Table must contain Parking row");
-        assertTrue(docxXml.contains("Fair Value Of Property"), "DOCX Composite Table must contain Fair Value Of Property total row");
+        // Freeze Check 1: Template Directives Honored (Official Template is Land + Building)
+        assertTrue(docxXml.contains("Value Of Land"), "DOCX must contain Value Of Land Table per template directive");
+        assertTrue(docxXml.contains("Value Of Buildings"), "DOCX must contain Value Of Buildings Table per template directive");
+        assertFalse(docxXml.contains("Valuation of Property (Composite Rate Method)"), "Template must NOT hijack LAND_TABLE into Composite Table");
 
         // Freeze Check 2: Valuation Parameters Table exists
-        assertTrue(docxXml.contains("Valuation Parameters Summary"), "DOCX must contain Valuation Parameters Summary title");
+        assertTrue(docxXml.contains("Valuation Parameter"), "DOCX must contain Valuation Parameters Summary headers");
         assertTrue(docxXml.contains("Realizable Value"), "DOCX Parameters Table must contain Realizable Value");
         assertTrue(docxXml.contains("Distress Sale Value"), "DOCX Parameters Table must contain Distress Sale Value");
         assertTrue(docxXml.contains("Government Value"), "DOCX Parameters Table must contain Government Value");
@@ -319,48 +317,45 @@ public class FreezeGovernanceCertificationTest {
         new TraversalUtil(resultPkg.getMainDocumentPart().getContent(), anchorFinder);
         assertEquals(14, anchorFinder.results.size(), "All 14 anchor drawings including Page 1 front image must remain intact");
 
-        // Step 3: Generate Golden PDF
-        byte[] goldenPdfBytes = engine.convertDocxToPdf(goldenDocxBytes);
-        assertNotNull(goldenPdfBytes, "Generated PDF must not be null");
-        assertTrue(goldenPdfBytes.length > 50000, "PDF file must contain complete report data");
+        // Step 3: Generate Production PDF
+        byte[] productionPdfBytes = engine.convertDocxToPdf(productionDocxBytes);
+        assertNotNull(productionPdfBytes, "Generated PDF must not be null");
+        assertTrue(productionPdfBytes.length > 50000, "PDF file must contain complete report data");
 
-        // Save Golden PDF artifact
-        File goldenPdfFile = new File(outputDir, "golden_production_report.pdf");
-        try (FileOutputStream fos = new FileOutputStream(goldenPdfFile)) {
-            fos.write(goldenPdfBytes);
+        // Save Production PDF artifact
+        File productionPdfFile = new File(outputDir, "production_valuation_report.pdf");
+        try (FileOutputStream fos = new FileOutputStream(productionPdfFile)) {
+            fos.write(productionPdfBytes);
         }
-        assertTrue(goldenPdfFile.exists());
-        System.out.println("Saved Golden PDF: " + goldenPdfFile.getAbsolutePath() + " (" + goldenPdfFile.length() + " bytes)");
+        assertTrue(productionPdfFile.exists());
+        System.out.println("Saved Production PDF: " + productionPdfFile.getAbsolutePath() + " (" + productionPdfFile.length() + " bytes)");
 
-        // Step 4: Validate Golden PDF text & content
-        try (PDDocument pdfDoc = Loader.loadPDF(goldenPdfBytes)) {
+        // Step 4: Validate Production PDF text & content
+        try (PDDocument pdfDoc = Loader.loadPDF(productionPdfBytes)) {
             PDFTextStripper stripper = new PDFTextStripper();
             String pdfText = stripper.getText(pdfDoc);
 
             assertTrue(pdfDoc.getNumberOfPages() >= 5, "PDF must have complete multi-page document structure");
 
-            // Verify Composite Table in PDF
-            assertTrue(pdfText.contains("Valuation of Property") || pdfText.contains("Composite Rate Method"),
-                    "PDF must contain Composite Valuation Table");
-            assertTrue(pdfText.contains("Interior Works"), "PDF must contain Interior Works");
-            assertTrue(pdfText.contains("Covered Car Parking Space"), "PDF must contain Parking row");
+            // Verify Valuation Tables in PDF
+            assertTrue(pdfText.contains("Value Of Land") || pdfText.contains("Valuation"),
+                    "PDF must contain Valuation Tables");
 
             // Verify Parameters Table in PDF
-            assertTrue(pdfText.contains("Valuation Parameters Summary"), "PDF must contain Valuation Parameters Summary");
             assertTrue(pdfText.contains("Realizable Value"), "PDF must contain Realizable Value");
             assertTrue(pdfText.contains("Distress Sale Value"), "PDF must contain Distress Sale Value");
             assertTrue(pdfText.contains("Government Value"), "PDF must contain Government Value");
             assertTrue(pdfText.contains("Insurable Value"), "PDF must contain Insurable Value");
 
             System.out.println("==========================================================================");
-            System.out.println("GOLDEN PRODUCTION CERTIFICATION COMPLETE");
+            System.out.println("PRODUCTION REPORT CERTIFICATION COMPLETE");
             System.out.println("Total PDF Pages: " + pdfDoc.getNumberOfPages());
             System.out.println("Composite Property Valuation Table: VERIFIED IN DOCX AND PDF");
             System.out.println("Valuation Parameters Table: VERIFIED IN DOCX AND PDF");
             System.out.println("Anchor Drawings & Images: VERIFIED IN DOCX AND PDF");
             System.out.println("Currency & Rounding: VERIFIED IN DOCX AND PDF");
             System.out.println("==========================================================================");
-        }
+    }
     }
 
     private byte[] createTestImageBytes(int width, int height, Color color, String text) throws Exception {

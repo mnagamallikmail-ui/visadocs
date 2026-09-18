@@ -934,23 +934,120 @@ public class DocxTemplateEngine {
         return sb.toString();
     }
 
+    public enum TemplateMethodology {
+        LAND_ONLY,
+        LAND_AND_BUILDING,
+        COMPOSITE
+    }
+
+    public Set<String> scanTemplatePlaceholders(WordprocessingMLPackage wordMLPackage) {
+        Set<String> placeholders = new HashSet<>();
+        if (wordMLPackage == null || wordMLPackage.getMainDocumentPart() == null) {
+            return placeholders;
+        }
+        scanElementsForPlaceholders(wordMLPackage.getMainDocumentPart().getContent(), placeholders);
+        for (org.docx4j.openpackaging.parts.Part part : wordMLPackage.getParts().getParts().values()) {
+            if (part instanceof org.docx4j.openpackaging.parts.WordprocessingML.HeaderPart header) {
+                scanElementsForPlaceholders(header.getContent(), placeholders);
+            } else if (part instanceof org.docx4j.openpackaging.parts.WordprocessingML.FooterPart footer) {
+                scanElementsForPlaceholders(footer.getContent(), placeholders);
+            }
+        }
+        return placeholders;
+    }
+
+    private void scanElementsForPlaceholders(List<Object> elements, Set<String> placeholders) {
+        if (elements == null) return;
+        for (Object elem : elements) {
+            Object unwrapped = unwrap(elem);
+            if (unwrapped instanceof P p) {
+                String text = getParagraphText(p);
+                if (text != null && text.contains("<<") && text.contains(">>")) {
+                    Matcher m = Pattern.compile("<<([^>]+)>>").matcher(text);
+                    while (m.find()) {
+                        String raw = m.group(1).trim();
+                        String norm = raw.replaceAll("[\\s_]+", "").toUpperCase();
+                        placeholders.add(norm);
+                    }
+                }
+            } else if (unwrapped instanceof Tbl tbl) {
+                for (Object rowObj : tbl.getContent()) {
+                    Object unwrappedRow = unwrap(rowObj);
+                    if (unwrappedRow instanceof Tr row) {
+                        for (Object cellObj : row.getContent()) {
+                            Object unwrappedCell = unwrap(cellObj);
+                            if (unwrappedCell instanceof Tc cell) {
+                                scanElementsForPlaceholders(cell.getContent(), placeholders);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public TemplateMethodology detectTemplateMethodology(Set<String> placeholders) {
+        if (placeholders == null || placeholders.isEmpty()) {
+            return TemplateMethodology.LAND_AND_BUILDING;
+        }
+        boolean hasComposite = placeholders.stream().anyMatch(p ->
+                p.equals("COMPOSITEPROPERTYTABLE") || p.equals("DYNAMICCOMPOSITEPROPERTYTABLE") || p.equals("COMPOSITETABLE")
+        );
+        if (hasComposite) {
+            return TemplateMethodology.COMPOSITE;
+        }
+
+        boolean hasBuilding = placeholders.stream().anyMatch(p ->
+                p.equals("BUILDINGTABLE") || p.equals("DYNAMICBUILDINGTABLE")
+        );
+        boolean hasPropertyValue = placeholders.stream().anyMatch(p ->
+                p.equals("PROPERTYVALUETABLE") || p.equals("VALUEOFTHEPROPERTYTABLE")
+                || p.equals("VALUEOFPROPERTYTABLE") || p.equals("DYNAMICPROPERTYVALUETABLE")
+        );
+
+        if (hasBuilding || hasPropertyValue) {
+            return TemplateMethodology.LAND_AND_BUILDING;
+        }
+
+        boolean hasLand = placeholders.stream().anyMatch(p ->
+                p.equals("LANDTABLE") || p.equals("DYNAMICLANDTABLE")
+        );
+        if (hasLand) {
+            return TemplateMethodology.LAND_ONLY;
+        }
+
+        return TemplateMethodology.LAND_AND_BUILDING;
+    }
+
+    public TemplateMethodology detectTemplateMethodology(WordprocessingMLPackage wordMLPackage) {
+        return detectTemplateMethodology(scanTemplatePlaceholders(wordMLPackage));
+    }
+
+    public TemplateMethodology detectTemplateMethodology(byte[] content) throws Exception {
+        WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(new ByteArrayInputStream(content));
+        return detectTemplateMethodology(wordMLPackage);
+    }
+
     /**
      * Hydrates the normalized template document with client input answers and returns the final compiled report.
      */
     public byte[] generateReport(byte[] content, Map<String, String> inputs, Map<String, byte[]> images) throws Exception {
         WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(new ByteArrayInputStream(content));
         
+        // STEP 1: Template-Driven Methodology Detection (Template is Single Source of Truth)
+        TemplateMethodology templateMethodology = detectTemplateMethodology(wordMLPackage);
+
         // 1. Process Main Document Part
-        generateElements(wordMLPackage, wordMLPackage.getMainDocumentPart().getContent(), inputs, images);
+        generateElements(wordMLPackage, wordMLPackage.getMainDocumentPart().getContent(), inputs, images, templateMethodology);
 
         // 2. Process Headers and Footers
         for (org.docx4j.openpackaging.parts.Part part : wordMLPackage.getParts().getParts().values()) {
             if (part instanceof org.docx4j.openpackaging.parts.WordprocessingML.HeaderPart) {
                 org.docx4j.openpackaging.parts.WordprocessingML.HeaderPart header = (org.docx4j.openpackaging.parts.WordprocessingML.HeaderPart) part;
-                generateElements(wordMLPackage, header.getContent(), inputs, images);
+                generateElements(wordMLPackage, header.getContent(), inputs, images, templateMethodology);
             } else if (part instanceof org.docx4j.openpackaging.parts.WordprocessingML.FooterPart) {
                 org.docx4j.openpackaging.parts.WordprocessingML.FooterPart footer = (org.docx4j.openpackaging.parts.WordprocessingML.FooterPart) part;
-                generateElements(wordMLPackage, footer.getContent(), inputs, images);
+                generateElements(wordMLPackage, footer.getContent(), inputs, images, templateMethodology);
             }
         }
 
@@ -1034,11 +1131,54 @@ public class DocxTemplateEngine {
                 || u.contains("CERTIFICATE:");
     }
 
-    private void generateElements(WordprocessingMLPackage wordMLPackage, List<Object> elements, Map<String, String> inputs, Map<String, byte[]> images) throws Exception {
+    private boolean isTableOfContentsOrNavigation(P p) {
+        if (p == null) return false;
+        if (p.getPPr() != null && p.getPPr().getPStyle() != null) {
+            String pStyle = p.getPPr().getPStyle().getVal();
+            if (pStyle != null) {
+                String sLower = pStyle.toLowerCase();
+                if (sLower.contains("toc") || sLower.contains("tableofcontents") || sLower.contains("nav")) {
+                    return true;
+                }
+            }
+        }
+        for (Object o : p.getContent()) {
+            Object unwrapped = unwrap(o);
+            if (unwrapped instanceof P.Hyperlink) return true;
+            if (unwrapped instanceof R r) {
+                if (r.getRPr() != null && r.getRPr().getRStyle() != null) {
+                    String rStyle = r.getRPr().getRStyle().getVal();
+                    if (rStyle != null && rStyle.toLowerCase().contains("hyperlink")) return true;
+                }
+                for (Object ro : r.getContent()) {
+                    Object uRo = unwrap(ro);
+                    if (uRo instanceof FldChar) {
+                        return true;
+                    }
+                }
+            }
+        }
+        return false;
+    }
+
+    private boolean hasNearbyPhotoElements(List<Object> elements, int currentIndex) {
+        if (elements == null) return false;
+        int maxLookahead = Math.min(elements.size(), currentIndex + 15);
+        for (int k = currentIndex; k < maxLookahead; k++) {
+            Object o = unwrap(elements.get(k));
+            if (o instanceof P nextP) {
+                if (paragraphContainsAnyPicKey(nextP)) return true;
+            }
+        }
+        return false;
+    }
+
+    private void generateElements(WordprocessingMLPackage wordMLPackage, List<Object> elements, Map<String, String> inputs, Map<String, byte[]> images, TemplateMethodology templateMethodology) throws Exception {
         // Defect 1 governance: track when we enter a Valuation Certificate section.
         // Once inside, ALL dynamic table injection is forbidden; only plain placeholder
         // substitution is allowed. The template is the ONLY source of truth for page content.
         boolean inCertificateSection = false;
+        boolean photoGridInserted = false;
 
         for (int i = 0; i < elements.size(); i++) {
             Object elem = elements.get(i);
@@ -1055,7 +1195,8 @@ public class DocxTemplateEngine {
                     if (containsPageBreak(p) || pText.startsWith("PART-") || pText.contains("Section")
                             || norm.equals("LANDTABLE") || norm.equals("DYNAMICLANDTABLE")
                             || norm.equals("BUILDINGTABLE") || norm.equals("DYNAMICBUILDINGTABLE")
-                            || norm.equals("VALUATIONSUMMARYTABLE") || norm.equals("DYNAMICVALUATIONSUMMARYTABLE")) {
+                            || norm.equals("VALUATIONSUMMARYTABLE") || norm.equals("DYNAMICVALUATIONSUMMARYTABLE")
+                            || norm.contains("COMPOSITEPROPERTYTABLE") || norm.contains("COMPOSITETABLE")) {
                         inCertificateSection = false;
                     }
                 } else if (isCertificateHeading(pText)) {
@@ -1073,15 +1214,19 @@ public class DocxTemplateEngine {
                         || norm.equals("COMPARABLESTABLE") || norm.equals("COMPARABLETABLE") || norm.equals("DYNAMICCOMPARABLESTABLE")
                         || norm.equals("PROPERTYVALUETABLE") || norm.equals("VALUEOFTHEPROPERTYTABLE") || norm.equals("VALUEOFPROPERTYTABLE") || norm.equals("DYNAMICPROPERTYVALUETABLE"));
 
-                // FIX #5, #7, #8, #9: Stable Photo Grid Container & Keep-Together Section Flow
-                boolean isPhotoSectionHeading = pText.equalsIgnoreCase("Property Photographs")
+                // FIX #4 & #5: Detect Real Photo Section Only (Exclude TOC, Hyperlinks, Navigation) & Protect Actual Photo Anchors
+                boolean isTocOrNav = isTableOfContentsOrNavigation(p);
+                boolean isPhotoSectionHeading = !isTocOrNav && hasNearbyPhotoElements(elements, i) && (
+                        pText.equalsIgnoreCase("Property Photographs")
                         || pText.toUpperCase().contains("PROPERTY PHOTOGRAPHS")
-                        || (!pText.isEmpty() && pText.toUpperCase().endsWith("PHOTOGRAPHS") && !pText.toUpperCase().contains("ADDITIONAL"));
-                boolean isFirstPhotoParagraph = !isPhotoSectionHeading && (
+                        || (!pText.isEmpty() && pText.toUpperCase().endsWith("PHOTOGRAPHS") && !pText.toUpperCase().contains("ADDITIONAL"))
+                );
+                boolean isFirstPhotoParagraph = !photoGridInserted && !isTocOrNav && !isPhotoSectionHeading && (
                         paragraphContainsImageKey(p, "IMG_PIC1") || paragraphContainsImageKey(p, "IMG_PIC2")
                 );
 
-                if (isPhotoSectionHeading || isFirstPhotoParagraph) {
+                if (!photoGridInserted && (isPhotoSectionHeading || isFirstPhotoParagraph)) {
+                    photoGridInserted = true;
                     Tbl photoTable = buildPhotoGridTable(wordMLPackage, inputs, images);
 
                     if (isPhotoSectionHeading) {
@@ -1096,15 +1241,15 @@ public class DocxTemplateEngine {
                         elements.add(i + 1, photoTable);
                         i += 1;
 
-                        // Prune following paragraphs containing old floating PIC anchors or spacing
+                        // FIX #5: Protect actual photo anchors and containers.
+                        // Remove only empty spacing / placeholder artifacts; DO NOT remove actual photo anchors.
                         while (i + 1 < elements.size()) {
                             Object nextElem = unwrap(elements.get(i + 1));
                             if (nextElem instanceof P nextP) {
                                 String nextText = getParagraphText(nextP).trim();
                                 boolean hasPic = paragraphContainsAnyPicKey(nextP);
-                                boolean isEmptySpacing = isParagraphEmpty(nextP) || nextText.isEmpty()
-                                        || (nextText.matches("^[0-9a-zA-Z\\s]+$") && nextText.length() > 15);
-                                if (hasPic || (isEmptySpacing && !nextText.contains("Valuation") && !nextText.contains("PART-"))) {
+                                boolean isEmptySpacing = (isParagraphEmpty(nextP) || nextText.isEmpty()) && !hasPic;
+                                if (isEmptySpacing && !nextText.contains("Valuation") && !nextText.contains("PART-") && !nextText.contains("Section")) {
                                     elements.remove(i + 1);
                                     continue;
                                 }
@@ -1113,17 +1258,8 @@ public class DocxTemplateEngine {
                         }
                         continue;
                     } else {
-                        elements.set(i, photoTable);
-                        while (i + 1 < elements.size()) {
-                            Object nextElem = unwrap(elements.get(i + 1));
-                            if (nextElem instanceof P nextP) {
-                                if (paragraphContainsAnyPicKey(nextP) || isParagraphEmpty(nextP)) {
-                                    elements.remove(i + 1);
-                                    continue;
-                                }
-                            }
-                            break;
-                        }
+                        elements.add(i + 1, photoTable);
+                        i += 1;
                         continue;
                     }
                 }
@@ -1131,12 +1267,28 @@ public class DocxTemplateEngine {
                 // Dynamic Table Generation - ONLY triggered for explicit table directives OUTSIDE certificate sections
                 if (isExplicitTableDirective && (norm.contains("COMPOSITEPROPERTYTABLE") || norm.contains("COMPOSITETABLE"))) {
                     Tbl compTable = buildDynamicCompositePropertyTable(inputs);
-                    Tbl summaryTable = buildDynamicCompositeSummaryTable(inputs);
                     if (compTable != null) {
                         elements.set(i, compTable);
-                        if (summaryTable != null) {
-                            elements.add(i + 1, summaryTable);
-                            i += 1;
+                        elements.add(i + 1, createTableSpacingParagraph());
+                        i += 1;
+                        boolean hasSeparateSummaryDirective = false;
+                        for (int k = i + 1; k < elements.size(); k++) {
+                            Object o = unwrap(elements.get(k));
+                            if (o instanceof P pk) {
+                                String nk = getParagraphText(pk).replaceAll("[\\s_<>]+", "").toUpperCase();
+                                if (nk.contains("VALUATIONSUMMARYTABLE")) {
+                                    hasSeparateSummaryDirective = true;
+                                    break;
+                                }
+                            }
+                        }
+                        if (!hasSeparateSummaryDirective) {
+                            Tbl summaryTable = buildDynamicCompositeSummaryTable(inputs);
+                            if (summaryTable != null) {
+                                elements.add(i + 1, summaryTable);
+                                elements.add(i + 2, createTableSpacingParagraph());
+                                i += 2;
+                            }
                         }
                         continue;
                     }
@@ -1166,7 +1318,15 @@ public class DocxTemplateEngine {
                         continue;
                     }
                 } else if (isExplicitTableDirective && (norm.equals("VALUATIONSUMMARYTABLE") || norm.equals("DYNAMICVALUATIONSUMMARYTABLE"))) {
-                    Tbl summaryTable = buildDynamicValuationSummaryTable(inputs);
+                    // Summary routing strictly governed by TEMPLATE methodology (Single Source of Truth)
+                    Tbl summaryTable;
+                    if (templateMethodology == TemplateMethodology.COMPOSITE) {
+                        summaryTable = buildDynamicCompositeSummaryTable(inputs);
+                    } else if (templateMethodology == TemplateMethodology.LAND_ONLY) {
+                        summaryTable = buildLandSummary(inputs);
+                    } else {
+                        summaryTable = buildDynamicValuationSummaryTable(inputs);
+                    }
                     if (summaryTable != null) {
                         elements.set(i, summaryTable);
                         elements.add(i + 1, createTableSpacingParagraph());
@@ -1225,7 +1385,7 @@ public class DocxTemplateEngine {
                             Object unwrappedCell = unwrap(cellObj);
                             if (unwrappedCell instanceof Tc) {
                                 Tc cell = (Tc) unwrappedCell;
-                                generateElements(wordMLPackage, cell.getContent(), inputs, images);
+                                generateElements(wordMLPackage, cell.getContent(), inputs, images, templateMethodology);
                             }
                         }
                     }
@@ -1530,6 +1690,39 @@ public class DocxTemplateEngine {
         }
 
         return createDocxTable(headers, colWidths, rows, null, 18, alignments);
+    }
+
+    public Tbl buildLandSummary() {
+        return buildLandSummary(null);
+    }
+
+    public Tbl buildLandSummary(Map<String, String> inputs) {
+        List<String> headers = List.of("Valuation Parameter", "Amount (₹)");
+        List<Integer> colWidths = List.of(5600, 4000);
+        List<JcEnumeration> alignments = List.of(JcEnumeration.LEFT, JcEnumeration.RIGHT);
+        List<List<String>> rows = new ArrayList<>();
+
+        if (inputs != null) {
+            String landFair = inputs.getOrDefault("SAY_LAND_VALUE", inputs.getOrDefault("say_land_value",
+                    inputs.getOrDefault("LAND_FAIR_VALUE", inputs.getOrDefault("land_fair_value",
+                    inputs.getOrDefault("TOTAL_LAND_VALUE", inputs.getOrDefault("total_land_value",
+                    inputs.getOrDefault("FAIR_VALUE", inputs.getOrDefault("fair_value", "0"))))))));
+            rows.add(List.of("Land Fair Value", "Rs " + formatIndian(landFair)));
+
+            String landReal = inputs.getOrDefault("LAND_REALIZABLE_VALUE", inputs.getOrDefault("land_realizable_value",
+                    inputs.getOrDefault("REALIZABLE_VALUE", inputs.getOrDefault("realizable_value", "0"))));
+            rows.add(List.of("Land Realizable Value", "Rs " + formatIndian(landReal)));
+
+            String landDist = inputs.getOrDefault("LAND_DISTRESS_VALUE", inputs.getOrDefault("land_distress_value",
+                    inputs.getOrDefault("DISTRESS_SALE_VALUE", inputs.getOrDefault("distress_sale_value", "0"))));
+            rows.add(List.of("Land Distress Value", "Rs " + formatIndian(landDist)));
+
+            String landGovt = inputs.getOrDefault("LAND_GOVERNMENT_VALUE", inputs.getOrDefault("land_government_value",
+                    inputs.getOrDefault("GOVERNMENT_VALUE", inputs.getOrDefault("government_value", "0"))));
+            rows.add(List.of("Land Government Value", "Rs " + formatIndian(landGovt)));
+        }
+
+        return createDocxTable("Land Valuation Summary", headers, colWidths, rows, null, 18, alignments);
     }
 
     private Tbl buildDynamicComparablesTable(Map<String, String> inputs) {
@@ -2759,6 +2952,35 @@ public class DocxTemplateEngine {
             case "COVER_IMAGE":
             case "FRONT_PAGE":
                 return List.of("IMG_COVER_PAGE", "IMG_FRONT_PAGE", "COVER_IMAGE", "FRONT_PAGE", "img_cover_page", "img_front_page");
+            case "COMPOSITE_GOVT_RATE":
+            case "COMPOSITE_GOVERNMENT_RATE":
+            case "COMPOSITE_GOVT_GUIDELINE_RATE":
+            case "GOVT_COMPOSITE_RATE":
+                return List.of("COMPOSITE_GOVT_RATE", "COMPOSITE_GOVERNMENT_RATE", "composite_govt_rate", "composite_government_rate", "COMPOSITE_RATE");
+            case "IMG_PIC1":
+            case "PIC1":
+                return List.of("IMG_PIC1", "PIC1", "img_pic1", "pic1");
+            case "IMG_PIC2":
+            case "PIC2":
+                return List.of("IMG_PIC2", "PIC2", "img_pic2", "pic2");
+            case "IMG_PIC3":
+            case "PIC3":
+                return List.of("IMG_PIC3", "PIC3", "img_pic3", "pic3");
+            case "IMG_PIC4":
+            case "PIC4":
+                return List.of("IMG_PIC4", "PIC4", "img_pic4", "pic4");
+            case "IMG_PIC5":
+            case "PIC5":
+                return List.of("IMG_PIC5", "PIC5", "img_pic5", "pic5");
+            case "IMG_PIC6":
+            case "PIC6":
+                return List.of("IMG_PIC6", "PIC6", "img_pic6", "pic6");
+            case "IMG_PIC7":
+            case "PIC7":
+                return List.of("IMG_PIC7", "PIC7", "img_pic7", "pic7");
+            case "IMG_PIC8":
+            case "PIC8":
+                return List.of("IMG_PIC8", "PIC8", "img_pic8", "pic8");
             default:
                 return Collections.emptyList();
         }

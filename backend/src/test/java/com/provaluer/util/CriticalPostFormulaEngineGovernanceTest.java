@@ -117,7 +117,10 @@ public class CriticalPostFormulaEngineGovernanceTest {
     @Test
     @DisplayName("Runtime Proof: Composite Property Valuation Table & Valuation Parameters Table in DOCX and PDF")
     void testCompositePropertyValuationTableAndValuationParametersTableInDocxAndPdf() throws Exception {
-        File file = new File("official_production_valuation_report.docx");
+        File file = new File("official_flat_apartment_valuation_report.docx");
+        if (!file.exists()) {
+            file = new File("official_production_valuation_report.docx");
+        }
         assertTrue(file.exists());
 
         byte[] templateBytes = Files.readAllBytes(file.toPath());

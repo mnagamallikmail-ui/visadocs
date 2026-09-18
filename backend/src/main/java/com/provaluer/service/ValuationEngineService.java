@@ -652,7 +652,37 @@ public class ValuationEngineService {
         map.put("bank_name", order.getBankName() != null ? order.getBankName() : "");
         map.put("branch_name", order.getBranchName() != null ? order.getBranchName() : "");
         map.put("property_type", order.getPropertyCategory() != null ? order.getPropertyCategory() : "Commercial Property");
-        map.put("property_address", "");
+        String address = "";
+        if (order.getInputValues() != null && !order.getInputValues().isBlank()) {
+            try {
+                com.fasterxml.jackson.databind.JsonNode jsonNode = objectMapper.readTree(order.getInputValues());
+                if (jsonNode.hasNonNull("PROPERTY_ADDRESS") && !jsonNode.get("PROPERTY_ADDRESS").asText().trim().isEmpty()) {
+                    address = jsonNode.get("PROPERTY_ADDRESS").asText();
+                } else if (jsonNode.hasNonNull("property_address") && !jsonNode.get("property_address").asText().trim().isEmpty()) {
+                    address = jsonNode.get("property_address").asText();
+                } else if (jsonNode.hasNonNull("ADDRESS") && !jsonNode.get("ADDRESS").asText().trim().isEmpty()) {
+                    address = jsonNode.get("ADDRESS").asText();
+                } else if (jsonNode.hasNonNull("SITE_ADDRESS") && !jsonNode.get("SITE_ADDRESS").asText().trim().isEmpty()) {
+                    address = jsonNode.get("SITE_ADDRESS").asText();
+                }
+            } catch (Exception ignored) {}
+        }
+        if ((address == null || address.trim().isEmpty()) && orderInputRepository != null && order.getId() != null) {
+            Optional<OrderInput> addrInput = orderInputRepository.findByOrderIdAndFieldKey(order.getId(), "PROPERTY_ADDRESS");
+            if (addrInput.isEmpty() || addrInput.get().getFieldValue() == null || addrInput.get().getFieldValue().trim().isEmpty()) {
+                addrInput = orderInputRepository.findByOrderIdAndFieldKey(order.getId(), "property_address");
+            }
+            if (addrInput.isEmpty() || addrInput.get().getFieldValue() == null || addrInput.get().getFieldValue().trim().isEmpty()) {
+                addrInput = orderInputRepository.findByOrderIdAndFieldKey(order.getId(), "ADDRESS");
+            }
+            if (addrInput.isPresent() && addrInput.get().getFieldValue() != null && !addrInput.get().getFieldValue().trim().isEmpty()) {
+                address = addrInput.get().getFieldValue();
+            }
+        }
+        if (address != null && !address.trim().isEmpty()) {
+            map.put("property_address", address);
+            map.put("PROPERTY_ADDRESS", address);
+        }
 
         boolean isComposite = isCompositeProperty(order, data) || (compositeItems != null && !compositeItems.isEmpty());
 

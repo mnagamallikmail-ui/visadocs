@@ -17,7 +17,11 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import com.provaluer.dto.TemplateDiffDTO;
 import com.provaluer.dto.TemplateUsageDTO;
 import java.time.LocalDateTime;
@@ -86,6 +90,109 @@ public class TemplateProcessingService {
 
         if (!hasContentTypes || !hasDocumentXml) {
             throw new IllegalArgumentException("Corrupted DOCX: Missing critical parts ([Content_Types].xml or word/document.xml).");
+        }
+
+        // 3. Mandatory Validation F: Template Upload Governance Certification
+        validateTemplateUploadGovernance(rawBytes, originalFilename);
+    }
+
+    /**
+     * Mandatory Validation F: Template Upload Governance Certification.
+     * Enforces Authoritative Business Rules during template upload:
+     * - Rule 1: COMPOSITE_PROPERTY_TABLE cannot coexist with LAND_TABLE, BUILDING_TABLE, or VALUE_OF_PROPERTY_TABLE.
+     * - Rule 2: VALUE_OF_PROPERTY_TABLE requires both LAND_TABLE and BUILDING_TABLE.
+     * - Rule 3: Every valuation template must contain VALUATION_SUMMARY_TABLE.
+     * - Rule 4 & 5: Every template must resolve to exactly one methodology; upload fails if ambiguous.
+     */
+    public void validateTemplateUploadGovernance(byte[] rawBytes, String originalFilename) throws IllegalArgumentException {
+        if (rawBytes == null || rawBytes.length == 0) {
+            return;
+        }
+
+        Set<String> normalizedPlaceholders = new HashSet<>();
+        try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(rawBytes))) {
+            ZipEntry entry;
+            Pattern pattern = Pattern.compile("(?:&lt;&lt;|<<)([^>&]+)(?:&gt;&gt;|>>)");
+            while ((entry = zis.getNextEntry()) != null) {
+                String name = entry.getName();
+                if (name != null && name.startsWith("word/") && name.endsWith(".xml")) {
+                    ByteArrayOutputStream entryBaos = new ByteArrayOutputStream();
+                    byte[] buffer = new byte[8192];
+                    int len;
+                    while ((len = zis.read(buffer)) != -1) {
+                        entryBaos.write(buffer, 0, len);
+                    }
+                    String partXml = entryBaos.toString(StandardCharsets.UTF_8);
+                    Matcher matcher = pattern.matcher(partXml);
+                    while (matcher.find()) {
+                        String raw = matcher.group(1).trim();
+                        String norm = raw.replaceAll("[\\s_]+", "").toUpperCase();
+                        normalizedPlaceholders.add(norm);
+                    }
+                }
+                zis.closeEntry();
+            }
+        } catch (IOException e) {
+            throw new IllegalArgumentException("Failed to scan template placeholders for governance validation: " + e.getMessage(), e);
+        }
+
+        boolean hasComposite = normalizedPlaceholders.stream().anyMatch(p ->
+                p.equals("COMPOSITEPROPERTYTABLE") || p.equals("DYNAMICCOMPOSITEPROPERTYTABLE") || p.equals("COMPOSITETABLE")
+        );
+        boolean hasLand = normalizedPlaceholders.stream().anyMatch(p ->
+                p.equals("LANDTABLE") || p.equals("DYNAMICLANDTABLE")
+        );
+        boolean hasBuilding = normalizedPlaceholders.stream().anyMatch(p ->
+                p.equals("BUILDINGTABLE") || p.equals("DYNAMICBUILDINGTABLE")
+        );
+        boolean hasPropertyValue = normalizedPlaceholders.stream().anyMatch(p ->
+                p.equals("PROPERTYVALUETABLE") || p.equals("VALUEOFTHEPROPERTYTABLE")
+                || p.equals("VALUEOFPROPERTYTABLE") || p.equals("DYNAMICPROPERTYVALUETABLE")
+        );
+        boolean hasSummary = normalizedPlaceholders.stream().anyMatch(p ->
+                p.equals("VALUATIONSUMMARYTABLE") || p.equals("DYNAMICVALUATIONSUMMARYTABLE")
+        );
+
+        boolean isValuationTemplate = hasComposite || hasLand || hasBuilding || hasPropertyValue || hasSummary;
+        if (!isValuationTemplate) {
+            // Non-valuation template (e.g. general non-valuation document)
+            return;
+        }
+
+        // RULE 1: COMPOSITE_PROPERTY_TABLE cannot coexist with LAND_TABLE, BUILDING_TABLE, VALUE_OF_PROPERTY_TABLE
+        if (hasComposite && (hasLand || hasBuilding || hasPropertyValue)) {
+            throw new IllegalArgumentException("Template upload governance violation (Rule 1): " +
+                    "COMPOSITE_PROPERTY_TABLE cannot coexist with LAND_TABLE, BUILDING_TABLE, or VALUE_OF_PROPERTY_TABLE.");
+        }
+
+        // RULE 2: VALUE_OF_PROPERTY_TABLE requires LAND_TABLE and BUILDING_TABLE
+        if (hasPropertyValue && (!hasLand || !hasBuilding)) {
+            throw new IllegalArgumentException("Template upload governance violation (Rule 2): " +
+                    "VALUE_OF_PROPERTY_TABLE requires both LAND_TABLE and BUILDING_TABLE.");
+        }
+
+        // RULE 3: Every valuation template must contain VALUATION_SUMMARY_TABLE
+        if (!hasSummary) {
+            throw new IllegalArgumentException("Template upload governance violation (Rule 3): " +
+                    "Every valuation template must contain <<VALUATION_SUMMARY_TABLE>>.");
+        }
+
+        // RULE 4 & RULE 5: Every template must resolve to exactly one methodology; upload must fail if methodology is ambiguous.
+        int methodologyCount = 0;
+
+        if (hasComposite && !hasLand && !hasBuilding && !hasPropertyValue) {
+            methodologyCount++;
+        }
+        if (hasLand && hasBuilding && hasPropertyValue && !hasComposite) {
+            methodologyCount++;
+        }
+        if (hasLand && !hasBuilding && !hasPropertyValue && !hasComposite) {
+            methodologyCount++;
+        }
+
+        if (methodologyCount != 1) {
+            throw new IllegalArgumentException("Template upload governance violation (Rule 4 & 5): " +
+                    "Template methodology is ambiguous or invalid. Must resolve to exactly one valid methodology (LAND_ONLY, LAND_AND_BUILDING, or FLAT_APARTMENT).");
         }
     }
 

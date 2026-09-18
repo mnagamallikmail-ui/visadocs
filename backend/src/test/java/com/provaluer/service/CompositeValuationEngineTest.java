@@ -231,7 +231,7 @@ public class CompositeValuationEngineTest {
     }
 
     @Test
-    @DisplayName("Legacy Template Backward Compatibility: Replaces first legacy table and suppresses subsequent ones")
+    @DisplayName("Template Governance: Template is authoritative - LAND_TABLE and BUILDING_TABLE are NOT hijacked even if runtime input specifies COMPOSITE")
     public void testLegacyTemplateSuppressionForComposite() throws Exception {
         WordprocessingMLPackage pkg = WordprocessingMLPackage.createPackage();
         org.docx4j.wml.ObjectFactory factory = new org.docx4j.wml.ObjectFactory();
@@ -261,10 +261,10 @@ public class CompositeValuationEngineTest {
         WordprocessingMLPackage genPkg = WordprocessingMLPackage.load(new ByteArrayInputStream(generated));
         String xml = XmlUtils.marshaltoString(genPkg.getMainDocumentPart().getJaxbElement());
 
-        // Composite table must be rendered
-        assertTrue(xml.contains("Valuation of Property (Composite Rate Method)"), "Must render Composite table");
-        // Legacy Land / Building headers must NOT appear
-        assertFalse(xml.contains("Value Of Land"), "Must suppress Value Of Land table");
-        assertFalse(xml.contains("Value Of Buildings"), "Must suppress Value Of Buildings table");
+        // Template Governance: Land + Building template directives MUST be honored
+        assertTrue(xml.contains("Value Of Land"), "Must render Value Of Land table per template directive");
+        assertTrue(xml.contains("Value Of Buildings"), "Must render Value Of Buildings table per template directive");
+        // Must NOT hijack into composite table based on input metadata
+        assertFalse(xml.contains("Valuation of Property (Composite Rate Method)"), "Must NOT render Composite table when template specifies LAND_TABLE");
     }
 }
