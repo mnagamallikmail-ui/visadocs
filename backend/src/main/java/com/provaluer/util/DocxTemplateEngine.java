@@ -1240,28 +1240,25 @@ public class DocxTemplateEngine {
 
                         elements.add(i + 1, photoTable);
                         i += 1;
-
-                        // FIX #5: Protect actual photo anchors and containers.
-                        // Remove only empty spacing / placeholder artifacts; DO NOT remove actual photo anchors.
-                        while (i + 1 < elements.size()) {
-                            Object nextElem = unwrap(elements.get(i + 1));
-                            if (nextElem instanceof P nextP) {
-                                String nextText = getParagraphText(nextP).trim();
-                                boolean hasPic = paragraphContainsAnyPicKey(nextP);
-                                boolean isEmptySpacing = (isParagraphEmpty(nextP) || nextText.isEmpty()) && !hasPic;
-                                if (isEmptySpacing && !nextText.contains("Valuation") && !nextText.contains("PART-") && !nextText.contains("Section")) {
-                                    elements.remove(i + 1);
-                                    continue;
-                                }
-                            }
-                            break;
-                        }
-                        continue;
                     } else {
-                        elements.add(i + 1, photoTable);
-                        i += 1;
-                        continue;
+                        elements.set(i, photoTable);
                     }
+
+                    // Remove all legacy IMG_PIC anchor paragraphs and their wp:anchor drawings
+                    while (i + 1 < elements.size()) {
+                        Object nextElem = unwrap(elements.get(i + 1));
+                        if (nextElem instanceof P nextP) {
+                            String nextText = getParagraphText(nextP).trim();
+                            boolean hasPic = paragraphContainsAnyPicKey(nextP);
+                            boolean isEmptySpacing = (isParagraphEmpty(nextP) || nextText.isEmpty());
+                            if (hasPic || (isEmptySpacing && hasNearbyPhotoElements(elements, i + 1))) {
+                                elements.remove(i + 1);
+                                continue;
+                            }
+                        }
+                        break;
+                    }
+                    continue;
                 }
 
                 // Dynamic Table Generation - ONLY triggered for explicit table directives OUTSIDE certificate sections
@@ -1353,6 +1350,13 @@ public class DocxTemplateEngine {
                         i += 2;
                         continue;
                     }
+                }
+
+                // If photoGrid was inserted, prune any stray legacy photo paragraph
+                if (photoGridInserted && paragraphContainsAnyPicKey(p)) {
+                    elements.remove(i);
+                    i--;
+                    continue;
                 }
 
                 // Always perform plain text substitution — for ALL paragraphs including certificate section

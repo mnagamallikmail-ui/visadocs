@@ -1997,6 +1997,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                         ),
                         onChanged: (val) {
                           item.quantity = double.tryParse(val.replaceAll(',', '').trim()) ?? 1.0;
+                          item.amount = item.quantity * item.rate;
                           provider.recalculateValuation();
                         },
                       ),
@@ -2037,32 +2038,19 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                         onChanged: (val) {
                           final r = double.tryParse(val.replaceAll(',', '').trim()) ?? 0.0;
                           item.rate = r;
-                          if (r > 0 && item.quantity > 0) item.amount = item.quantity * r;
+                          item.amount = item.quantity * r;
                           provider.recalculateValuation();
                         },
                       ),
                     ),
                     const SizedBox(width: 8),
-                    // User Entered Interior Amount
+                    // Calculated Interior Amount (Formula: Qty * Rate, matching Car Parking pattern)
                     Expanded(
                       flex: 2,
-                      child: TextFormField(
-                        initialValue: item.amount > 0 ? item.amount.toString() : '',
-                        enabled: !isReadOnly,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(
-                          labelText: 'Amount (₹)',
-                          prefixText: '₹ ',
-                          isDense: true,
-                          border: OutlineInputBorder(),
-                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                        ),
-                        onChanged: (val) {
-                          final amt = double.tryParse(val.replaceAll(',', '').trim()) ?? 0.0;
-                          item.amount = amt;
-                          if (item.rate <= 0) item.rate = amt;
-                          provider.recalculateValuation();
-                        },
+                      child: Text(
+                        '₹ ${IndianNumberFormatter.format(item.amount)}',
+                        style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.ink),
+                        textAlign: TextAlign.right,
                       ),
                     ),
                     const SizedBox(width: 8),
