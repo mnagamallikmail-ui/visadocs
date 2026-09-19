@@ -33,6 +33,7 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
   List<ValuationLandItemModel> _landItems = [];
   List<ValuationBuildingItemModel> _buildingItems = [];
   List<ValuationComparableSaleModel> _comparables = [];
+  List<ValuationCompositeItemModel> _compositeItems = [];
   List<dynamic> _buildingTypeMasters = [];
   bool _isLocked = false;
 
@@ -70,6 +71,7 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
         _landItems = bundle.landItems;
         _buildingItems = bundle.buildingItems;
         _comparables = bundle.comparableSales;
+        _compositeItems = bundle.compositeItems;
         _isLocked = bundle.isLocked;
 
         _recalculateAll(notifyParent: true);
@@ -84,9 +86,25 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
     }
   }
 
+  bool get _isValuationComposite {
+    if (_data == null) return false;
+    final m = _data!.valuationMethodology.toUpperCase();
+    return m == 'COMPOSITE' || m == 'FLAT_APARTMENT' || _compositeItems.isNotEmpty;
+  }
+
+  bool get _isLandOnly {
+    if (_data == null) return false;
+    final m = _data!.valuationMethodology.toUpperCase();
+    return m == 'LAND_ONLY' || (_landItems.isNotEmpty && _buildingItems.isEmpty && !_isValuationComposite);
+  }
+
   void _recalculateAll({bool notifyParent = true}) {
     if (_data == null) return;
-    ValuationCalculator.recalculateSummary(_data!, _landItems, _buildingItems);
+    if (_isValuationComposite) {
+      ValuationCalculator.recalculateCompositeSummary(_data!, _compositeItems);
+    } else {
+      ValuationCalculator.recalculateSummary(_data!, _landItems, _buildingItems);
+    }
     setState(() {});
 
     if (notifyParent && widget.onValuationChanged != null) {
@@ -96,6 +114,7 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
         landItems: _landItems,
         buildingItems: _buildingItems,
         comparables: _comparables,
+        compositeItems: _compositeItems,
       );
       widget.onValuationChanged!(placeholders);
     }
@@ -724,167 +743,355 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
           ),
           const SizedBox(height: 16),
 
-          // Phase 14: 4 Separate Editable Percentage Controls
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceSoft,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: AppColors.hairlineSoft),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Realizable & Distress Sale Controls (Separate Percentages)', style: AppTypography.label().copyWith(fontWeight: FontWeight.bold, color: AppColors.ink)),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: TextFormField(
-                        initialValue: data.landRealizablePercentage.toString(),
-                        enabled: !isReadOnly,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(
-                          labelText: 'Land Realizable %',
-                          suffixText: '%',
-                          isDense: true,
-                          border: OutlineInputBorder(),
-                        ),
-                        onChanged: (val) {
-                          data.landRealizablePercentage = double.tryParse(val) ?? 85.0;
-                          _recalculateAll();
-                        },
+          if (_isValuationComposite) ...[
+            // Composite Controls
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceSoft,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.hairlineSoft),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      initialValue: data.realizablePercentage.toString(),
+                      enabled: !isReadOnly,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Realizable %',
+                        suffixText: '%',
+                        isDense: true,
+                        border: OutlineInputBorder(),
                       ),
+                      onChanged: (val) {
+                        data.realizablePercentage = double.tryParse(val) ?? 85.0;
+                        _recalculateAll();
+                      },
                     ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        initialValue: data.buildingRealizablePercentage.toString(),
-                        enabled: !isReadOnly,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(
-                          labelText: 'Building Realizable %',
-                          suffixText: '%',
-                          isDense: true,
-                          border: OutlineInputBorder(),
-                        ),
-                        onChanged: (val) {
-                          data.buildingRealizablePercentage = double.tryParse(val) ?? 85.0;
-                          _recalculateAll();
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        initialValue: data.landDistressPercentage.toString(),
-                        enabled: !isReadOnly,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(
-                          labelText: 'Land Distress %',
-                          suffixText: '%',
-                          isDense: true,
-                          border: OutlineInputBorder(),
-                        ),
-                        onChanged: (val) {
-                          data.landDistressPercentage = double.tryParse(val) ?? 75.0;
-                          _recalculateAll();
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: TextFormField(
-                        initialValue: data.buildingDistressPercentage.toString(),
-                        enabled: !isReadOnly,
-                        keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                        decoration: const InputDecoration(
-                          labelText: 'Building Distress %',
-                          suffixText: '%',
-                          isDense: true,
-                          border: OutlineInputBorder(),
-                        ),
-                        onChanged: (val) {
-                          data.buildingDistressPercentage = double.tryParse(val) ?? 75.0;
-                          _recalculateAll();
-                        },
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-
-          // Phase 8-13 & 18: 4-Column Live Valuation Summary Grid Table matching DOCX output
-          Container(
-            decoration: BoxDecoration(
-              border: Border.all(color: AppColors.hairlineSoft),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Column(
-              children: [
-                // Table Header
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF3494BA),
-                    borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
                   ),
-                  child: Row(
-                    children: const [
-                      Expanded(flex: 3, child: Text('VALUATION PARAMETER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white))),
-                      Expanded(flex: 2, child: Text('LAND (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white), textAlign: TextAlign.right)),
-                      Expanded(flex: 2, child: Text('BUILDING (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white), textAlign: TextAlign.right)),
-                      Expanded(flex: 2, child: Text('TOTAL (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white), textAlign: TextAlign.right)),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      initialValue: data.distressSalePercentage.toString(),
+                      enabled: !isReadOnly,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Distress Sale %',
+                        suffixText: '%',
+                        isDense: true,
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (val) {
+                        data.distressSalePercentage = double.tryParse(val) ?? 75.0;
+                        _recalculateAll();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      initialValue: data.compositeGovernmentRate > 0 ? data.compositeGovernmentRate.toString() : '',
+                      enabled: !isReadOnly,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Govt Composite Rate (₹/Sq.Ft)',
+                        prefixText: '₹ ',
+                        isDense: true,
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (val) {
+                        data.compositeGovernmentRate = double.tryParse(val.replaceAll(',', '').trim()) ?? 0.0;
+                        _recalculateAll();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // 2-Column Composite Table
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.hairlineSoft),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF3494BA),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [
+                        Text('VALUATION PARAMETER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
+                        Text('AMOUNT (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
+                      ],
+                    ),
+                  ),
+                  _buildSummaryTableRow2Col('Fair Value', '₹ ${IndianNumberFormatter.format(data.fairValue)}', isHighlight: true),
+                  const Divider(height: 1),
+                  _buildSummaryTableRow2Col('Realizable Value (${data.realizablePercentage.toStringAsFixed(1)}%)', '₹ ${IndianNumberFormatter.format(data.realizableValue)}'),
+                  const Divider(height: 1),
+                  _buildSummaryTableRow2Col('Distress Sale Value (${data.distressSalePercentage.toStringAsFixed(1)}%)', '₹ ${IndianNumberFormatter.format(data.distressSaleValue)}'),
+                  const Divider(height: 1),
+                  _buildSummaryTableRow2Col('Government Value', '₹ ${IndianNumberFormatter.format(data.governmentValue)}', isHighlight: true),
+                  const Divider(height: 1),
+                  _buildSummaryTableRow2Col('Insurable Value', '₹ ${IndianNumberFormatter.format(insurableVal)}'),
+                ],
+              ),
+            ),
+          ] else if (_isLandOnly) ...[
+            // Land-Only Controls
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceSoft,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.hairlineSoft),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      initialValue: data.landRealizablePercentage.toString(),
+                      enabled: !isReadOnly,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Land Realizable %',
+                        suffixText: '%',
+                        isDense: true,
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (val) {
+                        data.landRealizablePercentage = double.tryParse(val) ?? 85.0;
+                        _recalculateAll();
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextFormField(
+                      initialValue: data.landDistressPercentage.toString(),
+                      enabled: !isReadOnly,
+                      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                      decoration: const InputDecoration(
+                        labelText: 'Land Distress %',
+                        suffixText: '%',
+                        isDense: true,
+                        border: OutlineInputBorder(),
+                      ),
+                      onChanged: (val) {
+                        data.landDistressPercentage = double.tryParse(val) ?? 75.0;
+                        _recalculateAll();
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // 2-Column Land-Only Table
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.hairlineSoft),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF3494BA),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: const [
+                        Text('VALUATION PARAMETER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
+                        Text('AMOUNT (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
+                      ],
+                    ),
+                  ),
+                  _buildSummaryTableRow2Col('Land Fair Value', '₹ ${IndianNumberFormatter.format(data.sayLandValue > 0 ? data.sayLandValue : data.fairValue)}', isHighlight: true),
+                  const Divider(height: 1),
+                  _buildSummaryTableRow2Col('Land Realizable Value (${data.landRealizablePercentage}% Land)', '₹ ${IndianNumberFormatter.format(data.landRealizableValue > 0 ? data.landRealizableValue : data.realizableValue)}'),
+                  const Divider(height: 1),
+                  _buildSummaryTableRow2Col('Land Distress Sale Value (${data.landDistressPercentage}% Land)', '₹ ${IndianNumberFormatter.format(data.landDistressValue > 0 ? data.landDistressValue : data.distressSaleValue)}'),
+                  const Divider(height: 1),
+                  _buildSummaryTableRow2Col('Land Government Value', '₹ ${IndianNumberFormatter.format(data.landGovernmentValue > 0 ? data.landGovernmentValue : data.governmentValue)}', isHighlight: true),
+                ],
+              ),
+            ),
+          ] else ...[
+            // Phase 14: 4 Separate Editable Percentage Controls
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceSoft,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.hairlineSoft),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Realizable & Distress Sale Controls (Separate Percentages)', style: AppTypography.label().copyWith(fontWeight: FontWeight.bold, color: AppColors.ink)),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          initialValue: data.landRealizablePercentage.toString(),
+                          enabled: !isReadOnly,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Land Realizable %',
+                            suffixText: '%',
+                            isDense: true,
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (val) {
+                            data.landRealizablePercentage = double.tryParse(val) ?? 85.0;
+                            _recalculateAll();
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          initialValue: data.buildingRealizablePercentage.toString(),
+                          enabled: !isReadOnly,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Building Realizable %',
+                            suffixText: '%',
+                            isDense: true,
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (val) {
+                            data.buildingRealizablePercentage = double.tryParse(val) ?? 85.0;
+                            _recalculateAll();
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          initialValue: data.landDistressPercentage.toString(),
+                          enabled: !isReadOnly,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Land Distress %',
+                            suffixText: '%',
+                            isDense: true,
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (val) {
+                            data.landDistressPercentage = double.tryParse(val) ?? 75.0;
+                            _recalculateAll();
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: TextFormField(
+                          initialValue: data.buildingDistressPercentage.toString(),
+                          enabled: !isReadOnly,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Building Distress %',
+                            suffixText: '%',
+                            isDense: true,
+                            border: OutlineInputBorder(),
+                          ),
+                          onChanged: (val) {
+                            data.buildingDistressPercentage = double.tryParse(val) ?? 75.0;
+                            _recalculateAll();
+                          },
+                        ),
+                      ),
                     ],
                   ),
-                ),
-                // Row 1: Fair Value (Phase 9)
-                _buildSummaryTableRow(
-                  'Fair Market Value (Say Land + Say Bldg)',
-                  '₹ ${IndianNumberFormatter.format(data.sayLandValue)}',
-                  '₹ ${IndianNumberFormatter.format(data.sayBuildingValue)}',
-                  '₹ ${IndianNumberFormatter.format(data.fairValue)}',
-                  isHighlight: true,
-                ),
-                const Divider(height: 1),
-                // Row 2: Realizable Value (Phase 10)
-                _buildSummaryTableRow(
-                  'Realizable Value (${data.landRealizablePercentage}% Land, ${data.buildingRealizablePercentage}% Bldg)',
-                  '₹ ${IndianNumberFormatter.format(data.landRealizableValue)}',
-                  '₹ ${IndianNumberFormatter.format(data.buildingRealizableValue)}',
-                  '₹ ${IndianNumberFormatter.format(data.realizableValue)}',
-                ),
-                const Divider(height: 1),
-                // Row 3: Distress Sale Value (Phase 11)
-                _buildSummaryTableRow(
-                  'Distress Sale Value (${data.landDistressPercentage}% Land, ${data.buildingDistressPercentage}% Bldg)',
-                  '₹ ${IndianNumberFormatter.format(data.landDistressValue)}',
-                  '₹ ${IndianNumberFormatter.format(data.buildingDistressValue)}',
-                  '₹ ${IndianNumberFormatter.format(data.distressSaleValue)}',
-                ),
-                const Divider(height: 1),
-                // Row 4: Government Value (Phase 12)
-                _buildSummaryTableRow(
-                  'Government / Guideline Value',
-                  '₹ ${IndianNumberFormatter.format(data.landGovernmentValue)}',
-                  '₹ ${IndianNumberFormatter.format(data.buildingGovernmentValue)}',
-                  '₹ ${IndianNumberFormatter.format(data.governmentValue)}',
-                  isHighlight: true,
-                ),
-                const Divider(height: 1),
-                // Row 5: Insurable Value (Phase 13)
-                _buildSummaryTableRow(
-                  'Insurable Value (Replacement Cost)',
-                  'N/A',
-                  '₹ ${IndianNumberFormatter.format(insurableVal)}',
-                  '₹ ${IndianNumberFormatter.format(insurableVal)}',
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+            const SizedBox(height: 20),
+
+            // Phase 8-13 & 18: 4-Column Live Valuation Summary Grid Table matching DOCX output
+            Container(
+              decoration: BoxDecoration(
+                border: Border.all(color: AppColors.hairlineSoft),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                children: [
+                  // Table Header
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFF3494BA),
+                      borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
+                    ),
+                    child: Row(
+                      children: const [
+                        Expanded(flex: 3, child: Text('VALUATION PARAMETER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white))),
+                        Expanded(flex: 2, child: Text('LAND (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white), textAlign: TextAlign.right)),
+                        Expanded(flex: 2, child: Text('BUILDING (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white), textAlign: TextAlign.right)),
+                        Expanded(flex: 2, child: Text('TOTAL (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white), textAlign: TextAlign.right)),
+                      ],
+                    ),
+                  ),
+                  // Row 1: Fair Value (Phase 9)
+                  _buildSummaryTableRow(
+                    'Fair Market Value (Say Land + Say Bldg)',
+                    '₹ ${IndianNumberFormatter.format(data.sayLandValue)}',
+                    '₹ ${IndianNumberFormatter.format(data.sayBuildingValue)}',
+                    '₹ ${IndianNumberFormatter.format(data.fairValue)}',
+                    isHighlight: true,
+                  ),
+                  const Divider(height: 1),
+                  // Row 2: Realizable Value (Phase 10)
+                  _buildSummaryTableRow(
+                    'Realizable Value (${data.landRealizablePercentage}% Land, ${data.buildingRealizablePercentage}% Bldg)',
+                    '₹ ${IndianNumberFormatter.format(data.landRealizableValue)}',
+                    '₹ ${IndianNumberFormatter.format(data.buildingRealizableValue)}',
+                    '₹ ${IndianNumberFormatter.format(data.realizableValue)}',
+                  ),
+                  const Divider(height: 1),
+                  // Row 3: Distress Sale Value (Phase 11)
+                  _buildSummaryTableRow(
+                    'Distress Sale Value (${data.landDistressPercentage}% Land, ${data.buildingDistressPercentage}% Bldg)',
+                    '₹ ${IndianNumberFormatter.format(data.landDistressValue)}',
+                    '₹ ${IndianNumberFormatter.format(data.buildingDistressValue)}',
+                    '₹ ${IndianNumberFormatter.format(data.distressSaleValue)}',
+                  ),
+                  const Divider(height: 1),
+                  // Row 4: Government Value (Phase 12)
+                  _buildSummaryTableRow(
+                    'Government / Guideline Value',
+                    '₹ ${IndianNumberFormatter.format(data.landGovernmentValue)}',
+                    '₹ ${IndianNumberFormatter.format(data.buildingGovernmentValue)}',
+                    '₹ ${IndianNumberFormatter.format(data.governmentValue)}',
+                    isHighlight: true,
+                  ),
+                  const Divider(height: 1),
+                  // Row 5: Insurable Value (Phase 13)
+                  _buildSummaryTableRow(
+                    'Insurable Value (Replacement Cost)',
+                    'N/A',
+                    '₹ ${IndianNumberFormatter.format(insurableVal)}',
+                    '₹ ${IndianNumberFormatter.format(insurableVal)}',
+                  ),
+                ],
+              ),
+            ),
+          ],
           const SizedBox(height: 16),
 
           // In Words & Government Value adjustment
@@ -943,4 +1150,20 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
       ),
     );
   }
+
+  Widget _buildSummaryTableRow2Col(String param, String amount, {bool isHighlight = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      color: isHighlight ? AppColors.tealLight.withValues(alpha: 0.3) : Colors.transparent,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(child: Text(param, style: TextStyle(fontWeight: isHighlight ? FontWeight.bold : FontWeight.w500, fontSize: 12, color: isHighlight ? AppColors.primary : AppColors.ink))),
+          Text(amount, style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: isHighlight ? AppColors.primary : AppColors.ink), textAlign: TextAlign.right),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSummarySection() => _buildSummaryCard(widget.readOnly || _isLocked);
 }

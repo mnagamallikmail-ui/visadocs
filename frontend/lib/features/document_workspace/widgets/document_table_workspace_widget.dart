@@ -1179,6 +1179,16 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
 
     final insurableVal = data.insurableValue > 0 ? data.insurableValue : data.totalReplacementCost;
 
+    if (provider.isCompositeProperty) {
+      return _buildCompositeSummaryCard(
+        context,
+        data,
+        data.fairValue,
+        isReadOnly,
+        provider,
+      );
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
@@ -1520,10 +1530,6 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
               children: [
                 // 1. ONE SINGLE COMPOSITE VALUATION TABLE
                 _buildUnifiedCompositeTable(context, compItems, data, isReadOnly, provider),
-                const SizedBox(height: 20),
-
-                // 2. Valuation Parameters Summary Card (Consumes Say Value)
-                _buildCompositeSummaryCard(context, data, sayFairVal, isReadOnly, provider),
               ],
             ),
           ),
@@ -2259,6 +2265,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
 
   Widget _buildCompositeSummaryCard(BuildContext context, ValuationDataModel data, double sayFairVal, bool isReadOnly, DocumentWorkspaceProvider provider) {
     return Container(
+      margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
         color: const Color(0xFFF9FBFC),
         borderRadius: BorderRadius.circular(8),
@@ -2274,12 +2281,32 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
               color: const Color(0xFF3494BA).withValues(alpha: 0.1),
               borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Wrap(
+              alignment: WrapAlignment.spaceBetween,
+              crossAxisAlignment: WrapCrossAlignment.center,
+              spacing: 8,
+              runSpacing: 6,
               children: [
-                Text(
-                  'VALUATION PARAMETERS SUMMARY',
-                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF3494BA), letterSpacing: 0.5),
+                Wrap(
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    const Icon(Icons.verified_rounded, color: Color(0xFF3494BA), size: 20),
+                    Text(
+                      'VALUATION PARAMETERS SUMMARY',
+                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF3494BA), letterSpacing: 0.5),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: const Color(0xFF3494BA).withValues(alpha: 0.3)),
+                      ),
+                      child: Text('<<VALUATION_SUMMARY_TABLE>>', style: GoogleFonts.montserrat(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF3494BA))),
+                    ),
+                  ],
                 ),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -2436,14 +2463,17 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontWeight: isHighlight ? FontWeight.bold : FontWeight.w500,
-              fontSize: 12,
-              color: isHighlight ? const Color(0xFF3494BA) : AppColors.ink,
+          Expanded(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontWeight: isHighlight ? FontWeight.bold : FontWeight.w500,
+                fontSize: 12,
+                color: isHighlight ? const Color(0xFF3494BA) : AppColors.ink,
+              ),
             ),
           ),
+          const SizedBox(width: 12),
           Text(
             amount,
             style: GoogleFonts.firaCode(
