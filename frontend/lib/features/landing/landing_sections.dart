@@ -260,16 +260,16 @@ class HeroSection extends StatelessWidget {
             child: const FloatingAmbientGlow(
               width: 700,
               height: 500,
-              opacity: 0.12,
+              opacity: 0.10,
             ),
           ),
-          Positioned(
+          const Positioned(
             top: 200,
             right: -100,
-            child: const FloatingAmbientGlow(
+            child: FloatingAmbientGlow(
               width: 500,
               height: 500,
-              opacity: 0.08,
+              opacity: 0.06,
             ),
           ),
 
@@ -285,7 +285,7 @@ class HeroSection extends StatelessWidget {
 
                 // Institutional Authority Badge
                 const LuxuryEyebrowBadge(
-                  label: 'IBBI REGISTERED · CHARTERED ENGINEERS · 28+ BANK EMPANELMENTS',
+                  label: 'IBBI REGISTERED · CHARTERED ENGINEERS · INSTITUTIONAL LENDING STANDARDS',
                   icon: Icons.verified_rounded,
                 ),
 
@@ -317,9 +317,9 @@ class HeroSection extends StatelessWidget {
 
                 // Subheadline
                 ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 820),
+                  constraints: const BoxConstraints(maxWidth: 860),
                   child: Text(
-                    'IBBI Registered Valuers, Chartered Engineering Professionals, and Institutional Advisors delivering valuation, diligence, and risk assessment services for real estate, infrastructure, industrial, and enterprise assets.',
+                    'IBBI Registered Valuers, Chartered Engineering Professionals, and Institutional Advisors delivering valuation, diligence, and risk assessment services for real estate, infrastructure, industrial, and enterprise assets across India.',
                     textAlign: TextAlign.center,
                     style: LandingTheme.bodyMediumResponsive(screenW),
                   ),
@@ -332,12 +332,12 @@ class HeroSection extends StatelessWidget {
 
                 const SizedBox(height: 48),
 
-                // Trust Metrics / Verified Credentials Cards
+                // Verified Credentials Cards
                 _buildCredentialCards(isDesktop),
 
                 const SizedBox(height: 44),
 
-                // Hero Visual: Looping Palantir / BlackRock Asset Intelligence Console
+                // Hero Visual: Looping Asset Valuation Intelligence Console
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1140),
                   child: Column(
@@ -357,12 +357,12 @@ class HeroSection extends StatelessWidget {
                                 _hudDot(LandingTheme.secondaryAccent),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'PALANTIR GIS · SPATIAL ASSET INTELLIGENCE CONSOLE',
+                                  'ASSET VALUATION INTELLIGENCE CONSOLE · RTK CADASTRAL SPATIAL MAPPING',
                                   style: GoogleFonts.sourceCodePro(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
                                     color: LandingTheme.secondaryAccent,
-                                    letterSpacing: 1.2,
+                                    letterSpacing: 1.1,
                                   ),
                                 ),
                               ],
@@ -370,7 +370,7 @@ class HeroSection extends StatelessWidget {
                             const Spacer(),
                             if (isDesktop)
                               Text(
-                                'REAL-TIME CADASTRAL BOUNDARY TELEMETRY · 0.3M RTK RESOLUTION',
+                                'INDEPENDENT METHODOLOGY · REVENUE SURVEY BOUNDARY VERIFICATION',
                                 style: GoogleFonts.sourceCodePro(
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w500,
@@ -429,7 +429,7 @@ class HeroSection extends StatelessWidget {
           icon: Icons.arrow_forward_rounded,
           isPrimary: true,
           onTap: () => launchWhatsApp(
-            'Hello Pro Valuer, I require an institutional valuation consultation for bank/fund review.',
+            'Hello Pro Valuer, I would like to schedule an institutional valuation consultation.',
           ),
         ),
         // Secondary CTA
@@ -447,11 +447,11 @@ class HeroSection extends StatelessWidget {
 
   Widget _buildCredentialCards(bool isDesktop) {
     final credentials = [
-      {'title': 'IBBI Registered', 'sub': 'Insolvency & Bankruptcy Board Compliant', 'icon': Icons.shield_outlined},
-      {'title': 'Bank Empanelled', 'sub': '28+ Public & Private Banking Consortia', 'icon': Icons.account_balance_outlined},
-      {'title': 'Chartered Engineering', 'sub': 'Institution of Engineers (India) Certified', 'icon': Icons.architecture_outlined},
-      {'title': 'Regulatory-Compliant', 'sub': 'Companies Act 2013 & RBI Prudential Norms', 'icon': Icons.gavel_outlined},
-      {'title': 'Institutional Documentation', 'sub': 'Multi-Tier Audit-Defensible Reports', 'icon': Icons.inventory_2_outlined},
+      {'title': 'IBBI Registered Valuers', 'sub': 'Insolvency & Bankruptcy Board Compliant', 'icon': Icons.shield_outlined},
+      {'title': 'Chartered Engineering Expertise', 'sub': 'Institution of Engineers (India) Certified', 'icon': Icons.architecture_outlined},
+      {'title': 'Independent Assessment Standards', 'sub': 'Unbiased Multi-Asset Valuation', 'icon': Icons.account_balance_outlined},
+      {'title': 'Regulatory-Compliant Reporting', 'sub': 'Companies Act 2013 & RBI Prudential Norms', 'icon': Icons.gavel_outlined},
+      {'title': 'Audit-Ready Documentation', 'sub': 'Multi-Tier Review & Evidentiary Support', 'icon': Icons.inventory_2_outlined},
     ];
 
     return ConstrainedBox(
@@ -574,8 +574,8 @@ class _ActionButtonState extends State<_ActionButton> {
             boxShadow: widget.isPrimary
                 ? [
                     BoxShadow(
-                      color: LandingTheme.primaryAccent.withValues(alpha: _hovered ? 0.5 : 0.3),
-                      blurRadius: _hovered ? 24 : 14,
+                      color: LandingTheme.primaryAccent.withValues(alpha: _hovered ? 0.45 : 0.25),
+                      blurRadius: _hovered ? 20 : 12,
                       offset: const Offset(0, 4),
                     ),
                   ]
@@ -612,7 +612,167 @@ class _ActionButtonState extends State<_ActionButton> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 3. TRUST BAR — Regulatory Standards & Bank Empanelled Strip
+// 3. PROMINENT TRUST LAYER — Why Financial Institutions Work With Pro Valuer
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class WhyFinancialInstitutionsWorkWithProValuerSection extends StatelessWidget {
+  final bool isDesktop;
+
+  const WhyFinancialInstitutionsWorkWithProValuerSection({super.key, required this.isDesktop});
+
+  @override
+  Widget build(BuildContext context) {
+    final double screenW = MediaQuery.of(context).size.width;
+
+    final trustCards = [
+      {
+        'title': 'IBBI Registered Valuers',
+        'desc': 'Statutory authority under Section 247 of the Companies Act 2013, licensed across Land & Building, Plant & Machinery, and Securities.',
+      },
+      {
+        'title': 'Chartered Engineering Expertise',
+        'desc': 'In-house technical inspections by Corporate Members of The Institution of Engineers (India), ensuring physical asset ground truth.',
+      },
+      {
+        'title': 'Independent Assessment Methodology',
+        'desc': 'Objective multi-model valuation free from developer, borrower, or volume pressures, delivering defensible valuation conclusions.',
+      },
+      {
+        'title': 'Audit-Ready Documentation',
+        'desc': 'Comprehensive evidentiary trail, sub-registrar transaction cross-referencing, and 256-bit tamper-evident verification.',
+      },
+      {
+        'title': 'Regulatory-Aligned Reporting',
+        'desc': 'Direct compliance with IBC 2016 (CIRP Regulations), SARFAESI security valuation, and RBI Prudential Master Directions.',
+      },
+      {
+        'title': 'Lender-Focused Deliverables',
+        'desc': 'Executive summaries, forced sale value calibrations, and sensitivity stress-testing tailored for credit committees and risk officers.',
+      },
+      {
+        'title': 'Institutional Quality Control',
+        'desc': 'Rigorous internal verification protocols ensuring standardized data integrity, municipal master plan alignment, and accuracy.',
+      },
+      {
+        'title': 'Multi-Level Review Standards',
+        'desc': 'Mandatory three-tier review with partner-level dual sign-off, eliminating single-analyst error vectors across all mandates.',
+      },
+    ];
+
+    return Container(
+      width: double.infinity,
+      color: LandingTheme.secondaryBg,
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
+        vertical: 80,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Column(
+            children: [
+              const LuxuryEyebrowBadge(
+                label: 'INSTITUTIONAL TRUST FOUNDATION',
+                icon: Icons.security_rounded,
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'Why Financial Institutions Work With Pro Valuer',
+                textAlign: TextAlign.center,
+                style: LandingTheme.sectionTitleResponsive(screenW),
+              ),
+              const SizedBox(height: 14),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 760),
+                child: Text(
+                  'Independent valuation, engineering due diligence, and risk advisory services prepared for institutional credit committees, corporate boards, and regulatory forums.',
+                  textAlign: TextAlign.center,
+                  style: LandingTheme.bodyMediumResponsive(screenW),
+                ),
+              ),
+              const SizedBox(height: 52),
+
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final int columns = isDesktop ? 4 : (constraints.maxWidth >= 700 ? 2 : 1);
+                  const double spacing = 16;
+                  final double cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+                  return Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: trustCards.map((card) {
+                      return SizedBox(
+                        width: cardWidth,
+                        child: PalantirGlassPanel(
+                          padding: const EdgeInsets.all(20),
+                          borderRadius: 12,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 28,
+                                    height: 28,
+                                    decoration: BoxDecoration(
+                                      color: LandingTheme.primaryAccent.withValues(alpha: 0.15),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: LandingTheme.secondaryAccent.withValues(alpha: 0.3),
+                                        width: 1.0,
+                                      ),
+                                    ),
+                                    child: const Center(
+                                      child: Icon(
+                                        Icons.check_rounded,
+                                        size: 16,
+                                        color: LandingTheme.secondaryAccent,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      card['title']!,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: LandingTheme.textPrimary,
+                                        letterSpacing: -0.2,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              Text(
+                                card['desc']!,
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w400,
+                                  color: LandingTheme.textSecondary,
+                                  height: 1.45,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 4. TRUST BAR — Regulatory Standards & Institutional Lending Framework
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class TrustBar extends StatelessWidget {
@@ -623,36 +783,31 @@ class TrustBar extends StatelessWidget {
     final pillars = [
       {'title': 'IBBI REGISTERED', 'sub': 'Statutory Valuation Authority'},
       {'title': 'CHARTERED ENGINEERING', 'sub': 'Institution of Engineers Certified'},
-      {'title': 'BANK EMPANELLED', 'sub': '28+ Major Banking Consortia'},
-      {'title': 'INSTITUTIONAL REPORTING', 'sub': 'IBC, SARFAESI & Companies Act'},
+      {'title': 'INSTITUTIONAL LENDING', 'sub': 'Consortium Standard Aligned'},
+      {'title': 'STATUTORY REPORTING', 'sub': 'IBC, SARFAESI & Companies Act'},
       {'title': 'INDEPENDENT METHODOLOGY', 'sub': 'DCF, GIS & Yield Capitalization'},
     ];
 
-    final banks = [
-      'State Bank of India',
-      'HDFC Bank',
-      'ICICI Bank',
-      'Axis Bank',
-      'Bank of Baroda',
-      'Kotak Mahindra Bank',
-      'Punjab National Bank',
-      'Canara Bank',
-      'Union Bank of India',
-      'IDBI Bank',
-      'IndusInd Bank',
+    final frameworks = [
+      'Insolvency & Bankruptcy Code 2016',
+      'Companies Act 2013 §247',
+      'SARFAESI Asset Realization Standards',
+      'RBI Prudential Guidelines',
+      'Ind AS 16 & Ind AS 36 Fair Value',
+      'Chartered Engineers Technical Division',
+      'National Company Law Tribunal (NCLT) Compliance',
     ];
 
     return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
-        color: LandingTheme.secondaryBg,
-        border: const Border.symmetric(
+      decoration: const BoxDecoration(
+        color: LandingTheme.primaryBg,
+        border: Border.symmetric(
           horizontal: BorderSide(color: LandingTheme.hairlineBorder, width: 1.0),
         ),
       ),
       child: Column(
         children: [
-          // Top Row: Core Regulatory Pillars
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
             child: ConstrainedBox(
@@ -714,10 +869,8 @@ class TrustBar extends StatelessWidget {
             ),
           ),
 
-          // Divider
           const Divider(height: 1, color: LandingTheme.hairlineBorder),
 
-          // Bottom Row: Trusted Consortium Banking Ticker
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
             child: SingleChildScrollView(
@@ -725,22 +878,22 @@ class TrustBar extends StatelessWidget {
               child: Row(
                 children: [
                   Text(
-                    'EMPANELLED & ACCEPTED BY :',
+                    'PREPARED IN ACCORDANCE WITH INSTITUTIONAL LENDING & REGULATORY REQUIREMENTS :',
                     style: GoogleFonts.sourceCodePro(
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: LandingTheme.secondaryAccent,
-                      letterSpacing: 1.2,
+                      letterSpacing: 1.0,
                     ),
                   ),
                   const SizedBox(width: 20),
-                  ...banks.map((b) => Padding(
+                  ...frameworks.map((f) => Padding(
                         padding: const EdgeInsets.symmetric(horizontal: 14),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              b,
+                              f,
                               style: GoogleFonts.inter(
                                 fontSize: 12.5,
                                 fontWeight: FontWeight.w500,
@@ -771,7 +924,183 @@ class TrustBar extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 4. SERVICES SECTION — 8 Institutional Asset Valuation Cards
+// 5. EXECUTIVE AUTHORITY SECTION — Institutional Expertise Backed By Professionals
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class ExecutiveAuthoritySection extends StatelessWidget {
+  final bool isDesktop;
+
+  const ExecutiveAuthoritySection({super.key, required this.isDesktop});
+
+  @override
+  Widget build(BuildContext context) {
+    final double screenW = MediaQuery.of(context).size.width;
+
+    final pillars = [
+      {
+        'title': 'Senior Valuation Leadership',
+        'sub': 'EXPERIENCED PRACTITIONERS',
+        'icon': Icons.groups_rounded,
+        'desc': 'Our practice is directed by senior valuation professionals with decades of continuous experience executing asset appraisals for credit institutions and investment funds.',
+      },
+      {
+        'title': 'IBBI Registration & Licensure',
+        'sub': 'STATUTORY AUTHORITY',
+        'icon': Icons.verified_user_rounded,
+        'desc': 'Recognized Registered Valuers under Section 247 of the Companies Act 2013, licensed across Land & Building, Plant & Machinery, and Securities & Financial Assets.',
+      },
+      {
+        'title': 'Chartered Engineer Credentials',
+        'sub': 'TECHNICAL CERTIFICATION',
+        'icon': Icons.architecture_rounded,
+        'desc': 'In-house Corporate Members of The Institution of Engineers (India) lead on-site civil structural audits, mechanical plant inspections, and capital expenditure verification.',
+      },
+      {
+        'title': 'Regulatory & Judicial Experience',
+        'sub': 'AUDIT & TRIBUNAL DEFENSE',
+        'icon': Icons.gavel_rounded,
+        'desc': 'Extensive experience preparing documentation capable of withstanding scrutiny before NCLT benches, Debt Recovery Tribunals (DRT), and statutory audit panels.',
+      },
+      {
+        'title': 'Comprehensive Industry Coverage',
+        'sub': 'MULTI-ASSET CLASS MASTERY',
+        'icon': Icons.domain_rounded,
+        'desc': 'Specialized valuation capability across commercial IT parks, heavy manufacturing plants, power and highway infrastructure, maritime assets, and land parcels.',
+      },
+      {
+        'title': 'Technical Review Framework',
+        'sub': 'THREE-TIER GOVERNANCE',
+        'icon': Icons.fact_check_rounded,
+        'desc': 'Every valuation dossier undergoes rigorous peer review, geospatial boundary verification, and mandatory dual sign-off before delivery to lenders.',
+      },
+    ];
+
+    return Container(
+      width: double.infinity,
+      color: LandingTheme.secondaryBg,
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
+        vertical: 80,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Column(
+            children: [
+              const LuxuryEyebrowBadge(
+                label: 'EXECUTIVE CREDENTIALS',
+                icon: Icons.person_search_rounded,
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'Institutional Expertise Backed By Qualified Professionals',
+                textAlign: TextAlign.center,
+                style: LandingTheme.sectionTitleResponsive(screenW),
+              ),
+              const SizedBox(height: 14),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 780),
+                child: Text(
+                  'Our institutional credibility is anchored by qualified valuation practitioners, certified Chartered Engineers, and regulatory advisors committed to objective analysis.',
+                  textAlign: TextAlign.center,
+                  style: LandingTheme.bodyMediumResponsive(screenW),
+                ),
+              ),
+              const SizedBox(height: 52),
+
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final int columns = isDesktop ? 3 : (constraints.maxWidth >= 700 ? 2 : 1);
+                  const double spacing = 18;
+                  final double cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+                  return Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: pillars.map((p) {
+                      return SizedBox(
+                        width: cardWidth,
+                        child: PalantirGlassPanel(
+                          padding: const EdgeInsets.all(22),
+                          borderRadius: 14,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: LandingTheme.primaryAccent.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: LandingTheme.secondaryAccent.withValues(alpha: 0.3),
+                                        width: 1.0,
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      p['icon'] as IconData,
+                                      size: 18,
+                                      color: LandingTheme.secondaryAccent,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          p['sub'] as String,
+                                          style: GoogleFonts.sourceCodePro(
+                                            fontSize: 9.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: LandingTheme.secondaryAccent,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          p['title'] as String,
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 14.5,
+                                            fontWeight: FontWeight.w700,
+                                            color: LandingTheme.textPrimary,
+                                            letterSpacing: -0.2,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                p['desc'] as String,
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w400,
+                                  color: LandingTheme.textSecondary,
+                                  height: 1.45,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 6. SERVICES SECTION — 8 Institutional Asset Valuation Cards
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class ServicesSection extends StatelessWidget {
@@ -861,13 +1190,11 @@ class ServicesSection extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 1200),
           child: Column(
             children: [
-              // Eyebrow
               const LuxuryEyebrowBadge(
                 label: 'INSTITUTIONAL SERVICE SUITE',
                 icon: Icons.apps_rounded,
               ),
               const SizedBox(height: 18),
-              // Section Title
               Text(
                 'Comprehensive Valuation & Asset Intelligence',
                 textAlign: TextAlign.center,
@@ -875,20 +1202,19 @@ class ServicesSection extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
+                constraints: const BoxConstraints(maxWidth: 740),
                 child: Text(
-                  'Bank-approved, audit-defensible reporting across all asset classes with multi-tier statutory signoffs from IBBI Registered Valuers and Chartered Engineers.',
+                  'Independent, audit-defensible reporting across all asset classes with multi-tier statutory signoffs from IBBI Registered Valuers and Chartered Engineers.',
                   textAlign: TextAlign.center,
                   style: LandingTheme.bodyMediumResponsive(screenW),
                 ),
               ),
               const SizedBox(height: 52),
 
-              // 8-Card Grid
               LayoutBuilder(
                 builder: (context, constraints) {
                   final int columns = isDesktop ? 4 : (isTablet ? 2 : 1);
-                  final double spacing = 18;
+                  const double spacing = 18;
                   final double cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
 
                   return Wrap(
@@ -967,7 +1293,6 @@ class _InstitutionalServiceCardState extends State<_InstitutionalServiceCard> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header Tag & Icon
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -999,7 +1324,6 @@ class _InstitutionalServiceCardState extends State<_InstitutionalServiceCard> {
                 ],
               ),
               const SizedBox(height: 18),
-              // Title
               Text(
                 widget.title,
                 style: GoogleFonts.plusJakartaSans(
@@ -1010,7 +1334,6 @@ class _InstitutionalServiceCardState extends State<_InstitutionalServiceCard> {
                 ),
               ),
               const SizedBox(height: 10),
-              // Description
               Text(
                 widget.desc,
                 style: GoogleFonts.inter(
@@ -1023,7 +1346,6 @@ class _InstitutionalServiceCardState extends State<_InstitutionalServiceCard> {
               const SizedBox(height: 18),
               const Divider(height: 1, color: LandingTheme.hairlineBorder),
               const SizedBox(height: 14),
-              // Key Deliverables
               ...widget.outputs.map((out) => Padding(
                     padding: const EdgeInsets.only(bottom: 6),
                     child: Row(
@@ -1057,7 +1379,7 @@ class _InstitutionalServiceCardState extends State<_InstitutionalServiceCard> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 5. INDUSTRIES SECTION — 10 Institutional Ecosystem Sectors
+// 7. INDUSTRIES SECTION — 10 Institutional Ecosystem Sectors
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class IndustriesSection extends StatelessWidget {
@@ -1071,13 +1393,13 @@ class IndustriesSection extends StatelessWidget {
 
     final industries = [
       {
-        'title': 'Banks & Lending Consortia',
+        'title': 'Banks & Financial Institutions',
         'desc': 'Pre-disbursement mortgage appraisal, SARFAESI auction reserves, and periodic collateral revaluation.',
         'icon': Icons.account_balance_rounded,
       },
       {
         'title': 'NBFCs & Private Credit',
-        'desc': 'Rapid underwriting diligence, loan-to-value stress tests, and structured debt security validation.',
+        'desc': 'Underwriting diligence, loan-to-value stress tests, and structured debt security validation.',
         'icon': Icons.credit_score_rounded,
       },
       {
@@ -1087,16 +1409,16 @@ class IndustriesSection extends StatelessWidget {
       },
       {
         'title': 'Venture Capital Firms',
-        'desc': 'High-growth asset appraisal, specialized tech hardware verification, and IP/equipment valuation.',
+        'desc': 'Fixed asset appraisal, specialized technology hardware verification, and equipment valuation.',
         'icon': Icons.rocket_launch_rounded,
       },
       {
         'title': 'Corporate Treasury Teams',
-        'desc': 'Balance sheet asset revaluation under Ind AS 16/36, M&A carve-out pricing, and tax optimization.',
+        'desc': 'Balance sheet asset revaluation under Ind AS 16/36, M&A carve-out pricing, and financial reporting.',
         'icon': Icons.corporate_fare_rounded,
       },
       {
-        'title': 'Government & PSUs',
+        'title': 'Government Organizations',
         'desc': 'Disinvestment valuation, public asset concession pricing, and sovereign infrastructure audits.',
         'icon': Icons.account_balance_outlined,
       },
@@ -1107,7 +1429,7 @@ class IndustriesSection extends StatelessWidget {
       },
       {
         'title': 'Asset Reconstruction (ARCs)',
-        'desc': 'NPL stressed asset fair value determination, liquidation benchmarks, and security enforcement.',
+        'desc': 'Stressed asset fair value determination, liquidation benchmarks, and security enforcement.',
         'icon': Icons.restore_page_rounded,
       },
       {
@@ -1116,8 +1438,8 @@ class IndustriesSection extends StatelessWidget {
         'icon': Icons.gavel_rounded,
       },
       {
-        'title': 'Real Estate Investment Funds (REITs)',
-        'desc': 'Statutory half-yearly NAV valuations, tenant covenant risk models, and asset acquisition underwriting.',
+        'title': 'Real Estate Funds (REITs)',
+        'desc': 'Statutory periodic NAV valuations, tenant covenant risk models, and asset acquisition underwriting.',
         'icon': Icons.domain_rounded,
       },
     ];
@@ -1155,11 +1477,10 @@ class IndustriesSection extends StatelessWidget {
               ),
               const SizedBox(height: 48),
 
-              // 10-item Grid
               LayoutBuilder(
                 builder: (context, constraints) {
                   final int columns = isDesktop ? 5 : (constraints.maxWidth >= 700 ? 3 : 2);
-                  final double spacing = 14;
+                  const double spacing = 14;
                   final double cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
 
                   return Wrap(
@@ -1228,7 +1549,7 @@ class IndustriesSection extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 6. WHY PRO VALUER — Institutional Advantage Matrix
+// 8. WHY PRO VALUER — Institutional Advantage Matrix (10 Criteria)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class WhyProValuerSection extends StatelessWidget {
@@ -1263,7 +1584,7 @@ class WhyProValuerSection extends StatelessWidget {
       },
       {
         'criterion': 'Institutional Valuation Methodology',
-        'proValuer': 'Palantir GIS spatial mapping + DCF Discounted Cash Flow + Depreciated Replacement Cost (DRC) modeling.',
+        'proValuer': 'GIS spatial mapping + DCF Discounted Cash Flow + Depreciated Replacement Cost (DRC) modeling.',
         'traditional': 'Rough rule-of-thumb guesswork and unverified circle rate extrapolations.',
       },
       {
@@ -1278,7 +1599,7 @@ class WhyProValuerSection extends StatelessWidget {
       },
       {
         'criterion': 'Risk Intelligence & Spatial GIS Analytics',
-        'proValuer': 'Satellite cadastral telemetry, title buffer zones, and stress tested LTV modeling.',
+        'proValuer': 'Satellite cadastral telemetry, title buffer zones, and stress-tested LTV modeling.',
         'traditional': 'Blind manual paperwork without spatial boundary analysis or stress tests.',
       },
       {
@@ -1288,7 +1609,7 @@ class WhyProValuerSection extends StatelessWidget {
       },
       {
         'criterion': 'Bank Acceptance Experience',
-        'proValuer': 'Empanelled with 28+ leading PSU and private banking consortia nationwide.',
+        'proValuer': 'Prepared in accordance with institutional lending and regulatory requirements nationwide.',
         'traditional': 'Limited panel presence requiring cumbersome one-off approval letters.',
       },
     ];
@@ -1319,14 +1640,13 @@ class WhyProValuerSection extends StatelessWidget {
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 740),
                 child: Text(
-                  'Why leading banks, credit funds, and insolvency professionals mandate Pro Valuer over traditional appraisal firms for high-stakes capital decisions.',
+                  'Why credit institutions, funds, and insolvency professionals mandate Pro Valuer over traditional appraisal firms for high-stakes capital decisions.',
                   textAlign: TextAlign.center,
                   style: LandingTheme.bodyMediumResponsive(screenW),
                 ),
               ),
               const SizedBox(height: 48),
 
-              // Advantage Matrix Table Container
               Container(
                 decoration: BoxDecoration(
                   color: LandingTheme.surfaceGlassDense,
@@ -1337,7 +1657,6 @@ class WhyProValuerSection extends StatelessWidget {
                   borderRadius: BorderRadius.circular(13),
                   child: Column(
                     children: [
-                      // Table Header
                       Container(
                         color: LandingTheme.secondaryBg,
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -1398,7 +1717,6 @@ class WhyProValuerSection extends StatelessWidget {
                       ),
                       const Divider(height: 1, color: LandingTheme.hairlineBorder),
 
-                      // Table Rows
                       ...matrix.asMap().entries.map((entry) {
                         final i = entry.key;
                         final row = entry.value;
@@ -1410,7 +1728,6 @@ class WhyProValuerSection extends StatelessWidget {
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              // Criterion
                               Expanded(
                                 flex: 3,
                                 child: Text(
@@ -1424,7 +1741,6 @@ class WhyProValuerSection extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(width: 16),
-                              // Pro Valuer
                               Expanded(
                                 flex: 4,
                                 child: Row(
@@ -1450,7 +1766,6 @@ class WhyProValuerSection extends StatelessWidget {
                                   ],
                                 ),
                               ),
-                              // Traditional
                               if (isDesktop) ...[
                                 const SizedBox(width: 16),
                                 Expanded(
@@ -1496,7 +1811,7 @@ class WhyProValuerSection extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 6B. WHY REPORTS GET ACCEPTED — Dedicated Institutional Scrutiny Section
+// 9. WHY REPORTS GET ACCEPTED — Institutional Credit & Regulatory Scrutiny
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class WhyReportsGetAcceptedSection extends StatelessWidget {
@@ -1510,46 +1825,46 @@ class WhyReportsGetAcceptedSection extends StatelessWidget {
 
     final pillars = [
       {
-        'title': 'IBBI Registered Professionals',
-        'sub': 'SECTION 247 COMPANIES ACT 2013',
-        'icon': Icons.verified_user_rounded,
-        'desc': 'Valuation reports executed by statutory Registered Valuers with multi-asset jurisdiction across real estate, industrial machinery, and financial securities.',
-      },
-      {
-        'title': 'Chartered Engineering Oversight',
-        'sub': 'THE INSTITUTION OF ENGINEERS (INDIA)',
-        'icon': Icons.architecture_rounded,
-        'desc': 'Mandatory physical on-site civil structural and mechanical wear audits conducted by certified Corporate Members, ensuring absolute ground-truth verification.',
-      },
-      {
-        'title': 'Audit-Ready Documentation',
-        'sub': '256-BIT TAMPER-EVIDENT DOSSIERS',
+        'title': 'Documentation Standards',
+        'sub': 'COMPREHENSIVE EVIDENTIARY TRAIL',
         'icon': Icons.inventory_2_rounded,
-        'desc': 'Complete evidentiary paper trail, sub-registrar transaction indices, cadastral boundary GIS overlays, and cryptographic SHA-256 digital verification hashes.',
+        'desc': 'Complete supporting evidence including title document reviews, municipal sanctioned plans, registrar transaction indices, and 256-bit tamper-evident digital verification.',
       },
       {
-        'title': 'Regulatory Compliance Framework',
-        'sub': 'IBC, SARFAESI & RBI PRUDENTIAL NORMS',
-        'icon': Icons.gavel_rounded,
-        'desc': 'Strict alignment with Insolvency & Bankruptcy Code 2016 (CIRP Regulations), SARFAESI security valuation norms, and RBI Master Directions.',
-      },
-      {
-        'title': 'Independent Methodology',
-        'sub': 'SCIENTIFIC DCF & CAPITALIZATION YIELDS',
+        'title': 'Methodology',
+        'sub': 'REPRODUCIBLE ANALYTICAL MODELS',
         'icon': Icons.analytics_rounded,
-        'desc': 'Zero broker bias or borrower inflation. Pure mathematical cash flow discounting, empirical capitalization yields, and depreciated replacement costs.',
+        'desc': 'Adherence to Discounted Cash Flow (DCF), direct income capitalization, and depreciated replacement cost models benchmarked against verified micro-market yield data.',
       },
       {
-        'title': 'Multi-Level Verification',
-        'sub': '3-TIER DUAL SIGN-OFF PROTOCOL',
-        'icon': Icons.checklist_rtl_rounded,
-        'desc': 'Mandatory three-tier peer review: On-site Surveyor Audit → Senior Valuation Lead → Partner Dual Sign-Off, completely eliminating single-analyst error.',
+        'title': 'Compliance',
+        'sub': 'STATUTORY ALIGNMENT',
+        'icon': Icons.gavel_rounded,
+        'desc': 'Strict conformance with Section 247 of the Companies Act 2013, Companies (Registered Valuers & Valuation) Rules 2017, and IBC Section 35(1) CIRP regulations.',
       },
       {
-        'title': 'Institutional Reporting Standards',
-        'sub': 'ACCEPTED ACROSS 28+ BANKING CONSORTIA',
+        'title': 'Audit Readiness',
+        'sub': 'DEFENSIBLE BEFORE TRIBUNALS',
+        'icon': Icons.verified_user_rounded,
+        'desc': 'Reports structured to withstand independent examination by statutory auditors, banking inspection teams, NCLT judicial benches, and CAG oversight.',
+      },
+      {
+        'title': 'Engineering Review',
+        'sub': 'CHARTERED ENGINEER TECHNICAL AUDIT',
+        'icon': Icons.architecture_rounded,
+        'desc': 'Mandatory physical on-site inspection of civil structural health, MEP services, and mechanical equipment wear conducted by certified Corporate Members.',
+      },
+      {
+        'title': 'Independent Assessment',
+        'sub': 'UNBIASED PROFESSIONAL STANDARDS',
+        'icon': Icons.balance_rounded,
+        'desc': 'Free from commercial commission incentives or developer pressure, ensuring uncompromised fiduciary objectivity in every valuation conclusion.',
+      },
+      {
+        'title': 'Regulatory Alignment',
+        'sub': 'PRUDENTIAL NORM HARMONIZATION',
         'icon': Icons.account_balance_rounded,
-        'desc': 'Pre-vetted standardized reporting dossiers trusted and accepted across India’s leading PSU and Private Scheduled Commercial Banks, NBFCs, and global PE funds.',
+        'desc': 'Reports calibrated to Reserve Bank of India (RBI) loan security valuation guidelines, SARFAESI auction reserves, and institutional credit limits.',
       },
     ];
 
@@ -1678,7 +1993,7 @@ class WhyReportsGetAcceptedSection extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 7. PROCESS SECTION — Interactive Institutional Workflow
+// 10. PROCESS SECTION — Interactive Institutional Workflow (6 Stages)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class ProcessSection extends StatelessWidget {
@@ -1695,37 +2010,37 @@ class ProcessSection extends StatelessWidget {
         'step': '01',
         'title': 'Asset Inspection',
         'desc': 'On-site geo-tagged inspection by certified Chartered Engineers, assessing structural health, civil condition, and machinery wear.',
-        'tag': 'DAY 1 · FIELDWORK',
+        'tag': 'STAGE 1 · FIELDWORK',
       },
       {
         'step': '02',
         'title': 'Data Collection & Ingestion',
         'desc': 'Digital intake of title deeds, sanctioned plans, asset registers, and automated satellite GIS cadastral parcel demarcation.',
-        'tag': 'DAY 1–2 · INTAKE',
+        'tag': 'STAGE 2 · INTAKE',
       },
       {
         'step': '03',
         'title': 'Financial & Geospatial Modeling',
         'desc': 'Cross-referencing municipal master plans, sub-registrar transaction indices, and micro-market commercial capitalization yields.',
-        'tag': 'DAY 2–3 · ANALYTICS',
+        'tag': 'STAGE 3 · ANALYTICS',
       },
       {
         'step': '04',
         'title': 'Independent Valuation Analysis',
         'desc': 'Executing Discounted Cash Flow (DCF), Depreciated Replacement Cost (DRC), and liquidation value stress testing.',
-        'tag': 'DAY 3 · VALUATION',
+        'tag': 'STAGE 4 · VALUATION',
       },
       {
         'step': '05',
         'title': 'Multi-Level Review',
         'desc': 'Mandatory sign-off by IBBI Registered Valuer and Chartered Engineer, verifying compliance against IBC, SARFAESI, and RBI norms.',
-        'tag': 'DAY 4 · DUAL AUDIT',
+        'tag': 'STAGE 5 · DUAL AUDIT',
       },
       {
         'step': '06',
         'title': 'Lender-Ready Report Delivery',
         'desc': 'Delivery of tamper-evident digital dossiers, institutional summary dashboards, and complete post-mandate audit defense.',
-        'tag': 'DAY 4–5 · ACCEPTANCE',
+        'tag': 'STAGE 6 · ACCEPTANCE',
       },
     ];
 
@@ -1762,7 +2077,6 @@ class ProcessSection extends StatelessWidget {
               ),
               const SizedBox(height: 52),
 
-              // 6-Step Workflow Cards
               LayoutBuilder(
                 builder: (context, constraints) {
                   final int columns = isDesktop ? 3 : (constraints.maxWidth >= 700 ? 2 : 1);
@@ -1850,7 +2164,7 @@ class ProcessSection extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 8. CASE STUDIES SECTION — ₹100+ Crore Real Enterprise Asset Engagements
+// 11. CASE STUDIES SECTION — Outcome-Driven Real Enterprise Engagements
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class CaseStudiesSection extends StatelessWidget {
@@ -1864,44 +2178,44 @@ class CaseStudiesSection extends StatelessWidget {
 
     final cases = [
       {
-        'value': '₹1,250 Cr',
         'title': 'Maritime Bulk Port & Container Terminal',
         'sector': 'INFRASTRUCTURE & LOGISTICS',
-        'clientType': '7-Bank National Lending Consortium (Lead PSU Bank)',
-        'challenge': 'Consortium required simultaneous physical inspection of 180-acre waterfront, 3 active berths, gantry cranes, and railway sidings under strict 14-day refinancing sanction deadline.',
-        'scope': 'Comprehensive Technical Due Diligence, Chartered Engineering Plant Audit, and Fair Market & Liquidation Valuation.',
-        'solution': 'Deployed multi-disciplinary team with drone RTK cadastral mapping and itemized mechanical depreciation modeling.',
-        'outcome': 'Delivered 380-page audit-defensible valuation dossier accepted by credit committees of all 7 consortium banks without a single query.',
+        'clientType': 'National Banking Consortium (Lead Public Sector Bank)',
+        'challenge': 'Lending consortium required simultaneous technical and asset due diligence across extensive waterfront infrastructure, deep-water berths, and heavy handling equipment under strict refinancing timelines.',
+        'scope': 'Comprehensive Technical Due Diligence, Chartered Engineering Plant Audit, and Fair Market & Realizable Liquidation Valuation.',
+        'methodology': 'Geospatial cadastral boundary verification combined with itemized mechanical depreciation schedules and operational utility indexing.',
+        'outcome': 'Delivered an audit-defensible valuation dossier accepted by credit risk committees of all consortium lenders without qualification.',
+        'deliverables': 'Independent Valuation Report, Chartered Engineer Technical Audit Certificate, and Asset Realizability Sensitivity Matrix.',
       },
       {
-        'value': '₹850 Cr',
-        'title': 'Grade-A Commercial IT Park Portfolio',
+        'title': 'Commercial IT Park & Special Economic Zone',
         'sector': 'REIT & INSTITUTIONAL REAL ESTATE',
-        'clientType': 'Global Private Equity Real Estate Investment Trust (REIT)',
-        'challenge': 'Asset ingestion required granular multi-tenant lease covenant analysis across 3.2M sq. ft. of leasable office area with strict Ind AS fair value compliance.',
-        'scope': 'Tenant-by-tenant Discounted Cash Flow (DCF), structural MEP audits, and statutory master plan zoning verification.',
-        'solution': 'Built automated lease cash flow engine incorporating tenant credit ratings and localized micro-market absorption yields.',
-        'outcome': 'Seamless statutory ingestion into REIT asset portfolio; approved by Big 4 statutory auditors and SEBI monitoring trustees.',
+        'clientType': 'Real Estate Investment Trust (REIT) & Institutional Asset Manager',
+        'challenge': 'Asset portfolio ingestion required granular multi-tenant lease covenant analysis, micro-market yield calibration, and strict Ind AS 16/36 compliance.',
+        'scope': 'Tenant-by-tenant Discounted Cash Flow (DCF) modeling, civil structural MEP audit, and statutory master plan zoning verification.',
+        'methodology': 'DCF modeling incorporating weighted average unexpired lease terms (WAULT), localized absorption trends, and capital expenditure forecasts.',
+        'outcome': 'Successfully incorporated into institutional asset portfolio; approved by statutory auditors and regulatory monitoring trustees.',
+        'deliverables': 'Statutory Valuation Dossier, Financial Model DCF Sheet, and Structural Integrity Due Diligence Report.',
       },
       {
-        'value': '₹420 Cr',
         'title': 'Integrated Steel & Rolling Mill Complex',
         'sector': 'HEAVY MANUFACTURING & IBC',
         'clientType': 'Insolvency Resolution Professional (IRP) under IBC 2016',
-        'challenge': 'Stressed asset under CIRP with 1,400+ capital equipment lines requiring liquidation value and fair value determination defensible before Committee of Creditors.',
-        'scope': 'Itemized Plant & Machinery appraisal, physical operational utility index calibration, and scrap realization analysis.',
-        'solution': 'In-house Mechanical Chartered Engineers conducted live equipment testing and depreciated replacement cost modeling.',
-        'outcome': 'Defended successfully before NCLT bench and approved by Committee of Creditors (CoC) with 94.2% voting majority.',
+        'challenge': 'Stressed manufacturing enterprise under CIRP proceedings requiring independent fair value and liquidation value determination defensible before the Committee of Creditors.',
+        'scope': 'Itemized plant and machinery appraisal, physical operational utility inspection, and scrap realization analysis across specialized rolling lines.',
+        'methodology': 'Depreciated Replacement Cost (DRC) approach supplemented by equipment operational history and salvage realization benchmarks.',
+        'outcome': 'Defended successfully before NCLT judicial bench; approved by Committee of Creditors with decisive voting majority.',
+        'deliverables': 'IBC Section 35(1) Valuation Report, Plant Machinery Inventory Register, and Liquidation Benchmark Certificate.',
       },
       {
-        'value': '₹2,100 Cr',
         'title': 'Greenfield Expressway & Toll Concession',
-        'sector': 'TRANSPORTATION & NHAI ASSETS',
-        'clientType': 'Infrastructure Concessionaire & National Highway Authority',
-        'challenge': 'Urgent requirement for asset capitalization certification across 142km greenfield corridor to unlock ₹450 Cr tranche refinancing.',
+        'sector': 'TRANSPORTATION & PUBLIC INFRASTRUCTURE',
+        'clientType': 'Infrastructure Concessionaire & National Highway Entity',
+        'challenge': 'Statutory requirement for asset capitalization certification across an extended greenfield highway corridor to unlock milestone institutional refinancing.',
         'scope': 'Chartered Engineering Milestone Verification, civil structural stability audit, and traffic yield capitalization analysis.',
-        'solution': 'Executed rapid corridor inspection protocol with LiDAR telemetry and milestone expenditure reconciliation.',
-        'outcome': 'Certified within 72 hours of site audit completion; enabled full debt refinancing at 85 bps lower interest margin.',
+        'methodology': 'Corridor-wide engineering verification with physical milestone expenditure reconciliation and statutory conformance checks.',
+        'outcome': 'Certified within established delivery schedules; enabled institutional refinancing with full consortium lender concurrence.',
+        'deliverables': 'Chartered Engineer Completion Certificate, Concession Asset Capitalization Report, and Risk Assessment Dossier.',
       },
     ];
 
@@ -1918,12 +2232,12 @@ class CaseStudiesSection extends StatelessWidget {
           child: Column(
             children: [
               const LuxuryEyebrowBadge(
-                label: 'PROVEN TRACK RECORD',
+                label: 'PROVEN OUTCOMES',
                 icon: Icons.workspace_premium_rounded,
               ),
               const SizedBox(height: 18),
               Text(
-                '₹100+ Crore Institutional Case Studies',
+                'Institutional Engagement Case Studies',
                 textAlign: TextAlign.center,
                 style: LandingTheme.sectionTitleResponsive(screenW),
               ),
@@ -1938,7 +2252,6 @@ class CaseStudiesSection extends StatelessWidget {
               ),
               const SizedBox(height: 52),
 
-              // 4 Case Studies Grid
               LayoutBuilder(
                 builder: (context, constraints) {
                   final int columns = isDesktop ? 2 : 1;
@@ -1960,13 +2273,15 @@ class CaseStudiesSection extends StatelessWidget {
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(
-                                    c['value']!,
-                                    style: GoogleFonts.sourceCodePro(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.w800,
-                                      color: LandingTheme.secondaryAccent,
-                                      letterSpacing: -1.0,
+                                  Expanded(
+                                    child: Text(
+                                      c['title']!,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w700,
+                                        color: LandingTheme.textPrimary,
+                                        letterSpacing: -0.4,
+                                      ),
                                     ),
                                   ),
                                   Container(
@@ -1991,21 +2306,12 @@ class CaseStudiesSection extends StatelessWidget {
                                 ],
                               ),
                               const SizedBox(height: 16),
-                              Text(
-                                c['title']!,
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                  color: LandingTheme.textPrimary,
-                                  letterSpacing: -0.4,
-                                ),
-                              ),
-                              const SizedBox(height: 14),
                               _caseField('Client Type', c['clientType']!),
                               _caseField('Challenge', c['challenge']!),
                               _caseField('Scope', c['scope']!),
-                              _caseField('Solution', c['solution']!),
+                              _caseField('Methodology', c['methodology']!),
                               _caseField('Outcome', c['outcome']!, isHighlight: true),
+                              _caseField('Deliverables', c['deliverables']!),
                             ],
                           ),
                         ),
@@ -2052,7 +2358,7 @@ class CaseStudiesSection extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 9. TESTIMONIALS SECTION — Institutional C-Suite Endorsements
+// 12. TESTIMONIALS SECTION — Institutional C-Suite Endorsements
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class TestimonialsSection extends StatelessWidget {
@@ -2066,25 +2372,25 @@ class TestimonialsSection extends StatelessWidget {
 
     final endorsements = [
       {
-        'quote': 'Pro Valuer’s reports have consistently withstood our highest level of credit committee scrutiny. Their depth of technical diligence and IBBI compliance is unmatched in the Indian market.',
-        'name': 'Executive Director & Chief Risk Officer',
-        'org': 'Leading Private Sector Bank',
+        'quote': 'Pro Valuer’s reports have consistently withstood our highest level of credit committee scrutiny. Their depth of technical diligence and IBBI compliance is rigorous and reliable.',
+        'name': 'Senior Executive & Risk Head',
+        'org': 'National Commercial Banking Institution',
       },
       {
-        'quote': 'In high-stakes ₹500 Cr+ resolutions, precision is non-negotiable. Pro Valuer delivers institutional-grade modeling and spatial clarity that gives our investment committee absolute conviction.',
+        'quote': 'In complex resolution mandates, precision is essential. Pro Valuer delivers institutional modeling and spatial clarity that gives investment committees complete conviction.',
         'name': 'Managing Director',
-        'org': 'Global Private Credit & Stressed Assets Fund',
+        'org': 'Private Credit & Special Situations Fund',
       },
       {
-        'quote': 'Their valuation reports for CIRP mandates are watertight. Flawless methodology, prompt turnaround, and total audit defense before the NCLT benches nationwide.',
-        'name': 'Senior Partner & Insolvency Professional',
-        'org': 'National Insolvency Resolution Practice',
+        'quote': 'Their valuation reports for CIRP mandates are watertight. Methodical analysis, prompt turnaround, and defensible documentation before NCLT judicial benches.',
+        'name': 'Insolvency Resolution Professional (IRP)',
+        'org': 'National Insolvency Practice',
       },
     ];
 
     return Container(
       width: double.infinity,
-      color: LandingTheme.secondaryBg,
+      color: LandingTheme.primaryBg,
       padding: EdgeInsets.symmetric(
         horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
         vertical: 80,
@@ -2100,7 +2406,7 @@ class TestimonialsSection extends StatelessWidget {
               ),
               const SizedBox(height: 18),
               Text(
-                'C-Suite & Risk Committee Endorsements',
+                'Credit Committee & Risk Leadership Perspectives',
                 textAlign: TextAlign.center,
                 style: LandingTheme.sectionTitleResponsive(screenW),
               ),
@@ -2109,7 +2415,7 @@ class TestimonialsSection extends StatelessWidget {
               LayoutBuilder(
                 builder: (context, constraints) {
                   final int columns = isDesktop ? 3 : 1;
-                  final double spacing = 20;
+                  const double spacing = 20;
                   final double cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
 
                   return Wrap(
@@ -2176,7 +2482,7 @@ class TestimonialsSection extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 10. EMPANELMENTS & REGULATORY CREDENTIALS SECTION
+// 13. EMPANELMENTS & REGULATORY CREDENTIALS SECTION
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class EmpanelmentsSection extends StatelessWidget {
@@ -2192,7 +2498,7 @@ class EmpanelmentsSection extends StatelessWidget {
       {
         'title': 'Insolvency & Bankruptcy Board of India (IBBI)',
         'sub': 'Registered Valuer Entity under the Companies (Registered Valuers & Valuation) Rules 2017.',
-        'code': 'IBBI / VALUATION REGISTERED ENTITY',
+        'code': 'IBBI / STATUTORY VALUER ENTITY',
       },
       {
         'title': 'The Institution of Engineers (India)',
@@ -2201,19 +2507,19 @@ class EmpanelmentsSection extends StatelessWidget {
       },
       {
         'title': 'Registered Valuers Organisations (RVO)',
-        'sub': 'Affiliated with prominent RVOs recognized by IBBI across all three statutory asset classes.',
+        'sub': 'Affiliated with prominent RVOs recognized by IBBI across statutory asset classes.',
         'code': 'MULTI-ASSET STATUTORY LICENSURE',
       },
       {
-        'title': '28+ Major Banking Consortia',
-        'sub': 'Regularly empanelled with India’s leading Public Sector and Private Scheduled Commercial Banks.',
-        'code': 'CONSORTIUM EMPANELLED',
+        'title': 'Institutional Lending Consortia',
+        'sub': 'Reports structured and prepared in alignment with Public and Private Scheduled Commercial Bank standards.',
+        'code': 'LENDING CONSORTIA ALIGNED',
       },
     ];
 
     return Container(
       width: double.infinity,
-      color: LandingTheme.primaryBg,
+      color: LandingTheme.secondaryBg,
       padding: EdgeInsets.symmetric(
         horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
         vertical: 80,
@@ -2224,7 +2530,7 @@ class EmpanelmentsSection extends StatelessWidget {
           child: Column(
             children: [
               const LuxuryEyebrowBadge(
-                label: 'STATUTORY LICENSURE & EMPANELMENTS',
+                label: 'STATUTORY LICENSURE & STANDARDS',
                 icon: Icons.verified_user_rounded,
               ),
               const SizedBox(height: 18),
@@ -2247,7 +2553,7 @@ class EmpanelmentsSection extends StatelessWidget {
               LayoutBuilder(
                 builder: (context, constraints) {
                   final int columns = isDesktop ? 2 : 1;
-                  final double spacing = 18;
+                  const double spacing = 18;
                   final double cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
 
                   return Wrap(
@@ -2307,7 +2613,7 @@ class EmpanelmentsSection extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 11. FINAL CTA BANNER — Institutional Mandate Engagement
+// 14. FINAL CTA BANNER — Institutional Mandate Engagement
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class CtaBanner extends StatelessWidget {
@@ -2322,7 +2628,7 @@ class CtaBanner extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      color: LandingTheme.secondaryBg,
+      color: LandingTheme.primaryBg,
       padding: EdgeInsets.symmetric(
         horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
         vertical: 80,
@@ -2339,12 +2645,12 @@ class CtaBanner extends StatelessWidget {
               borderRadius: BorderRadius.circular(20),
               gradient: LandingTheme.meshGradient,
               border: Border.all(
-                color: LandingTheme.glowAccent.withValues(alpha: 0.4),
+                color: LandingTheme.glowAccent.withValues(alpha: 0.35),
                 width: 1.2,
               ),
               boxShadow: [
                 BoxShadow(
-                  color: LandingTheme.primaryAccent.withValues(alpha: 0.35),
+                  color: LandingTheme.primaryAccent.withValues(alpha: 0.3),
                   blurRadius: 40,
                   offset: const Offset(0, 10),
                 ),
@@ -2354,7 +2660,7 @@ class CtaBanner extends StatelessWidget {
               children: [
                 const LuxuryEyebrowBadge(
                   label: 'INSTITUTIONAL ASSET MANDATES',
-                  icon: Icons.flash_on_rounded,
+                  icon: Icons.shield_rounded,
                 ),
                 const SizedBox(height: 20),
                 Text(
@@ -2416,7 +2722,7 @@ class CtaBanner extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 12. EXECUTIVE FOOTER — Institutional Dark Navy
+// 15. EXECUTIVE FOOTER — Institutional Dark Navy
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class LandingFooter extends StatelessWidget {
@@ -2439,11 +2745,9 @@ class LandingFooter extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Row: Brand + Columns
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Brand & Summary
                   Expanded(
                     flex: isDesktop ? 4 : 12,
                     child: Column(
@@ -2457,7 +2761,7 @@ class LandingFooter extends StatelessWidget {
                         ),
                         const SizedBox(height: 14),
                         Text(
-                          'Institutional asset intelligence and valuation advisory for banks, private credit funds, and enterprise asset holders.',
+                          'Institutional asset valuation, engineering due diligence, and risk advisory for credit committees, private funds, and enterprise asset holders.',
                           style: GoogleFonts.inter(
                             fontSize: 12.5,
                             fontWeight: FontWeight.w400,
@@ -2480,7 +2784,6 @@ class LandingFooter extends StatelessWidget {
                   ),
                   if (isDesktop) ...[
                     const Spacer(flex: 1),
-                    // Col 1: Services
                     Expanded(
                       flex: 2,
                       child: _footerCol(
@@ -2496,13 +2799,12 @@ class LandingFooter extends StatelessWidget {
                         ],
                       ),
                     ),
-                    // Col 2: Sectors
                     Expanded(
                       flex: 2,
                       child: _footerCol(
                         'SECTORS',
                         [
-                          'Banks & Consortia',
+                          'Banks & Financial Institutions',
                           'NBFCs & Private Credit',
                           'Private Equity Funds',
                           'Insolvency (IBC / CIRP)',
@@ -2512,7 +2814,6 @@ class LandingFooter extends StatelessWidget {
                         ],
                       ),
                     ),
-                    // Col 3: Compliance
                     Expanded(
                       flex: 3,
                       child: _footerCol(
@@ -2535,13 +2836,12 @@ class LandingFooter extends StatelessWidget {
               const Divider(height: 1, color: LandingTheme.hairlineBorder),
               const SizedBox(height: 24),
 
-              // Bottom Bar: Statutory Notes & Copyright
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Expanded(
                     child: Text(
-                      '© ${DateTime.now().year} Pro Valuer. All rights reserved. Institutional Reports are confidential and prepared under statutory valuation guidelines.',
+                      '© ${DateTime.now().year} Pro Valuer. All rights reserved. Institutional reports are confidential and prepared under statutory valuation guidelines.',
                       style: GoogleFonts.inter(
                         fontSize: 11,
                         fontWeight: FontWeight.w400,
@@ -2598,7 +2898,7 @@ class LandingFooter extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 13. MOBILE MENU DRAWER
+// 16. MOBILE MENU DRAWER
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class MobileMenuDrawer extends StatelessWidget {

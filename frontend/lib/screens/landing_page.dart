@@ -66,9 +66,13 @@ class _LandingPageState extends State<LandingPage> {
                   isDesktop: isDesktop,
                   launchWhatsApp: _launchWhatsApp,
                 ),
-                // 2. Trust Bar with IBBI, CE, and Bank consortium strip
+                // 2. Prominent Trust Layer — Why Financial Institutions Work With Pro Valuer
+                WhyFinancialInstitutionsWorkWithProValuerSection(isDesktop: isDesktop),
+                // 3. Trust Bar — Regulatory Standards & Institutional Lending Framework
                 const TrustBar(),
-                // 3. 8 Institutional Service Cards
+                // 4. Executive Authority Section — Institutional Expertise Backed By Qualified Professionals
+                ExecutiveAuthoritySection(isDesktop: isDesktop),
+                // 5. 8 Institutional Service Cards
                 ServicesSection(
                   isDesktop: isDesktop,
                   isTablet: isTablet,
