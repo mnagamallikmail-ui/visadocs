@@ -3,9 +3,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../features/landing/landing_theme.dart';
 import '../features/landing/landing_sections.dart';
 
-/// LandingPage — Luxury Enterprise SaaS Redesign
-/// Pure white & soft white glassmorphism aesthetic with scroll-aware floating header.
-/// Business logic preserved: WhatsApp URL, scroll detection, mobile drawer.
+/// LandingPage — Apple Vision Pro Luxury Modern Redesign
+/// Pure white background, liquid crystal glassmorphism, 50/50 hero layout,
+/// massive whitespace, and minimal editorial sections.
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
 
@@ -27,7 +27,7 @@ class _LandingPageState extends State<LandingPage> {
   }
 
   void _onScroll() {
-    final scrolled = _scrollController.offset > 60;
+    final scrolled = _scrollController.offset > 40;
     if (scrolled != _isScrolled) setState(() => _isScrolled = scrolled);
   }
 
@@ -47,8 +47,8 @@ class _LandingPageState extends State<LandingPage> {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
-    final isDesktop = w >= 1200;
-    final isTablet = w >= 768 && w < 1200;
+    final isDesktop = w >= 1100;
+    final isTablet = w >= 700 && w < 1100;
 
     return Scaffold(
       key: _scaffoldKey,
@@ -61,45 +61,34 @@ class _LandingPageState extends State<LandingPage> {
             controller: _scrollController,
             child: Column(
               children: [
-                // 1. Hero Section with Palantir asset intelligence visual & dual CTAs
+                const SizedBox(height: 80), // Clearance for floating header
+                // 1. Hero Section (50% Left / 50% Right Apple Vision Pro Layout)
                 HeroSection(
                   isDesktop: isDesktop,
                   launchWhatsApp: _launchWhatsApp,
                 ),
-                // 2. Prominent Trust Layer — Why Financial Institutions Work With Pro Valuer
-                WhyFinancialInstitutionsWorkWithProValuerSection(isDesktop: isDesktop),
-                // 3. Trust Bar — Regulatory Standards & Institutional Lending Framework
-                const TrustBar(),
-                // 4. Executive Authority Section — Institutional Expertise Backed By Qualified Professionals
-                ExecutiveAuthoritySection(isDesktop: isDesktop),
-                // 5. 8 Institutional Service Cards
+                // 2. Services Section (4-6 Luxury Glass Cards)
                 ServicesSection(
                   isDesktop: isDesktop,
                   isTablet: isTablet,
                   launchWhatsApp: _launchWhatsApp,
                 ),
-                // 4. Ecosystem Coverage — 10 Institutional Sectors
-                IndustriesSection(isDesktop: isDesktop),
-                // 5. Institutional Advantage Matrix (Pro Valuer vs Traditional)
+                // 3. Why Pro Valuer (4 Spatial Glass Pillars)
                 WhyProValuerSection(isDesktop: isDesktop),
-                // 5B. Why Reports Get Accepted (Dedicated Institutional Scrutiny Section)
-                WhyReportsGetAcceptedSection(isDesktop: isDesktop),
-                // 6. Interactive Institutional Valuation Workflow (6 Stages)
+                // 4. Process (4-Stage Crystal Flow)
                 ProcessSection(isDesktop: isDesktop),
-                // 7. ₹100+ Crore Case Studies Showcase
+                // 5. Case Studies (Minimal Outcome-Focused Cards)
                 CaseStudiesSection(isDesktop: isDesktop),
-                // 8. C-Suite & Risk Committee Endorsements
-                TestimonialsSection(isDesktop: isDesktop),
-                // 9. Statutory Licensure & Empanelments
-                EmpanelmentsSection(isDesktop: isDesktop),
-                // 10. Final Institutional CTA Banner
+                // 6. Credentials (Licensure & Bank Recognition)
+                CredentialsSection(isDesktop: isDesktop),
+                // 7. Final Consultation Section (Luxury Glass CTA)
                 CtaBanner(launchWhatsApp: _launchWhatsApp),
-                // 11. Executive Dark Navy Footer
+                // 8. Luxury Minimal Footer
                 LandingFooter(isDesktop: isDesktop),
               ],
             ),
           ),
-          // ── Fixed sticky header ─────────────────────────────────────────
+          // ── Fixed Floating Glass Navbar ───────────────────────────────────
           Positioned(
             top: 0,
             left: 0,
