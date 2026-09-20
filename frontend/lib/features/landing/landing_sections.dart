@@ -981,7 +981,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SPECIALIZED SERVICES — PREMIUM CASCADING SERVICE STACK
+// VALUATION EXPERTISE — PREMIUM CASCADING SERVICE DECK
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class _ServiceCardData {
@@ -996,15 +996,15 @@ class _ServiceCardData {
 
 const List<_ServiceCardData> _cascadingServiceCards = [
   _ServiceCardData(
-    title: 'Valuations for Visa',
-    backgroundColor: Color(0xFFE0EDFD), // Soft Blue
+    title: 'Visa & Immigration Valuations',
+    backgroundColor: Color(0xFFE2EDFD), // Soft Ice Blue
   ),
   _ServiceCardData(
-    title: 'Bank Loan Valuations',
+    title: 'Bank Security Valuations',
     backgroundColor: Color(0xFFDCFCE7), // Soft Mint
   ),
   _ServiceCardData(
-    title: 'NCLT Valuations',
+    title: 'NCLT Transaction Support',
     backgroundColor: Color(0xFFEDE9FE), // Soft Lavender
   ),
   _ServiceCardData(
@@ -1013,11 +1013,11 @@ const List<_ServiceCardData> _cascadingServiceCards = [
   ),
   _ServiceCardData(
     title: 'Chartered Engineer Services',
-    backgroundColor: Color(0xFFE6F4EA), // Soft Sage
+    backgroundColor: Color(0xFFE5EDE8), // Soft Sage
   ),
   _ServiceCardData(
     title: 'Net Worth Certifications',
-    backgroundColor: Color(0xFFE0F2FE), // Soft Sky Blue
+    backgroundColor: Color(0xFFE0F2FE), // Soft Powder Blue
   ),
   _ServiceCardData(
     title: 'Valuation of Shares',
@@ -1025,7 +1025,7 @@ const List<_ServiceCardData> _cascadingServiceCards = [
   ),
   _ServiceCardData(
     title: 'Lenders Independent Engineer Services',
-    backgroundColor: Color(0xFFFEF3C7), // Soft Sand
+    backgroundColor: Color(0xFFFEF3DE), // Soft Sand / Stone
   ),
 ];
 
@@ -1046,16 +1046,40 @@ class _CascadingServiceStack extends StatefulWidget {
 
 class _CascadingServiceStackState extends State<_CascadingServiceStack> with SingleTickerProviderStateMixin {
   late AnimationController _controller;
+  Timer? _pauseTimer;
+  Timer? _restartTimer;
 
   @override
   void initState() {
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2200),
+      duration: const Duration(milliseconds: 2560),
     );
 
-    // Initial load in Reading Mode: trigger cascading drop animation
+    _controller.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        // Once all service cards have stacked:
+        // Pause briefly (1800ms) so user can read the complete deck.
+        _pauseTimer?.cancel();
+        _pauseTimer = Timer(const Duration(milliseconds: 1800), () {
+          if (!mounted) return;
+          // Then remove all service cards: return to VALUATION EXPERTISE only!
+          _controller.reset();
+
+          // Pause briefly (400ms) on header card only, then repeat stacking sequence:
+          _restartTimer?.cancel();
+          _restartTimer = Timer(const Duration(milliseconds: 400), () {
+            if (!mounted) return;
+            if (!widget.isVideoPlaying) {
+              _controller.forward();
+            }
+          });
+        });
+      }
+    });
+
+    // Initial load in Reading Mode: trigger cascading drop sequence
     if (!widget.isVideoPlaying) {
       _controller.forward();
     }
@@ -1065,21 +1089,24 @@ class _CascadingServiceStackState extends State<_CascadingServiceStack> with Sin
   void didUpdateWidget(covariant _CascadingServiceStack oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // When returning to Reading Mode from Video Mode:
     if (oldWidget.isVideoPlaying && !widget.isVideoPlaying) {
-      if (!widget.isCompleted) {
-        _controller.reset();
-        _controller.forward();
-      } else {
-        _controller.value = 1.0;
-      }
-    } else if (widget.isCompleted) {
-      _controller.value = 1.0;
+      // Returning to Reading Mode from Video Mode:
+      _pauseTimer?.cancel();
+      _restartTimer?.cancel();
+      _controller.reset();
+      _controller.forward();
+    } else if (!oldWidget.isVideoPlaying && widget.isVideoPlaying) {
+      // Entering Video Mode:
+      _pauseTimer?.cancel();
+      _restartTimer?.cancel();
+      _controller.stop();
     }
   }
 
   @override
   void dispose() {
+    _pauseTimer?.cancel();
+    _restartTimer?.cancel();
     _controller.dispose();
     super.dispose();
   }
@@ -1095,20 +1122,20 @@ class _CascadingServiceStackState extends State<_CascadingServiceStack> with Sin
           width: double.infinity,
           padding: EdgeInsets.symmetric(
             horizontal: widget.isCompact ? 16 : 20,
-            vertical: widget.isCompact ? 10 : 12,
+            vertical: widget.isCompact ? 10.5 : 12.5,
           ),
           decoration: const BoxDecoration(
             color: Color(0xFF0F172A),
             borderRadius: BorderRadius.only(
               topLeft: Radius.circular(8),
               topRight: Radius.circular(8),
-              bottomLeft: Radius.circular(3),
-              bottomRight: Radius.circular(3),
+              bottomLeft: Radius.circular(2),
+              bottomRight: Radius.circular(2),
             ),
             boxShadow: [
               BoxShadow(
-                color: Color(0x140F172A),
-                blurRadius: 8,
+                color: Color(0x180F172A),
+                blurRadius: 10,
                 offset: Offset(0, 2),
               ),
             ],
@@ -1125,7 +1152,7 @@ class _CascadingServiceStackState extends State<_CascadingServiceStack> with Sin
               ),
               const SizedBox(width: 8),
               Text(
-                'SPECIALIZED SERVICES',
+                'VALUATION EXPERTISE',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: widget.isCompact ? 11.5 : 12.5,
                   fontWeight: FontWeight.w800,
@@ -1133,23 +1160,13 @@ class _CascadingServiceStackState extends State<_CascadingServiceStack> with Sin
                   letterSpacing: 1.4,
                 ),
               ),
-              const Spacer(),
-              Text(
-                '08 PRACTICES',
-                style: GoogleFonts.inter(
-                  fontSize: 10.0,
-                  fontWeight: FontWeight.w600,
-                  color: const Color(0x99FFFFFF),
-                  letterSpacing: 1.0,
-                ),
-              ),
             ],
           ),
         ),
 
-        const SizedBox(height: 2.0),
+        const SizedBox(height: 1.5),
 
-        // ── SERVICE TILES (STAGGERED DROP & EXPAND ANIMATION) ──────────────
+        // ── SERVICE TILES (STAGGERED DROP, EXPAND & CONTINUOUS LOOP) ───────
         AnimatedBuilder(
           animation: _controller,
           builder: (context, child) {
@@ -1160,40 +1177,47 @@ class _CascadingServiceStackState extends State<_CascadingServiceStack> with Sin
                 final card = _cascadingServiceCards[index];
                 final bool isLast = index == _cascadingServiceCards.length - 1;
 
-                // Staggered timing window for this card
-                final double start = (index * 0.09).clamp(0.0, 1.0);
-                final double end = (start + 0.28).clamp(0.0, 1.0);
+                // Staggered timing per card: 1/8th of total duration each (~320ms)
+                final double start = (index / 8.0).clamp(0.0, 1.0);
+                final double end = ((index + 1) / 8.0).clamp(0.0, 1.0);
 
-                double rawProgress = 0.0;
-                if (_controller.value >= end) {
-                  rawProgress = 1.0;
-                } else if (_controller.value > start) {
-                  rawProgress = (_controller.value - start) / (end - start);
-                }
-
-                // If card has not begun its sequence, keep compressed
-                if (rawProgress <= 0.0) {
+                // If this card has not started its drop yet, do not display it!
+                // This ensures initially ONLY the fixed header card is visible.
+                if (_controller.value < start) {
                   return const SizedBox.shrink();
                 }
 
-                final double animCurve = Curves.easeOutBack.transform(rawProgress.clamp(0.0, 1.0));
-                final double translateY = (1.0 - rawProgress.clamp(0.0, 1.0)) * -14.0;
-                final double scale = 0.95 + 0.05 * animCurve;
-                final double opacity = rawProgress.clamp(0.0, 1.0);
+                double rawProgress = 1.0;
+                if (_controller.value < end) {
+                  rawProgress = (_controller.value - start) / (end - start);
+                }
+
+                final double dropCurve = Curves.easeOutCubic.transform(rawProgress.clamp(0.0, 1.0));
+                final double springCurve = Curves.easeOutBack.transform(rawProgress.clamp(0.0, 1.0));
+
+                // Drops downward from above the stack
+                final double translateY = (1.0 - dropCurve) * -22.0;
+
+                // Expands horizontally to full width
+                final double scaleX = 0.93 + 0.07 * springCurve;
+
+                // Vertical reveal into the deck
+                final double heightFactor = dropCurve;
+                final double opacity = (rawProgress / 0.30).clamp(0.0, 1.0);
 
                 return Padding(
-                  padding: EdgeInsets.only(bottom: isLast ? 0.0 : 2.0),
+                  padding: EdgeInsets.only(bottom: isLast ? 0.0 : 1.5),
                   child: ClipRect(
                     child: Align(
                       alignment: Alignment.topCenter,
-                      heightFactor: rawProgress.clamp(0.0, 1.0),
+                      heightFactor: heightFactor,
                       child: Opacity(
                         opacity: opacity,
                         child: Transform.translate(
                           offset: Offset(0, translateY),
                           child: Transform.scale(
-                            scale: scale,
-                            alignment: Alignment.topCenter,
+                            scaleX: scaleX,
+                            alignment: Alignment.center,
                             child: _ServiceCardTile(
                               title: card.title,
                               backgroundColor: card.backgroundColor,
@@ -1252,12 +1276,12 @@ class _ServiceCardTileState extends State<_ServiceCardTile> {
           color: widget.backgroundColor,
           borderRadius: widget.isLast
               ? const BorderRadius.only(
-                  topLeft: Radius.circular(3),
-                  topRight: Radius.circular(3),
+                  topLeft: Radius.circular(2),
+                  topRight: Radius.circular(2),
                   bottomLeft: Radius.circular(8),
                   bottomRight: Radius.circular(8),
                 )
-              : BorderRadius.circular(3),
+              : BorderRadius.circular(2),
           boxShadow: _isHovered
               ? const [
                   BoxShadow(
