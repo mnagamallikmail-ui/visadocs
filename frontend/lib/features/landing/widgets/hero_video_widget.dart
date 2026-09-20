@@ -16,10 +16,14 @@ class HeroVideoWidget extends StatefulWidget {
   /// Height of the video player card.
   final double height;
 
+  /// Whether to render as an edge-to-edge seamless living background
+  final bool isSeamlessBackground;
+
   const HeroVideoWidget({
     super.key,
     required this.videoAssets,
     this.height = 480,
+    this.isSeamlessBackground = false,
   });
 
   @override
@@ -207,13 +211,59 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
   }
 
   Widget _buildVideoContainer() {
+    if (widget.isSeamlessBackground) {
+      return Stack(
+        fit: StackFit.expand,
+        children: [
+          // Layer A
+          Positioned.fill(
+            child: AnimatedOpacity(
+              opacity: _isAActive ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              child: _controllerA != null && _controllerA!.value.isInitialized
+                  ? FittedBox(
+                      fit: BoxFit.cover,
+                      alignment: Alignment.centerRight,
+                      child: SizedBox(
+                        width: _controllerA!.value.size.width,
+                        height: _controllerA!.value.size.height,
+                        child: VideoPlayer(_controllerA!),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ),
+          // Layer B
+          Positioned.fill(
+            child: AnimatedOpacity(
+              opacity: !_isAActive ? 1.0 : 0.0,
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOut,
+              child: _controllerB != null && _controllerB!.value.isInitialized
+                  ? FittedBox(
+                      fit: BoxFit.cover,
+                      alignment: Alignment.centerRight,
+                      child: SizedBox(
+                        width: _controllerB!.value.size.width,
+                        height: _controllerB!.value.size.height,
+                        child: VideoPlayer(_controllerB!),
+                      ),
+                    )
+                  : const SizedBox.shrink(),
+            ),
+          ),
+        ],
+      );
+    }
+
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         color: const Color(0xFF07142B),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0x405EA8FF), // Hairline cyan/blue institutional border
+          color: const Color(0x405EA8FF),
           width: 1.2,
         ),
         boxShadow: const [
@@ -223,7 +273,7 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
             offset: Offset(0, 18),
           ),
           BoxShadow(
-            color: Color(0x280F4CFF), // Electric royal blue depth
+            color: Color(0x280F4CFF),
             blurRadius: 32,
             spreadRadius: 2,
             offset: Offset(0, 8),
@@ -268,6 +318,9 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
   }
 
   Widget _buildPlaceholder() {
+    if (widget.isSeamlessBackground) {
+      return const SizedBox.shrink();
+    }
     return AspectRatio(
       aspectRatio: 16 / 9,
       child: Container(

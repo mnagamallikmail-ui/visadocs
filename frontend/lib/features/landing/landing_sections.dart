@@ -8,12 +8,12 @@ import 'landing_theme.dart';
 import 'widgets/hero_video_widget.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// APPLE VISION PRO / ARCHITECTURAL LUXURY GLASS UTILITIES
+// APPLE VISION PRO / ARCHITECTURAL MONOCHROMATIC GLASS UTILITIES
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /// Spatial Glass Panel with Apple Vision Pro physical glass properties:
 /// - 45px backdrop blur
-/// - Specular top edge highlight fading into subtle warm refraction
+/// - Specular top edge highlight fading into subtle platinum refraction
 /// - Layered ambient and contact shadows
 /// - Physical crystal thickness feel
 class VisionProGlassPanel extends StatelessWidget {
@@ -56,7 +56,7 @@ class VisionProGlassPanel extends StatelessWidget {
                       width: 1.2,
                     )
                   : Border.all(
-                      color: const Color(0x33C6A76A),
+                      color: const Color(0x33CBD5E1),
                       width: 1.0,
                     ),
             ),
@@ -68,7 +68,7 @@ class VisionProGlassPanel extends StatelessWidget {
   }
 }
 
-/// Small Glass Eyebrow Badge (Champagne Gold / Alabaster)
+/// Small Glass Eyebrow Badge (Platinum / Pearl White)
 class GlassEyebrowBadge extends StatelessWidget {
   final String label;
   final IconData? icon;
@@ -84,12 +84,12 @@ class GlassEyebrowBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
       decoration: BoxDecoration(
-        color: LandingTheme.softSurface,
+        color: LandingTheme.pearlWhite,
         borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: const Color(0x4DC6A76A), width: 1.0),
+        border: Border.all(color: const Color(0xE2E8F0CC), width: 1.0),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0A111827),
+            color: Color(0x0A0F172A),
             blurRadius: 10,
             offset: Offset(0, 2),
           ),
@@ -163,14 +163,14 @@ class LandingHeader extends StatelessWidget {
               boxShadow: isScrolled
                   ? const [
                       BoxShadow(
-                        color: Color(0x0F111827),
+                        color: Color(0x0F0F172A),
                         blurRadius: 30,
                         offset: Offset(0, 10),
                       ),
                     ]
                   : const [
                       BoxShadow(
-                        color: Color(0x08111827),
+                        color: Color(0x080F172A),
                         blurRadius: 20,
                         offset: Offset(0, 4),
                       ),
@@ -195,7 +195,7 @@ class LandingHeader extends StatelessWidget {
                   ),
                   child: Row(
                     children: [
-                      // Brand Logo Monogram (Champagne Gold)
+                      // Brand Logo Monogram (Polished Obsidian & Platinum)
                       GestureDetector(
                         onTap: () => context.go('/'),
                         child: Row(
@@ -205,13 +205,13 @@ class LandingHeader extends StatelessWidget {
                               width: 32,
                               height: 32,
                               decoration: BoxDecoration(
-                                gradient: LandingTheme.goldAccentGradient,
+                                gradient: LandingTheme.platinumButtonGradient,
                                 borderRadius: BorderRadius.circular(8),
-                                boxShadow: [
+                                boxShadow: const [
                                   BoxShadow(
-                                    color: LandingTheme.primaryAccent.withValues(alpha: 0.3),
+                                    color: Color(0x200F172A),
                                     blurRadius: 8,
-                                    offset: const Offset(0, 2),
+                                    offset: Offset(0, 2),
                                   ),
                                 ],
                               ),
@@ -256,19 +256,19 @@ class LandingHeader extends StatelessWidget {
                         _HeaderLink(label: 'Credentials', onTap: () => _scrollTo('credentials')),
                         const SizedBox(width: 32),
 
-                        // Request Consultation Button
+                        // Request Consultation Button (Obsidian & Platinum)
                         GestureDetector(
                           onTap: () => launchWhatsApp('Hello, I would like to request an institutional valuation consultation with Pro Valuer.'),
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
                             decoration: BoxDecoration(
-                              gradient: LandingTheme.goldAccentGradient,
+                              gradient: LandingTheme.platinumButtonGradient,
                               borderRadius: BorderRadius.circular(100),
-                              boxShadow: [
+                              boxShadow: const [
                                 BoxShadow(
-                                  color: LandingTheme.primaryAccent.withValues(alpha: 0.28),
+                                  color: Color(0x1F0F172A),
                                   blurRadius: 14,
-                                  offset: const Offset(0, 4),
+                                  offset: Offset(0, 4),
                                 ),
                               ],
                             ),
@@ -309,7 +309,7 @@ class LandingHeader extends StatelessWidget {
   }
 
   void _scrollTo(String id) {
-    // Navigation anchor trigger
+    // Navigation anchor
   }
 }
 
@@ -337,7 +337,7 @@ class _HeaderLink extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 2. HERO SECTION — 50% LEFT / 50% RIGHT ARCHITECTURAL LUXURY LAYOUT
+// 2. HERO SECTION — CINEMATIC LIVING ARCHITECTURAL HERO (NO CARDS, FULL-WIDTH)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class HeroSection extends StatefulWidget {
@@ -411,84 +411,136 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
   Widget build(BuildContext context) {
     final double screenW = MediaQuery.of(context).size.width;
 
-    return Container(
-      width: double.infinity,
-      color: LandingTheme.primaryBg,
-      child: Stack(
-        children: [
-          // Ethereal ambient warm lighting
-          Positioned(
-            top: -100,
-            right: screenW * 0.1,
-            child: Container(
-              width: 600,
-              height: 600,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    LandingTheme.glassReflection.withValues(alpha: 0.45),
-                    Colors.white.withValues(alpha: 0.0),
-                  ],
-                ),
+    return ClipRect(
+      child: SizedBox(
+        width: double.infinity,
+        child: Stack(
+          children: [
+            // ── LAYER 1: Full-Width Living Architectural Video Canvas ─────────
+            // Sits directly as root background; NO cards, NO containers, NO boxes
+            const Positioned.fill(
+              child: HeroVideoWidget(
+                videoAssets: [
+                  'assets/videos/hero_animation.mp4',
+                  'assets/videos/Create_a_premium_animated_hero.mp4',
+                ],
+                isSeamlessBackground: true,
               ),
             ),
-          ),
-          Positioned(
-            top: 200,
-            left: -150,
-            child: Container(
-              width: 500,
-              height: 500,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    LandingTheme.ambientWarmTint.withValues(alpha: 0.8),
-                    Colors.white.withValues(alpha: 0.0),
-                  ],
-                ),
-              ),
-            ),
-          ),
 
-          Padding(
-            padding: EdgeInsets.symmetric(
-              horizontal: widget.isDesktop ? 60 : 24,
-              vertical: widget.isDesktop ? 60 : 40,
-            ),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1240),
-                child: widget.isDesktop
-                    ? Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // 50% Left Side
-                          Expanded(
-                            flex: 5,
-                            child: _buildHeroText(screenW),
-                          ),
-                          const SizedBox(width: 50),
-                          // 50% Right Side (Centerpiece 3D Crystal Animation)
-                          Expanded(
-                            flex: 5,
-                            child: _buildHeroVisual(screenW),
-                          ),
-                        ],
-                      )
-                    : Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _buildHeroText(screenW),
-                          const SizedBox(height: 48),
-                          _buildHeroVisual(screenW),
-                        ],
+            // ── LAYER 2: Left-to-Right Blur Map Layer ────────────────────────
+            // Left Edge: 120px blur, Left Center: 80px blur, Center: 40px blur, Right: 0px
+            Positioned.fill(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final w = constraints.maxWidth;
+                  return Stack(
+                    children: [
+                      // High diffusion blur on far left
+                      Positioned(
+                        top: 0,
+                        bottom: 0,
+                        left: 0,
+                        width: w * 0.45,
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 45, sigmaY: 45),
+                          child: const SizedBox.expand(),
+                        ),
                       ),
+                      // Mid diffusion blur
+                      Positioned(
+                        top: 0,
+                        bottom: 0,
+                        left: w * 0.25,
+                        width: w * 0.35,
+                        child: BackdropFilter(
+                          filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
+                          child: const SizedBox.expand(),
+                        ),
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
-          ),
-        ],
+
+            // ── LAYER 3: Visibility Gradient Mask ─────────────────────────────
+            // Left Edge: 0% visibility (100% white)
+            // Left Center: 10% visibility (90% white)
+            // Center: 35% visibility (65% white)
+            // Right Center: 70% visibility (30% white)
+            // Right Edge: 100% visibility (0% white)
+            Positioned.fill(
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    stops: [0.0, 0.25, 0.50, 0.75, 1.0],
+                    colors: [
+                      Color(0xFFFFFFFF), // Left Edge: 100% white
+                      Color(0xE6FFFFFF), // Left Center: 90% white
+                      Color(0xA6FFFFFF), // Center: 65% white
+                      Color(0x4DFFFFFF), // Right Center: 30% white
+                      Color(0x00FFFFFF), // Right Edge: 0% white (fully visible)
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // ── LAYER 4: Top & Bottom Edge Seamless Dissolves ─────────────────
+            // Melts into pure #FFFFFF seamlessly
+            Positioned.fill(
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    stops: [0.0, 0.08, 0.90, 1.0],
+                    colors: [
+                      Color(0xFFFFFFFF),
+                      Color(0x00FFFFFF),
+                      Color(0x00FFFFFF),
+                      Color(0xFFFFFFFF),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // ── LAYER 5: Foreground Living Editorial Content ───────────────────
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: widget.isDesktop ? 60 : 24,
+                vertical: widget.isDesktop ? 120 : 60,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1240),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Left 55% holds content, allowing animation to sit beneath & behind
+                        Expanded(
+                          flex: widget.isDesktop ? 6 : 10,
+                          child: _buildHeroText(screenW),
+                        ),
+                        if (widget.isDesktop)
+                          const Expanded(
+                            flex: 4,
+                            child: SizedBox.shrink(), // Allows right living visual to shine
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -512,7 +564,7 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
 
         const SizedBox(height: 6),
 
-        // Animated Morphing Keyword with Subtle Champagne-Gold Gradient
+        // Animated Morphing Keyword with Platinum / Obsidian Specular Gradient
         AnimatedBuilder(
           animation: _animController,
           builder: (context, child) {
@@ -522,7 +574,7 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
                 opacity: _opacityAnimation.value,
                 child: ShaderMask(
                   shaderCallback: (bounds) {
-                    return LandingTheme.textGoldGradient.createShader(bounds);
+                    return LandingTheme.textPlatinumGradient.createShader(bounds);
                   },
                   child: Text(
                     _keywords[_currentIndex],
@@ -552,19 +604,19 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
           spacing: 16,
           runSpacing: 14,
           children: [
-            // Primary CTA: Request Consultation
+            // Primary CTA: Request Consultation (Obsidian & Platinum)
             GestureDetector(
               onTap: () => widget.launchWhatsApp('Hello, I would like to request an institutional valuation consultation with Pro Valuer.'),
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
                 decoration: BoxDecoration(
-                  gradient: LandingTheme.goldAccentGradient,
+                  gradient: LandingTheme.platinumButtonGradient,
                   borderRadius: BorderRadius.circular(100),
-                  boxShadow: [
+                  boxShadow: const [
                     BoxShadow(
-                      color: LandingTheme.primaryAccent.withValues(alpha: 0.32),
+                      color: Color(0x240F172A),
                       blurRadius: 20,
-                      offset: const Offset(0, 6),
+                      offset: Offset(0, 6),
                     ),
                   ],
                 ),
@@ -593,12 +645,12 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
                 decoration: BoxDecoration(
-                  color: LandingTheme.softSurface,
+                  color: LandingTheme.pearlWhite,
                   borderRadius: BorderRadius.circular(100),
-                  border: Border.all(color: const Color(0x4DC6A76A), width: 1.2),
+                  border: Border.all(color: const Color(0xE2E8F0CC), width: 1.2),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x0A111827),
+                      color: Color(0x0A0F172A),
                       blurRadius: 16,
                       offset: Offset(0, 4),
                     ),
@@ -627,42 +679,10 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
       ],
     );
   }
-
-  Widget _buildHeroVisual(double screenW) {
-    return VisionProGlassPanel(
-      borderRadius: 28,
-      padding: const EdgeInsets.all(12),
-      customShadow: [
-        const BoxShadow(
-          color: Color(0x14111827),
-          blurRadius: 50,
-          spreadRadius: -4,
-          offset: Offset(0, 24),
-        ),
-        BoxShadow(
-          color: LandingTheme.primaryAccent.withValues(alpha: 0.16),
-          blurRadius: 40,
-          offset: const Offset(0, 10),
-        ),
-      ],
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(20),
-        child: const AspectRatio(
-          aspectRatio: 16 / 9,
-          child: HeroVideoWidget(
-            videoAssets: [
-              'assets/videos/hero_animation.mp4',
-              'assets/videos/Create_a_premium_animated_hero.mp4',
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 3. SERVICES SECTION — 6 LUXURY ARCHITECTURAL GLASS CARDS
+// 3. SERVICES SECTION — 6 LUXURY MONOCHROMATIC ARCHITECTURAL CARDS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class ServicesSection extends StatelessWidget {
@@ -768,7 +788,7 @@ class ServicesSection extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: LandingTheme.accentSubtle,
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: LandingTheme.secondaryAccent.withValues(alpha: 0.6), width: 1),
+                                  border: Border.all(color: LandingTheme.platinumHighlight, width: 1),
                                 ),
                                 child: Icon(
                                   s['icon'] as IconData,
@@ -1218,7 +1238,7 @@ class CaseStudiesSection extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 18),
-                              const Divider(height: 1, color: Color(0x29C6A76A)),
+                              const Divider(height: 1, color: Color(0x29CBD5E1)),
                               const SizedBox(height: 18),
                               Text(
                                 'Challenge',
@@ -1274,7 +1294,7 @@ class CaseStudiesSection extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 7. CREDENTIALS SECTION — CLEAN MONOCHROME & CHAMPAGNE GOLD BADGES
+// 7. CREDENTIALS SECTION — CLEAN MONOCHROME & PLATINUM BADGES
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class CredentialsSection extends StatelessWidget {
@@ -1449,7 +1469,7 @@ class CtaBanner extends StatelessWidget {
             surfaceColor: Colors.white,
             customShadow: const [
               BoxShadow(
-                color: Color(0x14111827),
+                color: Color(0x140F172A),
                 blurRadius: 40,
                 offset: Offset(0, 16),
               ),
@@ -1490,13 +1510,13 @@ class CtaBanner extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                         decoration: BoxDecoration(
-                          gradient: LandingTheme.goldAccentGradient,
+                          gradient: LandingTheme.platinumButtonGradient,
                           borderRadius: BorderRadius.circular(100),
-                          boxShadow: [
+                          boxShadow: const [
                             BoxShadow(
-                              color: LandingTheme.primaryAccent.withValues(alpha: 0.32),
+                              color: Color(0x280F172A),
                               blurRadius: 20,
-                              offset: const Offset(0, 6),
+                              offset: Offset(0, 6),
                             ),
                           ],
                         ),
@@ -1523,9 +1543,9 @@ class CtaBanner extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
                         decoration: BoxDecoration(
-                          color: LandingTheme.softSurface,
+                          color: LandingTheme.pearlWhite,
                           borderRadius: BorderRadius.circular(100),
-                          border: Border.all(color: const Color(0x4DC6A76A), width: 1.2),
+                          border: Border.all(color: const Color(0xE2E8F0CC), width: 1.2),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -1579,7 +1599,7 @@ class LandingFooter extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 1240),
           child: Column(
             children: [
-              const Divider(height: 1, color: Color(0x29C6A76A)),
+              const Divider(height: 1, color: Color(0x29CBD5E1)),
               const SizedBox(height: 32),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1591,7 +1611,7 @@ class LandingFooter extends StatelessWidget {
                         width: 24,
                         height: 24,
                         decoration: BoxDecoration(
-                          gradient: LandingTheme.goldAccentGradient,
+                          gradient: LandingTheme.platinumButtonGradient,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Center(
@@ -1688,7 +1708,7 @@ class MobileMenuDrawer extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
-                      gradient: LandingTheme.goldAccentGradient,
+                      gradient: LandingTheme.platinumButtonGradient,
                       borderRadius: BorderRadius.circular(100),
                     ),
                     child: Center(
