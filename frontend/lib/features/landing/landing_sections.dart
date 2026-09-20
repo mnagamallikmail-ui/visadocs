@@ -114,7 +114,7 @@ class GlassEyebrowBadge extends StatelessWidget {
           ],
           Text(
             label.toUpperCase(),
-            style: GoogleFonts.plusJakartaSans(
+            style: GoogleFonts.montserrat(
               fontSize: 11,
               fontWeight: FontWeight.w700,
               color: LandingTheme.textPrimary,
@@ -230,7 +230,7 @@ class LandingHeader extends StatelessWidget {
                             const SizedBox(width: 10),
                             Text(
                               'Pro Valuer',
-                              style: GoogleFonts.plusJakartaSans(
+                              style: GoogleFonts.montserrat(
                                 fontSize: 17,
                                 fontWeight: FontWeight.w800,
                                 color: LandingTheme.textPrimary,
@@ -279,7 +279,7 @@ class LandingHeader extends StatelessWidget {
                               children: [
                                 Text(
                                   'Request Consultation',
-                                  style: GoogleFonts.plusJakartaSans(
+                                  style: GoogleFonts.montserrat(
                                     fontSize: 13.5,
                                     fontWeight: FontWeight.w700,
                                     color: Colors.white,
@@ -356,7 +356,7 @@ class _HeaderClientLoginButtonState extends State<_HeaderClientLoginButton> {
               const SizedBox(width: 6),
               Text(
                 'Client Login',
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.montserrat(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
                   color: _isHovered ? const Color(0xFF2563EB) : LandingTheme.textPrimary,
@@ -383,7 +383,7 @@ class _HeaderLink extends StatelessWidget {
       onTap: onTap,
       child: Text(
         label,
-        style: GoogleFonts.inter(
+        style: GoogleFonts.montserrat(
           fontSize: 14,
           fontWeight: FontWeight.w500,
           color: LandingTheme.textSecondary,
@@ -736,7 +736,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
               const SizedBox(width: 8),
               Text(
                 'IBBI REGISTERED VALUERS • ASSET INTELLIGENCE',
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.montserrat(
                   fontSize: isCompactLaptop ? 11.0 : 11.5,
                   fontWeight: FontWeight.w700,
                   color: LandingTheme.textPrimary,
@@ -752,7 +752,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
         // Hero Headline (High-Contrast Obsidian Charcoal Slate)
         Text(
           'Independent Valuation\nFor',
-          style: GoogleFonts.plusJakartaSans(
+          style: GoogleFonts.montserrat(
             fontSize: headlineSize,
             fontWeight: FontWeight.w800,
             color: LandingTheme.textPrimary,
@@ -763,7 +763,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
 
         SizedBox(height: keywordGap),
 
-        // Rotating Morphing Keyword (Platinum Obsidian Gradient)
+        // Rotating Morphing Keyword (Solid Deep Teal)
         AnimatedBuilder(
           animation: _keywordAnimController,
           builder: (context, child) {
@@ -771,19 +771,14 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
               offset: Offset(0, _keywordSlideAnimation.value),
               child: Opacity(
                 opacity: _keywordOpacityAnimation.value,
-                child: ShaderMask(
-                  shaderCallback: (bounds) {
-                    return LandingTheme.textPlatinumGradient.createShader(bounds);
-                  },
-                  child: Text(
-                    _keywords[_currentKeywordIndex],
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: keywordSize,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white, // Masked with dark platinum gradient
-                      letterSpacing: -1.8,
-                      height: 1.08,
-                    ),
+                child: Text(
+                  _keywords[_currentKeywordIndex],
+                  style: GoogleFonts.montserrat(
+                    fontSize: keywordSize,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF005C5C), // Solid Deep Teal
+                    letterSpacing: -1.8,
+                    height: 1.08,
                   ),
                 ),
               ),
@@ -798,9 +793,9 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
           constraints: BoxConstraints(maxWidth: isCompactLaptop ? 560 : 620),
           child: Text(
             'Independent statutory valuation and asset intelligence for leading banks, NBFCs, private equity funds, insolvency professionals, and public corporations.',
-            style: GoogleFonts.inter(
+            style: GoogleFonts.montserrat(
               fontSize: bodySize,
-              fontWeight: FontWeight.w400,
+              fontWeight: FontWeight.w500,
               color: LandingTheme.textSecondary,
               letterSpacing: -0.2,
               height: 1.55,
@@ -828,7 +823,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
           spacing: 12,
           runSpacing: 10,
           children: [
-            // Primary CTA: Request Consultation (Obsidian Platinum Gradient)
+            // Primary CTA: Request Consultation (Solid Deep Teal)
             GestureDetector(
               onTap: () => widget.launchWhatsApp('Hello, I would like to request an institutional valuation consultation with Pro Valuer.'),
               child: Container(
@@ -837,11 +832,11 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                   vertical: isCompactLaptop ? 13 : 16,
                 ),
                 decoration: BoxDecoration(
-                  gradient: LandingTheme.platinumButtonGradient,
+                  color: const Color(0xFF005C5C), // Solid Deep Teal
                   borderRadius: BorderRadius.circular(100),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x240F172A),
+                      color: Color(0x2E005C5C),
                       blurRadius: 20,
                       offset: Offset(0, 6),
                     ),
@@ -852,7 +847,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                   children: [
                     Text(
                       'Request Consultation',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.montserrat(
                         fontSize: isCompactLaptop ? 13.5 : 14.5,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -866,46 +861,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
               ),
             ),
 
-            // Secondary CTA: Client Login (Midnight Navy Pill)
-            GestureDetector(
-              onTap: () => context.go('/login'),
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isCompactLaptop ? 20 : 24,
-                  vertical: isCompactLaptop ? 13 : 16,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A), // Midnight Navy
-                  borderRadius: BorderRadius.circular(100),
-                  border: Border.all(color: const Color(0x33334155), width: 1.2),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x140F172A),
-                      blurRadius: 16,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.lock_outline_rounded, size: 15, color: Colors.white),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Client Login',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: isCompactLaptop ? 13.5 : 14.5,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                        letterSpacing: -0.2,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-
-            // Tertiary CTA: View Sample Report (Pearl White Pill)
+            // Secondary CTA: View Sample Report (High-Contrast Ghost Button)
             GestureDetector(
               onTap: () => widget.launchWhatsApp('Hello, please provide the sample institutional valuation report.'),
               child: Container(
@@ -914,9 +870,9 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                   vertical: isCompactLaptop ? 13 : 16,
                 ),
                 decoration: BoxDecoration(
-                  color: LandingTheme.pearlWhite,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(100),
-                  border: Border.all(color: const Color(0xE2E8F0CC), width: 1.2),
+                  border: Border.all(color: const Color(0xFF005C5C), width: 1.5),
                   boxShadow: const [
                     BoxShadow(
                       color: Color(0x0A0F172A),
@@ -930,15 +886,15 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                   children: [
                     Text(
                       'Sample Report',
-                      style: GoogleFonts.plusJakartaSans(
+                      style: GoogleFonts.montserrat(
                         fontSize: isCompactLaptop ? 13.0 : 14.0,
                         fontWeight: FontWeight.w600,
-                        color: LandingTheme.textPrimary,
+                        color: const Color(0xFF005C5C),
                         letterSpacing: -0.2,
                       ),
                     ),
                     const SizedBox(width: 6),
-                    const Icon(Icons.arrow_outward_rounded, size: 14, color: LandingTheme.textSecondary),
+                    const Icon(Icons.arrow_outward_rounded, size: 14, color: Color(0xFF005C5C)),
                   ],
                 ),
               ),
@@ -967,7 +923,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
           const SizedBox(width: 6),
           Text(
             text,
-            style: GoogleFonts.inter(
+            style: GoogleFonts.montserrat(
               fontSize: isCompact ? 11.5 : 12.5,
               fontWeight: FontWeight.w600,
               color: LandingTheme.textPrimary,
@@ -997,35 +953,35 @@ class _ServiceCardData {
 const List<_ServiceCardData> _cascadingServiceCards = [
   _ServiceCardData(
     title: 'Visa & Immigration Valuations',
-    backgroundColor: Color(0xFFE2EDFD), // Soft Ice Blue
+    backgroundColor: Color(0xFFFFFFFF),
   ),
   _ServiceCardData(
     title: 'Bank Security Valuations',
-    backgroundColor: Color(0xFFDCFCE7), // Soft Mint
+    backgroundColor: Color(0xFFFFFFFF),
   ),
   _ServiceCardData(
     title: 'NCLT Transaction Support',
-    backgroundColor: Color(0xFFEDE9FE), // Soft Lavender
+    backgroundColor: Color(0xFFFFFFFF),
   ),
   _ServiceCardData(
     title: 'Valuations under IBC',
-    backgroundColor: Color(0xFFFFEDD5), // Soft Peach
+    backgroundColor: Color(0xFFFFFFFF),
   ),
   _ServiceCardData(
     title: 'Chartered Engineer Services',
-    backgroundColor: Color(0xFFE5EDE8), // Soft Sage
+    backgroundColor: Color(0xFFFFFFFF),
   ),
   _ServiceCardData(
     title: 'Net Worth Certifications',
-    backgroundColor: Color(0xFFE0F2FE), // Soft Powder Blue
+    backgroundColor: Color(0xFFFFFFFF),
   ),
   _ServiceCardData(
     title: 'Valuation of Shares',
-    backgroundColor: Color(0xFFF5EDFD), // Soft Lilac
+    backgroundColor: Color(0xFFFFFFFF),
   ),
   _ServiceCardData(
     title: 'Lenders Independent Engineer Services',
-    backgroundColor: Color(0xFFFEF3DE), // Soft Sand / Stone
+    backgroundColor: Color(0xFFFFFFFF),
   ),
 ];
 
@@ -1153,7 +1109,7 @@ class _CascadingServiceStackState extends State<_CascadingServiceStack> with Sin
               const SizedBox(width: 8),
               Text(
                 'VALUATION EXPERTISE',
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.montserrat(
                   fontSize: widget.isCompact ? 11.5 : 12.5,
                   fontWeight: FontWeight.w800,
                   color: Colors.white,
@@ -1164,7 +1120,7 @@ class _CascadingServiceStackState extends State<_CascadingServiceStack> with Sin
           ),
         ),
 
-        const SizedBox(height: 1.5),
+        const SizedBox(height: 1.0),
 
         // ── SERVICE TILES (STAGGERED DROP, EXPAND & CONTINUOUS LOOP) ───────
         AnimatedBuilder(
@@ -1206,7 +1162,7 @@ class _CascadingServiceStackState extends State<_CascadingServiceStack> with Sin
                 final double opacity = (rawProgress / 0.30).clamp(0.0, 1.0);
 
                 return Padding(
-                  padding: EdgeInsets.only(bottom: isLast ? 0.0 : 1.5),
+                  padding: EdgeInsets.only(bottom: isLast ? 0.0 : 1.0),
                   child: ClipRect(
                     child: Align(
                       alignment: Alignment.topCenter,
@@ -1282,10 +1238,16 @@ class _ServiceCardTileState extends State<_ServiceCardTile> {
                   bottomRight: Radius.circular(8),
                 )
               : BorderRadius.circular(2),
+          border: const Border(
+            bottom: BorderSide(
+              color: Color(0xFFE2E8F0),
+              width: 1.0,
+            ),
+          ),
           boxShadow: _isHovered
               ? const [
                   BoxShadow(
-                    color: Color(0x120F172A),
+                    color: Color(0x0A005C5C),
                     blurRadius: 6,
                     offset: Offset(0, 2),
                   ),
@@ -1297,7 +1259,7 @@ class _ServiceCardTileState extends State<_ServiceCardTile> {
             Expanded(
               child: Text(
                 widget.title,
-                style: GoogleFonts.plusJakartaSans(
+                style: GoogleFonts.montserrat(
                   fontSize: widget.isCompact ? 13.0 : 14.0,
                   fontWeight: FontWeight.w700,
                   color: const Color(0xFF0F172A),
@@ -1310,13 +1272,13 @@ class _ServiceCardTileState extends State<_ServiceCardTile> {
             const SizedBox(width: 8),
             AnimatedOpacity(
               duration: const Duration(milliseconds: 160),
-              opacity: _isHovered ? 0.9 : 0.45,
+              opacity: _isHovered ? 1.0 : 0.45,
               child: Transform.translate(
                 offset: Offset(_isHovered ? 2.0 : 0.0, 0),
                 child: Icon(
                   Icons.chevron_right_rounded,
                   size: widget.isCompact ? 15 : 17,
-                  color: const Color(0xFF0F172A),
+                  color: _isHovered ? const Color(0xFF005C5C) : const Color(0xFF0F172A),
                 ),
               ),
             ),
@@ -1450,7 +1412,7 @@ class ServicesSection extends StatelessWidget {
                               const SizedBox(height: 12),
                               Text(
                                 s['desc'] as String,
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.montserrat(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w400,
                                   color: LandingTheme.textSecondary,
@@ -1465,7 +1427,7 @@ class ServicesSection extends StatelessWidget {
                                   children: [
                                     Text(
                                       'Learn more',
-                                      style: GoogleFonts.plusJakartaSans(
+                                      style: GoogleFonts.montserrat(
                                         fontSize: 13.5,
                                         fontWeight: FontWeight.w700,
                                         color: LandingTheme.primaryAccent,
@@ -1597,7 +1559,7 @@ class WhyProValuerSection extends StatelessWidget {
                               const SizedBox(height: 20),
                               Text(
                                 p['sub'] as String,
-                                style: GoogleFonts.plusJakartaSans(
+                                style: GoogleFonts.montserrat(
                                   fontSize: 10.5,
                                   fontWeight: FontWeight.w700,
                                   color: LandingTheme.primaryAccent,
@@ -1607,7 +1569,7 @@ class WhyProValuerSection extends StatelessWidget {
                               const SizedBox(height: 6),
                               Text(
                                 p['title'] as String,
-                                style: GoogleFonts.plusJakartaSans(
+                                style: GoogleFonts.montserrat(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w700,
                                   color: LandingTheme.textPrimary,
@@ -1617,7 +1579,7 @@ class WhyProValuerSection extends StatelessWidget {
                               const SizedBox(height: 10),
                               Text(
                                 p['desc'] as String,
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.montserrat(
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w400,
                                   color: LandingTheme.textSecondary,
@@ -1726,7 +1688,7 @@ class ProcessSection extends StatelessWidget {
                             children: [
                               Text(
                                 s['step']!,
-                                style: GoogleFonts.plusJakartaSans(
+                                style: GoogleFonts.montserrat(
                                   fontSize: 32,
                                   fontWeight: FontWeight.w800,
                                   color: LandingTheme.primaryAccent,
@@ -1736,7 +1698,7 @@ class ProcessSection extends StatelessWidget {
                               const SizedBox(height: 16),
                               Text(
                                 s['title']!,
-                                style: GoogleFonts.plusJakartaSans(
+                                style: GoogleFonts.montserrat(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w700,
                                   color: LandingTheme.textPrimary,
@@ -1746,7 +1708,7 @@ class ProcessSection extends StatelessWidget {
                               const SizedBox(height: 10),
                               Text(
                                 s['desc']!,
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.montserrat(
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.w400,
                                   color: LandingTheme.textSecondary,
@@ -1867,7 +1829,7 @@ class CredentialsSection extends StatelessWidget {
                                   Expanded(
                                     child: Text(
                                       c['title']!,
-                                      style: GoogleFonts.plusJakartaSans(
+                                      style: GoogleFonts.montserrat(
                                         fontSize: 15,
                                         fontWeight: FontWeight.w700,
                                         color: LandingTheme.textPrimary,
@@ -1880,7 +1842,7 @@ class CredentialsSection extends StatelessWidget {
                               const SizedBox(height: 8),
                               Text(
                                 c['sub']!,
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.montserrat(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                   color: LandingTheme.primaryAccent,
@@ -1889,7 +1851,7 @@ class CredentialsSection extends StatelessWidget {
                               const SizedBox(height: 6),
                               Text(
                                 c['desc']!,
-                                style: GoogleFonts.inter(
+                                style: GoogleFonts.montserrat(
                                   fontSize: 12.5,
                                   fontWeight: FontWeight.w400,
                                   color: LandingTheme.textSecondary,
@@ -1957,7 +1919,7 @@ class CtaBanner extends StatelessWidget {
                 Text(
                   'Ready for a Valuation Report That\nWithstands Every Level of Scrutiny?',
                   textAlign: TextAlign.center,
-                  style: GoogleFonts.plusJakartaSans(
+                  style: GoogleFonts.montserrat(
                     fontSize: isDesktop ? 40 : 26,
                     fontWeight: FontWeight.w800,
                     color: LandingTheme.textPrimary,
@@ -2001,7 +1963,7 @@ class CtaBanner extends StatelessWidget {
                           children: [
                             Text(
                               'Request Consultation',
-                              style: GoogleFonts.plusJakartaSans(
+                              style: GoogleFonts.montserrat(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
                                 color: Colors.white,
@@ -2028,7 +1990,7 @@ class CtaBanner extends StatelessWidget {
                           children: [
                             Text(
                               'View Sample Report',
-                              style: GoogleFonts.plusJakartaSans(
+                              style: GoogleFonts.montserrat(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
                                 color: LandingTheme.textPrimary,
@@ -2104,7 +2066,7 @@ class LandingFooter extends StatelessWidget {
                       const SizedBox(width: 10),
                       Text(
                         'Pro Valuer',
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.montserrat(
                           fontSize: 15,
                           fontWeight: FontWeight.w800,
                           color: LandingTheme.textPrimary,
@@ -2115,7 +2077,7 @@ class LandingFooter extends StatelessWidget {
                   ),
                   Text(
                     '© ${DateTime.now().year} Pro Valuer. All rights reserved. IBBI Registered Valuers.',
-                    style: GoogleFonts.inter(
+                    style: GoogleFonts.montserrat(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w400,
                       color: LandingTheme.textMuted,
@@ -2155,7 +2117,7 @@ class MobileMenuDrawer extends StatelessWidget {
                 children: [
                   Text(
                     'Pro Valuer',
-                    style: GoogleFonts.plusJakartaSans(
+                    style: GoogleFonts.montserrat(
                       fontSize: 18,
                       fontWeight: FontWeight.w800,
                       color: LandingTheme.textPrimary,
@@ -2189,7 +2151,7 @@ class MobileMenuDrawer extends StatelessWidget {
                     child: Center(
                       child: Text(
                         'Request Consultation',
-                        style: GoogleFonts.plusJakartaSans(
+                        style: GoogleFonts.montserrat(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
@@ -2213,7 +2175,7 @@ class MobileMenuDrawer extends StatelessWidget {
         onTap: () => Navigator.of(context).pop(),
         child: Text(
           title,
-          style: GoogleFonts.inter(
+          style: GoogleFonts.montserrat(
             fontSize: 16,
             fontWeight: FontWeight.w500,
             color: LandingTheme.textPrimary,
