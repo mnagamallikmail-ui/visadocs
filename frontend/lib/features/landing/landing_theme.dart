@@ -1,36 +1,38 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-/// Ultra-Luxury Modern Design Tokens (Apple Vision Pro, Stripe, Linear, Arc)
-/// Pure white luxury experience, crystal glassmorphism, editorial typography.
+/// Ultra-Luxury Architectural & Institutional Design Tokens
+/// Inspired by: Apple Vision Pro, Bentley, Porsche Design, Aman Resorts,
+/// Four Seasons Residences, Sotheby's International Realty, Foster + Partners.
+/// Pure white background, warm champagne-gold accents, architectural crystal glassmorphism.
 class LandingTheme {
   LandingTheme._();
 
-  // ── Pure White & Ambient Spatial Palette ───────────────────────────────────
+  // ── Pure White & Warm Ambient Spatial Palette ──────────────────────────────
   static const Color primaryBg = Color(0xFFFFFFFF); // Pure White Base
-  static const Color secondaryBg = Color(0xFFF8FAFC); // Subtle Ambient Slate
-  static const Color tertiaryBg = Color(0xFFF1F5F9); // Light Crystal Tint
-  static const Color ambientBlueTint = Color(0xFFEFF6FF); // Ethereal Blue Glow
+  static const Color secondaryBg = Color(0xFFFAF8F4); // Warm Sand / Alabaster Ambient
+  static const Color tertiaryBg = Color(0xFFF5F1EA); // Warm Crystal Tint
+  static const Color ambientWarmTint = Color(0xFFFBF9F5); // Ethereal Warm Glow
 
   // ── Apple Vision Pro Crystal Glass Materials ──────────────────────────────
-  static const Color surfaceGlass = Color(0x8CFFFFFF); // rgba(255,255,255,0.55) - Liquid Glass
-  static const Color surfaceGlassDense = Color(0xD9FFFFFF); // rgba(255,255,255,0.85) - High Clarity
-  static const Color surfaceGlassUltra = Color(0xF2FFFFFF); // rgba(255,255,255,0.95) - Frosted Crystal
-  static const Color surfaceGlassLight = Color(0x4DFFFFFF); // rgba(255,255,255,0.30) - Spatial Float
+  static const Color surfaceGlass = Color(0x99FFFFFF); // rgba(255,255,255,0.60) - Liquid Glass
+  static const Color surfaceGlassDense = Color(0xEBFFFFFF); // rgba(255,255,255,0.92) - High Clarity
+  static const Color surfaceGlassUltra = Color(0xF7FFFFFF); // rgba(255,255,255,0.97) - Frosted Crystal
+  static const Color surfaceGlassLight = Color(0x59FFFFFF); // rgba(255,255,255,0.35) - Spatial Float
 
-  // ── Refined Accent System ──────────────────────────────────────────────────
-  static const Color primaryAccent = Color(0xFF2563EB); // Royal Blue
-  static const Color accentLight = Color(0xFF93C5FD); // Crystalline Sky Blue
-  static const Color secondaryAccent = Color(0xFF3B82F6); // Electric Accent
-  static const Color accentGlow = Color(0xFF60A5FA); // Radiant Light Sweep
-  static const Color accentSubtle = Color(0xFFEFF6FF); // Delicate Blue Backing
+  // ── Luxury Champagne Gold & Architectural Bronze System ───────────────────
+  static const Color primaryAccent = Color(0xFFC6A76A); // Champagne Gold / Bronze
+  static const Color secondaryAccent = Color(0xFFE8D3A5); // Soft Champagne Gold
+  static const Color glassReflection = Color(0xFFF4E8CB); // Warm Crystal Light
+  static const Color softSurface = Color(0xFFFAF8F4); // Alabaster Surface
+  static const Color accentSubtle = Color(0xFFFBF8F2); // Warm Ivory Backing
 
   // ── Crystal Edge & Specular Borders ────────────────────────────────────────
-  static const Color hairlineBorder = Color(0x99E2E8F0); // Delicate Hairline Border
-  static const Color glassBorderTop = Color(0xE6FFFFFF); // Specular Top Highlight (90% White)
-  static const Color glassBorderBottom = Color(0x3394A3B8); // Subtle Shadow Catch (20% Slate)
-  static const Color borderHover = Color(0x8093C5FD); // Light-catching active rim
-  static const Color borderActive = Color(0xFF2563EB); // Focus edge
+  static const Color hairlineBorder = Color(0x33C6A76A); // Delicate Gold Hairline
+  static const Color glassBorderTop = Color(0xF2FFFFFF); // Specular Top Highlight (95% White)
+  static const Color glassBorderBottom = Color(0x29C6A76A); // Warm Shadow Catch
+  static const Color borderHover = Color(0x80C6A76A); // Gold Light-catching active rim
+  static const Color borderActive = Color(0xFFC6A76A); // Focus edge
 
   // ── High-Contrast Luxury Typography ────────────────────────────────────────
   static const Color textPrimary = Color(0xFF111827); // Deepest Charcoal Slate
@@ -38,62 +40,62 @@ class LandingTheme {
   static const Color textMuted = Color(0xFF9CA3AF); // Subdued Caption Grey
   static const Color textTertiary = Color(0xFFCBD5E1); // Micro Annotation Grey
 
-  // ── Apple Vision Pro Glass Gradients ──────────────────────────────────────
-  static const LinearGradient glassSpecularGradient = LinearGradient(
+  // ── Architectural Champagne Gold Gradients ────────────────────────────────
+  static const LinearGradient goldAccentGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xCCFFFFFF), // 80% white highlight
-      Color(0x66FFFFFF), // 40% white midtone
-      Color(0x40F8FAFC), // soft ambient falloff
+      Color(0xFFC6A76A), // Rich Champagne Gold
+      Color(0xFFDFCA9B), // Luminous Highlight Gold
     ],
   );
 
-  static const LinearGradient blueAccentGradient = LinearGradient(
+  static const LinearGradient goldSpecularGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xFF2563EB),
-      Color(0xFF3B82F6),
+      Color(0xFFFAF8F4), // Alabaster
+      Color(0xFFF4E8CB), // Warm Crystal
+      Color(0xFFFFFFFF), // White Specular
     ],
   );
 
-  static const LinearGradient textShimmerGradient = LinearGradient(
+  static const LinearGradient textGoldGradient = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      Color(0xFF111827),
-      Color(0xFF2563EB),
-      Color(0xFF111827),
+      Color(0xFFB8934C), // Deep Bronze Gold
+      Color(0xFFC6A76A), // Pure Champagne Gold
+      Color(0xFFE8D3A5), // Soft Gold Reflection
     ],
   );
 
   // ── Multi-Layer Physical Crystal Shadows ──────────────────────────────────
   static const List<BoxShadow> glassShadow = [
     BoxShadow(
-      color: Color(0x0A0F172A), // 4% ambient black
-      blurRadius: 32,
+      color: Color(0x0A111827), // 4% ambient dark slate
+      blurRadius: 36,
       spreadRadius: 0,
       offset: Offset(0, 16),
     ),
     BoxShadow(
-      color: Color(0x050F172A), // 2% contact shadow
+      color: Color(0x0F000000), // 6% contact shadow
       blurRadius: 8,
       spreadRadius: 0,
-      offset: Offset(0, 4),
+      offset: Offset(0, 2),
     ),
   ];
 
   static const List<BoxShadow> hoverShadow = [
     BoxShadow(
-      color: Color(0x140F172A), // 8% lifted shadow
-      blurRadius: 40,
+      color: Color(0x14111827), // 8% lifted shadow
+      blurRadius: 44,
       spreadRadius: -2,
       offset: Offset(0, 24),
     ),
     BoxShadow(
-      color: Color(0x1A2563EB), // 10% ethereal blue caustics
-      blurRadius: 30,
+      color: Color(0x24C6A76A), // 14% warm champagne gold caustics
+      blurRadius: 32,
       spreadRadius: 0,
       offset: Offset(0, 8),
     ),
@@ -101,7 +103,7 @@ class LandingTheme {
 
   static const List<BoxShadow> subtleShadow = [
     BoxShadow(
-      color: Color(0x080F172A),
+      color: Color(0x08111827),
       blurRadius: 16,
       offset: Offset(0, 4),
     ),
@@ -109,8 +111,8 @@ class LandingTheme {
 
   static const List<BoxShadow> buttonShadow = [
     BoxShadow(
-      color: Color(0x332563EB),
-      blurRadius: 20,
+      color: Color(0x38C6A76A),
+      blurRadius: 22,
       offset: Offset(0, 8),
     ),
   ];

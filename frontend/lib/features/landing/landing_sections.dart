@@ -8,14 +8,14 @@ import 'landing_theme.dart';
 import 'widgets/hero_video_widget.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// APPLE VISION PRO GLASS UTILITIES
+// APPLE VISION PRO / ARCHITECTURAL LUXURY GLASS UTILITIES
 // ═══════════════════════════════════════════════════════════════════════════════
 
 /// Spatial Glass Panel with Apple Vision Pro physical glass properties:
-/// - 40px-60px backdrop blur
-/// - Specular top edge highlight fading into subtle refraction
+/// - 45px backdrop blur
+/// - Specular top edge highlight fading into subtle warm refraction
 /// - Layered ambient and contact shadows
-/// - Physical glass thickness feel
+/// - Physical crystal thickness feel
 class VisionProGlassPanel extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry? padding;
@@ -52,11 +52,11 @@ class VisionProGlassPanel extends StatelessWidget {
               borderRadius: BorderRadius.circular(borderRadius),
               border: hasSpecularBorder
                   ? Border.all(
-                      color: const Color(0xE6FFFFFF),
+                      color: const Color(0xF2FFFFFF),
                       width: 1.2,
                     )
                   : Border.all(
-                      color: const Color(0x33E2E8F0),
+                      color: const Color(0x33C6A76A),
                       width: 1.0,
                     ),
             ),
@@ -68,7 +68,7 @@ class VisionProGlassPanel extends StatelessWidget {
   }
 }
 
-/// Small Glass Eyebrow Badge
+/// Small Glass Eyebrow Badge (Champagne Gold / Alabaster)
 class GlassEyebrowBadge extends StatelessWidget {
   final String label;
   final IconData? icon;
@@ -84,12 +84,12 @@ class GlassEyebrowBadge extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
       decoration: BoxDecoration(
-        color: const Color(0xF2FFFFFF),
+        color: LandingTheme.softSurface,
         borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: const Color(0xE2E8F0CC), width: 1.0),
+        border: Border.all(color: const Color(0x4DC6A76A), width: 1.0),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0A0F172A),
+            color: Color(0x0A111827),
             blurRadius: 10,
             offset: Offset(0, 2),
           ),
@@ -161,16 +161,16 @@ class LandingHeader extends StatelessWidget {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(100),
               boxShadow: isScrolled
-                  ? [
-                      const BoxShadow(
-                        color: Color(0x0F0F172A),
+                  ? const [
+                      BoxShadow(
+                        color: Color(0x0F111827),
                         blurRadius: 30,
                         offset: Offset(0, 10),
                       ),
                     ]
-                  : [
-                      const BoxShadow(
-                        color: Color(0x080F172A),
+                  : const [
+                      BoxShadow(
+                        color: Color(0x08111827),
                         blurRadius: 20,
                         offset: Offset(0, 4),
                       ),
@@ -185,17 +185,17 @@ class LandingHeader extends StatelessWidget {
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   decoration: BoxDecoration(
                     color: isScrolled
-                        ? const Color(0xE6FFFFFF)
-                        : const Color(0xBFFFFFFF),
+                        ? const Color(0xEBFFFFFF)
+                        : const Color(0xC7FFFFFF),
                     borderRadius: BorderRadius.circular(100),
                     border: Border.all(
-                      color: const Color(0xE6FFFFFF),
+                      color: const Color(0xF2FFFFFF),
                       width: 1.2,
                     ),
                   ),
                   child: Row(
                     children: [
-                      // Brand Logo Monogram
+                      // Brand Logo Monogram (Champagne Gold)
                       GestureDetector(
                         onTap: () => context.go('/'),
                         child: Row(
@@ -205,7 +205,7 @@ class LandingHeader extends StatelessWidget {
                               width: 32,
                               height: 32,
                               decoration: BoxDecoration(
-                                gradient: LandingTheme.blueAccentGradient,
+                                gradient: LandingTheme.goldAccentGradient,
                                 borderRadius: BorderRadius.circular(8),
                                 boxShadow: [
                                   BoxShadow(
@@ -262,7 +262,7 @@ class LandingHeader extends StatelessWidget {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
                             decoration: BoxDecoration(
-                              gradient: LandingTheme.blueAccentGradient,
+                              gradient: LandingTheme.goldAccentGradient,
                               borderRadius: BorderRadius.circular(100),
                               boxShadow: [
                                 BoxShadow(
@@ -309,7 +309,7 @@ class LandingHeader extends StatelessWidget {
   }
 
   void _scrollTo(String id) {
-    // Smooth navigation anchor trigger
+    // Navigation anchor trigger
   }
 }
 
@@ -337,7 +337,7 @@ class _HeaderLink extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 2. HERO SECTION — 50% LEFT / 50% RIGHT APPLE VISION PRO LAYOUT
+// 2. HERO SECTION — 50% LEFT / 50% RIGHT ARCHITECTURAL LUXURY LAYOUT
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class HeroSection extends StatefulWidget {
@@ -360,9 +360,8 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
     'Land Parcels',
     'Commercial Buildings',
     'Factories',
-    'Manufacturing Facilities',
-    'Shopping Malls',
     'Industrial Assets',
+    'Shopping Malls',
     'Net Worth Certificates',
   ];
 
@@ -390,7 +389,7 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
 
     _animController.forward();
 
-    // 3.5 seconds per word as specifically required
+    // 3.5 seconds per word with Apple-quality text morphing
     _timer = Timer.periodic(const Duration(milliseconds: 3500), (timer) {
       _animController.reverse().then((_) {
         setState(() {
@@ -417,7 +416,7 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
       color: LandingTheme.primaryBg,
       child: Stack(
         children: [
-          // Ethereal ambient light sweeps
+          // Ethereal ambient warm lighting
           Positioned(
             top: -100,
             right: screenW * 0.1,
@@ -428,7 +427,7 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    LandingTheme.accentLight.withValues(alpha: 0.20),
+                    LandingTheme.glassReflection.withValues(alpha: 0.45),
                     Colors.white.withValues(alpha: 0.0),
                   ],
                 ),
@@ -445,7 +444,7 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
                   colors: [
-                    LandingTheme.ambientBlueTint.withValues(alpha: 0.6),
+                    LandingTheme.ambientWarmTint.withValues(alpha: 0.8),
                     Colors.white.withValues(alpha: 0.0),
                   ],
                 ),
@@ -471,7 +470,7 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
                             child: _buildHeroText(screenW),
                           ),
                           const SizedBox(width: 50),
-                          // 50% Right Side (Centerpiece 3D Glass Animation)
+                          // 50% Right Side (Centerpiece 3D Crystal Animation)
                           Expanded(
                             flex: 5,
                             child: _buildHeroVisual(screenW),
@@ -513,7 +512,7 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
 
         const SizedBox(height: 6),
 
-        // Animated Morphing Keyword
+        // Animated Morphing Keyword with Subtle Champagne-Gold Gradient
         AnimatedBuilder(
           animation: _animController,
           builder: (context, child) {
@@ -523,7 +522,7 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
                 opacity: _opacityAnimation.value,
                 child: ShaderMask(
                   shaderCallback: (bounds) {
-                    return LandingTheme.blueAccentGradient.createShader(bounds);
+                    return LandingTheme.textGoldGradient.createShader(bounds);
                   },
                   child: Text(
                     _keywords[_currentIndex],
@@ -559,7 +558,7 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
                 decoration: BoxDecoration(
-                  gradient: LandingTheme.blueAccentGradient,
+                  gradient: LandingTheme.goldAccentGradient,
                   borderRadius: BorderRadius.circular(100),
                   boxShadow: [
                     BoxShadow(
@@ -594,12 +593,12 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
                 decoration: BoxDecoration(
-                  color: const Color(0xF2FFFFFF),
+                  color: LandingTheme.softSurface,
                   borderRadius: BorderRadius.circular(100),
-                  border: Border.all(color: const Color(0xE2E8F0CC), width: 1.2),
+                  border: Border.all(color: const Color(0x4DC6A76A), width: 1.2),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x0A0F172A),
+                      color: Color(0x0A111827),
                       blurRadius: 16,
                       offset: Offset(0, 4),
                     ),
@@ -635,13 +634,13 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
       padding: const EdgeInsets.all(12),
       customShadow: [
         const BoxShadow(
-          color: Color(0x140F172A),
+          color: Color(0x14111827),
           blurRadius: 50,
           spreadRadius: -4,
           offset: Offset(0, 24),
         ),
         BoxShadow(
-          color: LandingTheme.primaryAccent.withValues(alpha: 0.12),
+          color: LandingTheme.primaryAccent.withValues(alpha: 0.16),
           blurRadius: 40,
           offset: const Offset(0, 10),
         ),
@@ -663,7 +662,7 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 3. SERVICES SECTION — 4-6 LUXURY FLOATING GLASS CARDS
+// 3. SERVICES SECTION — 6 LUXURY ARCHITECTURAL GLASS CARDS
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class ServicesSection extends StatelessWidget {
@@ -769,7 +768,7 @@ class ServicesSection extends StatelessWidget {
                                 decoration: BoxDecoration(
                                   color: LandingTheme.accentSubtle,
                                   borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(color: LandingTheme.accentLight.withValues(alpha: 0.5), width: 1),
+                                  border: Border.all(color: LandingTheme.secondaryAccent.withValues(alpha: 0.6), width: 1),
                                 ),
                                 child: Icon(
                                   s['icon'] as IconData,
@@ -1219,7 +1218,7 @@ class CaseStudiesSection extends StatelessWidget {
                                 ),
                               ),
                               const SizedBox(height: 18),
-                              const Divider(height: 1, color: Color(0x33E2E8F0)),
+                              const Divider(height: 1, color: Color(0x29C6A76A)),
                               const SizedBox(height: 18),
                               Text(
                                 'Challenge',
@@ -1275,7 +1274,7 @@ class CaseStudiesSection extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 7. CREDENTIALS SECTION — CLEAN MONOCHROME BADGES
+// 7. CREDENTIALS SECTION — CLEAN MONOCHROME & CHAMPAGNE GOLD BADGES
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class CredentialsSection extends StatelessWidget {
@@ -1450,7 +1449,7 @@ class CtaBanner extends StatelessWidget {
             surfaceColor: Colors.white,
             customShadow: const [
               BoxShadow(
-                color: Color(0x140F172A),
+                color: Color(0x14111827),
                 blurRadius: 40,
                 offset: Offset(0, 16),
               ),
@@ -1491,7 +1490,7 @@ class CtaBanner extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                         decoration: BoxDecoration(
-                          gradient: LandingTheme.blueAccentGradient,
+                          gradient: LandingTheme.goldAccentGradient,
                           borderRadius: BorderRadius.circular(100),
                           boxShadow: [
                             BoxShadow(
@@ -1524,9 +1523,9 @@ class CtaBanner extends StatelessWidget {
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
                         decoration: BoxDecoration(
-                          color: const Color(0xF2FFFFFF),
+                          color: LandingTheme.softSurface,
                           borderRadius: BorderRadius.circular(100),
-                          border: Border.all(color: const Color(0xE2E8F0CC), width: 1.2),
+                          border: Border.all(color: const Color(0x4DC6A76A), width: 1.2),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
@@ -1580,7 +1579,7 @@ class LandingFooter extends StatelessWidget {
           constraints: const BoxConstraints(maxWidth: 1240),
           child: Column(
             children: [
-              const Divider(height: 1, color: Color(0x33E2E8F0)),
+              const Divider(height: 1, color: Color(0x29C6A76A)),
               const SizedBox(height: 32),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1592,7 +1591,7 @@ class LandingFooter extends StatelessWidget {
                         width: 24,
                         height: 24,
                         decoration: BoxDecoration(
-                          gradient: LandingTheme.blueAccentGradient,
+                          gradient: LandingTheme.goldAccentGradient,
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: const Center(
@@ -1689,7 +1688,7 @@ class MobileMenuDrawer extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
-                      gradient: LandingTheme.blueAccentGradient,
+                      gradient: LandingTheme.goldAccentGradient,
                       borderRadius: BorderRadius.circular(100),
                     ),
                     child: Center(
