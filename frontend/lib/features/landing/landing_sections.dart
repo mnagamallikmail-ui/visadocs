@@ -251,8 +251,6 @@ class LandingHeader extends StatelessWidget {
                         const SizedBox(width: 28),
                         _HeaderLink(label: 'Process', onTap: () => _scrollTo('process')),
                         const SizedBox(width: 28),
-                        _HeaderLink(label: 'Case Studies', onTap: () => _scrollTo('case-studies')),
-                        const SizedBox(width: 28),
                         _HeaderLink(label: 'Credentials', onTap: () => _scrollTo('credentials')),
                         const SizedBox(width: 32),
 
@@ -355,14 +353,13 @@ class HeroSection extends StatefulWidget {
 }
 
 class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin {
-  // Ordered sequence of 8 institutional story videos
+  // Ordered sequence of 7 institutional story videos (Video 6 excluded)
   static const List<String> _heroStoryVideos = [
     'assets/videos/hero_story/1.mp4',
     'assets/videos/hero_story/2.mp4',
     'assets/videos/hero_story/3.mp4',
     'assets/videos/hero_story/4.mp4',
     'assets/videos/hero_story/5.mp4',
-    'assets/videos/hero_story/6.mp4',
     'assets/videos/hero_story/7.mp4',
     'assets/videos/hero_story/8.mp4',
   ];
@@ -1328,177 +1325,7 @@ class ProcessSection extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 6. CASE STUDIES — MINIMAL OUTCOME-FOCUSED GLASS CARDS
-// ═══════════════════════════════════════════════════════════════════════════════
-
-class CaseStudiesSection extends StatelessWidget {
-  final bool isDesktop;
-
-  const CaseStudiesSection({super.key, required this.isDesktop});
-
-  @override
-  Widget build(BuildContext context) {
-    final double screenW = MediaQuery.of(context).size.width;
-
-    final studies = [
-      {
-        'tag': 'INFRASTRUCTURE & LOGISTICS',
-        'title': 'Maritime Bulk Port & Container Terminal',
-        'client': 'National Lending Consortium (7 Banks)',
-        'challenge': 'Specialized waterfront rights, marine structures, and high-capital machinery requiring credit appraisal under stringent covenant timelines.',
-        'outcome': 'Consortium credit committee sanction achieved with zero audit observations; report cleared independent scrutiny without caveat.',
-      },
-      {
-        'tag': 'COMMERCIAL REAL ESTATE',
-        'title': 'Grade-A Commercial IT Park Portfolio',
-        'client': 'Global Private Equity & REIT Ingestion',
-        'challenge': 'Multi-tenant commercial assets with complex lease escalations, vacancy underwriting, and institutional fair value certification.',
-        'outcome': 'Fair value certified in compliance with Ind AS 16 & 36; successfully accepted by statutory Big 4 auditors and trustees.',
-      },
-      {
-        'tag': 'INSOLVENCY & STRESSED ASSETS',
-        'title': 'Integrated Steel & Manufacturing Complex',
-        'client': 'Resolution Professional & Committee of Creditors',
-        'challenge': 'Stressed heavy manufacturing complex requiring independent liquidation value and fair value under IBC 2016 regulations.',
-        'outcome': 'Valuation defended before NCLT benches; resolution plan successfully approved by COC voting majority.',
-      },
-    ];
-
-    return Container(
-      width: double.infinity,
-      color: LandingTheme.secondaryBg,
-      padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? 60 : 24,
-        vertical: isDesktop ? 100 : 60,
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1240),
-          child: Column(
-            children: [
-              const GlassEyebrowBadge(label: 'Case Studies', icon: Icons.insights_rounded),
-              const SizedBox(height: 20),
-              Text(
-                'Selected Engagements',
-                textAlign: TextAlign.center,
-                style: LandingTheme.sectionTitleResponsive(screenW),
-              ),
-              const SizedBox(height: 14),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 580),
-                child: Text(
-                  'Institutional advisory outcomes delivering clarity for complex asset decisions.',
-                  textAlign: TextAlign.center,
-                  style: LandingTheme.bodyMediumResponsive(screenW),
-                ),
-              ),
-              const SizedBox(height: 60),
-
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final int columns = isDesktop ? 3 : 1;
-                  const double spacing = 24;
-                  final double cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
-
-                  return Wrap(
-                    spacing: spacing,
-                    runSpacing: spacing,
-                    children: studies.map((cs) {
-                      return SizedBox(
-                        width: cardWidth,
-                        child: VisionProGlassPanel(
-                          padding: const EdgeInsets.all(32),
-                          borderRadius: 22,
-                          surfaceColor: Colors.white,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                cs['tag']!,
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w700,
-                                  color: LandingTheme.primaryAccent,
-                                  letterSpacing: 1.2,
-                                ),
-                              ),
-                              const SizedBox(height: 10),
-                              Text(
-                                cs['title']!,
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 19,
-                                  fontWeight: FontWeight.w700,
-                                  color: LandingTheme.textPrimary,
-                                  letterSpacing: -0.4,
-                                ),
-                              ),
-                              const SizedBox(height: 6),
-                              Text(
-                                cs['client']!,
-                                style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w500,
-                                  color: LandingTheme.textMuted,
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-                              const Divider(height: 1, color: Color(0x29CBD5E1)),
-                              const SizedBox(height: 18),
-                              Text(
-                                'Challenge',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: LandingTheme.textPrimary,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                cs['challenge']!,
-                                style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w400,
-                                  color: LandingTheme.textSecondary,
-                                  height: 1.5,
-                                ),
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                'Outcome',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 12,
-                                  fontWeight: FontWeight.w700,
-                                  color: LandingTheme.primaryAccent,
-                                ),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                cs['outcome']!,
-                                style: GoogleFonts.inter(
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.w400,
-                                  color: LandingTheme.textSecondary,
-                                  height: 1.5,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// 7. CREDENTIALS SECTION — CLEAN MONOCHROME & PLATINUM BADGES
+// 6. CREDENTIALS SECTION — CLEAN MONOCHROME & PLATINUM BADGES
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class CredentialsSection extends StatelessWidget {
@@ -1899,7 +1726,6 @@ class MobileMenuDrawer extends StatelessWidget {
               _mobileLink(context, 'Services'),
               _mobileLink(context, 'Why Pro Valuer'),
               _mobileLink(context, 'Process'),
-              _mobileLink(context, 'Case Studies'),
               _mobileLink(context, 'Credentials'),
               const Spacer(),
               SizedBox(

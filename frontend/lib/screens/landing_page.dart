@@ -77,13 +77,11 @@ class _LandingPageState extends State<LandingPage> {
                 WhyProValuerSection(isDesktop: isDesktop),
                 // 4. Process (4-Stage Crystal Flow)
                 ProcessSection(isDesktop: isDesktop),
-                // 5. Case Studies (Minimal Outcome-Focused Cards)
-                CaseStudiesSection(isDesktop: isDesktop),
-                // 6. Credentials (Licensure & Bank Recognition)
+                // 5. Credentials (Licensure & Bank Recognition)
                 CredentialsSection(isDesktop: isDesktop),
-                // 7. Final Consultation Section (Luxury Glass CTA)
+                // 6. Final Consultation Section (Luxury Glass CTA)
                 CtaBanner(launchWhatsApp: _launchWhatsApp),
-                // 8. Luxury Minimal Footer
+                // 7. Luxury Minimal Footer
                 LandingFooter(isDesktop: isDesktop),
               ],
             ),
