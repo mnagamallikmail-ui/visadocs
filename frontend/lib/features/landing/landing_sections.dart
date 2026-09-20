@@ -337,7 +337,7 @@ class _HeaderLink extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 2. HERO SECTION — CINEMATIC LIVING ARCHITECTURAL HERO (NO CARDS, FULL-WIDTH)
+// 2. HERO SECTION — CINEMATIC STORY MODE (ONE-TIME INSTITUTIONAL SHOWCASE)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class HeroSection extends StatefulWidget {
@@ -354,261 +354,257 @@ class HeroSection extends StatefulWidget {
   State<HeroSection> createState() => _HeroSectionState();
 }
 
-class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStateMixin {
+class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin {
+  // Ordered sequence of 8 institutional story videos
+  static const List<String> _heroStoryVideos = [
+    'assets/videos/hero_story/1.mp4',
+    'assets/videos/hero_story/2.mp4',
+    'assets/videos/hero_story/3.mp4',
+    'assets/videos/hero_story/4.mp4',
+    'assets/videos/hero_story/5.mp4',
+    'assets/videos/hero_story/6.mp4',
+    'assets/videos/hero_story/7.mp4',
+    'assets/videos/hero_story/8.mp4',
+  ];
+
   final List<String> _keywords = [
     'Institutional Assets',
-    'Land Parcels',
-    'Commercial Buildings',
-    'Factories',
-    'Industrial Assets',
+    'Commercial Towers',
+    'Industrial Facilities',
+    'Infrastructure Portfolios',
+    'Banking Collaterals',
     'Shopping Malls',
     'Net Worth Certificates',
   ];
 
-  int _currentIndex = 0;
-  late AnimationController _animController;
-  late Animation<double> _slideAnimation;
-  late Animation<double> _opacityAnimation;
-  Timer? _timer;
+  int _currentKeywordIndex = 0;
+
+  // Keyword slide & fade animation
+  late AnimationController _keywordAnimController;
+  late Animation<double> _keywordSlideAnimation;
+  late Animation<double> _keywordOpacityAnimation;
+  Timer? _keywordTimer;
+
+  // Cinematic 500ms text fade controller (1.0 = visible, 0.0 = faded out)
+  late AnimationController _textFadeController;
+  Timer? _cinematicHoldTimer;
+
+  bool _playStory = false;
+  bool _storyCompleted = false;
 
   @override
   void initState() {
     super.initState();
-    _animController = AnimationController(
+
+    // 1. Morphing keyword animator
+    _keywordAnimController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 700),
     );
-
-    _slideAnimation = Tween<double>(begin: 24.0, end: 0.0).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeOutCubic),
+    _keywordSlideAnimation = Tween<double>(begin: 20.0, end: 0.0).animate(
+      CurvedAnimation(parent: _keywordAnimController, curve: Curves.easeOutCubic),
     );
-
-    _opacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeOut),
+    _keywordOpacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _keywordAnimController, curve: Curves.easeOut),
     );
+    _keywordAnimController.forward();
 
-    _animController.forward();
-
-    // 3.5 seconds per word with Apple-quality text morphing
-    _timer = Timer.periodic(const Duration(milliseconds: 3500), (timer) {
-      _animController.reverse().then((_) {
+    _keywordTimer = Timer.periodic(const Duration(milliseconds: 3500), (timer) {
+      if (!mounted) return;
+      _keywordAnimController.reverse().then((_) {
+        if (!mounted) return;
         setState(() {
-          _currentIndex = (_currentIndex + 1) % _keywords.length;
+          _currentKeywordIndex = (_currentKeywordIndex + 1) % _keywords.length;
         });
-        _animController.forward();
+        _keywordAnimController.forward();
+      });
+    });
+
+    // 2. Cinematic Text Fade Controller (starts fully visible at 1.0)
+    _textFadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 500),
+      value: 1.0,
+    );
+
+    // 3. Phase 1 (0–3 Seconds): Everything visible, no videos playing.
+    // At exactly 3.0s: Smoothly fade out text over 500ms and start video 1.
+    _cinematicHoldTimer = Timer(const Duration(seconds: 3), () {
+      if (!mounted || _storyCompleted) return;
+      // Fade text out over 500ms
+      _textFadeController.reverse();
+      setState(() {
+        _playStory = true;
       });
     });
   }
 
+  void _onStorySequenceComplete() {
+    if (!mounted || _storyCompleted) return;
+    setState(() {
+      _storyCompleted = true;
+    });
+    // Smoothly fade headline, keyword, description, and trust indicators back in over 500ms
+    _textFadeController.forward();
+    // Entering Reading Mode forever: never restart or hide text again.
+  }
+
   @override
   void dispose() {
-    _timer?.cancel();
-    _animController.dispose();
+    _cinematicHoldTimer?.cancel();
+    _keywordTimer?.cancel();
+    _keywordAnimController.dispose();
+    _textFadeController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final double screenW = MediaQuery.of(context).size.width;
+    final bool isDesktop = screenW >= 1024;
 
-    return ClipRect(
-      child: SizedBox(
-        width: double.infinity,
-        child: Stack(
-          children: [
-            // ── LAYER 1: Full-Width Living Architectural Video Canvas ─────────
-            // Sits directly as root background; NO cards, NO containers, NO boxes
-            const Positioned.fill(
-              child: HeroVideoWidget(
-                videoAssets: [
-                  'assets/videos/hero_animation.mp4',
-                  'assets/videos/Create_a_premium_animated_hero.mp4',
-                ],
-                isSeamlessBackground: true,
-              ),
-            ),
-
-            // ── LAYER 2: Left-to-Right Blur Map Layer ────────────────────────
-            // Left Edge: 120px blur, Left Center: 80px blur, Center: 40px blur, Right: 0px
-            Positioned.fill(
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final w = constraints.maxWidth;
-                  return Stack(
-                    children: [
-                      // High diffusion blur on far left
-                      Positioned(
-                        top: 0,
-                        bottom: 0,
-                        left: 0,
-                        width: w * 0.45,
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 45, sigmaY: 45),
-                          child: const SizedBox.expand(),
-                        ),
-                      ),
-                      // Mid diffusion blur
-                      Positioned(
-                        top: 0,
-                        bottom: 0,
-                        left: w * 0.25,
-                        width: w * 0.35,
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 25, sigmaY: 25),
-                          child: const SizedBox.expand(),
-                        ),
-                      ),
-                    ],
-                  );
-                },
-              ),
-            ),
-
-            // ── LAYER 3: Visibility Gradient Mask ─────────────────────────────
-            // Left Edge: 0% visibility (100% white)
-            // Left Center: 10% visibility (90% white)
-            // Center: 35% visibility (65% white)
-            // Right Center: 70% visibility (30% white)
-            // Right Edge: 100% visibility (0% white)
-            Positioned.fill(
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    stops: [0.0, 0.25, 0.50, 0.75, 1.0],
-                    colors: [
-                      Color(0xFFFFFFFF), // Left Edge: 100% white
-                      Color(0xE6FFFFFF), // Left Center: 90% white
-                      Color(0xA6FFFFFF), // Center: 65% white
-                      Color(0x4DFFFFFF), // Right Center: 30% white
-                      Color(0x00FFFFFF), // Right Edge: 0% white (fully visible)
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // ── LAYER 4: Top & Bottom Edge Seamless Dissolves ─────────────────
-            // Melts into pure #FFFFFF seamlessly
-            Positioned.fill(
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    stops: [0.0, 0.08, 0.90, 1.0],
-                    colors: [
-                      Color(0xFFFFFFFF),
-                      Color(0x00FFFFFF),
-                      Color(0x00FFFFFF),
-                      Color(0xFFFFFFFF),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // ── LAYER 5: Foreground Living Editorial Content ───────────────────
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: widget.isDesktop ? 60 : 24,
-                vertical: widget.isDesktop ? 120 : 60,
-              ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1240),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Left 55% holds content, allowing animation to sit beneath & behind
-                        Expanded(
-                          flex: widget.isDesktop ? 6 : 10,
-                          child: _buildHeroText(screenW),
-                        ),
-                        if (widget.isDesktop)
-                          const Expanded(
-                            flex: 4,
-                            child: SizedBox.shrink(), // Allows right living visual to shine
-                          ),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        gradient: RadialGradient(
+          center: Alignment(0.6, -0.4),
+          radius: 1.2,
+          colors: [
+            Color(0xFFF8FAFC),
+            Color(0xFFFFFFFF),
           ],
+        ),
+      ),
+      child: Padding(
+        padding: EdgeInsets.only(
+          left: isDesktop ? 60 : 24,
+          right: isDesktop ? 60 : 24,
+          top: isDesktop ? 40 : 20, // Reduced unused whitespace above showcase
+          bottom: isDesktop ? 64 : 40,
+        ),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1320),
+            child: isDesktop
+                ? Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Left Column: Editorial Content + Permanent CTAs
+                      Expanded(
+                        flex: 5,
+                        child: _buildHeroLeftContent(screenW),
+                      ),
+                      const SizedBox(width: 48),
+                      // Right Column: Dominant Digital Billboard Showcase
+                      Expanded(
+                        flex: 6,
+                        child: _buildDigitalBillboard(),
+                      ),
+                    ],
+                  )
+                : Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      _buildHeroLeftContent(screenW),
+                      const SizedBox(height: 36),
+                      _buildDigitalBillboard(),
+                    ],
+                  ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _buildHeroText(double screenW) {
+  Widget _buildHeroLeftContent(double screenW) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        // Small Glass Badge: IBBI REGISTERED VALUERS
-        const GlassEyebrowBadge(
-          label: 'IBBI Registered Valuers',
-          icon: Icons.verified_rounded,
-        ),
-        const SizedBox(height: 28),
+        // ── FADING EDITORIAL CONTENT (Headline, Rotating Word, Description, Trust) ──
+        FadeTransition(
+          opacity: _textFadeController,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Glass Eyebrow Badge
+              const GlassEyebrowBadge(
+                label: 'IBBI Registered Valuers • Asset Intelligence',
+                icon: Icons.verified_rounded,
+              ),
+              const SizedBox(height: 22),
 
-        // Headline
-        Text(
-          'Independent Valuation\nFor',
-          style: LandingTheme.heroHeading(screenW),
-        ),
+              // Headline
+              Text(
+                'Independent Valuation\nFor',
+                style: LandingTheme.heroHeading(screenW),
+              ),
 
-        const SizedBox(height: 6),
+              const SizedBox(height: 6),
 
-        // Animated Morphing Keyword with Platinum / Obsidian Specular Gradient
-        AnimatedBuilder(
-          animation: _animController,
-          builder: (context, child) {
-            return Transform.translate(
-              offset: Offset(0, _slideAnimation.value),
-              child: Opacity(
-                opacity: _opacityAnimation.value,
-                child: ShaderMask(
-                  shaderCallback: (bounds) {
-                    return LandingTheme.textPlatinumGradient.createShader(bounds);
-                  },
-                  child: Text(
-                    _keywords[_currentIndex],
-                    style: LandingTheme.heroKeyword(screenW).copyWith(color: Colors.white),
-                  ),
+              // Rotating Morphing Keyword
+              AnimatedBuilder(
+                animation: _keywordAnimController,
+                builder: (context, child) {
+                  return Transform.translate(
+                    offset: Offset(0, _keywordSlideAnimation.value),
+                    child: Opacity(
+                      opacity: _keywordOpacityAnimation.value,
+                      child: ShaderMask(
+                        shaderCallback: (bounds) {
+                          return LandingTheme.textPlatinumGradient.createShader(bounds);
+                        },
+                        child: Text(
+                          _keywords[_currentKeywordIndex],
+                          style: LandingTheme.heroKeyword(screenW).copyWith(color: Colors.white),
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 20),
+
+              // Institutional Description
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 520),
+                child: Text(
+                  'Independent statutory valuation and asset intelligence for leading banks, NBFCs, private equity funds, insolvency professionals, and public corporations.',
+                  style: LandingTheme.bodyLargeResponsive(screenW),
                 ),
               ),
-            );
-          },
-        ),
 
-        const SizedBox(height: 26),
+              const SizedBox(height: 22),
 
-        // Subheading
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 540),
-          child: Text(
-            'Independent valuation and advisory services for banks, NBFCs, insolvency professionals, corporates, developers, and government organisations.',
-            style: LandingTheme.bodyLargeResponsive(screenW),
+              // Trust Indicators
+              Wrap(
+                spacing: 16,
+                runSpacing: 10,
+                children: [
+                  _buildTrustBadge(Icons.verified_user_outlined, 'IBBI / Sec 247 Compliant'),
+                  _buildTrustBadge(Icons.account_balance_outlined, '₹15,000+ Cr Valued'),
+                  _buildTrustBadge(Icons.assured_workload_outlined, 'Bank Empanelled'),
+                ],
+              ),
+            ],
           ),
         ),
 
-        const SizedBox(height: 40),
+        const SizedBox(height: 32),
 
-        // Buttons
+        // ── PERMANENT CTA BUTTONS (ALWAYS VISIBLE & CLICKABLE AT ALL TIMES) ──
         Wrap(
-          spacing: 16,
-          runSpacing: 14,
+          spacing: 14,
+          runSpacing: 12,
           children: [
             // Primary CTA: Request Consultation (Obsidian & Platinum)
             GestureDetector(
               onTap: () => widget.launchWhatsApp('Hello, I would like to request an institutional valuation consultation with Pro Valuer.'),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 15),
                 decoration: BoxDecoration(
                   gradient: LandingTheme.platinumButtonGradient,
                   borderRadius: BorderRadius.circular(100),
@@ -626,24 +622,60 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
                     Text(
                       'Request Consultation',
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 15,
+                        fontSize: 14.5,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                         letterSpacing: -0.2,
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Icon(Icons.arrow_forward_rounded, size: 16, color: Colors.white),
+                    const Icon(Icons.arrow_forward_rounded, size: 15, color: Colors.white),
                   ],
                 ),
               ),
             ),
 
-            // Secondary CTA: View Sample Report
+            // Secondary CTA: Client Login (Direct route to /login)
             GestureDetector(
-              onTap: () => widget.launchWhatsApp('Hello, please provide the sample valuation report.'),
+              onTap: () => context.go('/login'),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 15),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0F172A), // Midnight Navy
+                  borderRadius: BorderRadius.circular(100),
+                  border: Border.all(color: const Color(0x33334155), width: 1.2),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x140F172A),
+                      blurRadius: 16,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.lock_outline_rounded, size: 15, color: Colors.white),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Client Login',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+
+            // Tertiary CTA: View Sample Report
+            GestureDetector(
+              onTap: () => widget.launchWhatsApp('Hello, please provide the sample institutional valuation report.'),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
                 decoration: BoxDecoration(
                   color: LandingTheme.pearlWhite,
                   borderRadius: BorderRadius.circular(100),
@@ -660,16 +692,16 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      'View Sample Report',
+                      'Sample Report',
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 15,
+                        fontSize: 14,
                         fontWeight: FontWeight.w600,
                         color: LandingTheme.textPrimary,
                         letterSpacing: -0.2,
                       ),
                     ),
                     const SizedBox(width: 6),
-                    const Icon(Icons.arrow_outward_rounded, size: 15, color: LandingTheme.textSecondary),
+                    const Icon(Icons.arrow_outward_rounded, size: 14, color: LandingTheme.textSecondary),
                   ],
                 ),
               ),
@@ -677,6 +709,34 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
           ],
         ),
       ],
+    );
+  }
+
+  Widget _buildTrustBadge(IconData icon, String text) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 14, color: const Color(0xFF0F172A)),
+        const SizedBox(width: 6),
+        Text(
+          text,
+          style: GoogleFonts.inter(
+            fontSize: 12.5,
+            fontWeight: FontWeight.w600,
+            color: LandingTheme.textSecondary,
+            letterSpacing: -0.1,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDigitalBillboard() {
+    return HeroVideoWidget(
+      videoAssets: _heroStoryVideos,
+      playStory: _playStory,
+      onSequenceComplete: _onStorySequenceComplete,
+      aspectRatio: 16 / 9,
     );
   }
 }

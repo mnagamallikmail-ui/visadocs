@@ -1,29 +1,37 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:flutter_animate/flutter_animate.dart';
 import 'package:video_player/video_player.dart';
 
 /// HeroVideoWidget
 ///
-/// Autoplaying, muted, sequentially cycling MP4 hero player.
+/// An institutional-grade, zero-flash sequential video billboard.
 ///
-/// Preloads the next video in sequence in the background, then performs
-/// a smooth 250ms cross-fade transition between controllers to eliminate
-/// flicker or blank screens.
+/// Key Capabilities:
+/// - Plays 8 videos strictly in numerical sequence (1.mp4 -> 8.mp4).
+/// - Dual-controller architecture with 400ms cross-fade between Layer A and Layer B.
+/// - Preloads video (N+1) in the background while video N is playing.
+/// - Zero controls, zero progress bars, zero play buttons, zero white/loading flashes.
+/// - Paused on initial frame during Phase 1 (0–3s), plays upon [playStory] signal.
+/// - Notifies [onSequenceComplete] after Video 8 finishes and holds the final frame cleanly.
 class HeroVideoWidget extends StatefulWidget {
-  /// Ordered list of video asset paths.
+  /// Ordered list of video asset paths (e.g. assets/videos/hero_story/1.mp4 .. 8.mp4)
   final List<String> videoAssets;
 
-  /// Height of the video player card.
-  final double height;
+  /// Trigger to start playback (after initial 3.0s hero hold)
+  final bool playStory;
 
-  /// Whether to render as an edge-to-edge seamless living background
-  final bool isSeamlessBackground;
+  /// Callback fired when Video 8 finishes
+  final VoidCallback? onSequenceComplete;
+
+  /// Aspect ratio for the video billboard (defaults to 16/9)
+  final double aspectRatio;
 
   const HeroVideoWidget({
     super.key,
     required this.videoAssets,
-    this.height = 480,
-    this.isSeamlessBackground = false,
+    this.playStory = false,
+    this.onSequenceComplete,
+    this.aspectRatio = 16 / 9,
   });
 
   @override
@@ -33,158 +41,201 @@ class HeroVideoWidget extends StatefulWidget {
 class _HeroVideoWidgetState extends State<HeroVideoWidget> {
   int _currentIndex = 0;
 
-  // Double-controller setup to avoid web transition flicker
+  // Dual-controller buffer to ensure zero-flash seamless transitions
   VideoPlayerController? _controllerA;
   VideoPlayerController? _controllerB;
 
-  // Track active layer
   bool _isAActive = true;
-  bool _initialized = false;
   bool _hasError = false;
   bool _transitioning = false;
+  bool _sequenceFinished = false;
+  bool _isPlaying = false;
 
   @override
   void initState() {
     super.initState();
-    _initFirstVideo();
+    _initSequence();
   }
 
-  Future<void> _initFirstVideo() async {
+  @override
+  void didUpdateWidget(covariant HeroVideoWidget oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.playStory && !oldWidget.playStory && !_sequenceFinished && !_isPlaying) {
+      _startPlayback();
+    }
+  }
+
+  Future<void> _initSequence() async {
     if (widget.videoAssets.isEmpty) {
-      setState(() => _hasError = true);
+      if (mounted) setState(() => _hasError = true);
       return;
     }
 
-    final firstAsset = widget.videoAssets[_currentIndex];
-    _controllerA = VideoPlayerController.asset(firstAsset);
-
     try {
-      await _controllerA!.initialize();
-      await _controllerA!.setVolume(0); // Muted
-      await _controllerA!.setPlaybackSpeed(1.0);
+      // 1. Initialize Video 1 on Controller A
+      final firstAsset = widget.videoAssets[0];
+      final ctrlA = VideoPlayerController.asset(firstAsset);
+      await ctrlA.initialize();
+      await ctrlA.setVolume(0); // Autoplay policy / silent luxury presentation
+      await ctrlA.setPlaybackSpeed(1.0);
+      await ctrlA.seekTo(Duration.zero);
 
-      if (widget.videoAssets.length == 1) {
-        await _controllerA!.setLooping(true); // Loop if single
-      } else {
-        _controllerA!.addListener(_videoListener);
+      if (!mounted) {
+        ctrlA.dispose();
+        return;
       }
 
-      await _controllerA!.play();
+      _controllerA = ctrlA;
+      setState(() {});
 
-      if (mounted) {
-        setState(() {
-          _initialized = true;
-        });
+      // 2. Preload Video 2 on Controller B immediately in the background
+      if (widget.videoAssets.length > 1) {
+        _preloadNextSlot(1, isSlotB: true);
       }
 
-      // Preload the next video in sequence
-      _preloadNextVideo();
-    } catch (_) {
+      // If playStory was already enabled at init, start now
+      if (widget.playStory && !_sequenceFinished) {
+        _startPlayback();
+      }
+    } catch (e) {
       if (mounted) setState(() => _hasError = true);
     }
   }
 
-  void _videoListener() {
-    final activeController = _isAActive ? _controllerA : _controllerB;
-    if (activeController == null || _transitioning) return;
-
-    // Check if the current video reached its end
-    if (activeController.value.isInitialized &&
-        activeController.value.position >= activeController.value.duration) {
-      _transitionToNext();
-    }
-  }
-
-  Future<void> _preloadNextVideo() async {
-    if (widget.videoAssets.length <= 1) return;
-
-    final nextIndex = (_currentIndex + 1) % widget.videoAssets.length;
-    final nextAsset = widget.videoAssets[nextIndex];
-    final newController = VideoPlayerController.asset(nextAsset);
+  Future<void> _preloadNextSlot(int targetIndex, {required bool isSlotB}) async {
+    if (targetIndex >= widget.videoAssets.length) return;
 
     try {
-      await newController.initialize();
-      await newController.setVolume(0); // Muted
-      await newController.setPlaybackSpeed(1.0);
+      final assetPath = widget.videoAssets[targetIndex];
+      final nextCtrl = VideoPlayerController.asset(assetPath);
+      await nextCtrl.initialize();
+      await nextCtrl.setVolume(0);
+      await nextCtrl.setPlaybackSpeed(1.0);
+      await nextCtrl.seekTo(Duration.zero);
 
-      if (mounted) {
-        if (_isAActive) {
-          _controllerB?.dispose();
-          _controllerB = newController;
-        } else {
-          _controllerA?.dispose();
-          _controllerA = newController;
-        }
+      if (!mounted) {
+        nextCtrl.dispose();
+        return;
+      }
+
+      if (isSlotB) {
+        _controllerB?.dispose();
+        _controllerB = nextCtrl;
+      } else {
+        _controllerA?.dispose();
+        _controllerA = nextCtrl;
       }
     } catch (_) {
-      // Silently catch preload failures; we will fallback/retry on swap if needed
+      // Background preload error safely handled on fallback
     }
   }
 
-  Future<void> _transitionToNext() async {
-    if (_transitioning || widget.videoAssets.length <= 1) return;
+  Future<void> _startPlayback() async {
+    if (_isPlaying || _sequenceFinished) return;
+    _isPlaying = true;
+
+    final activeCtrl = _isAActive ? _controllerA : _controllerB;
+    if (activeCtrl != null && activeCtrl.value.isInitialized) {
+      activeCtrl.addListener(_videoTickListener);
+      await activeCtrl.play();
+    }
+  }
+
+  void _videoTickListener() {
+    if (_transitioning || _sequenceFinished) return;
+
+    final activeCtrl = _isAActive ? _controllerA : _controllerB;
+    if (activeCtrl == null || !activeCtrl.value.isInitialized) return;
+
+    final pos = activeCtrl.value.position;
+    final dur = activeCtrl.value.duration;
+
+    if (dur <= Duration.zero) return;
+
+    // Check if this is the final video (Video 8)
+    if (_currentIndex >= widget.videoAssets.length - 1) {
+      if (pos >= dur || (!activeCtrl.value.isPlaying && pos > const Duration(seconds: 1))) {
+        _sequenceFinished = true;
+        _isPlaying = false;
+        activeCtrl.removeListener(_videoTickListener);
+        widget.onSequenceComplete?.call();
+      }
+      return;
+    }
+
+    // Crossfade 250ms before video reaches its end to prevent trailing black/freeze frames
+    final remaining = dur - pos;
+    if (remaining <= const Duration(milliseconds: 250) || pos >= dur) {
+      _advanceToNext();
+    }
+  }
+
+  Future<void> _advanceToNext() async {
+    if (_transitioning || _sequenceFinished) return;
+    if (_currentIndex >= widget.videoAssets.length - 1) return;
+
     _transitioning = true;
+    final nextIndex = _currentIndex + 1;
+    final currentCtrl = _isAActive ? _controllerA : _controllerB;
+    final nextCtrlSlot = _isAActive ? _controllerB : _controllerA;
 
-    final nextController = _isAActive ? _controllerB : _controllerA;
-    final currentController = _isAActive ? _controllerA : _controllerB;
-
-    // Safety fallback: if background preloading hasn't completed or failed
-    if (nextController == null || !nextController.value.isInitialized) {
-      final nextIndex = (_currentIndex + 1) % widget.videoAssets.length;
-      final nextAsset = widget.videoAssets[nextIndex];
-      final fallbackController = VideoPlayerController.asset(nextAsset);
-
+    // Safety fallback: ensure next controller is initialized
+    VideoPlayerController readyCtrl;
+    if (nextCtrlSlot != null && nextCtrlSlot.value.isInitialized) {
+      readyCtrl = nextCtrlSlot;
+    } else {
       try {
-        await fallbackController.initialize();
-        await fallbackController.setVolume(0);
-        await fallbackController.setPlaybackSpeed(1.0);
-        if (mounted) {
-          if (_isAActive) {
-            _controllerB = fallbackController;
-          } else {
-            _controllerA = fallbackController;
-          }
+        final fallback = VideoPlayerController.asset(widget.videoAssets[nextIndex]);
+        await fallback.initialize();
+        await fallback.setVolume(0);
+        await fallback.seekTo(Duration.zero);
+        if (_isAActive) {
+          _controllerB = fallback;
+        } else {
+          _controllerA = fallback;
         }
+        readyCtrl = fallback;
       } catch (_) {
         _transitioning = false;
-        return; // Skip swap on error
+        return;
       }
     }
 
-    final readyNextController = _isAActive ? _controllerB! : _controllerA!;
+    await readyCtrl.setVolume(0);
+    await readyCtrl.seekTo(Duration.zero);
+    readyCtrl.addListener(_videoTickListener);
+    await readyCtrl.play();
 
-    // Start playing the preloaded video immediately
-    await readyNextController.play();
-    readyNextController.addListener(_videoListener);
-
-    // Cross-fade layers by flipping the active index state
+    // Trigger seamless 400ms cross-fade
     if (mounted) {
       setState(() {
         _isAActive = !_isAActive;
-        _currentIndex = (_currentIndex + 1) % widget.videoAssets.length;
+        _currentIndex = nextIndex;
       });
     }
 
-    // Wait for the 250ms cross-fade animation to complete
-    await Future.delayed(const Duration(milliseconds: 250));
+    // Allow crossfade animation to settle
+    await Future.delayed(const Duration(milliseconds: 400));
 
-    // Pause and rewind the old video, and detach listener
-    if (currentController != null) {
-      currentController.removeListener(_videoListener);
-      await currentController.pause();
-      await currentController.seekTo(Duration.zero);
+    // Pause old controller and detach its listener
+    if (currentCtrl != null) {
+      currentCtrl.removeListener(_videoTickListener);
+      await currentCtrl.pause();
+    }
+
+    // Preload next-next video in the now-inactive slot
+    final upcomingIndex = _currentIndex + 1;
+    if (upcomingIndex < widget.videoAssets.length) {
+      _preloadNextSlot(upcomingIndex, isSlotB: _isAActive);
     }
 
     _transitioning = false;
-
-    // Warm up the new next video
-    _preloadNextVideo();
   }
 
   @override
   void dispose() {
-    _controllerA?.removeListener(_videoListener);
-    _controllerB?.removeListener(_videoListener);
+    _controllerA?.removeListener(_videoTickListener);
+    _controllerB?.removeListener(_videoTickListener);
     _controllerA?.dispose();
     _controllerB?.dispose();
     super.dispose();
@@ -192,155 +243,105 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
 
   @override
   Widget build(BuildContext context) {
-    return _buildAnimatedShell(
-      child: _buildContent(),
-    );
-  }
-
-  Widget _buildAnimatedShell({required Widget child}) {
-    return child
-        .animate(delay: 600.ms)
-        .fadeIn(duration: 700.ms)
-        .slideX(begin: 0.08, end: 0, duration: 700.ms);
-  }
-
-  Widget _buildContent() {
-    if (_hasError) return _buildPlaceholder();
-    if (!_initialized) return _buildPlaceholder();
-    return _buildVideoContainer();
-  }
-
-  Widget _buildVideoContainer() {
-    if (widget.isSeamlessBackground) {
-      return Stack(
-        fit: StackFit.expand,
-        children: [
-          // Layer A
-          Positioned.fill(
-            child: AnimatedOpacity(
-              opacity: _isAActive ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              child: _controllerA != null && _controllerA!.value.isInitialized
-                  ? FittedBox(
-                      fit: BoxFit.cover,
-                      alignment: Alignment.centerRight,
-                      child: SizedBox(
-                        width: _controllerA!.value.size.width,
-                        height: _controllerA!.value.size.height,
-                        child: VideoPlayer(_controllerA!),
-                      ),
-                    )
-                  : const SizedBox.shrink(),
-            ),
-          ),
-          // Layer B
-          Positioned.fill(
-            child: AnimatedOpacity(
-              opacity: !_isAActive ? 1.0 : 0.0,
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOut,
-              child: _controllerB != null && _controllerB!.value.isInitialized
-                  ? FittedBox(
-                      fit: BoxFit.cover,
-                      alignment: Alignment.centerRight,
-                      child: SizedBox(
-                        width: _controllerB!.value.size.width,
-                        height: _controllerB!.value.size.height,
-                        child: VideoPlayer(_controllerB!),
-                      ),
-                    )
-                  : const SizedBox.shrink(),
-            ),
-          ),
-        ],
-      );
-    }
-
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: const Color(0xFF07142B),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: const Color(0x405EA8FF),
-          width: 1.2,
-        ),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x4007142B),
-            blurRadius: 40,
-            offset: Offset(0, 18),
-          ),
-          BoxShadow(
-            color: Color(0x280F4CFF),
-            blurRadius: 32,
-            spreadRadius: 2,
-            offset: Offset(0, 8),
-          ),
-        ],
-      ),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(15),
-        child: AspectRatio(
-          aspectRatio: (_controllerA != null && _controllerA!.value.isInitialized)
-              ? _controllerA!.value.aspectRatio
-              : 16 / 9,
-          child: Stack(
-            children: [
-              // Layer A
-              Positioned.fill(
-                child: AnimatedOpacity(
-                  opacity: _isAActive ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  child: _controllerA != null && _controllerA!.value.isInitialized
-                      ? VideoPlayer(_controllerA!)
-                      : const SizedBox.shrink(),
-                ),
-              ),
-              // Layer B
-              Positioned.fill(
-                child: AnimatedOpacity(
-                  opacity: !_isAActive ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 300),
-                  curve: Curves.easeInOut,
-                  child: _controllerB != null && _controllerB!.value.isInitialized
-                      ? VideoPlayer(_controllerB!)
-                      : const SizedBox.shrink(),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildPlaceholder() {
-    if (widget.isSeamlessBackground) {
-      return const SizedBox.shrink();
-    }
     return AspectRatio(
-      aspectRatio: 16 / 9,
+      aspectRatio: widget.aspectRatio,
       child: Container(
-        width: double.infinity,
         decoration: BoxDecoration(
-          color: const Color(0xFF07142B),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0x335EA8FF), width: 1.0),
+          color: const Color(0xFF0F172A), // Midnight Navy
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: const Color(0x33334155),
+            width: 1.2,
+          ),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x200F4CFF),
-              blurRadius: 24,
-              offset: Offset(0, 8),
+              color: Color(0x330F172A),
+              blurRadius: 40,
+              offset: Offset(0, 20),
+              spreadRadius: -4,
+            ),
+            BoxShadow(
+              color: Color(0x140F172A),
+              blurRadius: 14,
+              offset: Offset(0, 6),
             ),
           ],
         ),
-        child: const Center(
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF5EA8FF)),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(19),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // Midnight Navy backdrop prevents any possible white background flash
+              const ColoredBox(color: Color(0xFF0F172A)),
+
+              // Video Layer A
+              AnimatedOpacity(
+                opacity: _isAActive ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeInOut,
+                child: _controllerA != null && _controllerA!.value.isInitialized
+                    ? FittedBox(
+                        fit: BoxFit.cover,
+                        child: SizedBox(
+                          width: _controllerA!.value.size.width,
+                          height: _controllerA!.value.size.height,
+                          child: VideoPlayer(_controllerA!),
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+
+              // Video Layer B
+              AnimatedOpacity(
+                opacity: !_isAActive ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 400),
+                curve: Curves.easeInOut,
+                child: _controllerB != null && _controllerB!.value.isInitialized
+                    ? FittedBox(
+                        fit: BoxFit.cover,
+                        child: SizedBox(
+                          width: _controllerB!.value.size.width,
+                          height: _controllerB!.value.size.height,
+                          child: VideoPlayer(_controllerB!),
+                        ),
+                      )
+                    : const SizedBox.shrink(),
+              ),
+
+              // Subtle ambient institutional glass top reflection
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                height: 48,
+                child: Container(
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Color(0x1FFFFFFF),
+                        Color(0x00FFFFFF),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+
+              // Error or loading state fallback
+              if (_hasError)
+                const Center(
+                  child: Text(
+                    'Pro Valuer Asset Showcase',
+                    style: TextStyle(
+                      color: Color(0x99FFFFFF),
+                      fontSize: 14,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                ),
+            ],
           ),
         ),
       ),
