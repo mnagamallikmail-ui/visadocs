@@ -464,76 +464,22 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
               ),
             ),
 
-            // ── LAYER 2: Midnight Navy Overlay rgba(15, 23, 42, 0.45) ─────────
+            // ── LAYER 2: Premium Enterprise Horizontal Gradient Overlay ──────────────
+            // Left side:  rgba(8,14,26,0.82) - Ensures complete readability of typography
+            // Center:     rgba(8,14,26,0.55) - Smooth transitional balance
+            // Right side: rgba(8,14,26,0.20) - Showcases sharp, vibrant, cinematic video footage
             Positioned.fill(
               child: Container(
-                color: const Color(0x730F172A), // 45% Midnight Navy
-              ),
-            ),
-
-            // Directional text contrast gradient (high legibility on left)
-            Positioned.fill(
-              child: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                    colors: [
-                      Color(0xB80F172A), // 72% Midnight Navy behind text
-                      Color(0x730F172A), // 45% Midnight Navy in center
-                      Color(0x330F172A), // 20% Midnight Navy on right
+                    begin: isDesktop ? Alignment.centerLeft : Alignment.topCenter,
+                    end: isDesktop ? Alignment.centerRight : Alignment.bottomCenter,
+                    stops: const [0.0, 0.50, 1.0],
+                    colors: const [
+                      Color.fromRGBO(8, 14, 26, 0.82), // Left (or Top on mobile): 82%
+                      Color.fromRGBO(8, 14, 26, 0.55), // Center: 55%
+                      Color.fromRGBO(8, 14, 26, 0.20), // Right (or Bottom on mobile): 20%
                     ],
-                  ),
-                ),
-              ),
-            ),
-
-            // ── LAYER 3: 8px–12px Gaussian Backdrop Blur ──────────────────────
-            Positioned.fill(
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                child: const SizedBox.expand(),
-              ),
-            ),
-
-            // ── ATMOSPHERE GLOWS (Stripe Enterprise / Apple Business) ─────────
-            // Top Right Glow: #2563EB Opacity ~5%
-            Positioned(
-              top: -100,
-              right: -100,
-              width: 600,
-              height: 600,
-              child: IgnorePointer(
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        const Color(0xFF2563EB).withValues(alpha: 0.06),
-                        const Color(0xFF2563EB).withValues(alpha: 0.0),
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // Bottom Left Glow: #38BDF8 Opacity ~5%
-            Positioned(
-              bottom: -80,
-              left: -80,
-              width: 550,
-              height: 550,
-              child: IgnorePointer(
-                child: Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        const Color(0xFF38BDF8).withValues(alpha: 0.06),
-                        const Color(0xFF38BDF8).withValues(alpha: 0.0),
-                      ],
-                    ),
                   ),
                 ),
               ),
@@ -544,15 +490,15 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
               bottom: 0,
               left: 0,
               right: 0,
-              height: 90,
+              height: 80,
               child: Container(
                 decoration: const BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topCenter,
                     end: Alignment.bottomCenter,
                     colors: [
-                      Color(0x000F172A),
-                      Color(0x400F172A),
+                      Color(0x00080E1A),
+                      Color(0x66080E1A),
                       Color(0xFFFFFFFF),
                     ],
                   ),
