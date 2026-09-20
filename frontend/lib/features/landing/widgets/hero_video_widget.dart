@@ -13,7 +13,7 @@ import 'package:video_player/video_player.dart';
 /// - Preloads only (N+1) in the background while video N is ready or playing.
 /// - Controlled playback with [activeVideoIndex] and [isPlaying].
 /// - Notifies [onVideoCompleted] when each video finishes so the parent can initiate reading breaks.
-/// - When Video 8 completes, softly loops Video 8 continuously without restarting the sequence.
+/// - Pauses on the final frame of Video 8 (no looping, sequence runs only once).
 class HeroVideoWidget extends StatefulWidget {
   /// Ordered list of video asset paths (assets/videos/hero_story/1.mp4 .. 8.mp4)
   final List<String> videoAssets;
@@ -89,6 +89,7 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
       await ctrlA.setVolume(0); // Muted for browser autoplay compliance
       await ctrlA.setPlaybackSpeed(1.0);
       await ctrlA.seekTo(Duration.zero);
+      await ctrlA.pause(); // Ensure paused at startup
 
       if (!mounted) {
         ctrlA.dispose();
@@ -105,7 +106,7 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
         _preloadSlotB(1);
       }
 
-      // If already asked to play at initialization
+      // ONLY play if widget.isPlaying is true
       if (widget.isPlaying) {
         _playActive();
       }
@@ -122,6 +123,7 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
       await ctrl.setVolume(0);
       await ctrl.setPlaybackSpeed(1.0);
       await ctrl.seekTo(Duration.zero);
+      await ctrl.pause();
       if (!mounted) {
         ctrl.dispose();
         return;
@@ -140,6 +142,7 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
       await ctrl.setVolume(0);
       await ctrl.setPlaybackSpeed(1.0);
       await ctrl.seekTo(Duration.zero);
+      await ctrl.pause();
       if (!mounted) {
         ctrl.dispose();
         return;
@@ -180,11 +183,7 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
     if (nextCtrl != null && nextCtrl.value.isInitialized) {
       await nextCtrl.seekTo(Duration.zero);
       await nextCtrl.setVolume(0);
-
-      // If reaching Video 8, enable continuous soft loop on it
-      if (newIndex >= widget.videoAssets.length - 1) {
-        await nextCtrl.setLooping(true);
-      }
+      await nextCtrl.setLooping(false); // Do not loop any videos
 
       if (widget.isPlaying) {
         nextCtrl.addListener(_videoTickListener);
@@ -248,20 +247,12 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
 
     if (dur <= Duration.zero) return;
 
-    // Check if video reached its end
-    if (pos >= dur - const Duration(milliseconds: 150) ||
-        (!activeCtrl.value.isPlaying && pos > const Duration(seconds: 1))) {
+    // Check if video reached its end (ensuring it actually played past 2 seconds first)
+    if (pos > const Duration(seconds: 2) && pos >= dur - const Duration(milliseconds: 150)) {
       // Video completed
       activeCtrl.removeListener(_videoTickListener);
       _activeListenerAttached = false;
-
-      // If it's Video 8, let it loop softly
-      if (widget.activeVideoIndex >= widget.videoAssets.length - 1) {
-        activeCtrl.setLooping(true);
-        if (!activeCtrl.value.isPlaying) activeCtrl.play();
-      } else {
-        activeCtrl.pause();
-      }
+      activeCtrl.pause(); // Pause on final frame, do not loop
 
       widget.onVideoCompleted?.call(widget.activeVideoIndex);
     }

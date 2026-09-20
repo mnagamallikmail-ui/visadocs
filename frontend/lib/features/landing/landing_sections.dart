@@ -390,9 +390,9 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
   bool _isVideoPlaying = false;
   bool _storyCompleted = false;
 
-  // 450ms content fade controller (1.0 = visible during reading breaks, 0.0 = hidden during video playback)
+  // 500ms content fade controller (1.0 = reading mode, 0.0 = video mode)
   late AnimationController _contentFadeController;
-  Timer? _cycleTimer;
+  Timer? _storyTimer;
 
   @override
   void initState() {
@@ -403,7 +403,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
       vsync: this,
       duration: const Duration(milliseconds: 700),
     );
-    _keywordSlideAnimation = Tween<double>(begin: 20.0, end: 0.0).animate(
+    _keywordSlideAnimation = Tween<double>(begin: 18.0, end: 0.0).animate(
       CurvedAnimation(parent: _keywordAnimController, curve: Curves.easeOutCubic),
     );
     _keywordOpacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -425,23 +425,27 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
     // 2. Content fade controller (starts fully visible at 1.0)
     _contentFadeController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 450),
+      duration: const Duration(milliseconds: 500),
       value: 1.0,
     );
 
     // 3. Initial page load: Hero content shown normally for 3 seconds, then Video 1 starts
-    _cycleTimer = Timer(const Duration(seconds: 3), () {
-      _startCurrentVideo();
+    _storyTimer = Timer(const Duration(seconds: 3), () {
+      _startVideo(0);
     });
   }
 
-  void _startCurrentVideo() {
+  void _startVideo(int index) {
     if (!mounted || _storyCompleted) return;
 
-    // Smoothly fade OUT headline, keywords, description, trust indicators, CTA buttons, and overlay (450ms)
+    // Smoothly fade OUT all hero content (500ms):
+    // Headline, rotating keywords, description, trust indicators, CTA buttons, and eyebrow badge
     _contentFadeController.reverse().then((_) {
       if (!mounted || _storyCompleted) return;
+      // After fade completes: content is completely invisible (opacity 0.0).
+      // Now activate video playback so user ONLY sees full-width video + dark overlay!
       setState(() {
+        _currentVideoIndex = index;
         _isVideoPlaying = true;
       });
     });
@@ -450,33 +454,32 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
   void _onVideoCompleted(int completedIndex) {
     if (!mounted) return;
 
+    // Immediately stop video playback
     setState(() {
       _isVideoPlaying = false;
     });
 
-    // Smoothly fade IN headline, keywords, description, trust indicators, CTA buttons, and overlay (450ms)
+    // Smoothly fade IN all hero content (500ms)
     _contentFadeController.forward();
 
-    // If Video 8 has completed, the story finishes and stays permanently visible
+    // If Video 8 has finished, sequence finishes permanently
     if (completedIndex >= _heroStoryVideos.length - 1) {
       _storyCompleted = true;
       return;
     }
 
-    // 10-second pause / reading break before next video plays
-    _cycleTimer?.cancel();
-    _cycleTimer = Timer(const Duration(seconds: 10), () {
+    // 10-second reading window where content is fully visible and interactive,
+    // and NO video is playing.
+    _storyTimer?.cancel();
+    _storyTimer = Timer(const Duration(seconds: 10), () {
       if (!mounted || _storyCompleted) return;
-      setState(() {
-        _currentVideoIndex = completedIndex + 1;
-      });
-      _startCurrentVideo();
+      _startVideo(completedIndex + 1);
     });
   }
 
   @override
   void dispose() {
-    _cycleTimer?.cancel();
+    _storyTimer?.cancel();
     _keywordTimer?.cancel();
     _keywordAnimController.dispose();
     _contentFadeController.dispose();
@@ -490,17 +493,21 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
     final bool isDesktop = screenW >= 1024;
     final bool isTablet = screenW >= 768 && screenW < 1024;
 
-    // Viewport dominance: Desktop 90-100vh, Tablet 85vh, Mobile 80vh min
-    final double targetMinHeight = isDesktop
-        ? (screenH * 0.95).clamp(700.0, 1050.0)
+    // Viewport-aware sizing: Fit inside browser viewport without scrolling
+    // Top clearance above Hero is 80px (SizedBox(height: 80) in landing_page.dart).
+    final double heroHeight = isDesktop
+        ? (screenH - 80).clamp(420.0, 820.0)
         : isTablet
-            ? (screenH * 0.85).clamp(600.0, 900.0)
-            : (screenH * 0.80).clamp(560.0, 800.0);
+            ? (screenH - 80).clamp(480.0, 750.0)
+            : (screenH * 0.82).clamp(480.0, 700.0);
+
+    final bool isCompactLaptop = isDesktop && (screenH < 850 || screenW < 1440);
 
     return ClipRect(
       child: Container(
         width: double.infinity,
-        constraints: BoxConstraints(minHeight: targetMinHeight),
+        height: isDesktop ? heroHeight : null,
+        constraints: BoxConstraints(minHeight: heroHeight),
         child: Stack(
           alignment: Alignment.center,
           children: [
@@ -514,43 +521,19 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
               ),
             ),
 
-            // ── LAYER 2: Premium Enterprise Horizontal Gradient Overlay ──────────────
-            // Smoothly fades in/out with the text so video is 100% unobstructed during playback
+            // ── LAYER 2: Existing Dark Horizontal Gradient Overlay ───────────────────
+            // Permanently present to maintain enterprise contrast (Sharp, Crisp, Zero Blur)
             Positioned.fill(
-              child: FadeTransition(
-                opacity: _contentFadeController,
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: isDesktop ? Alignment.centerLeft : Alignment.topCenter,
-                      end: isDesktop ? Alignment.centerRight : Alignment.bottomCenter,
-                      stops: const [0.0, 0.50, 1.0],
-                      colors: const [
-                        Color.fromRGBO(8, 14, 26, 0.82), // Left (or Top on mobile): 82%
-                        Color.fromRGBO(8, 14, 26, 0.55), // Center: 55%
-                        Color.fromRGBO(8, 14, 26, 0.20), // Right (or Bottom on mobile): 20%
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-            ),
-
-            // Bottom seamless dissolve into white background
-            Positioned(
-              bottom: 0,
-              left: 0,
-              right: 0,
-              height: 80,
               child: Container(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [
-                      Color(0x00080E1A),
-                      Color(0x66080E1A),
-                      Color(0xFFFFFFFF),
+                    begin: isDesktop ? Alignment.centerLeft : Alignment.topCenter,
+                    end: isDesktop ? Alignment.centerRight : Alignment.bottomCenter,
+                    stops: const [0.0, 0.50, 1.0],
+                    colors: const [
+                      Color.fromRGBO(8, 14, 26, 0.82), // Left (or Top on mobile): 82%
+                      Color.fromRGBO(8, 14, 26, 0.55), // Center: 55%
+                      Color.fromRGBO(8, 14, 26, 0.20), // Right (or Bottom on mobile): 20%
                     ],
                   ),
                 ),
@@ -558,6 +541,8 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
             ),
 
             // ── LAYER 3: Foreground Hero Content (Headline, Keyword, Description, CTAs, Trust) ──
+            // Fades OUT completely during video playback (Opacity 1.0 -> 0.0 over 500ms)
+            // Fades IN completely during reading window (Opacity 0.0 -> 1.0 over 500ms)
             FadeTransition(
               opacity: _contentFadeController,
               child: IgnorePointer(
@@ -565,14 +550,14 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                 child: Padding(
                   padding: EdgeInsets.symmetric(
                     horizontal: isDesktop ? 60 : 24,
-                    vertical: isDesktop ? 80 : 60,
+                    vertical: isDesktop ? (isCompactLaptop ? 16 : 24) : 20,
                   ),
                   child: Center(
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 1320),
                       child: SizedBox(
                         width: double.infinity,
-                        child: _buildForegroundContent(screenW, isDesktop),
+                        child: _buildForegroundContent(screenW, screenH, isDesktop, isTablet),
                       ),
                     ),
                   ),
@@ -585,7 +570,28 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildForegroundContent(double screenW, bool isDesktop) {
+  Widget _buildForegroundContent(double screenW, double screenH, bool isDesktop, bool isTablet) {
+    // Viewport-aware typography & spacing to guarantee zero scrolling on laptops (1366x768, 1440x900, 1536x864)
+    final bool isCompactLaptop = isDesktop && (screenH < 850 || screenW < 1440);
+
+    final double headlineSize = isCompactLaptop
+        ? 44.0
+        : (isDesktop ? 56.0 : (isTablet ? 38.0 : 32.0));
+
+    final double keywordSize = isCompactLaptop
+        ? 44.0
+        : (isDesktop ? 56.0 : (isTablet ? 38.0 : 32.0));
+
+    final double bodySize = isCompactLaptop
+        ? 15.0
+        : (isDesktop ? 17.5 : 14.5);
+
+    final double badgeGap = isCompactLaptop ? 10.0 : 16.0;
+    final double keywordGap = isCompactLaptop ? 4.0 : 6.0;
+    final double descGap = isCompactLaptop ? 12.0 : 18.0;
+    final double trustGap = isCompactLaptop ? 14.0 : 20.0;
+    final double ctaGap = isCompactLaptop ? 18.0 : 26.0;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.center,
@@ -593,7 +599,10 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
       children: [
         // Frosted Eyebrow Badge (Apple Business Crystal Style)
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          padding: EdgeInsets.symmetric(
+            horizontal: isCompactLaptop ? 14 : 16,
+            vertical: isCompactLaptop ? 6 : 8,
+          ),
           decoration: BoxDecoration(
             color: const Color(0x33FFFFFF), // Frosted glass
             borderRadius: BorderRadius.circular(100),
@@ -614,7 +623,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
               Text(
                 'IBBI REGISTERED VALUERS • ASSET INTELLIGENCE',
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11.5,
+                  fontSize: isCompactLaptop ? 11.0 : 11.5,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
                   letterSpacing: 1.2,
@@ -624,24 +633,28 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
           ),
         ),
 
-        const SizedBox(height: 24),
+        SizedBox(height: badgeGap),
 
         // Hero Headline (High-Contrast White with soft drop shadow)
         Text(
           'Independent Valuation\nFor',
-          style: LandingTheme.heroHeading(screenW).copyWith(
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: headlineSize,
+            fontWeight: FontWeight.w800,
             color: Colors.white,
+            letterSpacing: -1.8,
+            height: 1.08,
             shadows: const [
               Shadow(
                 color: Color(0x99000000),
-                blurRadius: 24,
+                blurRadius: 20,
                 offset: Offset(0, 4),
               ),
             ],
           ),
         ),
 
-        const SizedBox(height: 6),
+        SizedBox(height: keywordGap),
 
         // Rotating Morphing Keyword (Specular Platinum / Icy Highlight)
         AnimatedBuilder(
@@ -665,12 +678,16 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                   },
                   child: Text(
                     _keywords[_currentKeywordIndex],
-                    style: LandingTheme.heroKeyword(screenW).copyWith(
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: keywordSize,
+                      fontWeight: FontWeight.w800,
                       color: Colors.white,
+                      letterSpacing: -1.8,
+                      height: 1.08,
                       shadows: const [
                         Shadow(
                           color: Color(0x99000000),
-                          blurRadius: 24,
+                          blurRadius: 20,
                           offset: Offset(0, 4),
                         ),
                       ],
@@ -682,19 +699,19 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
           },
         ),
 
-        const SizedBox(height: 24),
+        SizedBox(height: descGap),
 
         // Description (Crisp Silver-Platinum, Highly Legible)
         ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 620),
+          constraints: BoxConstraints(maxWidth: isCompactLaptop ? 560 : 620),
           child: Text(
             'Independent statutory valuation and asset intelligence for leading banks, NBFCs, private equity funds, insolvency professionals, and public corporations.',
             style: GoogleFonts.inter(
-              fontSize: isDesktop ? 18.5 : 16,
+              fontSize: bodySize,
               fontWeight: FontWeight.w400,
               color: const Color(0xFFE2E8F0),
               letterSpacing: -0.2,
-              height: 1.6,
+              height: 1.55,
               shadows: const [
                 Shadow(
                   color: Color(0x80000000),
@@ -706,39 +723,42 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
           ),
         ),
 
-        const SizedBox(height: 26),
+        SizedBox(height: trustGap),
 
         // Trust Indicators (Frosted Glass Chips)
         Wrap(
-          spacing: 12,
-          runSpacing: 10,
+          spacing: 10,
+          runSpacing: 8,
           children: [
-            _buildFrostedTrustBadge(Icons.verified_user_outlined, 'IBBI / Sec 247 Compliant'),
-            _buildFrostedTrustBadge(Icons.account_balance_outlined, '₹15,000+ Cr Valued'),
-            _buildFrostedTrustBadge(Icons.assured_workload_outlined, 'Bank Empanelled'),
+            _buildFrostedTrustBadge(Icons.verified_user_outlined, 'IBBI / Sec 247 Compliant', isCompactLaptop),
+            _buildFrostedTrustBadge(Icons.account_balance_outlined, '₹15,000+ Cr Valued', isCompactLaptop),
+            _buildFrostedTrustBadge(Icons.assured_workload_outlined, 'Bank Empanelled', isCompactLaptop),
           ],
         ),
 
-        const SizedBox(height: 36),
+        SizedBox(height: ctaGap),
 
-        // CTA Buttons (Always Visible & Immediately Clickable)
+        // CTA Buttons (Always Visible during Reading Mode & Immediately Clickable)
         Wrap(
-          spacing: 14,
-          runSpacing: 12,
+          spacing: 12,
+          runSpacing: 10,
           children: [
             // Primary CTA: Request Consultation (Pure Pearl White with High Contrast Obsidian Text)
             GestureDetector(
               onTap: () => widget.launchWhatsApp('Hello, I would like to request an institutional valuation consultation with Pro Valuer.'),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isCompactLaptop ? 22 : 28,
+                  vertical: isCompactLaptop ? 13 : 16,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(100),
                   boxShadow: const [
                     BoxShadow(
                       color: Color(0x3D000000),
-                      blurRadius: 24,
-                      offset: Offset(0, 8),
+                      blurRadius: 20,
+                      offset: Offset(0, 6),
                     ),
                   ],
                 ),
@@ -748,7 +768,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                     Text(
                       'Request Consultation',
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14.5,
+                        fontSize: isCompactLaptop ? 13.5 : 14.5,
                         fontWeight: FontWeight.w700,
                         color: const Color(0xFF0F172A), // Midnight Navy
                         letterSpacing: -0.2,
@@ -765,7 +785,10 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
             GestureDetector(
               onTap: () => context.go('/login'),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isCompactLaptop ? 20 : 24,
+                  vertical: isCompactLaptop ? 13 : 16,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0x33FFFFFF), // Frosted glass
                   borderRadius: BorderRadius.circular(100),
@@ -773,7 +796,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                   boxShadow: const [
                     BoxShadow(
                       color: Color(0x1F000000),
-                      blurRadius: 16,
+                      blurRadius: 14,
                       offset: Offset(0, 4),
                     ),
                   ],
@@ -786,7 +809,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                     Text(
                       'Client Login',
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14.5,
+                        fontSize: isCompactLaptop ? 13.5 : 14.5,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                         letterSpacing: -0.2,
@@ -801,7 +824,10 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
             GestureDetector(
               onTap: () => widget.launchWhatsApp('Hello, please provide the sample institutional valuation report.'),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isCompactLaptop ? 18 : 22,
+                  vertical: isCompactLaptop ? 13 : 16,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0x1FFFFFFF),
                   borderRadius: BorderRadius.circular(100),
@@ -809,7 +835,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                   boxShadow: const [
                     BoxShadow(
                       color: Color(0x14000000),
-                      blurRadius: 14,
+                      blurRadius: 12,
                       offset: Offset(0, 4),
                     ),
                   ],
@@ -820,7 +846,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                     Text(
                       'Sample Report',
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 14,
+                        fontSize: isCompactLaptop ? 13.0 : 14.0,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                         letterSpacing: -0.2,
@@ -838,9 +864,12 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildFrostedTrustBadge(IconData icon, String text) {
+  Widget _buildFrostedTrustBadge(IconData icon, String text, bool isCompact) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      padding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 11 : 14,
+        vertical: isCompact ? 5 : 7,
+      ),
       decoration: BoxDecoration(
         color: const Color(0x26FFFFFF),
         borderRadius: BorderRadius.circular(100),
@@ -849,12 +878,12 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: const Color(0xFF93C5FD)),
-          const SizedBox(width: 7),
+          Icon(icon, size: isCompact ? 13 : 14, color: const Color(0xFF93C5FD)),
+          const SizedBox(width: 6),
           Text(
             text,
             style: GoogleFonts.inter(
-              fontSize: 12.5,
+              fontSize: isCompact ? 11.5 : 12.5,
               fontWeight: FontWeight.w600,
               color: const Color(0xFFF1F5F9),
               letterSpacing: -0.1,
