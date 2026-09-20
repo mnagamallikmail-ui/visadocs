@@ -57,7 +57,7 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
     try {
       await _controllerA!.initialize();
       await _controllerA!.setVolume(0); // Muted
-      await _controllerA!.setPlaybackSpeed(0.5);
+      await _controllerA!.setPlaybackSpeed(1.0);
 
       if (widget.videoAssets.length == 1) {
         await _controllerA!.setLooping(true); // Loop if single
@@ -101,7 +101,7 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
     try {
       await newController.initialize();
       await newController.setVolume(0); // Muted
-      await newController.setPlaybackSpeed(0.5);
+      await newController.setPlaybackSpeed(1.0);
 
       if (mounted) {
         if (_isAActive) {
@@ -133,7 +133,7 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
       try {
         await fallbackController.initialize();
         await fallbackController.setVolume(0);
-        await fallbackController.setPlaybackSpeed(0.5);
+        await fallbackController.setPlaybackSpeed(1.0);
         if (mounted) {
           if (_isAActive) {
             _controllerB = fallbackController;
@@ -209,26 +209,20 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
   Widget _buildVideoContainer() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
         color: const Color(0xFFFFFFFF),
-        borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFDADDE1), width: 1.0),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE5E7EB), width: 1.0),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0A000000), // 4% ambient black
-            blurRadius: 36,
-            offset: Offset(0, 14),
-          ),
-          BoxShadow(
-            color: Color(0x04000000),
-            blurRadius: 10,
-            offset: Offset(0, 2),
+            color: Color(0x04000000), // 1.5% micro ambient depth
+            blurRadius: 24,
+            offset: Offset(0, 6),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(11),
         child: AspectRatio(
           aspectRatio: (_controllerA != null && _controllerA!.value.isInitialized)
               ? _controllerA!.value.aspectRatio
@@ -239,7 +233,7 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
               Positioned.fill(
                 child: AnimatedOpacity(
                   opacity: _isAActive ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 250),
+                  duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
                   child: _controllerA != null && _controllerA!.value.isInitialized
                       ? VideoPlayer(_controllerA!)
@@ -250,7 +244,7 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
               Positioned.fill(
                 child: AnimatedOpacity(
                   opacity: !_isAActive ? 1.0 : 0.0,
-                  duration: const Duration(milliseconds: 250),
+                  duration: const Duration(milliseconds: 300),
                   curve: Curves.easeInOut,
                   child: _controllerB != null && _controllerB!.value.isInitialized
                       ? VideoPlayer(_controllerB!)
@@ -270,14 +264,14 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: const Color(0xFFF8F9FA),
-          borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: const Color(0xFFDADDE1), width: 1.0),
+          color: const Color(0xFFFFFFFF),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE5E7EB), width: 1.0),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x08000000),
-              blurRadius: 24,
-              offset: Offset(0, 8),
+              color: Color(0x04000000),
+              blurRadius: 20,
+              offset: Offset(0, 4),
             ),
           ],
         ),
