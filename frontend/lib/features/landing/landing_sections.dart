@@ -660,10 +660,14 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                 child: _buildLeftHeroContent(screenW, screenH, isDesktop, isTablet, isCompactLaptop),
               ),
               SizedBox(width: isCompactLaptop ? 32 : 48),
-              // Right Column: Specialized Services Accordion (Visible during Reading Mode)
+              // Right Column: Specialized Services Cascading Card Stack (Visible during Reading Mode)
               Expanded(
                 flex: isCompactLaptop ? 10 : 11,
-                child: _SpecializedServicesAccordion(isCompact: isCompactLaptop),
+                child: _CascadingServiceStack(
+                  isCompact: isCompactLaptop,
+                  isVideoPlaying: _isVideoPlaying,
+                  isCompleted: _storyCompleted,
+                ),
               ),
             ],
           )
@@ -674,7 +678,11 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
             children: [
               _buildLeftHeroContent(screenW, screenH, isDesktop, isTablet, isCompactLaptop),
               const SizedBox(height: 28),
-              const _SpecializedServicesAccordion(isCompact: true),
+              _CascadingServiceStack(
+                isCompact: true,
+                isVideoPlaying: _isVideoPlaying,
+                isCompleted: _storyCompleted,
+              ),
             ],
           );
   }
@@ -973,218 +981,324 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SPECIALIZED SERVICES ACCORDION DATA & COMPONENT
+// SPECIALIZED SERVICES — PREMIUM CASCADING SERVICE STACK
 // ═══════════════════════════════════════════════════════════════════════════════
 
-class _ServiceAccordionItem {
-  final String number;
+class _ServiceCardData {
   final String title;
-  final String scope;
+  final Color backgroundColor;
 
-  const _ServiceAccordionItem({
-    required this.number,
+  const _ServiceCardData({
     required this.title,
-    required this.scope,
+    required this.backgroundColor,
   });
 }
 
-const List<_ServiceAccordionItem> _servicesAccordionList = [
-  _ServiceAccordionItem(
-    number: '01',
+const List<_ServiceCardData> _cascadingServiceCards = [
+  _ServiceCardData(
     title: 'Valuations for Visa',
-    scope: 'Statutory net worth certification & wealth appraisal for global immigration & foreign visas.',
+    backgroundColor: Color(0xFFE0EDFD), // Soft Blue
   ),
-  _ServiceAccordionItem(
-    number: '02',
+  _ServiceCardData(
     title: 'Bank Loan Valuations',
-    scope: 'Secured collateral appraisal & credit underwriting for commercial banks & leading NBFCs.',
+    backgroundColor: Color(0xFFDCFCE7), // Soft Mint
   ),
-  _ServiceAccordionItem(
-    number: '03',
+  _ServiceCardData(
     title: 'NCLT Valuations',
-    scope: 'Corporate restructuring, merger swap ratios & statutory appraisals under Section 230–232.',
+    backgroundColor: Color(0xFFEDE9FE), // Soft Lavender
   ),
-  _ServiceAccordionItem(
-    number: '04',
+  _ServiceCardData(
     title: 'Valuations under IBC',
-    scope: 'Fair value & liquidation value certification for Resolution Professionals & Committee of Creditors.',
+    backgroundColor: Color(0xFFFFEDD5), // Soft Peach
   ),
-  _ServiceAccordionItem(
-    number: '05',
+  _ServiceCardData(
     title: 'Chartered Engineer Services',
-    scope: 'Plant & machinery residual life appraisal, equipment fitness inspection & EPC certifications.',
+    backgroundColor: Color(0xFFE6F4EA), // Soft Sage
   ),
-  _ServiceAccordionItem(
-    number: '06',
+  _ServiceCardData(
     title: 'Net Worth Certifications',
-    scope: 'Comprehensive physical & financial wealth verification for promoters, directors & sponsors.',
+    backgroundColor: Color(0xFFE0F2FE), // Soft Sky Blue
   ),
-  _ServiceAccordionItem(
-    number: '07',
+  _ServiceCardData(
     title: 'Valuation of Shares',
-    scope: 'Discounted Cash Flow (DCF), Rule 11UA income tax compliance & FEMA cross-border equity valuations.',
+    backgroundColor: Color(0xFFF5EDFD), // Soft Lilac
   ),
-  _ServiceAccordionItem(
-    number: '08',
+  _ServiceCardData(
     title: 'Lenders Independent Engineer Services',
-    scope: 'Techno-economic viability (TEV), physical progress monitoring & drawdown milestone audits.',
+    backgroundColor: Color(0xFFFEF3C7), // Soft Sand
   ),
 ];
 
-class _SpecializedServicesAccordion extends StatefulWidget {
+class _CascadingServiceStack extends StatefulWidget {
   final bool isCompact;
+  final bool isVideoPlaying;
+  final bool isCompleted;
 
-  const _SpecializedServicesAccordion({required this.isCompact});
+  const _CascadingServiceStack({
+    required this.isCompact,
+    required this.isVideoPlaying,
+    required this.isCompleted,
+  });
 
   @override
-  State<_SpecializedServicesAccordion> createState() => _SpecializedServicesAccordionState();
+  State<_CascadingServiceStack> createState() => _CascadingServiceStackState();
 }
 
-class _SpecializedServicesAccordionState extends State<_SpecializedServicesAccordion> {
-  int _activeIndex = 0;
-  Timer? _autoTimer;
+class _CascadingServiceStackState extends State<_CascadingServiceStack> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
 
   @override
   void initState() {
     super.initState();
-    _startTimer();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    );
+
+    // Initial load in Reading Mode: trigger cascading drop animation
+    if (!widget.isVideoPlaying) {
+      _controller.forward();
+    }
   }
 
-  void _startTimer() {
-    _autoTimer?.cancel();
-    _autoTimer = Timer.periodic(const Duration(milliseconds: 1800), (_) {
-      if (!mounted) return;
-      setState(() {
-        _activeIndex = (_activeIndex + 1) % _servicesAccordionList.length;
-      });
-    });
+  @override
+  void didUpdateWidget(covariant _CascadingServiceStack oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    // When returning to Reading Mode from Video Mode:
+    if (oldWidget.isVideoPlaying && !widget.isVideoPlaying) {
+      if (!widget.isCompleted) {
+        _controller.reset();
+        _controller.forward();
+      } else {
+        _controller.value = 1.0;
+      }
+    } else if (widget.isCompleted) {
+      _controller.value = 1.0;
+    }
   }
 
   @override
   void dispose() {
-    _autoTimer?.cancel();
+    _controller.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Heading: SPECIALIZED SERVICES
-        Row(
-          mainAxisSize: MainAxisSize.min,
+        // ── TOP FIXED HEADER CARD (Never moves, remains fixed at top) ────
+        Container(
+          width: double.infinity,
+          padding: EdgeInsets.symmetric(
+            horizontal: widget.isCompact ? 16 : 20,
+            vertical: widget.isCompact ? 10 : 12,
+          ),
+          decoration: const BoxDecoration(
+            color: Color(0xFF0F172A),
+            borderRadius: BorderRadius.only(
+              topLeft: Radius.circular(8),
+              topRight: Radius.circular(8),
+              bottomLeft: Radius.circular(3),
+              bottomRight: Radius.circular(3),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Color(0x140F172A),
+                blurRadius: 8,
+                offset: Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 6,
+                height: 6,
+                decoration: const BoxDecoration(
+                  color: Color(0xFF38BDF8),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'SPECIALIZED SERVICES',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: widget.isCompact ? 11.5 : 12.5,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                  letterSpacing: 1.4,
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '08 PRACTICES',
+                style: GoogleFonts.inter(
+                  fontSize: 10.0,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0x99FFFFFF),
+                  letterSpacing: 1.0,
+                ),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 2.0),
+
+        // ── SERVICE TILES (STAGGERED DROP & EXPAND ANIMATION) ──────────────
+        AnimatedBuilder(
+          animation: _controller,
+          builder: (context, child) {
+            return Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: List.generate(_cascadingServiceCards.length, (index) {
+                final card = _cascadingServiceCards[index];
+                final bool isLast = index == _cascadingServiceCards.length - 1;
+
+                // Staggered timing window for this card
+                final double start = (index * 0.09).clamp(0.0, 1.0);
+                final double end = (start + 0.28).clamp(0.0, 1.0);
+
+                double rawProgress = 0.0;
+                if (_controller.value >= end) {
+                  rawProgress = 1.0;
+                } else if (_controller.value > start) {
+                  rawProgress = (_controller.value - start) / (end - start);
+                }
+
+                // If card has not begun its sequence, keep compressed
+                if (rawProgress <= 0.0) {
+                  return const SizedBox.shrink();
+                }
+
+                final double animCurve = Curves.easeOutBack.transform(rawProgress.clamp(0.0, 1.0));
+                final double translateY = (1.0 - rawProgress.clamp(0.0, 1.0)) * -14.0;
+                final double scale = 0.95 + 0.05 * animCurve;
+                final double opacity = rawProgress.clamp(0.0, 1.0);
+
+                return Padding(
+                  padding: EdgeInsets.only(bottom: isLast ? 0.0 : 2.0),
+                  child: ClipRect(
+                    child: Align(
+                      alignment: Alignment.topCenter,
+                      heightFactor: rawProgress.clamp(0.0, 1.0),
+                      child: Opacity(
+                        opacity: opacity,
+                        child: Transform.translate(
+                          offset: Offset(0, translateY),
+                          child: Transform.scale(
+                            scale: scale,
+                            alignment: Alignment.topCenter,
+                            child: _ServiceCardTile(
+                              title: card.title,
+                              backgroundColor: card.backgroundColor,
+                              isCompact: widget.isCompact,
+                              isLast: isLast,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            );
+          },
+        ),
+      ],
+    );
+  }
+}
+
+class _ServiceCardTile extends StatefulWidget {
+  final String title;
+  final Color backgroundColor;
+  final bool isCompact;
+  final bool isLast;
+
+  const _ServiceCardTile({
+    required this.title,
+    required this.backgroundColor,
+    required this.isCompact,
+    required this.isLast,
+  });
+
+  @override
+  State<_ServiceCardTile> createState() => _ServiceCardTileState();
+}
+
+class _ServiceCardTileState extends State<_ServiceCardTile> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 160),
+        width: double.infinity,
+        padding: EdgeInsets.symmetric(
+          horizontal: widget.isCompact ? 14 : 18,
+          vertical: widget.isCompact ? 8.5 : 10.5,
+        ),
+        decoration: BoxDecoration(
+          color: widget.backgroundColor,
+          borderRadius: widget.isLast
+              ? const BorderRadius.only(
+                  topLeft: Radius.circular(3),
+                  topRight: Radius.circular(3),
+                  bottomLeft: Radius.circular(8),
+                  bottomRight: Radius.circular(8),
+                )
+              : BorderRadius.circular(3),
+          boxShadow: _isHovered
+              ? const [
+                  BoxShadow(
+                    color: Color(0x120F172A),
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
+                ]
+              : null,
+        ),
+        child: Row(
           children: [
-            Container(
-              width: 6,
-              height: 6,
-              decoration: const BoxDecoration(
-                color: Color(0xFF2563EB), // Brand Blue Accent
-                shape: BoxShape.circle,
+            Expanded(
+              child: Text(
+                widget.title,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: widget.isCompact ? 13.0 : 14.0,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F172A),
+                  letterSpacing: -0.2,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             const SizedBox(width: 8),
-            Text(
-              'SPECIALIZED SERVICES',
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: widget.isCompact ? 11.0 : 12.0,
-                fontWeight: FontWeight.w700,
-                color: const Color(0xFF2563EB),
-                letterSpacing: 1.4,
+            AnimatedOpacity(
+              duration: const Duration(milliseconds: 160),
+              opacity: _isHovered ? 0.9 : 0.45,
+              child: Transform.translate(
+                offset: Offset(_isHovered ? 2.0 : 0.0, 0),
+                child: Icon(
+                  Icons.chevron_right_rounded,
+                  size: widget.isCompact ? 15 : 17,
+                  color: const Color(0xFF0F172A),
+                ),
               ),
             ),
           ],
         ),
-        SizedBox(height: widget.isCompact ? 10 : 14),
-
-        // Auto-animated accordion items
-        ...List.generate(_servicesAccordionList.length, (index) {
-          final item = _servicesAccordionList[index];
-          final bool isActive = (index == _activeIndex);
-
-          return GestureDetector(
-            onTap: () {
-              setState(() => _activeIndex = index);
-              _startTimer();
-            },
-            behavior: HitTestBehavior.opaque,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 300),
-              curve: Curves.easeInOutCubic,
-              padding: EdgeInsets.symmetric(
-                vertical: isActive
-                    ? (widget.isCompact ? 6.0 : 8.0)
-                    : (widget.isCompact ? 3.5 : 4.5),
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Blue accent indicator bar
-                  AnimatedContainer(
-                    duration: const Duration(milliseconds: 300),
-                    curve: Curves.easeInOutCubic,
-                    width: isActive ? 2.5 : 1.0,
-                    height: isActive ? (widget.isCompact ? 22 : 24) : 12,
-                    decoration: BoxDecoration(
-                      color: isActive ? const Color(0xFF2563EB) : const Color(0x33CBD5E1),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-
-                  // Item number
-                  Text(
-                    item.number,
-                    style: GoogleFonts.inter(
-                      fontSize: widget.isCompact ? 10.5 : 11.5,
-                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
-                      color: isActive ? const Color(0xFF2563EB) : LandingTheme.textMuted,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-
-                  // Title and scope
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          item.title,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: widget.isCompact ? 13.0 : 14.5,
-                            fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
-                            color: isActive ? const Color(0xFF2563EB) : LandingTheme.textPrimary,
-                            letterSpacing: -0.2,
-                          ),
-                        ),
-                        AnimatedCrossFade(
-                          duration: const Duration(milliseconds: 300),
-                          crossFadeState: isActive ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-                          firstChild: const SizedBox.shrink(),
-                          secondChild: Padding(
-                            padding: const EdgeInsets.only(top: 3.5),
-                            child: Text(
-                              item.scope,
-                              style: GoogleFonts.inter(
-                                fontSize: widget.isCompact ? 11.0 : 12.0,
-                                fontWeight: FontWeight.w400,
-                                color: LandingTheme.textSecondary,
-                                height: 1.4,
-                                letterSpacing: -0.1,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        }),
-      ],
+      ),
     );
   }
 }
