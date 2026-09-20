@@ -145,13 +145,30 @@ class _HeaderNavLinkState extends State<_HeaderNavLink> {
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
-      child: AnimatedDefaultTextStyle(
-        duration: const Duration(milliseconds: 140),
-        style: LandingTheme.bodySmMedium.copyWith(
-          color: _hovered ? LandingTheme.primaryAccent : LandingTheme.textMuted,
-          fontWeight: _hovered ? FontWeight.w600 : FontWeight.w500,
-        ),
-        child: Text(widget.text),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          AnimatedDefaultTextStyle(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOutCubic,
+            style: LandingTheme.bodySmMedium.copyWith(
+              color: _hovered ? LandingTheme.primaryAccent : LandingTheme.textPrimary,
+              fontWeight: _hovered ? FontWeight.w600 : FontWeight.w500,
+            ),
+            child: Text(widget.text),
+          ),
+          const SizedBox(height: 3),
+          AnimatedContainer(
+            duration: const Duration(milliseconds: 250),
+            curve: Curves.easeOutCubic,
+            width: _hovered ? 16 : 0,
+            height: 2,
+            decoration: BoxDecoration(
+              color: LandingTheme.primaryAccent,
+              borderRadius: BorderRadius.circular(1),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -184,7 +201,7 @@ class _HeaderButtonState extends State<_HeaderButton> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
+          duration: const Duration(milliseconds: 250),
           curve: Curves.easeOutCubic,
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8.5),
           decoration: BoxDecoration(
@@ -548,14 +565,15 @@ class HeroSection extends StatelessWidget {
 
         const SizedBox(height: 44),
 
-        // Institutional Credential Marks (Option 3: Enterprise Trust Highlighting)
+        // Institutional Credential Marks (Option E: Blue Glass Trust System)
         Wrap(
-          spacing: 32,
+          spacing: 28,
           runSpacing: 10,
           children: [
             _trustMark('IBBI Registered', ' Valuers'),
-            _trustMark('Bank Accepted', ' Reports'),
+            _trustMark('Bank Empanelled', ' Practice'),
             _trustMark('Institutional Grade', ' Accuracy'),
+            _trustMark('Certified', ' Reports'),
           ],
         ),
       ],
@@ -565,10 +583,21 @@ class HeroSection extends StatelessWidget {
   Widget _trustMark(String highlight, String suffix) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(
-            Icons.check_circle_rounded,
-            size: 14,
-            color: LandingTheme.primaryAccent,
+          Container(
+            padding: const EdgeInsets.all(2.5),
+            decoration: BoxDecoration(
+              color: LandingTheme.softBgTint,
+              borderRadius: BorderRadius.circular(4),
+              border: Border.all(
+                color: LandingTheme.primaryAccent.withValues(alpha: 0.28),
+                width: 0.8,
+              ),
+            ),
+            child: const Icon(
+              Icons.check_rounded,
+              size: 11,
+              color: LandingTheme.primaryAccent,
+            ),
           ),
           const SizedBox(width: 8),
           Text.rich(
@@ -622,7 +651,7 @@ class _HeroCtaButtonState extends State<_HeroCtaButton> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
+          duration: const Duration(milliseconds: 250),
           curve: Curves.easeOutCubic,
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           decoration: BoxDecoration(
@@ -845,14 +874,17 @@ class ServicesGrid extends StatelessWidget {
                   children: [
                     WidgetSpan(
                       child: GradientText(
-                        'Valuation Services',
+                        'Valuation',
                         style: LandingTheme.sectionTitleResponsive(w),
                       ),
                     ),
+                    const TextSpan(text: ' Services'),
                   ],
                 ),
               ),
-              const SizedBox(height: 56),
+              const SizedBox(height: 16),
+              const AppleHighlightBar(alignment: Alignment.centerLeft),
+              const SizedBox(height: 37),
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -908,7 +940,7 @@ class _ServiceCardState extends State<_ServiceCard> {
       child: GestureDetector(
         onTap: () => widget.launchWhatsApp(widget.message),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+          duration: const Duration(milliseconds: 250),
           curve: Curves.easeOutCubic,
           padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
@@ -1049,15 +1081,18 @@ class WhyChooseUsSection extends StatelessWidget {
                   children: [
                     WidgetSpan(
                       child: GradientText(
-                        'Institutional Scrutiny',
+                        'Institutional',
                         style: LandingTheme.sectionTitleResponsive(w),
                       ),
                     ),
+                    const TextSpan(text: ' Scrutiny'),
                   ],
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 56),
+              const SizedBox(height: 16),
+              const AppleHighlightBar(alignment: Alignment.center),
+              const SizedBox(height: 37),
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -1176,14 +1211,17 @@ class ValuationWorkflowSection extends StatelessWidget {
                   children: [
                     WidgetSpan(
                       child: GradientText(
-                        'Valuation Lifecycle',
+                        'Valuation',
                         style: LandingTheme.sectionTitleResponsive(w),
                       ),
                     ),
+                    const TextSpan(text: ' Lifecycle'),
                   ],
                 ),
               ),
-              const SizedBox(height: 60),
+              const SizedBox(height: 16),
+              const AppleHighlightBar(alignment: Alignment.centerLeft),
+              const SizedBox(height: 41),
               if (isDesktop)
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -1344,14 +1382,17 @@ class WhoWeServeSection extends StatelessWidget {
                   children: [
                     WidgetSpan(
                       child: GradientText(
-                        'Critical Sectors',
+                        'Institutional',
                         style: LandingTheme.sectionTitleResponsive(w),
                       ),
                     ),
+                    const TextSpan(text: ' Sectors'),
                   ],
                 ),
               ),
-              const SizedBox(height: 56),
+              const SizedBox(height: 16),
+              const AppleHighlightBar(alignment: Alignment.centerLeft),
+              const SizedBox(height: 37),
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -1443,7 +1484,7 @@ class StatsSection extends StatelessWidget {
           const FloatingAmbientGlow(
             width: 650,
             height: 280,
-            opacity: 0.05,
+            opacity: 0.04, // Option I: 4% subtle atmosphere
             alignment: Alignment.center,
           ),
           Center(
@@ -1527,12 +1568,32 @@ class _StatItem extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        GradientText(
-          value,
-          style: LandingTheme.statNumeral.copyWith(
-            fontSize: 48,
-            letterSpacing: -2.0,
-          ),
+        Stack(
+          alignment: Alignment.center,
+          children: [
+            Text(
+              value,
+              style: LandingTheme.statNumeral.copyWith(
+                fontSize: 48,
+                letterSpacing: -2.0,
+                color: Colors.transparent,
+                shadows: const [
+                  Shadow(
+                    color: Color(0x143B82F6), // rgba(59,130,246,0.08) Option C depth
+                    offset: Offset(0, 3),
+                    blurRadius: 6,
+                  ),
+                ],
+              ),
+            ),
+            GradientText(
+              value,
+              style: LandingTheme.statNumeral.copyWith(
+                fontSize: 48,
+                letterSpacing: -2.0,
+              ),
+            ),
+          ],
         ),
         const SizedBox(height: 10),
         Text(
@@ -1604,15 +1665,18 @@ class TestimonialsSection extends StatelessWidget {
                   children: [
                     WidgetSpan(
                       child: GradientText(
-                        'Financial Partners',
+                        'Institutional',
                         style: LandingTheme.sectionTitleResponsive(w),
                       ),
                     ),
+                    const TextSpan(text: ' Partners'),
                   ],
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 56),
+              const SizedBox(height: 16),
+              const AppleHighlightBar(alignment: Alignment.center),
+              const SizedBox(height: 37),
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
@@ -1754,15 +1818,18 @@ class FaqSection extends StatelessWidget {
                   children: [
                     WidgetSpan(
                       child: GradientText(
-                        'Operational Inquiries',
+                        'Certified',
                         style: LandingTheme.sectionTitleResponsive(w),
                       ),
                     ),
+                    const TextSpan(text: ' Inquiries'),
                   ],
                 ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 56),
+              const SizedBox(height: 16),
+              const AppleHighlightBar(alignment: Alignment.center),
+              const SizedBox(height: 37),
               ..._faqs.map((faq) => _FaqItem(
                     question: faq[0],
                     answer: faq[1],
@@ -1814,7 +1881,7 @@ class _FaqItemState extends State<_FaqItem> {
                   ),
                   AnimatedRotation(
                     turns: _expanded ? 0.25 : 0,
-                    duration: const Duration(milliseconds: 160),
+                    duration: const Duration(milliseconds: 250),
                     child: Icon(
                       Icons.arrow_forward_ios_rounded,
                       size: 13,
@@ -1875,7 +1942,7 @@ class CtaBanner extends StatelessWidget {
           const FloatingAmbientGlow(
             width: 700,
             height: 400,
-            opacity: 0.07,
+            opacity: 0.05, // Option I: 5% subtle atmosphere
             alignment: Alignment.center,
           ),
           Center(
@@ -1896,12 +1963,12 @@ class CtaBanner extends StatelessWidget {
                   children: [
                     Text.rich(
                       TextSpan(
-                        text: 'Ready to ',
+                        text: 'Ready for Institutional ',
                         style: LandingTheme.sectionTitleResponsive(w),
                         children: [
                           WidgetSpan(
                             child: GradientText(
-                              'Get Started?',
+                              'Valuation?',
                               style: LandingTheme.sectionTitleResponsive(w),
                             ),
                           ),
@@ -1909,7 +1976,9 @@ class CtaBanner extends StatelessWidget {
                       ),
                       textAlign: TextAlign.center,
                     ),
-                const SizedBox(height: 16),
+                    const SizedBox(height: 14),
+                    const AppleHighlightBar(alignment: Alignment.center),
+                    const SizedBox(height: 18),
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 580),
                   child: Text(

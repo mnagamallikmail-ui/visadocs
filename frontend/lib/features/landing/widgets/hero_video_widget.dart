@@ -212,7 +212,10 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
       decoration: BoxDecoration(
         color: const Color(0xFFFFFFFF),
         borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
+        border: Border.all(
+          color: const Color(0x2E2563EB), // rgba(37,99,235,0.18) Option F
+          width: 1.0,
+        ),
         boxShadow: const [
           BoxShadow(
             color: Color(0x0C0F172A), // Midnight navy ambient depth
@@ -220,8 +223,9 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
             offset: Offset(0, 14),
           ),
           BoxShadow(
-            color: Color(0x062563EB), // Subtle enterprise blue aura
-            blurRadius: 16,
+            color: Color(0x0A2563EB), // rgba(37,99,235,0.04) subtle enterprise blue glow
+            blurRadius: 24,
+            spreadRadius: 2,
             offset: Offset(0, 4),
           ),
         ],

@@ -381,6 +381,36 @@ class FloatingAmbientGlow extends StatelessWidget {
   }
 }
 
+/// Apple Style Highlight Bar (Option H)
+/// A thin 3px accent line (48px wide) beneath important section headings.
+class AppleHighlightBar extends StatelessWidget {
+  final double width;
+  final double height;
+  final AlignmentGeometry alignment;
+
+  const AppleHighlightBar({
+    super.key,
+    this.width = 48,
+    this.height = 3.0,
+    this.alignment = Alignment.centerLeft,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Align(
+      alignment: alignment,
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(1.5),
+          gradient: LandingTheme.blueGradient,
+        ),
+      ),
+    );
+  }
+}
+
 /// Signature Brand Word System (Option 9)
 /// Highlights only designated institutional brand anchor terms:
 /// 'Valuation', 'Institutional', 'Certified', 'Bank-Accepted', 'Bank Accepted',
