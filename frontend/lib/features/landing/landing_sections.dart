@@ -252,7 +252,11 @@ class LandingHeader extends StatelessWidget {
                         _HeaderLink(label: 'Process', onTap: () => _scrollTo('process')),
                         const SizedBox(width: 28),
                         _HeaderLink(label: 'Credentials', onTap: () => _scrollTo('credentials')),
-                        const SizedBox(width: 32),
+                        const SizedBox(width: 24),
+
+                        // Compact Client Login Icon Button (Secondary Action)
+                        const _HeaderClientLoginButton(),
+                        const SizedBox(width: 10),
 
                         // Request Consultation Button (Obsidian & Platinum)
                         GestureDetector(
@@ -308,6 +312,62 @@ class LandingHeader extends StatelessWidget {
 
   void _scrollTo(String id) {
     // Navigation anchor
+  }
+}
+
+/// Compact Client Login Button for Header (Secondary Action with Blue Hover)
+class _HeaderClientLoginButton extends StatefulWidget {
+  const _HeaderClientLoginButton();
+
+  @override
+  State<_HeaderClientLoginButton> createState() => _HeaderClientLoginButtonState();
+}
+
+class _HeaderClientLoginButtonState extends State<_HeaderClientLoginButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => context.go('/login'),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8.5),
+          decoration: BoxDecoration(
+            color: _isHovered ? const Color(0x0F2563EB) : Colors.transparent,
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(
+              color: _isHovered ? const Color(0xFF2563EB) : const Color(0x33CBD5E1),
+              width: 1.1,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.lock_outline_rounded,
+                size: 14,
+                color: _isHovered ? const Color(0xFF2563EB) : LandingTheme.textPrimary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Client Login',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w600,
+                  color: _isHovered ? const Color(0xFF2563EB) : LandingTheme.textPrimary,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 
@@ -590,6 +650,36 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
     // Viewport-aware typography & spacing to guarantee zero scrolling on laptops (1366x768, 1440x900, 1536x864)
     final bool isCompactLaptop = isDesktop && (screenH < 850 || screenW < 1440);
 
+    return isDesktop
+        ? Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              // Left Column: Hero Content, Headline, Trust, CTAs
+              Expanded(
+                flex: isCompactLaptop ? 12 : 13,
+                child: _buildLeftHeroContent(screenW, screenH, isDesktop, isTablet, isCompactLaptop),
+              ),
+              SizedBox(width: isCompactLaptop ? 32 : 48),
+              // Right Column: Specialized Services Accordion (Visible during Reading Mode)
+              Expanded(
+                flex: isCompactLaptop ? 10 : 11,
+                child: _SpecializedServicesAccordion(isCompact: isCompactLaptop),
+              ),
+            ],
+          )
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildLeftHeroContent(screenW, screenH, isDesktop, isTablet, isCompactLaptop),
+              const SizedBox(height: 28),
+              const _SpecializedServicesAccordion(isCompact: true),
+            ],
+          );
+  }
+
+  Widget _buildLeftHeroContent(double screenW, double screenH, bool isDesktop, bool isTablet, bool isCompactLaptop) {
     final double headlineSize = isCompactLaptop
         ? 44.0
         : (isDesktop ? 56.0 : (isTablet ? 38.0 : 32.0));
@@ -878,6 +968,223 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
           ),
         ],
       ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// SPECIALIZED SERVICES ACCORDION DATA & COMPONENT
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _ServiceAccordionItem {
+  final String number;
+  final String title;
+  final String scope;
+
+  const _ServiceAccordionItem({
+    required this.number,
+    required this.title,
+    required this.scope,
+  });
+}
+
+const List<_ServiceAccordionItem> _servicesAccordionList = [
+  _ServiceAccordionItem(
+    number: '01',
+    title: 'Valuations for Visa',
+    scope: 'Statutory net worth certification & wealth appraisal for global immigration & foreign visas.',
+  ),
+  _ServiceAccordionItem(
+    number: '02',
+    title: 'Bank Loan Valuations',
+    scope: 'Secured collateral appraisal & credit underwriting for commercial banks & leading NBFCs.',
+  ),
+  _ServiceAccordionItem(
+    number: '03',
+    title: 'NCLT Valuations',
+    scope: 'Corporate restructuring, merger swap ratios & statutory appraisals under Section 230–232.',
+  ),
+  _ServiceAccordionItem(
+    number: '04',
+    title: 'Valuations under IBC',
+    scope: 'Fair value & liquidation value certification for Resolution Professionals & Committee of Creditors.',
+  ),
+  _ServiceAccordionItem(
+    number: '05',
+    title: 'Chartered Engineer Services',
+    scope: 'Plant & machinery residual life appraisal, equipment fitness inspection & EPC certifications.',
+  ),
+  _ServiceAccordionItem(
+    number: '06',
+    title: 'Net Worth Certifications',
+    scope: 'Comprehensive physical & financial wealth verification for promoters, directors & sponsors.',
+  ),
+  _ServiceAccordionItem(
+    number: '07',
+    title: 'Valuation of Shares',
+    scope: 'Discounted Cash Flow (DCF), Rule 11UA income tax compliance & FEMA cross-border equity valuations.',
+  ),
+  _ServiceAccordionItem(
+    number: '08',
+    title: 'Lenders Independent Engineer Services',
+    scope: 'Techno-economic viability (TEV), physical progress monitoring & drawdown milestone audits.',
+  ),
+];
+
+class _SpecializedServicesAccordion extends StatefulWidget {
+  final bool isCompact;
+
+  const _SpecializedServicesAccordion({required this.isCompact});
+
+  @override
+  State<_SpecializedServicesAccordion> createState() => _SpecializedServicesAccordionState();
+}
+
+class _SpecializedServicesAccordionState extends State<_SpecializedServicesAccordion> {
+  int _activeIndex = 0;
+  Timer? _autoTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    _startTimer();
+  }
+
+  void _startTimer() {
+    _autoTimer?.cancel();
+    _autoTimer = Timer.periodic(const Duration(milliseconds: 1800), (_) {
+      if (!mounted) return;
+      setState(() {
+        _activeIndex = (_activeIndex + 1) % _servicesAccordionList.length;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _autoTimer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Heading: SPECIALIZED SERVICES
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 6,
+              height: 6,
+              decoration: const BoxDecoration(
+                color: Color(0xFF2563EB), // Brand Blue Accent
+                shape: BoxShape.circle,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              'SPECIALIZED SERVICES',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: widget.isCompact ? 11.0 : 12.0,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF2563EB),
+                letterSpacing: 1.4,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: widget.isCompact ? 10 : 14),
+
+        // Auto-animated accordion items
+        ...List.generate(_servicesAccordionList.length, (index) {
+          final item = _servicesAccordionList[index];
+          final bool isActive = (index == _activeIndex);
+
+          return GestureDetector(
+            onTap: () {
+              setState(() => _activeIndex = index);
+              _startTimer();
+            },
+            behavior: HitTestBehavior.opaque,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              curve: Curves.easeInOutCubic,
+              padding: EdgeInsets.symmetric(
+                vertical: isActive
+                    ? (widget.isCompact ? 6.0 : 8.0)
+                    : (widget.isCompact ? 3.5 : 4.5),
+              ),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Blue accent indicator bar
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 300),
+                    curve: Curves.easeInOutCubic,
+                    width: isActive ? 2.5 : 1.0,
+                    height: isActive ? (widget.isCompact ? 22 : 24) : 12,
+                    decoration: BoxDecoration(
+                      color: isActive ? const Color(0xFF2563EB) : const Color(0x33CBD5E1),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+
+                  // Item number
+                  Text(
+                    item.number,
+                    style: GoogleFonts.inter(
+                      fontSize: widget.isCompact ? 10.5 : 11.5,
+                      fontWeight: isActive ? FontWeight.w700 : FontWeight.w500,
+                      color: isActive ? const Color(0xFF2563EB) : LandingTheme.textMuted,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+
+                  // Title and scope
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          item.title,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: widget.isCompact ? 13.0 : 14.5,
+                            fontWeight: isActive ? FontWeight.w700 : FontWeight.w600,
+                            color: isActive ? const Color(0xFF2563EB) : LandingTheme.textPrimary,
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                        AnimatedCrossFade(
+                          duration: const Duration(milliseconds: 300),
+                          crossFadeState: isActive ? CrossFadeState.showSecond : CrossFadeState.showFirst,
+                          firstChild: const SizedBox.shrink(),
+                          secondChild: Padding(
+                            padding: const EdgeInsets.only(top: 3.5),
+                            child: Text(
+                              item.scope,
+                              style: GoogleFonts.inter(
+                                fontSize: widget.isCompact ? 11.0 : 12.0,
+                                fontWeight: FontWeight.w400,
+                                color: LandingTheme.textSecondary,
+                                height: 1.4,
+                                letterSpacing: -0.1,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+      ],
     );
   }
 }
