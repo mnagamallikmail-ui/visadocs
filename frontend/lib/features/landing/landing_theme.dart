@@ -251,15 +251,17 @@ class _LuxuryGlassCardState extends State<LuxuryGlassCard> {
   }
 }
 
-/// Editorial Eyebrow Tag with Subtle Enterprise Blue Datum Dot
+/// Editorial Eyebrow Tag with Subtle Enterprise Blue Datum Dot & Gradient Line Accent (Option 6)
 class LuxuryEyebrowBadge extends StatelessWidget {
   final String text;
   final bool useBlueDot;
+  final bool showGradientLine;
 
   const LuxuryEyebrowBadge({
     super.key,
     required this.text,
     this.useBlueDot = true,
+    this.showGradientLine = true,
   });
 
   @override
@@ -277,7 +279,7 @@ class LuxuryEyebrowBadge extends StatelessWidget {
             boxShadow: useBlueDot
                 ? [
                     BoxShadow(
-                      color: LandingTheme.primaryAccent.withValues(alpha: 0.35),
+                      color: LandingTheme.primaryAccent.withValues(alpha: 0.45),
                       blurRadius: 4,
                       offset: const Offset(0, 0),
                     ),
@@ -288,8 +290,27 @@ class LuxuryEyebrowBadge extends StatelessWidget {
         const SizedBox(width: 8),
         Text(
           text.toUpperCase(),
-          style: LandingTheme.eyebrow,
+          style: LandingTheme.eyebrow.copyWith(
+            color: LandingTheme.primaryText,
+            fontWeight: FontWeight.w600,
+            letterSpacing: 1.4,
+          ),
         ),
+        if (showGradientLine) ...[
+          const SizedBox(width: 12),
+          Container(
+            width: 28,
+            height: 1.2,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  LandingTheme.primaryAccent.withValues(alpha: 0.45),
+                  LandingTheme.premiumAccent.withValues(alpha: 0.0),
+                ],
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }
@@ -356,6 +377,70 @@ class FloatingAmbientGlow extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+/// Signature Brand Word System (Option 9)
+/// Highlights only designated institutional brand anchor terms:
+/// 'Valuation', 'Institutional', 'Certified', 'Bank-Accepted', 'Bank Accepted',
+/// 'Bank Empanelled', 'Net Worth', 'IBBI', 'Chartered Engineer', 'Chartered Engineers'
+class BrandAnchorText extends StatelessWidget {
+  final String text;
+  final TextStyle style;
+  final Color? accentColor;
+  final int? maxLines;
+  final TextOverflow? overflow;
+
+  const BrandAnchorText({
+    super.key,
+    required this.text,
+    required this.style,
+    this.accentColor,
+    this.maxLines,
+    this.overflow,
+  });
+
+  static final RegExp _pattern = RegExp(
+    r'(Valuation|Institutional|Certified|Bank-Accepted|Bank Accepted|Bank Empanelled|Net Worth|IBBI|Chartered Engineers?)',
+    caseSensitive: true,
+  );
+
+  @override
+  Widget build(BuildContext context) {
+    final effectiveAccent = accentColor ?? LandingTheme.primaryAccent;
+    final spans = <TextSpan>[];
+    int lastMatchEnd = 0;
+
+    for (final match in _pattern.allMatches(text)) {
+      if (match.start > lastMatchEnd) {
+        spans.add(TextSpan(
+          text: text.substring(lastMatchEnd, match.start),
+          style: style,
+        ));
+      }
+      spans.add(TextSpan(
+        text: match.group(0),
+        style: style.copyWith(
+          color: effectiveAccent,
+          fontWeight: FontWeight.w600,
+        ),
+      ));
+      lastMatchEnd = match.end;
+    }
+
+    if (lastMatchEnd < text.length) {
+      spans.add(TextSpan(
+        text: text.substring(lastMatchEnd),
+        style: style,
+      ));
+    }
+
+    return Text.rich(
+      TextSpan(children: spans),
+      style: style,
+      maxLines: maxLines,
+      overflow: overflow,
     );
   }
 }

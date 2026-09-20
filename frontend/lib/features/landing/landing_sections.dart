@@ -200,7 +200,19 @@ class _HeaderButtonState extends State<_HeaderButton> {
                         : LandingTheme.hairlineBorder,
                     width: 1.0,
                   ),
-            boxShadow: widget.isPrimary ? LandingTheme.buttonShadow : const [],
+            boxShadow: widget.isPrimary
+                ? [
+                    if (_hovered)
+                      BoxShadow(
+                        color: const Color(0xFF3B82F6).withValues(alpha: 0.08),
+                        blurRadius: 14,
+                        spreadRadius: 1,
+                        offset: const Offset(0, 2),
+                      )
+                    else
+                      ...LandingTheme.buttonShadow,
+                  ]
+                : const [],
           ),
           child: Text(
             widget.label,
@@ -354,12 +366,34 @@ class HeroSection extends StatelessWidget {
       child: Stack(
         alignment: Alignment.center,
         children: [
-          const FloatingAmbientGlow(
-            width: 750,
-            height: 480,
-            opacity: 0.07,
-            alignment: Alignment.topRight,
-          ),
+          if (isDesktop)
+            Positioned(
+              right: -30,
+              top: 10,
+              child: IgnorePointer(
+                child: Container(
+                  width: 780,
+                  height: 520,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        const Color(0xFF3B82F6).withValues(alpha: 0.06),
+                        Colors.transparent,
+                      ],
+                      stops: const [0.0, 0.7],
+                    ),
+                  ),
+                ),
+              ),
+            )
+          else
+            const FloatingAmbientGlow(
+              width: 500,
+              height: 380,
+              opacity: 0.06,
+              alignment: Alignment.bottomCenter,
+            ),
           Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 1380),
@@ -450,13 +484,41 @@ class HeroSection extends StatelessWidget {
 
         const SizedBox(height: 28),
 
-        // Subtitle with high readability
+        // Subtitle with high readability & Option 3 trust highlighting
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
-          child: Text(
-            'IBBI registered valuation, chartered engineering certification, and risk advisory '
-            'engineered for leading banks, financial consortiums, and public enterprises.',
-            style: LandingTheme.bodyLg,
+          child: Text.rich(
+            TextSpan(
+              style: LandingTheme.bodyLg,
+              children: const [
+                TextSpan(
+                  text: 'IBBI Registered',
+                  style: TextStyle(
+                    color: LandingTheme.primaryAccent,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                TextSpan(text: ' valuation, '),
+                TextSpan(
+                  text: 'Chartered Engineer',
+                  style: TextStyle(
+                    color: LandingTheme.primaryAccent,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                TextSpan(text: ' certification, and '),
+                TextSpan(
+                  text: 'Bank-Accepted',
+                  style: TextStyle(
+                    color: LandingTheme.primaryAccent,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                TextSpan(
+                  text: ' risk advisory engineered for leading financial institutions, corporate enterprises, and public consortiums.',
+                ),
+              ],
+            ),
           ),
         ),
 
@@ -486,21 +548,21 @@ class HeroSection extends StatelessWidget {
 
         const SizedBox(height: 44),
 
-        // Institutional Credential Marks
+        // Institutional Credential Marks (Option 3: Enterprise Trust Highlighting)
         Wrap(
           spacing: 32,
           runSpacing: 10,
           children: [
-            _trustMark('IBBI Registered Valuers'),
-            _trustMark('Empanelled with Reputed Banks'),
-            _trustMark('Institutional Grade Accuracy'),
+            _trustMark('IBBI Registered', ' Valuers'),
+            _trustMark('Bank Accepted', ' Reports'),
+            _trustMark('Institutional Grade', ' Accuracy'),
           ],
         ),
       ],
     );
   }
 
-  Widget _trustMark(String text) => Row(
+  Widget _trustMark(String highlight, String suffix) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           const Icon(
@@ -509,12 +571,22 @@ class HeroSection extends StatelessWidget {
             color: LandingTheme.primaryAccent,
           ),
           const SizedBox(width: 8),
-          Text(
-            text,
-            style: LandingTheme.bodySmMedium.copyWith(
-              color: LandingTheme.secondaryText,
-              fontSize: 12.5,
-              fontWeight: FontWeight.w500,
+          Text.rich(
+            TextSpan(
+              style: LandingTheme.bodySmMedium.copyWith(
+                color: LandingTheme.secondaryText,
+                fontSize: 12.5,
+              ),
+              children: [
+                TextSpan(
+                  text: highlight,
+                  style: const TextStyle(
+                    color: LandingTheme.primaryAccent,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                TextSpan(text: suffix),
+              ],
             ),
           ),
         ],
@@ -566,7 +638,19 @@ class _HeroCtaButtonState extends State<_HeroCtaButton> {
                         : LandingTheme.hairlineBorder,
                     width: 1.0,
                   ),
-            boxShadow: widget.isPrimary ? LandingTheme.buttonShadow : const [],
+            boxShadow: widget.isPrimary
+                ? [
+                    if (_hovered)
+                      BoxShadow(
+                        color: const Color(0xFF3B82F6).withValues(alpha: 0.08),
+                        blurRadius: 18,
+                        spreadRadius: 2,
+                        offset: const Offset(0, 4),
+                      )
+                    else
+                      ...LandingTheme.buttonShadow,
+                  ]
+                : const [],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
@@ -853,8 +937,8 @@ class _ServiceCardState extends State<_ServiceCard> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(
-                      widget.title,
+                    BrandAnchorText(
+                      text: widget.title,
                       style: LandingTheme.cardTitle,
                     ),
                     const SizedBox(height: 10),
@@ -1009,8 +1093,8 @@ class WhyChooseUsSection extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              _reasons[i][1] as String,
+                            BrandAnchorText(
+                              text: _reasons[i][1] as String,
                               style: LandingTheme.cardTitle.copyWith(fontSize: 16),
                             ),
                             const SizedBox(height: 8),
@@ -1303,8 +1387,8 @@ class WhoWeServeSection extends StatelessWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(
-                              _groups[i][0] as String,
+                            BrandAnchorText(
+                              text: _groups[i][0] as String,
                               style: LandingTheme.cardTitle.copyWith(fontSize: 16),
                             ),
                             const SizedBox(height: 8),
@@ -1340,10 +1424,10 @@ class StatsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final stats = [
-      const _StatItem(customValue: 'Several Thousands of', label: 'Reports Delivered'),
-      const _StatItem(customValue: 'Empanelled with', label: 'Reputed Banking Partners'),
-      const _StatItem(value: '10+', label: 'Years of Experience'),
-      const _StatItem(value: '100%', label: 'Client Satisfaction'),
+      const _StatItem(value: '5000+', label: 'Appraisal Reports Delivered'),
+      const _StatItem(value: '28+', label: 'Bank & NBFC Empanelments'),
+      const _StatItem(value: '10+', label: 'Years of Technical Authority'),
+      const _StatItem(value: '100%', label: 'Institutional Acceptance Rate'),
     ];
 
     return Container(
@@ -1430,45 +1514,33 @@ class StatsSection extends StatelessWidget {
 }
 
 class _StatItem extends StatelessWidget {
-  final String? value;
-  final String? customValue;
+  final String value;
   final String label;
 
   const _StatItem({
-    this.value,
-    this.customValue,
+    required this.value,
     required this.label,
   });
 
   @override
   Widget build(BuildContext context) {
-    final isCustom = customValue != null;
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (!isCustom)
-          GradientText(
-            value!,
-            style: LandingTheme.statNumeral.copyWith(
-              fontSize: 48,
-              letterSpacing: -2.0,
-            ),
-          )
-        else
-          Text(
-            customValue!,
-            style: LandingTheme.statNumeral.copyWith(
-              fontSize: customValue!.length > 12 ? 22 : 48,
-              letterSpacing: customValue!.length > 12 ? -0.4 : -2.0,
-            ),
-            textAlign: TextAlign.center,
+        GradientText(
+          value,
+          style: LandingTheme.statNumeral.copyWith(
+            fontSize: 48,
+            letterSpacing: -2.0,
           ),
+        ),
         const SizedBox(height: 10),
         Text(
           label,
           style: LandingTheme.bodySmMedium.copyWith(
-            color: LandingTheme.textMuted,
+            color: LandingTheme.textSecondary,
             fontSize: 13,
+            fontWeight: FontWeight.w500,
           ),
           textAlign: TextAlign.center,
         ),

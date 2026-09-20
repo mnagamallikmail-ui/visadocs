@@ -26,12 +26,11 @@ class AnimatedHeroWords extends StatefulWidget {
 class _AnimatedHeroWordsState extends State<AnimatedHeroWords>
     with SingleTickerProviderStateMixin {
   static const _words = [
-    'Trusted',
-    'Certified',
-    'Independent',
     'Accurate',
-    'Professional',
-    'Compliant',
+    'Fast',
+    'IBBI Certified',
+    'Bank Accepted',
+    'Institutional',
   ];
 
   int _currentIndex = 0;
