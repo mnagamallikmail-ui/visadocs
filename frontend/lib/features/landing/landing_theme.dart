@@ -19,13 +19,28 @@ class LandingTheme {
   static const Color borderHover = Color(0xFFD1D5DB);
 
   // Deep High-Trust Monochromatic Typography
-  static const Color textPrimary = Color(0xFF111827); // Rich Charcoal Black
+  static const Color textPrimary = Color(0xFF0F172A); // Midnight Navy / Deep Charcoal
   static const Color textSecondary = Color(0xFF4B5563); // Readable Slate Grey
   static const Color textMuted = Color(0xFF6B7280); // Restrained Secondary Grey
   static const Color textTertiary = Color(0xFF9CA3AF);
 
+  // ── Enterprise Blue Accent Strategy (Option F) ───────────────────────────
+  static const Color primaryText = Color(0xFF0F172A);
+  static const Color secondaryText = Color(0xFF4B5563);
+  static const Color primaryAccent = Color(0xFF2563EB); // Royal / Enterprise Blue
+  static const Color accentHighlight = Color(0xFF3B82F6); // Electric Blue
+  static const Color premiumAccent = Color(0xFF38BDF8); // Sky Blue
+  static const Color softBgTint = Color(0xFFEFF6FF); // Ultra-light blue tint
+
+  // Signature Blue Gradient
+  static const LinearGradient blueGradient = LinearGradient(
+    colors: [Color(0xFF2563EB), Color(0xFF38BDF8)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
   // Executive Charcoal Accents
-  static const Color charcoal = Color(0xFF111827);
+  static const Color charcoal = Color(0xFF0F172A);
   static const Color charcoalHover = Color(0xFF000000);
 
   // High-Density Frosted Surfaces (Barely Noticeable Glass)
@@ -236,11 +251,16 @@ class _LuxuryGlassCardState extends State<LuxuryGlassCard> {
   }
 }
 
-/// Editorial Eyebrow Tag (Understated, Zero Bubble Backgrounds)
+/// Editorial Eyebrow Tag with Subtle Enterprise Blue Datum Dot
 class LuxuryEyebrowBadge extends StatelessWidget {
   final String text;
+  final bool useBlueDot;
 
-  const LuxuryEyebrowBadge({super.key, required this.text});
+  const LuxuryEyebrowBadge({
+    super.key,
+    required this.text,
+    this.useBlueDot = true,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -249,11 +269,20 @@ class LuxuryEyebrowBadge extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Container(
-          width: 4,
-          height: 4,
-          decoration: const BoxDecoration(
-            color: LandingTheme.charcoal,
+          width: 5,
+          height: 5,
+          decoration: BoxDecoration(
+            color: useBlueDot ? LandingTheme.primaryAccent : LandingTheme.charcoal,
             shape: BoxShape.circle,
+            boxShadow: useBlueDot
+                ? [
+                    BoxShadow(
+                      color: LandingTheme.primaryAccent.withValues(alpha: 0.35),
+                      blurRadius: 4,
+                      offset: const Offset(0, 0),
+                    ),
+                  ]
+                : null,
           ),
         ),
         const SizedBox(width: 8),
@@ -262,6 +291,71 @@ class LuxuryEyebrowBadge extends StatelessWidget {
           style: LandingTheme.eyebrow,
         ),
       ],
+    );
+  }
+}
+
+/// Signature Enterprise Blue Gradient Text (Option A & C)
+class GradientText extends StatelessWidget {
+  final String text;
+  final TextStyle style;
+  final Gradient? gradient;
+
+  const GradientText(
+    this.text, {
+    super.key,
+    required this.style,
+    this.gradient,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ShaderMask(
+      blendMode: BlendMode.srcIn,
+      shaderCallback: (bounds) =>
+          (gradient ?? LandingTheme.blueGradient).createShader(bounds),
+      child: Text(text, style: style),
+    );
+  }
+}
+
+/// Floating Blue Ambient Glow System (Option D)
+/// Extremely subtle 5-8% opacity radial glow felt subconsciously behind key sections.
+class FloatingAmbientGlow extends StatelessWidget {
+  final double width;
+  final double height;
+  final double opacity;
+  final Alignment alignment;
+
+  const FloatingAmbientGlow({
+    super.key,
+    this.width = 600,
+    this.height = 400,
+    this.opacity = 0.06,
+    this.alignment = Alignment.center,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Align(
+        alignment: alignment,
+        child: Container(
+          width: width,
+          height: height,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: RadialGradient(
+              colors: [
+                LandingTheme.primaryAccent.withValues(alpha: opacity),
+                LandingTheme.premiumAccent.withValues(alpha: opacity * 0.4),
+                Colors.transparent,
+              ],
+              stops: const [0.0, 0.45, 1.0],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }

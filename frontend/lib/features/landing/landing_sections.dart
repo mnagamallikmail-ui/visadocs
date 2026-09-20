@@ -107,7 +107,7 @@ class LandingHeader extends StatelessWidget {
       fontSize: 18,
       darkMode: false,
       overrideWordmark: LandingTheme.charcoal,
-      overrideAccent: LandingTheme.charcoal,
+      overrideAccent: LandingTheme.primaryAccent,
     );
   }
 
@@ -148,7 +148,7 @@ class _HeaderNavLinkState extends State<_HeaderNavLink> {
       child: AnimatedDefaultTextStyle(
         duration: const Duration(milliseconds: 140),
         style: LandingTheme.bodySmMedium.copyWith(
-          color: _hovered ? LandingTheme.charcoal : LandingTheme.textMuted,
+          color: _hovered ? LandingTheme.primaryAccent : LandingTheme.textMuted,
           fontWeight: _hovered ? FontWeight.w600 : FontWeight.w500,
         ),
         child: Text(widget.text),
@@ -189,14 +189,14 @@ class _HeaderButtonState extends State<_HeaderButton> {
           padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8.5),
           decoration: BoxDecoration(
             color: widget.isPrimary
-                ? (_hovered ? LandingTheme.charcoalHover : LandingTheme.charcoal)
-                : (_hovered ? LandingTheme.surfaceLight : Colors.transparent),
+                ? (_hovered ? LandingTheme.primaryAccent : LandingTheme.charcoal)
+                : (_hovered ? LandingTheme.softBgTint : Colors.transparent),
             borderRadius: BorderRadius.circular(8),
             border: widget.isPrimary
                 ? null
                 : Border.all(
                     color: _hovered
-                        ? LandingTheme.borderHover
+                        ? LandingTheme.primaryAccent.withValues(alpha: 0.3)
                         : LandingTheme.hairlineBorder,
                     width: 1.0,
                   ),
@@ -351,36 +351,47 @@ class HeroSection extends StatelessWidget {
         left: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
         right: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
       ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1380),
-          child: isDesktop
-              ? Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Expanded(flex: 44, child: _leftContent(context, w)),
-                    const SizedBox(width: 44),
-                    const Expanded(
-                      flex: 56,
-                      child: HeroVideoWidget(
-                        videoAssets: _videoAssets,
-                        height: 540,
-                      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          const FloatingAmbientGlow(
+            width: 750,
+            height: 480,
+            opacity: 0.07,
+            alignment: Alignment.topRight,
+          ),
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1380),
+              child: isDesktop
+                  ? Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Expanded(flex: 44, child: _leftContent(context, w)),
+                        const SizedBox(width: 44),
+                        const Expanded(
+                          flex: 56,
+                          child: HeroVideoWidget(
+                            videoAssets: _videoAssets,
+                            height: 540,
+                          ),
+                        ),
+                      ],
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        _leftContent(context, w),
+                        SizedBox(height: isTablet ? 40 : 28),
+                        HeroVideoWidget(
+                          videoAssets: _videoAssets,
+                          height: isTablet ? 440 : 300,
+                        ),
+                      ],
                     ),
-                  ],
-                )
-              : Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _leftContent(context, w),
-                    SizedBox(height: isTablet ? 40 : 28),
-                    HeroVideoWidget(
-                      videoAssets: _videoAssets,
-                      height: isTablet ? 440 : 300,
-                    ),
-                  ],
-                ),
-        ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -396,9 +407,19 @@ class HeroSection extends StatelessWidget {
         const SizedBox(height: 24),
 
         // Dominant Focal Point: Headline line 1 & 2
-        Text(
-          'Property Valuation',
-          style: LandingTheme.heroHeading(w),
+        Wrap(
+          crossAxisAlignment: WrapCrossAlignment.center,
+          spacing: 14,
+          children: [
+            Text(
+              'Property',
+              style: LandingTheme.heroHeading(w),
+            ),
+            GradientText(
+              'Valuation',
+              style: LandingTheme.heroHeading(w),
+            ),
+          ],
         ),
 
         const SizedBox(height: 4),
@@ -422,7 +443,7 @@ class HeroSection extends StatelessWidget {
                               ? 34
                               : 29,
               pillColor: Colors.transparent,
-              pillTextColor: LandingTheme.charcoal,
+              pillTextColor: LandingTheme.primaryAccent,
             ),
           ],
         ),
@@ -482,20 +503,18 @@ class HeroSection extends StatelessWidget {
   Widget _trustMark(String text) => Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 4,
-            height: 4,
-            decoration: const BoxDecoration(
-              color: LandingTheme.textMuted,
-              shape: BoxShape.circle,
-            ),
+          const Icon(
+            Icons.check_circle_rounded,
+            size: 14,
+            color: LandingTheme.primaryAccent,
           ),
           const SizedBox(width: 8),
           Text(
             text,
             style: LandingTheme.bodySmMedium.copyWith(
-              color: LandingTheme.textMuted,
+              color: LandingTheme.secondaryText,
               fontSize: 12.5,
+              fontWeight: FontWeight.w500,
             ),
           ),
         ],
@@ -536,14 +555,14 @@ class _HeroCtaButtonState extends State<_HeroCtaButton> {
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
           decoration: BoxDecoration(
             color: widget.isPrimary
-                ? (_hovered ? LandingTheme.charcoalHover : LandingTheme.charcoal)
-                : (_hovered ? LandingTheme.surfaceLight : Colors.transparent),
+                ? (_hovered ? LandingTheme.primaryAccent : LandingTheme.charcoal)
+                : (_hovered ? LandingTheme.softBgTint : Colors.transparent),
             borderRadius: BorderRadius.circular(8),
             border: widget.isPrimary
                 ? null
                 : Border.all(
                     color: _hovered
-                        ? LandingTheme.borderHover
+                        ? LandingTheme.primaryAccent.withValues(alpha: 0.3)
                         : LandingTheme.hairlineBorder,
                     width: 1.0,
                   ),
@@ -639,7 +658,7 @@ class TrustBar extends StatelessWidget {
   Widget _bullet() => const Text(
         '·',
         style: TextStyle(
-          color: LandingTheme.textMuted,
+          color: LandingTheme.primaryAccent,
           fontSize: 14,
           fontWeight: FontWeight.bold,
         ),
@@ -735,9 +754,19 @@ class ServicesGrid extends StatelessWidget {
             children: [
               const LuxuryEyebrowBadge(text: 'Core Practice Areas'),
               const SizedBox(height: 20),
-              Text(
-                'Institutional Engineering\n& Valuation Services',
-                style: LandingTheme.sectionTitleResponsive(w),
+              Text.rich(
+                TextSpan(
+                  text: 'Institutional Engineering\n& ',
+                  style: LandingTheme.sectionTitleResponsive(w),
+                  children: [
+                    WidgetSpan(
+                      child: GradientText(
+                        'Valuation Services',
+                        style: LandingTheme.sectionTitleResponsive(w),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 56),
               GridView.builder(
@@ -803,7 +832,7 @@ class _ServiceCardState extends State<_ServiceCard> {
             borderRadius: BorderRadius.circular(10),
             border: Border.all(
               color: _hovered
-                  ? LandingTheme.borderHover
+                  ? LandingTheme.primaryAccent.withValues(alpha: 0.35)
                   : LandingTheme.hairlineBorder,
               width: 1.0,
             ),
@@ -816,7 +845,7 @@ class _ServiceCardState extends State<_ServiceCard> {
             children: [
               Icon(
                 widget.icon,
-                color: LandingTheme.charcoal,
+                color: _hovered ? LandingTheme.primaryAccent : LandingTheme.charcoal,
                 size: 22,
               ),
               const SizedBox(height: 24),
@@ -846,7 +875,7 @@ class _ServiceCardState extends State<_ServiceCard> {
                     'Get Enquiry',
                     style: LandingTheme.bodySmMedium.copyWith(
                       color: _hovered
-                          ? LandingTheme.charcoal
+                          ? LandingTheme.primaryAccent
                           : LandingTheme.textMuted,
                       fontWeight: FontWeight.w600,
                     ),
@@ -856,7 +885,7 @@ class _ServiceCardState extends State<_ServiceCard> {
                     Icons.arrow_forward_rounded,
                     size: 14,
                     color: _hovered
-                        ? LandingTheme.charcoal
+                        ? LandingTheme.primaryAccent
                         : LandingTheme.textMuted,
                   ),
                 ],
@@ -929,9 +958,19 @@ class WhyChooseUsSection extends StatelessWidget {
             children: [
               const LuxuryEyebrowBadge(text: 'Institutional Governance'),
               const SizedBox(height: 20),
-              Text(
-                'Engineered for Banks, Built for\nInstitutional Scrutiny',
-                style: LandingTheme.sectionTitleResponsive(w),
+              Text.rich(
+                TextSpan(
+                  text: 'Engineered for Banks, Built for\n',
+                  style: LandingTheme.sectionTitleResponsive(w),
+                  children: [
+                    WidgetSpan(
+                      child: GradientText(
+                        'Institutional Scrutiny',
+                        style: LandingTheme.sectionTitleResponsive(w),
+                      ),
+                    ),
+                  ],
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 56),
@@ -961,7 +1000,7 @@ class WhyChooseUsSection extends StatelessWidget {
                     children: [
                       Icon(
                         _reasons[i][0] as IconData,
-                        color: LandingTheme.charcoal,
+                        color: LandingTheme.primaryAccent,
                         size: 20,
                       ),
                       const SizedBox(width: 18),
@@ -1046,9 +1085,19 @@ class ValuationWorkflowSection extends StatelessWidget {
             children: [
               const LuxuryEyebrowBadge(text: 'Execution Methodology'),
               const SizedBox(height: 20),
-              Text(
-                'Rigorous 4-Stage Valuation Lifecycle',
-                style: LandingTheme.sectionTitleResponsive(w),
+              Text.rich(
+                TextSpan(
+                  text: 'Rigorous 4-Stage ',
+                  style: LandingTheme.sectionTitleResponsive(w),
+                  children: [
+                    WidgetSpan(
+                      child: GradientText(
+                        'Valuation Lifecycle',
+                        style: LandingTheme.sectionTitleResponsive(w),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 60),
               if (isDesktop)
@@ -1115,7 +1164,7 @@ class _WorkflowStep extends StatelessWidget {
               style: LandingTheme.cardTitle.copyWith(
                 fontSize: 16,
                 fontWeight: FontWeight.w700,
-                color: LandingTheme.charcoal,
+                color: LandingTheme.primaryAccent,
               ),
             ),
             if (!isLast) ...[
@@ -1204,9 +1253,19 @@ class WhoWeServeSection extends StatelessWidget {
             children: [
               const LuxuryEyebrowBadge(text: 'Sector Coverage'),
               const SizedBox(height: 20),
-              Text(
-                'Specialized Practice Across\nCritical Sectors',
-                style: LandingTheme.sectionTitleResponsive(w),
+              Text.rich(
+                TextSpan(
+                  text: 'Specialized Practice Across\n',
+                  style: LandingTheme.sectionTitleResponsive(w),
+                  children: [
+                    WidgetSpan(
+                      child: GradientText(
+                        'Critical Sectors',
+                        style: LandingTheme.sectionTitleResponsive(w),
+                      ),
+                    ),
+                  ],
+                ),
               ),
               const SizedBox(height: 56),
               GridView.builder(
@@ -1235,7 +1294,7 @@ class WhoWeServeSection extends StatelessWidget {
                     children: [
                       Icon(
                         _groups[i][2] as IconData,
-                        color: LandingTheme.charcoal,
+                        color: LandingTheme.primaryAccent,
                         size: 20,
                       ),
                       const SizedBox(width: 18),
@@ -1294,51 +1353,62 @@ class StatsSection extends StatelessWidget {
         horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
         vertical: 85,
       ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1200),
-          child: Container(
-            padding: EdgeInsets.symmetric(
-              vertical: isDesktop ? 48 : 36,
-              horizontal: isDesktop ? 48 : 24,
-            ),
-            decoration: BoxDecoration(
-              color: LandingTheme.secondaryBg,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: LandingTheme.hairlineBorder, width: 1.0),
-              boxShadow: LandingTheme.subtleShadow,
-            ),
-            child: isDesktop
-                ? Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: _interleaveWithDividers(stats),
-                  )
-                : Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Expanded(child: stats[0]),
-                          Container(width: 1, height: 60, color: LandingTheme.hairlineBorder),
-                          Expanded(child: stats[1]),
-                        ],
-                      ),
-                      const Padding(
-                        padding: EdgeInsets.symmetric(vertical: 24),
-                        child: Divider(color: LandingTheme.hairlineBorder, height: 1),
-                      ),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Expanded(child: stats[2]),
-                          Container(width: 1, height: 60, color: LandingTheme.hairlineBorder),
-                          Expanded(child: stats[3]),
-                        ],
-                      ),
-                    ],
-                  ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          const FloatingAmbientGlow(
+            width: 650,
+            height: 280,
+            opacity: 0.05,
+            alignment: Alignment.center,
           ),
-        ),
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  vertical: isDesktop ? 48 : 36,
+                  horizontal: isDesktop ? 48 : 24,
+                ),
+                decoration: BoxDecoration(
+                  color: LandingTheme.secondaryBg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: LandingTheme.hairlineBorder, width: 1.0),
+                  boxShadow: LandingTheme.subtleShadow,
+                ),
+                child: isDesktop
+                    ? Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: _interleaveWithDividers(stats),
+                      )
+                    : Column(
+                        children: [
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              Expanded(child: stats[0]),
+                              Container(width: 1, height: 60, color: LandingTheme.hairlineBorder),
+                              Expanded(child: stats[1]),
+                            ],
+                          ),
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 24),
+                            child: Divider(color: LandingTheme.hairlineBorder, height: 1),
+                          ),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              Expanded(child: stats[2]),
+                              Container(width: 1, height: 60, color: LandingTheme.hairlineBorder),
+                              Expanded(child: stats[3]),
+                            ],
+                          ),
+                        ],
+                      ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1376,14 +1446,23 @@ class _StatItem extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          isCustom ? customValue! : value!,
-          style: LandingTheme.statNumeral.copyWith(
-            fontSize: isCustom && customValue!.length > 12 ? 22 : 48,
-            letterSpacing: isCustom && customValue!.length > 12 ? -0.4 : -2.0,
+        if (!isCustom)
+          GradientText(
+            value!,
+            style: LandingTheme.statNumeral.copyWith(
+              fontSize: 48,
+              letterSpacing: -2.0,
+            ),
+          )
+        else
+          Text(
+            customValue!,
+            style: LandingTheme.statNumeral.copyWith(
+              fontSize: customValue!.length > 12 ? 22 : 48,
+              letterSpacing: customValue!.length > 12 ? -0.4 : -2.0,
+            ),
+            textAlign: TextAlign.center,
           ),
-          textAlign: TextAlign.center,
-        ),
         const SizedBox(height: 10),
         Text(
           label,
@@ -1446,9 +1525,19 @@ class TestimonialsSection extends StatelessWidget {
             children: [
               const LuxuryEyebrowBadge(text: 'Institutional Endorsements'),
               const SizedBox(height: 20),
-              Text(
-                'Verified Feedback from Financial Partners',
-                style: LandingTheme.sectionTitleResponsive(w),
+              Text.rich(
+                TextSpan(
+                  text: 'Verified Feedback from\n',
+                  style: LandingTheme.sectionTitleResponsive(w),
+                  children: [
+                    WidgetSpan(
+                      child: GradientText(
+                        'Financial Partners',
+                        style: LandingTheme.sectionTitleResponsive(w),
+                      ),
+                    ),
+                  ],
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 56),
@@ -1483,7 +1572,7 @@ class TestimonialsSection extends StatelessWidget {
                             padding: EdgeInsets.only(right: 3),
                             child: Icon(
                               Icons.star_rounded,
-                              color: LandingTheme.charcoal,
+                              color: LandingTheme.primaryAccent,
                               size: 15,
                             ),
                           ),
@@ -1586,9 +1675,19 @@ class FaqSection extends StatelessWidget {
             children: [
               const LuxuryEyebrowBadge(text: 'Operational Inquiries'),
               const SizedBox(height: 20),
-              Text(
-                'Frequently Addressed Questions',
-                style: LandingTheme.sectionTitleResponsive(w),
+              Text.rich(
+                TextSpan(
+                  text: 'Frequently Addressed\n',
+                  style: LandingTheme.sectionTitleResponsive(w),
+                  children: [
+                    WidgetSpan(
+                      child: GradientText(
+                        'Operational Inquiries',
+                        style: LandingTheme.sectionTitleResponsive(w),
+                      ),
+                    ),
+                  ],
+                ),
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 56),
@@ -1644,10 +1743,12 @@ class _FaqItemState extends State<_FaqItem> {
                   AnimatedRotation(
                     turns: _expanded ? 0.25 : 0,
                     duration: const Duration(milliseconds: 160),
-                    child: const Icon(
+                    child: Icon(
                       Icons.arrow_forward_ios_rounded,
                       size: 13,
-                      color: LandingTheme.charcoal,
+                      color: _expanded
+                          ? LandingTheme.primaryAccent
+                          : LandingTheme.charcoal,
                     ),
                   ),
                 ],
@@ -1696,27 +1797,46 @@ class CtaBanner extends StatelessWidget {
         horizontal: w >= 1200 ? AppSpacing.sectionLg : AppSpacing.lg,
         vertical: 125,
       ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1100),
-          child: Container(
-            padding: EdgeInsets.symmetric(
-              vertical: w >= 768 ? 72 : 48,
-              horizontal: w >= 768 ? 64 : 28,
-            ),
-            decoration: BoxDecoration(
-              color: LandingTheme.secondaryBg,
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: LandingTheme.hairlineBorder, width: 1.0),
-              boxShadow: LandingTheme.subtleShadow,
-            ),
-            child: Column(
-              children: [
-                Text(
-                  'Ready to Get Started?',
-                  style: LandingTheme.sectionTitleResponsive(w),
-                  textAlign: TextAlign.center,
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          const FloatingAmbientGlow(
+            width: 700,
+            height: 400,
+            opacity: 0.07,
+            alignment: Alignment.center,
+          ),
+          Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1100),
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  vertical: w >= 768 ? 72 : 48,
+                  horizontal: w >= 768 ? 64 : 28,
                 ),
+                decoration: BoxDecoration(
+                  color: LandingTheme.secondaryBg,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: LandingTheme.hairlineBorder, width: 1.0),
+                  boxShadow: LandingTheme.subtleShadow,
+                ),
+                child: Column(
+                  children: [
+                    Text.rich(
+                      TextSpan(
+                        text: 'Ready to ',
+                        style: LandingTheme.sectionTitleResponsive(w),
+                        children: [
+                          WidgetSpan(
+                            child: GradientText(
+                              'Get Started?',
+                              style: LandingTheme.sectionTitleResponsive(w),
+                            ),
+                          ),
+                        ],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                 const SizedBox(height: 16),
                 ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 580),
@@ -1753,8 +1873,10 @@ class CtaBanner extends StatelessWidget {
           ),
         ),
       ),
-    );
-  }
+    ],
+  ),
+);
+}
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -1867,10 +1989,10 @@ class LandingFooter extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 4,
-            height: 4,
+            width: 5,
+            height: 5,
             decoration: const BoxDecoration(
-              color: LandingTheme.textTertiary,
+              color: LandingTheme.primaryAccent,
               shape: BoxShape.circle,
             ),
           ),

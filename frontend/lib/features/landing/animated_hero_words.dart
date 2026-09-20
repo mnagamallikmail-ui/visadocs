@@ -70,6 +70,16 @@ class _AnimatedHeroWordsState extends State<AnimatedHeroWords>
     final word = _words[_currentIndex];
     final textColor = widget.pillTextColor ?? const Color(0xFF111827);
 
+    final style = AppTypography.heroDisplayResponsive(
+      widget.textSize * 18,
+      color: textColor,
+    ).copyWith(
+      fontSize: widget.textSize,
+      color: textColor,
+      letterSpacing: -2.0,
+      fontWeight: FontWeight.w700,
+    );
+
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 220),
       opacity: _visible ? 1.0 : 0.0,
@@ -77,16 +87,16 @@ class _AnimatedHeroWordsState extends State<AnimatedHeroWords>
         duration: const Duration(milliseconds: 240),
         offset: _visible ? Offset.zero : const Offset(0, 0.06),
         curve: Curves.easeOutCubic,
-        child: Text(
-          word,
-          style: AppTypography.heroDisplayResponsive(
-            widget.textSize * 18,
-            color: textColor,
-          ).copyWith(
-            fontSize: widget.textSize,
-            color: textColor,
-            letterSpacing: -2.0,
-            fontWeight: FontWeight.w700,
+        child: ShaderMask(
+          blendMode: BlendMode.srcIn,
+          shaderCallback: (bounds) => const LinearGradient(
+            colors: [Color(0xFF2563EB), Color(0xFF38BDF8)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ).createShader(bounds),
+          child: Text(
+            word,
+            style: style,
           ),
         ),
       ),
