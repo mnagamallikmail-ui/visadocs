@@ -78,7 +78,9 @@ class _LandingPageState extends State<LandingPage> {
                 IndustriesSection(isDesktop: isDesktop),
                 // 5. Institutional Advantage Matrix (Pro Valuer vs Traditional)
                 WhyProValuerSection(isDesktop: isDesktop),
-                // 6. 6-Stage Institutional Valuation Workflow
+                // 5B. Why Reports Get Accepted (Dedicated Institutional Scrutiny Section)
+                WhyReportsGetAcceptedSection(isDesktop: isDesktop),
+                // 6. Interactive Institutional Valuation Workflow (6 Stages)
                 ProcessSection(isDesktop: isDesktop),
                 // 7. ₹100+ Crore Case Studies Showcase
                 CaseStudiesSection(isDesktop: isDesktop),
