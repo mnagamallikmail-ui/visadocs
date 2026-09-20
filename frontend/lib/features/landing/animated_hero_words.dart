@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
-import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 
 /// AnimatedHeroWords — rotating highlight word carousel
@@ -69,28 +68,25 @@ class _AnimatedHeroWordsState extends State<AnimatedHeroWords>
   @override
   Widget build(BuildContext context) {
     final word = _words[_currentIndex];
-    final pillBg = widget.pillColor ?? AppColors.deepTeal;
-    final pillText = widget.pillTextColor ?? AppColors.onDark;
+    final textColor = widget.pillTextColor ?? const Color(0xFF111827);
 
     return AnimatedOpacity(
-      duration: const Duration(milliseconds: 280),
+      duration: const Duration(milliseconds: 220),
       opacity: _visible ? 1.0 : 0.0,
       child: AnimatedSlide(
-        duration: const Duration(milliseconds: 300),
-        offset: _visible ? Offset.zero : const Offset(0, 0.15),
+        duration: const Duration(milliseconds: 240),
+        offset: _visible ? Offset.zero : const Offset(0, 0.06),
         curve: Curves.easeOutCubic,
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-          decoration: BoxDecoration(
-            color: pillBg,
-            borderRadius: BorderRadius.circular(12),
-          ),
-          child: Text(
-            word,
-            style: AppTypography.heroDisplayResponsive(
-              widget.textSize * 18, // scale factor to pick appropriate size
-              color: pillText,
-            ).copyWith(fontSize: widget.textSize),
+        child: Text(
+          word,
+          style: AppTypography.heroDisplayResponsive(
+            widget.textSize * 18,
+            color: textColor,
+          ).copyWith(
+            fontSize: widget.textSize,
+            color: textColor,
+            letterSpacing: -2.0,
+            fontWeight: FontWeight.w700,
           ),
         ),
       ),

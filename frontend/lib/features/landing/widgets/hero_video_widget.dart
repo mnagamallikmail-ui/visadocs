@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:video_player/video_player.dart';
-import '../../../theme/app_colors.dart';
-import '../../../theme/app_spacing.dart';
 
 /// HeroVideoWidget
 ///
@@ -211,14 +209,26 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
   Widget _buildVideoContainer() {
     return Container(
       width: double.infinity,
+      padding: const EdgeInsets.all(6),
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
-        borderRadius: BorderRadius.circular(AppRadius.xxl),
-        border: Border.all(color: AppColors.stone.withValues(alpha: 0.6), width: 1.5),
-        boxShadow: AppShadows.subtle,
+        color: const Color(0xFFFFFFFF),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFDADDE1), width: 1.0),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A000000), // 4% ambient black
+            blurRadius: 36,
+            offset: Offset(0, 14),
+          ),
+          BoxShadow(
+            color: Color(0x04000000),
+            blurRadius: 10,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(AppRadius.xxl - 1.5),
+        borderRadius: BorderRadius.circular(18),
         child: AspectRatio(
           aspectRatio: (_controllerA != null && _controllerA!.value.isInitialized)
               ? _controllerA!.value.aspectRatio
@@ -260,10 +270,16 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: AppColors.cardBg,
-          borderRadius: BorderRadius.circular(AppRadius.xxl),
-          border: Border.all(color: AppColors.stone.withValues(alpha: 0.6), width: 1.5),
-          boxShadow: AppShadows.subtle,
+          color: const Color(0xFFF8F9FA),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: const Color(0xFFDADDE1), width: 1.0),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x08000000),
+              blurRadius: 24,
+              offset: Offset(0, 8),
+            ),
+          ],
         ),
       ),
     );

@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../theme/app_colors.dart';
+import '../features/landing/landing_theme.dart';
 import '../features/landing/landing_sections.dart';
 
-/// LandingPage — Clay Enterprise PropTech redesign
-///
-/// Warm cream editorial layout with scroll-aware header.
+/// LandingPage — Luxury Enterprise SaaS Redesign
+/// Pure white & soft white glassmorphism aesthetic with scroll-aware floating header.
 /// Business logic preserved: WhatsApp URL, scroll detection, mobile drawer.
 class LandingPage extends StatefulWidget {
   const LandingPage({super.key});
@@ -53,7 +52,7 @@ class _LandingPageState extends State<LandingPage> {
 
     return Scaffold(
       key: _scaffoldKey,
-      backgroundColor: AppColors.canvas,
+      backgroundColor: LandingTheme.primaryBg,
       endDrawer: isDesktop ? null : MobileMenuDrawer(launchWhatsApp: _launchWhatsApp),
       body: Stack(
         children: [

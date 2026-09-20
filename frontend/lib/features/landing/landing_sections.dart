@@ -1,15 +1,14 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:flutter_animate/flutter_animate.dart';
-import '../../theme/app_colors.dart';
-import '../../theme/app_typography.dart';
-import '../../theme/app_spacing.dart';
 import '../../theme/app_components.dart';
+import '../../theme/app_spacing.dart';
 import 'animated_hero_words.dart';
+import 'landing_theme.dart';
 import 'widgets/hero_video_widget.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LANDING HEADER
+// LANDING HEADER — Apple / Linear Minimalist Floating Navigation
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class LandingHeader extends StatelessWidget {
@@ -18,7 +17,6 @@ class LandingHeader extends StatelessWidget {
   final Future<void> Function(String) launchWhatsApp;
   final VoidCallback? onMenuTap;
 
-  // Legacy compat — isTransparent maps to !isScrolled
   bool get isTransparent => !isScrolled;
 
   const LandingHeader({
@@ -31,102 +29,184 @@ class LandingHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 300),
-      padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
-        vertical: AppSpacing.sm,
-      ),
-      decoration: BoxDecoration(
-        color: isScrolled
-            ? AppColors.canvas.withOpacity(0.97)
-            : AppColors.canvas,
-        border: Border(
-          bottom: BorderSide(
-            color: isScrolled ? AppColors.hairline : Colors.transparent,
-          ),
+    return ClipRRect(
+      child: BackdropFilter(
+        filter: ImageFilter.blur(
+          sigmaX: isScrolled ? 12 : 6,
+          sigmaY: isScrolled ? 12 : 6,
         ),
-        boxShadow: isScrolled
-            ? [
-                BoxShadow(
-                  color: AppColors.deepTeal.withOpacity(0.04),
-                  blurRadius: 16,
-                  offset: const Offset(0, 2),
-                )
-              ]
-            : [],
-      ),
-      child: SafeArea(
-        bottom: false,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            AppComponents.logo(fontSize: 18),
-            if (isDesktop) ...[
-              Row(children: [
-                _navLink('Services'),
-                const SizedBox(width: AppSpacing.xxl),
-                _navLink('Empanelment'),
-                const SizedBox(width: AppSpacing.xxl),
-                _navLink('Who We Serve'),
-              ]),
-              Row(children: [
-                _pillButton(
-                  label: 'Client Login',
-                  isPrimary: false,
-                  onTap: () => context.go('/login'),
-                ),
-                const SizedBox(width: AppSpacing.sm),
-                _pillButton(
-                  label: 'Consult Now',
-                  isPrimary: true,
-                  onTap: () => launchWhatsApp(
-                    'Hello Provaluer, I would like to consult with your valuation team.',
-                  ),
-                ),
-              ]),
-            ] else
-              IconButton(
-                icon: const Icon(Icons.menu, color: AppColors.ink),
-                onPressed: onMenuTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          padding: EdgeInsets.symmetric(
+            horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
+            vertical: isScrolled ? 14 : 18,
+          ),
+          decoration: BoxDecoration(
+            color: isScrolled
+                ? LandingTheme.glassWhiteDense
+                : LandingTheme.primaryBg.withValues(alpha: 0.94),
+            border: Border(
+              bottom: BorderSide(
+                color: isScrolled
+                    ? LandingTheme.hairlineBorder
+                    : LandingTheme.hairlineBorder.withValues(alpha: 0.5),
+                width: 1.0,
               ),
-          ],
+            ),
+            boxShadow: isScrolled ? LandingTheme.glassShadow : const [],
+          ),
+          child: SafeArea(
+            bottom: false,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                _brandLogo(),
+                if (isDesktop) ...[
+                  Row(
+                    children: [
+                      _navLink('Services'),
+                      const SizedBox(width: 36),
+                      _navLink('Empanelment'),
+                      const SizedBox(width: 36),
+                      _navLink('Who We Serve'),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      _pillButton(
+                        label: 'Client Login',
+                        isPrimary: false,
+                        onTap: () => context.go('/login'),
+                      ),
+                      const SizedBox(width: 12),
+                      _pillButton(
+                        label: 'Consult Now',
+                        isPrimary: true,
+                        onTap: () => launchWhatsApp(
+                          'Hello Provaluer, I would like to consult with your valuation team.',
+                        ),
+                      ),
+                    ],
+                  ),
+                ] else
+                  IconButton(
+                    icon: const Icon(Icons.menu, color: LandingTheme.charcoal, size: 22),
+                    onPressed: onMenuTap,
+                  ),
+              ],
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _navLink(String text) => MouseRegion(
-        cursor: SystemMouseCursors.click,
-        child: Text(
-          text,
-          style: AppTypography.bodySmMedium(color: AppColors.textSecondary),
-        ),
-      );
+  Widget _brandLogo() {
+    return AppComponents.logo(
+      fontSize: 18,
+      darkMode: false,
+      overrideWordmark: LandingTheme.charcoal,
+      overrideAccent: LandingTheme.charcoal,
+    );
+  }
+
+  Widget _navLink(String text) {
+    return _HeaderNavLink(text: text);
+  }
 
   Widget _pillButton({
     required String label,
     required bool isPrimary,
     required VoidCallback onTap,
   }) {
+    return _HeaderButton(
+      label: label,
+      isPrimary: isPrimary,
+      onTap: onTap,
+    );
+  }
+}
+
+class _HeaderNavLink extends StatefulWidget {
+  final String text;
+  const _HeaderNavLink({required this.text});
+
+  @override
+  State<_HeaderNavLink> createState() => _HeaderNavLinkState();
+}
+
+class _HeaderNavLinkState extends State<_HeaderNavLink> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: AnimatedDefaultTextStyle(
+        duration: const Duration(milliseconds: 140),
+        style: LandingTheme.bodySmMedium.copyWith(
+          color: _hovered ? LandingTheme.charcoal : LandingTheme.textMuted,
+          fontWeight: _hovered ? FontWeight.w600 : FontWeight.w500,
+        ),
+        child: Text(widget.text),
+      ),
+    );
+  }
+}
+
+class _HeaderButton extends StatefulWidget {
+  final String label;
+  final bool isPrimary;
+  final VoidCallback onTap;
+
+  const _HeaderButton({
+    required this.label,
+    required this.isPrimary,
+    required this.onTap,
+  });
+
+  @override
+  State<_HeaderButton> createState() => _HeaderButtonState();
+}
+
+class _HeaderButtonState extends State<_HeaderButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
-        onTap: onTap,
+        onTap: widget.onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8.5),
           decoration: BoxDecoration(
-            color: isPrimary ? AppColors.deepTeal : Colors.transparent,
-            borderRadius: AppRadius.brFull,
-            border: isPrimary
+            color: widget.isPrimary
+                ? (_hovered ? LandingTheme.charcoalHover : LandingTheme.charcoal)
+                : (_hovered ? LandingTheme.surfaceLight : Colors.transparent),
+            borderRadius: BorderRadius.circular(8),
+            border: widget.isPrimary
                 ? null
-                : Border.all(color: AppColors.hairlineStrong),
+                : Border.all(
+                    color: _hovered
+                        ? LandingTheme.borderHover
+                        : LandingTheme.hairlineBorder,
+                    width: 1.0,
+                  ),
+            boxShadow: widget.isPrimary ? LandingTheme.buttonShadow : const [],
           ),
           child: Text(
-            label,
-            style: AppTypography.buttonMd(
-              color: isPrimary ? AppColors.onDark : AppColors.ink,
+            widget.label,
+            style: LandingTheme.button.copyWith(
+              color: widget.isPrimary ? Colors.white : LandingTheme.textPrimary,
+              fontSize: 13,
             ),
           ),
         ),
@@ -136,7 +216,7 @@ class LandingHeader extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MOBILE MENU DRAWER
+// MOBILE MENU DRAWER — Quiet Architectural Drawer
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class MobileMenuDrawer extends StatelessWidget {
@@ -146,7 +226,7 @@ class MobileMenuDrawer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Drawer(
-      backgroundColor: AppColors.canvas,
+      backgroundColor: LandingTheme.primaryBg,
       child: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(AppSpacing.xl),
@@ -156,15 +236,20 @@ class MobileMenuDrawer extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  AppComponents.logo(fontSize: 18),
+                  AppComponents.logo(
+                    fontSize: 18,
+                    darkMode: false,
+                    overrideWordmark: LandingTheme.charcoal,
+                    overrideAccent: LandingTheme.charcoal,
+                  ),
                   IconButton(
-                    icon: const Icon(Icons.close, color: AppColors.ink),
+                    icon: const Icon(Icons.close, color: LandingTheme.charcoal, size: 22),
                     onPressed: () => Navigator.of(context).pop(),
                   ),
                 ],
               ),
               const SizedBox(height: AppSpacing.xl),
-              const Divider(color: AppColors.hairlineSoft),
+              const Divider(color: LandingTheme.hairlineBorder, height: 1),
               const SizedBox(height: AppSpacing.xl),
               _menuItem('Services'),
               _menuItem('Empanelment'),
@@ -178,35 +263,42 @@ class MobileMenuDrawer extends StatelessWidget {
                     context.go('/login');
                   },
                   child: Container(
-                    padding: AppSpacing.buttonPadding,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
                     decoration: BoxDecoration(
-                      borderRadius: AppRadius.brFull,
-                      border: Border.all(color: AppColors.hairlineStrong),
+                      color: LandingTheme.surfaceLight,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: LandingTheme.hairlineBorder),
                     ),
                     alignment: Alignment.center,
-                    child: Text('Client Login',
-                        style: AppTypography.buttonMd(color: AppColors.ink)),
+                    child: Text(
+                      'Client Login',
+                      style: LandingTheme.button.copyWith(color: LandingTheme.textPrimary),
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(height: AppSpacing.sm),
+              const SizedBox(height: 10),
               SizedBox(
                 width: double.infinity,
                 child: GestureDetector(
                   onTap: () {
                     Navigator.of(context).pop();
                     launchWhatsApp(
-                        'Hello Provaluer, I would like to consult with your valuation team.');
+                      'Hello Provaluer, I would like to consult with your valuation team.',
+                    );
                   },
                   child: Container(
-                    padding: AppSpacing.buttonPadding,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
                     decoration: BoxDecoration(
-                      color: AppColors.deepTeal,
-                      borderRadius: AppRadius.brFull,
+                      color: LandingTheme.charcoal,
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: LandingTheme.buttonShadow,
                     ),
                     alignment: Alignment.center,
-                    child: Text('Consult Now',
-                        style: AppTypography.buttonMd(color: AppColors.onDark)),
+                    child: Text(
+                      'Consult Now',
+                      style: LandingTheme.button.copyWith(color: Colors.white),
+                    ),
                   ),
                 ),
               ),
@@ -218,13 +310,16 @@ class MobileMenuDrawer extends StatelessWidget {
   }
 
   Widget _menuItem(String text) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
-        child: Text(text, style: AppTypography.bodyMd(color: AppColors.ink)),
+        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
+        child: Text(
+          text,
+          style: LandingTheme.cardTitle.copyWith(fontSize: 15.5),
+        ),
       );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// HERO SECTION — Editorial cream layout with animated words
+// HERO SECTION — Architectural Whitespace & Pure Editorial Centerpiece
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class HeroSection extends StatelessWidget {
@@ -245,15 +340,14 @@ class HeroSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final w = MediaQuery.of(context).size.width;
-    // Tablet: 768–1023px  |  Mobile: <768px
     final isTablet = w >= 768 && w < 1024;
 
     return Container(
       width: double.infinity,
-      color: AppColors.canvas,
+      color: LandingTheme.primaryBg,
       padding: EdgeInsets.only(
-        top: isDesktop ? 140 : 110,
-        bottom: isDesktop ? 100 : 80,
+        top: isDesktop ? 155 : 120,
+        bottom: isDesktop ? 120 : 80,
         left: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
         right: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
       ),
@@ -261,14 +355,13 @@ class HeroSection extends StatelessWidget {
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1200),
           child: isDesktop
-              // ── Desktop: side-by-side, flex 55 / 45 ──────────────────────
               ? Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Expanded(flex: 55, child: _leftContent(context, w)),
-                    const SizedBox(width: AppSpacing.xxl),
+                    Expanded(flex: 54, child: _leftContent(context, w)),
+                    const SizedBox(width: 52),
                     const Expanded(
-                      flex: 45,
+                      flex: 46,
                       child: HeroVideoWidget(
                         videoAssets: _videoAssets,
                         height: 480,
@@ -276,13 +369,11 @@ class HeroSection extends StatelessWidget {
                     ),
                   ],
                 )
-              // ── Tablet / Mobile: stacked column ──────────────────────────
               : Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _leftContent(context, w),
-                    SizedBox(height: isTablet ? AppSpacing.xxl : AppSpacing.xl),
-                    // Full-width video below hero text on tablet and mobile.
+                    SizedBox(height: isTablet ? 52 : 36),
                     HeroVideoWidget(
                       videoAssets: _videoAssets,
                       height: isTablet ? 360 : 260,
@@ -299,127 +390,91 @@ class HeroSection extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Eyebrow badge
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-          decoration: BoxDecoration(
-            color: AppColors.tealLight,
-            borderRadius: AppRadius.brFull,
-            border: Border.all(color: AppColors.deepTeal.withOpacity(0.2)),
-          ),
-          child: Text(
-            'HYDERABAD & SECUNDERABAD',
-            style: AppTypography.microUppercase(color: AppColors.deepTeal),
-          ),
-        ).animate().fadeIn(duration: 500.ms).slideX(begin: -0.1, end: 0, duration: 500.ms),
+        // Editorial Eyebrow Tag
+        const LuxuryEyebrowBadge(text: 'Institutional Asset Valuation & Advisory'),
 
-        const SizedBox(height: AppSpacing.xxl),
+        const SizedBox(height: 24),
 
-        // Headline line 1
+        // Dominant Focal Point: Headline line 1 & 2
         Text(
           'Property Valuation',
-          style: AppTypography.heroDisplayResponsive(w, color: AppColors.ink),
-        ).animate(delay: 150.ms).fadeIn(duration: 600.ms).slideY(begin: 0.1, end: 0, duration: 600.ms),
+          style: LandingTheme.heroHeading(w),
+        ),
+
+        const SizedBox(height: 4),
 
         Wrap(
           crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 16,
+          spacing: 12,
           children: [
             Text(
               'for',
-              style: AppTypography.heroDisplayResponsive(w, color: AppColors.ink),
-            ).animate(delay: 150.ms).fadeIn(duration: 600.ms).slideY(begin: 0.1, end: 0, duration: 600.ms),
-            // Animated rotating words
+              style: LandingTheme.heroHeading(w),
+            ),
             AnimatedHeroWords(
               textSize: w >= 1280
-                  ? 64
+                  ? 66
                   : w >= 1024
-                      ? 52
+                      ? 54
                       : w >= 768
                           ? 44
                           : w >= 480
-                              ? 36
-                              : 30,
-              pillColor: AppColors.deepTeal,
-              pillTextColor: AppColors.onDark,
-            ).animate(delay: 400.ms).fadeIn(duration: 600.ms),
+                              ? 34
+                              : 29,
+              pillColor: Colors.transparent,
+              pillTextColor: LandingTheme.charcoal,
+            ),
           ],
         ),
 
-        const SizedBox(height: AppSpacing.xxl),
+        const SizedBox(height: 28),
 
-        // Subtitle
+        // Subtitle with high readability
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 520),
           child: Text(
-            'Property valuation, engineering certification and advisory services '
-            'trusted by leading banks, financial institutions and enterprises.',
-            style: AppTypography.bodyMd(color: AppColors.textMuted),
+            'IBBI registered valuation, chartered engineering certification, and risk advisory '
+            'engineered for leading banks, financial consortiums, and public enterprises.',
+            style: LandingTheme.bodyLg,
           ),
-        ).animate(delay: 600.ms).fadeIn(duration: 600.ms).slideY(begin: 0.1, end: 0, duration: 600.ms),
+        ),
 
-        const SizedBox(height: AppSpacing.xxxl),
+        const SizedBox(height: 40),
 
-        // CTA buttons
+        // CTA buttons (Razor-sharp, Apple/Linear style)
         Wrap(
-          spacing: AppSpacing.md,
-          runSpacing: AppSpacing.md,
+          spacing: 12,
+          runSpacing: 12,
           children: [
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: () => launchWhatsApp(
-                  'Hello Provaluer, I am seeking a valuation consultation for my property/asset.',
-                ),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: AppColors.deepTeal,
-                    borderRadius: AppRadius.brMd,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.chat_outlined, color: AppColors.onDark, size: 16),
-                      const SizedBox(width: 8),
-                      Text('Request Consultation',
-                          style: AppTypography.buttonMd(color: AppColors.onDark)),
-                    ],
-                  ),
-                ),
+            _HeroCtaButton(
+              isPrimary: true,
+              label: 'Request Consultation',
+              icon: Icons.arrow_forward_rounded,
+              onTap: () => launchWhatsApp(
+                'Hello Provaluer, I am seeking a valuation consultation for my property/asset.',
               ),
             ),
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: () => context.go('/login'),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                  decoration: BoxDecoration(
-                    color: Colors.transparent,
-                    borderRadius: AppRadius.brMd,
-                    border: Border.all(color: AppColors.hairlineStrong),
-                  ),
-                  child: Text('Client Login',
-                      style: AppTypography.buttonMd(color: AppColors.ink)),
-                ),
-              ),
+            _HeroCtaButton(
+              isPrimary: false,
+              label: 'Client Login',
+              icon: Icons.login_rounded,
+              onTap: () => context.go('/login'),
             ),
           ],
-        ).animate(delay: 800.ms).fadeIn(duration: 600.ms).slideY(begin: 0.1, end: 0, duration: 600.ms),
+        ),
 
-        const SizedBox(height: AppSpacing.xxl),
+        const SizedBox(height: 44),
 
-        // Trust marks
+        // Institutional Credential Marks
         Wrap(
-          spacing: AppSpacing.xl,
-          runSpacing: AppSpacing.xs,
+          spacing: 32,
+          runSpacing: 10,
           children: [
             _trustMark('IBBI Registered Valuers'),
             _trustMark('Empanelled with Reputed Banks'),
-            _trustMark('Several Thousands of Reports'),
+            _trustMark('Institutional Grade Accuracy'),
           ],
-        ).animate(delay: 1000.ms).fadeIn(duration: 600.ms),
+        ),
       ],
     );
   }
@@ -428,22 +483,98 @@ class HeroSection extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 6,
-            height: 6,
+            width: 4,
+            height: 4,
             decoration: const BoxDecoration(
-              color: AppColors.successAccent,
+              color: LandingTheme.textMuted,
               shape: BoxShape.circle,
             ),
           ),
-          const SizedBox(width: 6),
-          Text(text, style: AppTypography.caption(color: AppColors.textMuted)),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: LandingTheme.bodySmMedium.copyWith(
+              color: LandingTheme.textMuted,
+              fontSize: 12.5,
+            ),
+          ),
         ],
       );
+}
 
+class _HeroCtaButton extends StatefulWidget {
+  final bool isPrimary;
+  final String label;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _HeroCtaButton({
+    required this.isPrimary,
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  @override
+  State<_HeroCtaButton> createState() => _HeroCtaButtonState();
+}
+
+class _HeroCtaButtonState extends State<_HeroCtaButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 160),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          decoration: BoxDecoration(
+            color: widget.isPrimary
+                ? (_hovered ? LandingTheme.charcoalHover : LandingTheme.charcoal)
+                : (_hovered ? LandingTheme.surfaceLight : Colors.transparent),
+            borderRadius: BorderRadius.circular(8),
+            border: widget.isPrimary
+                ? null
+                : Border.all(
+                    color: _hovered
+                        ? LandingTheme.borderHover
+                        : LandingTheme.hairlineBorder,
+                    width: 1.0,
+                  ),
+            boxShadow: widget.isPrimary ? LandingTheme.buttonShadow : const [],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                widget.label,
+                style: LandingTheme.button.copyWith(
+                  color: widget.isPrimary ? Colors.white : LandingTheme.textPrimary,
+                  fontSize: 14,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                widget.icon,
+                color: widget.isPrimary ? Colors.white : LandingTheme.textPrimary,
+                size: 15,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TRUST BAR
+// TRUST BAR — Understated Typographic Empanelment Row (McKinsey / Stripe Style)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class TrustBar extends StatelessWidget {
@@ -454,31 +585,41 @@ class TrustBar extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.symmetric(
-          vertical: AppSpacing.xxl, horizontal: AppSpacing.xxl),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceSoft,
+        vertical: 36,
+        horizontal: AppSpacing.xxl,
+      ),
+      decoration: const BoxDecoration(
+        color: LandingTheme.secondaryBg,
         border: Border.symmetric(
-            horizontal: BorderSide(color: AppColors.hairline)),
+          horizontal: BorderSide(color: LandingTheme.hairlineBorder, width: 1.0),
+        ),
       ),
       child: Center(
         child: Column(
           children: [
-            Text('TRUSTED BY LEADING BANKING INSTITUTIONS',
-                style: AppTypography.microUppercase(color: AppColors.stone),
-                textAlign: TextAlign.center),
-            const SizedBox(height: AppSpacing.xl),
+            Text(
+              'EMPANELLED WITH LEADING SCHEDULED COMMERCIAL BANKS',
+              style: LandingTheme.eyebrow,
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
             Wrap(
-              spacing: AppSpacing.sm,
-              runSpacing: AppSpacing.sm,
+              spacing: 24,
+              runSpacing: 10,
               alignment: WrapAlignment.center,
-              children: const [
-                'State Bank of India',
-                'Union Bank of India',
-                'Punjab National Bank',
-                'Central Bank of India',
-                'Axis Bank',
-                'Canara Bank',
-              ].map(_bankChip).toList(),
+              children: [
+                _bankItem('State Bank of India'),
+                _bullet(),
+                _bankItem('Union Bank of India'),
+                _bullet(),
+                _bankItem('Punjab National Bank'),
+                _bullet(),
+                _bankItem('Central Bank of India'),
+                _bullet(),
+                _bankItem('Axis Bank'),
+                _bullet(),
+                _bankItem('Canara Bank'),
+              ],
             ),
           ],
         ),
@@ -486,21 +627,27 @@ class TrustBar extends StatelessWidget {
     );
   }
 
-  static Widget _bankChip(String name) => Container(
-        padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.lg, vertical: AppSpacing.xs),
-        decoration: BoxDecoration(
-          color: AppColors.canvas,
-          borderRadius: AppRadius.brFull,
-          border: Border.all(color: AppColors.hairline),
+  Widget _bankItem(String name) => Text(
+        name,
+        style: LandingTheme.bodySmMedium.copyWith(
+          fontSize: 13.5,
+          color: LandingTheme.textPrimary,
+          fontWeight: FontWeight.w600,
         ),
-        child: Text(name,
-            style: AppTypography.bodySmMedium(color: AppColors.textSecondary)),
+      );
+
+  Widget _bullet() => const Text(
+        '·',
+        style: TextStyle(
+          color: LandingTheme.textMuted,
+          fontSize: 14,
+          fontWeight: FontWeight.bold,
+        ),
       );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SERVICES GRID — Clay alternating colored cards
+// SERVICES GRID — Architectural Grid of Core Practice Areas
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class ServicesGrid extends StatelessWidget {
@@ -518,71 +665,67 @@ class ServicesGrid extends StatelessWidget {
   static const _services = [
     [
       'Land & Building Valuation',
-      'Registered under IBBI for statutory, taxation, transactional, and bank empanelment purposes.',
+      'Statutory, balance sheet, mortgage lending, and NCLT transactional valuation under IBBI mandate.',
       'Hello Provaluer, I would like to request Land & Building Valuation details.',
     ],
     [
       'Plant & Machinery Valuation',
-      'Technical valuation of industrial assets, factories, assembly lines, and technological equipment.',
+      'Technical assessment of industrial installations, fabrication units, and automated manufacturing lines.',
       'Hello Provaluer, I would like to request Plant & Machinery Valuation details.',
     ],
     [
       'Securities & Financial Assets',
-      'Company valuations, financial instruments, shares, and intangibles for corporate compliance.',
+      'Corporate valuation for capital restructuring, mergers, share transfers, and regulatory compliance.',
       'Hello Provaluer, I would like to request Securities & Financial Asset Valuation details.',
     ],
     [
       'Net Worth Certificates',
-      'Fast-track documentation for Visa applications, bank guarantees, and immigration procedures.',
+      'Audited financial documentation for statutory visa filings, institutional guarantees, and liquidity proof.',
       'Hello Provaluer, I would like to request a Net Worth Certificate evaluation.',
     ],
     [
       'Chartered Engineer Services',
-      'Certification for import-export, customs valuation, machinery life estimation, and government schemes.',
+      'Technical certification for customs clearance, EPCG export schemes, and plant life assessment.',
       'Hello Provaluer, I would like to request Chartered Engineer certification services.',
     ],
     [
       'Lenders Independent Engineer',
-      'Comprehensive LIE reporting for large infrastructure projects, bank monitoring, and consortium financing.',
+      'Independent technical review, project milestone monitoring, and fund drawdown verification for banks.',
       'Hello Provaluer, I would like to request Lenders Independent Engineer (LIE) services.',
     ],
     [
       'Cost Vetting',
-      'Financial review of project expenditures, construction budgets, material estimates, and cost overruns.',
+      'Detailed audit of civil construction expenditure, BOQ verification, and variance control analysis.',
       'Hello Provaluer, I would like to request Cost Vetting services.',
     ],
     [
       'Contractors Bill Ratification',
-      'Third-party audit and verification of contractor billing, milestones completed, and work quality check.',
+      'Third-party milestone sign-off, workmanship certification, and contractor billing ratification.',
       'Hello Provaluer, I would like to request Contractor Bill Ratification services.',
     ],
   ];
 
-  // Clay-palette card variants
-  static const _cardVariants = [
-    'teal', 'ochre', 'lavender', 'peach',
-    'teal', 'pink', 'ochre', 'cream',
-  ];
-
   static const _cardIcons = [
-    Icons.apartment_outlined,
-    Icons.precision_manufacturing_outlined,
-    Icons.trending_up_outlined,
-    Icons.description_outlined,
-    Icons.engineering_outlined,
-    Icons.account_balance_outlined,
-    Icons.receipt_long_outlined,
-    Icons.fact_check_outlined,
+    Icons.apartment_rounded,
+    Icons.precision_manufacturing_rounded,
+    Icons.trending_up_rounded,
+    Icons.description_rounded,
+    Icons.engineering_rounded,
+    Icons.account_balance_rounded,
+    Icons.receipt_long_rounded,
+    Icons.fact_check_rounded,
   ];
 
   @override
   Widget build(BuildContext context) {
     final cols = isDesktop ? 4 : (isTablet ? 2 : 1);
+    final w = MediaQuery.of(context).size.width;
+
     return Container(
-      color: AppColors.canvas,
+      color: LandingTheme.primaryBg,
       padding: EdgeInsets.symmetric(
         horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
-        vertical: AppSpacing.sectionLg,
+        vertical: 125,
       ),
       child: Center(
         child: ConstrainedBox(
@@ -590,40 +733,27 @@ class ServicesGrid extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppColors.featureOchreLight,
-                  borderRadius: AppRadius.brFull,
-                  border: Border.all(
-                      color: AppColors.featureOchre.withOpacity(0.3)),
-                ),
-                child: Text('OUR CORE EXPERTISE',
-                    style: AppTypography.microUppercase(
-                        color: const Color(0xFF7A5A10))),
-              ),
-              const SizedBox(height: AppSpacing.lg),
+              const LuxuryEyebrowBadge(text: 'Core Practice Areas'),
+              const SizedBox(height: 20),
               Text(
-                'Professional Engineering\n& Valuation Services',
-                style: AppTypography.sectionHeading(color: AppColors.ink),
+                'Institutional Engineering\n& Valuation Services',
+                style: LandingTheme.sectionTitleResponsive(w),
               ),
-              const SizedBox(height: AppSpacing.sectionSm),
+              const SizedBox(height: 56),
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: cols,
-                  crossAxisSpacing: AppSpacing.md,
-                  mainAxisSpacing: AppSpacing.md,
-                  childAspectRatio: isDesktop ? 0.85 : 1.4,
+                  crossAxisSpacing: 24,
+                  mainAxisSpacing: 24,
+                  childAspectRatio: isDesktop ? 0.92 : (isTablet ? 1.35 : 1.45),
                 ),
                 itemCount: _services.length,
                 itemBuilder: (_, i) => _ServiceCard(
                   title: _services[i][0],
                   description: _services[i][1],
                   message: _services[i][2],
-                  variant: _cardVariants[i],
                   icon: _cardIcons[i],
                   launchWhatsApp: launchWhatsApp,
                 ),
@@ -638,7 +768,6 @@ class ServicesGrid extends StatelessWidget {
 
 class _ServiceCard extends StatefulWidget {
   final String title, description, message;
-  final String variant;
   final IconData icon;
   final Future<void> Function(String) launchWhatsApp;
 
@@ -646,7 +775,6 @@ class _ServiceCard extends StatefulWidget {
     required this.title,
     required this.description,
     required this.message,
-    required this.variant,
     required this.icon,
     required this.launchWhatsApp,
   });
@@ -658,126 +786,91 @@ class _ServiceCard extends StatefulWidget {
 class _ServiceCardState extends State<_ServiceCard> {
   bool _hovered = false;
 
-  BoxDecoration _deco() {
-    switch (widget.variant) {
-      case 'teal':
-        return BoxDecoration(
-          color: AppColors.featureTeal,
-          borderRadius: AppRadius.brFeature,
-        );
-      case 'ochre':
-        return BoxDecoration(
-          color: AppColors.featureOchreLight,
-          borderRadius: AppRadius.brFeature,
-          border: Border.all(color: AppColors.featureOchre.withOpacity(0.3)),
-        );
-      case 'lavender':
-        return BoxDecoration(
-          color: AppColors.featureLavenderLight,
-          borderRadius: AppRadius.brFeature,
-          border:
-              Border.all(color: AppColors.featureLavender.withOpacity(0.3)),
-        );
-      case 'peach':
-        return BoxDecoration(
-          color: AppColors.featurePeachLight,
-          borderRadius: AppRadius.brFeature,
-          border: Border.all(color: AppColors.featurePeach.withOpacity(0.3)),
-        );
-      case 'pink':
-        return BoxDecoration(
-          color: AppColors.featurePinkLight,
-          borderRadius: AppRadius.brFeature,
-          border: Border.all(color: AppColors.featurePink.withOpacity(0.3)),
-        );
-      default: // cream
-        return BoxDecoration(
-          color: AppColors.cardBg,
-          borderRadius: AppRadius.brFeature,
-          border: Border.all(color: AppColors.hairline),
-        );
-    }
-  }
-
-  Color get _iconColor {
-    if (widget.variant == 'teal') return AppColors.onDark;
-    if (widget.variant == 'ochre') return const Color(0xFF7A5A10);
-    if (widget.variant == 'lavender') return const Color(0xFF5A3ABF);
-    if (widget.variant == 'peach') return const Color(0xFF8A4010);
-    if (widget.variant == 'pink') return AppColors.featurePink;
-    return AppColors.deepTeal;
-  }
-
-  Color get _iconBg {
-    if (widget.variant == 'teal') return AppColors.onDark.withOpacity(0.12);
-    return Colors.black.withOpacity(0.05);
-  }
-
-  Color get _titleColor =>
-      widget.variant == 'teal' ? AppColors.onDark : AppColors.ink;
-  Color get _descColor =>
-      widget.variant == 'teal' ? AppColors.onDarkMuted : AppColors.textMuted;
-  Color get _linkColor =>
-      widget.variant == 'teal' ? AppColors.onDark : AppColors.deepTeal;
-
   @override
-  Widget build(BuildContext context) => MouseRegion(
-        cursor: SystemMouseCursors.click,
-        onEnter: (_) => setState(() => _hovered = true),
-        onExit: (_) => setState(() => _hovered = false),
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: () => widget.launchWhatsApp(widget.message),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          decoration: _deco().copyWith(
-            boxShadow: _hovered ? AppShadows.subtle : AppShadows.card,
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: LandingTheme.primaryBg,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: _hovered
+                  ? LandingTheme.borderHover
+                  : LandingTheme.hairlineBorder,
+              width: 1.0,
+            ),
+            boxShadow: _hovered
+                ? LandingTheme.hoverShadow
+                : LandingTheme.subtleShadow,
           ),
-          padding: const EdgeInsets.all(AppSpacing.xxl),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: _iconBg,
-                  borderRadius: AppRadius.brMd,
-                ),
-                child: Icon(widget.icon, color: _iconColor, size: 20),
+              Icon(
+                widget.icon,
+                color: LandingTheme.charcoal,
+                size: 22,
               ),
-              const SizedBox(height: AppSpacing.lg),
+              const SizedBox(height: 24),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text(widget.title,
-                        style: AppTypography.cardTitle(color: _titleColor)),
-                    const SizedBox(height: AppSpacing.sm),
-                    Text(widget.description,
-                        style: AppTypography.bodySm(color: _descColor),
-                        maxLines: 3,
-                        overflow: TextOverflow.ellipsis),
+                    Text(
+                      widget.title,
+                      style: LandingTheme.cardTitle,
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      widget.description,
+                      style: LandingTheme.bodySm,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ],
                 ),
               ),
-              const SizedBox(height: AppSpacing.lg),
-              GestureDetector(
-                onTap: () => widget.launchWhatsApp(widget.message),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text('Get Enquiry',
-                        style: AppTypography.bodySmMedium(color: _linkColor)),
-                    const SizedBox(width: 6),
-                    Icon(Icons.arrow_forward, size: 13, color: _linkColor),
-                  ],
-                ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Get Enquiry',
+                    style: LandingTheme.bodySmMedium.copyWith(
+                      color: _hovered
+                          ? LandingTheme.charcoal
+                          : LandingTheme.textMuted,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Icon(
+                    Icons.arrow_forward_rounded,
+                    size: 14,
+                    color: _hovered
+                        ? LandingTheme.charcoal
+                        : LandingTheme.textMuted,
+                  ),
+                ],
               ),
             ],
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// WHY CHOOSE US
+// WHY CHOOSE US — Institutional Rigor & Regulatory Governance
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class WhyChooseUsSection extends StatelessWidget {
@@ -785,22 +878,48 @@ class WhyChooseUsSection extends StatelessWidget {
   const WhyChooseUsSection({super.key, required this.isDesktop});
 
   static const _reasons = [
-    [Icons.verified_outlined, 'IBBI Registered', 'Our valuers are registered under the Insolvency and Bankruptcy Board of India for all asset classes.'],
-    [Icons.account_balance_outlined, 'Bank Empanelled', 'Empanelled with leading banks and NBFCs for mortgage and collateral valuations.'],
-    [Icons.speed_outlined, 'Fast Turnaround', '24-48 hour turnaround for standard reports. Expedited service available.'],
-    [Icons.gavel_outlined, 'Legally Compliant', 'All reports comply with SEBI, RBI, IBBI, and Customs regulations.'],
-    [Icons.support_agent_outlined, 'Expert Team', 'Chartered Engineers and Registered Valuers with 10+ years domain expertise.'],
-    [Icons.star_outline_rounded, '100% Accuracy', 'Rigorous QC process ensures every report meets institutional-grade accuracy standards.'],
+    [
+      Icons.verified_outlined,
+      'IBBI Registered',
+      'Valuers registered under Insolvency and Bankruptcy Board of India mandate across asset categories.',
+    ],
+    [
+      Icons.account_balance_outlined,
+      'Bank Empanelled',
+      'Active empanelment with public sector banks, private lenders, and NBFC consortiums.',
+    ],
+    [
+      Icons.speed_outlined,
+      'Disciplined Turnaround',
+      '24-48 hour turnaround on standardized appraisal files with strict milestone checkpoints.',
+    ],
+    [
+      Icons.gavel_outlined,
+      'Statutory Compliance',
+      'Full compliance with SEBI, RBI Master Directions, Companies Act, and Customs mandates.',
+    ],
+    [
+      Icons.support_agent_outlined,
+      'Chartered Engineers',
+      'Senior valuation practice led by chartered engineers with decade-plus technical authority.',
+    ],
+    [
+      Icons.star_outline_rounded,
+      'Dual-Layer Verification',
+      'Systematic quality assurance protocol ensuring institutional-grade evidentiary standards.',
+    ],
   ];
 
   @override
   Widget build(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+
     return Container(
       width: double.infinity,
-      color: AppColors.surfaceSoft,
+      color: LandingTheme.secondaryBg,
       padding: EdgeInsets.symmetric(
         horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
-        vertical: AppSpacing.sectionLg,
+        vertical: 125,
       ),
       child: Center(
         child: ConstrainedBox(
@@ -808,64 +927,60 @@ class WhyChooseUsSection extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppColors.tealLight,
-                  borderRadius: AppRadius.brFull,
-                  border: Border.all(color: AppColors.deepTeal.withOpacity(0.2)),
-                ),
-                child: Text('WHY CHOOSE US',
-                    style: AppTypography.microUppercase(color: AppColors.deepTeal)),
-              ),
-              const SizedBox(height: AppSpacing.lg),
+              const LuxuryEyebrowBadge(text: 'Institutional Governance'),
+              const SizedBox(height: 20),
               Text(
-                'Built for Banks, Trusted\nby Institutions',
-                style: AppTypography.sectionHeading(color: AppColors.ink),
+                'Engineered for Banks, Built for\nInstitutional Scrutiny',
+                style: LandingTheme.sectionTitleResponsive(w),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: AppSpacing.sectionSm),
+              const SizedBox(height: 56),
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: isDesktop ? 3 : 1,
-                  crossAxisSpacing: AppSpacing.md,
-                  mainAxisSpacing: AppSpacing.md,
-                  childAspectRatio: isDesktop ? 1.6 : 3.5,
+                  crossAxisSpacing: 24,
+                  mainAxisSpacing: 24,
+                  childAspectRatio: isDesktop ? 1.8 : 3.2,
                 ),
                 itemCount: _reasons.length,
                 itemBuilder: (_, i) => Container(
-                  padding: const EdgeInsets.all(AppSpacing.xxl),
-                  decoration: AppComponents.cardBase(),
+                  padding: const EdgeInsets.all(28),
+                  decoration: BoxDecoration(
+                    color: LandingTheme.primaryBg,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: LandingTheme.hairlineBorder,
+                      width: 1.0,
+                    ),
+                    boxShadow: LandingTheme.subtleShadow,
+                  ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColors.tealLight,
-                          borderRadius: AppRadius.brMd,
-                        ),
-                        child: Icon(_reasons[i][0] as IconData,
-                            color: AppColors.deepTeal, size: 18),
+                      Icon(
+                        _reasons[i][0] as IconData,
+                        color: LandingTheme.charcoal,
+                        size: 20,
                       ),
-                      const SizedBox(width: AppSpacing.lg),
+                      const SizedBox(width: 18),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Text(_reasons[i][1] as String,
-                                style:
-                                    AppTypography.cardTitle(color: AppColors.ink)
-                                        .copyWith(fontSize: 15)),
-                            const SizedBox(height: AppSpacing.xs),
-                            Text(_reasons[i][2] as String,
-                                style: AppTypography.bodySm(
-                                    color: AppColors.textMuted),
-                                maxLines: 3,
-                                overflow: TextOverflow.ellipsis),
+                            Text(
+                              _reasons[i][1] as String,
+                              style: LandingTheme.cardTitle.copyWith(fontSize: 16),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _reasons[i][2] as String,
+                              style: LandingTheme.bodySm,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ],
                         ),
                       ),
@@ -882,7 +997,7 @@ class WhyChooseUsSection extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// VALUATION WORKFLOW
+// VALUATION WORKFLOW — 4-Stage Valuation Lifecycle
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class ValuationWorkflowSection extends StatelessWidget {
@@ -890,20 +1005,38 @@ class ValuationWorkflowSection extends StatelessWidget {
   const ValuationWorkflowSection({super.key, required this.isDesktop});
 
   static const _steps = [
-    ['01', 'Submit Request', 'Share property details and documents via our secure client portal or WhatsApp.'],
-    ['02', 'Site Inspection', 'Our registered valuer visits the property and conducts a thorough physical inspection.'],
-    ['03', 'Analysis & Report', 'Data is analyzed using approved methodologies and compiled into a detailed valuation report.'],
-    ['04', 'Delivery & Sign', 'Report is digitally signed by the registered valuer and delivered to you and your bank.'],
+    [
+      '01',
+      'Submit Request',
+      'Upload asset documents and cadastral records via our secure client portal or direct advisory desk.',
+    ],
+    [
+      '02',
+      'Site Inspection',
+      'Registered valuer conducts rigorous on-site measurements, structural checks, and physical audit.',
+    ],
+    [
+      '03',
+      'Analytical Appraisal',
+      'Data reconciled against government registries, circle rates, and discounted cash-flow models.',
+    ],
+    [
+      '04',
+      'Sign-Off & Delivery',
+      'Institutional report digitally signed under IBBI seal and dispatched directly to your lender.',
+    ],
   ];
 
   @override
   Widget build(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+
     return Container(
       width: double.infinity,
-      color: AppColors.canvas,
+      color: LandingTheme.primaryBg,
       padding: EdgeInsets.symmetric(
         horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
-        vertical: AppSpacing.sectionLg,
+        vertical: 125,
       ),
       child: Center(
         child: ConstrainedBox(
@@ -911,21 +1044,13 @@ class ValuationWorkflowSection extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppColors.featureLavenderLight,
-                  borderRadius: AppRadius.brFull,
-                  border: Border.all(color: AppColors.featureLavender.withOpacity(0.3)),
-                ),
-                child: Text('HOW IT WORKS',
-                    style: AppTypography.microUppercase(
-                        color: const Color(0xFF5A3ABF))),
+              const LuxuryEyebrowBadge(text: 'Execution Methodology'),
+              const SizedBox(height: 20),
+              Text(
+                'Rigorous 4-Stage Valuation Lifecycle',
+                style: LandingTheme.sectionTitleResponsive(w),
               ),
-              const SizedBox(height: AppSpacing.lg),
-              Text('Valuation in 4 Simple Steps',
-                  style: AppTypography.sectionHeading(color: AppColors.ink)),
-              const SizedBox(height: AppSpacing.sectionSm),
+              const SizedBox(height: 60),
               if (isDesktop)
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -933,7 +1058,7 @@ class ValuationWorkflowSection extends StatelessWidget {
                     _steps.length,
                     (i) => Expanded(
                       child: Padding(
-                        padding: EdgeInsets.only(right: i < _steps.length - 1 ? 16 : 0),
+                        padding: EdgeInsets.only(right: i < _steps.length - 1 ? 32 : 0),
                         child: _WorkflowStep(
                           number: _steps[i][0],
                           title: _steps[i][1],
@@ -949,7 +1074,7 @@ class ValuationWorkflowSection extends StatelessWidget {
                   children: List.generate(
                     _steps.length,
                     (i) => Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
+                      padding: const EdgeInsets.only(bottom: 32),
                       child: _WorkflowStep(
                         number: _steps[i][0],
                         title: _steps[i][1],
@@ -970,6 +1095,7 @@ class ValuationWorkflowSection extends StatelessWidget {
 class _WorkflowStep extends StatelessWidget {
   final String number, title, description;
   final bool isLast;
+
   const _WorkflowStep({
     required this.number,
     required this.title,
@@ -984,40 +1110,42 @@ class _WorkflowStep extends StatelessWidget {
       children: [
         Row(
           children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: AppColors.deepTeal,
-                borderRadius: AppRadius.brMd,
+            Text(
+              number,
+              style: LandingTheme.cardTitle.copyWith(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: LandingTheme.charcoal,
               ),
-              alignment: Alignment.center,
-              child: Text(number,
-                  style: AppTypography.captionBold(color: AppColors.onDark)
-                      .copyWith(fontSize: 12)),
             ),
             if (!isLast) ...[
-              const SizedBox(width: 8),
+              const SizedBox(width: 16),
               Expanded(
-                child: Container(height: 1, color: AppColors.hairline),
+                child: Container(
+                  height: 1,
+                  color: LandingTheme.hairlineBorder,
+                ),
               ),
             ],
           ],
         ),
-        const SizedBox(height: AppSpacing.lg),
-        Text(title,
-            style: AppTypography.cardTitle(color: AppColors.ink)
-                .copyWith(fontSize: 15)),
-        const SizedBox(height: AppSpacing.sm),
-        Text(description,
-            style: AppTypography.bodySm(color: AppColors.textMuted)),
+        const SizedBox(height: 22),
+        Text(
+          title,
+          style: LandingTheme.cardTitle.copyWith(fontSize: 16),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          description,
+          style: LandingTheme.bodySm,
+        ),
       ],
     );
   }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// WHO WE SERVE
+// WHO WE SERVE — Specialized Practice Across Critical Sectors
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class WhoWeServeSection extends StatelessWidget {
@@ -1028,122 +1156,122 @@ class WhoWeServeSection extends StatelessWidget {
     [
       'Banks & Financial Institutions',
       'Providing technical asset appraisals, LIE audits, and bad-debt valuation backing empanelments.',
-      Icons.account_balance_outlined,
+      Icons.account_balance_rounded,
     ],
     [
       'Corporates & Businesses',
       'Assisting in statutory audit valuations, mergers/acquisitions, restructuring, and commercial due diligence.',
-      Icons.business_outlined,
+      Icons.business_rounded,
     ],
     [
       'Manufacturing & Industries',
       'Valuation of factory premises, machinery life, asset capitalization, and EPCG licensing compliance.',
-      Icons.precision_manufacturing_outlined,
+      Icons.precision_manufacturing_rounded,
     ],
     [
       'NBFCs & Fintechs',
       'Collateral verification, digital lending support, and property risk assessment for modern lenders.',
-      Icons.credit_card_outlined,
+      Icons.credit_card_rounded,
     ],
     [
       'Government & Public Sector',
       'Government scheme valuations, EPCG compliance reports, and public sector asset assessments.',
-      Icons.gavel_outlined,
+      Icons.gavel_rounded,
     ],
     [
       'Individuals & HNIs',
       'Personal property valuations for loans, insurance, estate planning, and net worth certifications.',
-      Icons.person_outline,
+      Icons.person_rounded,
     ],
   ];
 
   @override
-  Widget build(BuildContext context) => Container(
-        width: double.infinity,
-        color: AppColors.surfaceSoft,
-        padding: EdgeInsets.symmetric(
-          horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
-          vertical: AppSpacing.sectionLg,
-        ),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1200),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
+  Widget build(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+
+    return Container(
+      width: double.infinity,
+      color: LandingTheme.secondaryBg,
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
+        vertical: 125,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const LuxuryEyebrowBadge(text: 'Sector Coverage'),
+              const SizedBox(height: 20),
+              Text(
+                'Specialized Practice Across\nCritical Sectors',
+                style: LandingTheme.sectionTitleResponsive(w),
+              ),
+              const SizedBox(height: 56),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: isDesktop ? 3 : 1,
+                  crossAxisSpacing: 24,
+                  mainAxisSpacing: 24,
+                  childAspectRatio: isDesktop ? 1.8 : 3.2,
+                ),
+                itemCount: _groups.length,
+                itemBuilder: (_, i) => Container(
+                  padding: const EdgeInsets.all(28),
                   decoration: BoxDecoration(
-                    color: AppColors.featurePeachLight,
-                    borderRadius: AppRadius.brFull,
+                    color: LandingTheme.primaryBg,
+                    borderRadius: BorderRadius.circular(10),
                     border: Border.all(
-                        color: AppColors.featurePeach.withOpacity(0.3)),
-                  ),
-                  child: Text('CLIENT SECTORS',
-                      style: AppTypography.microUppercase(
-                          color: const Color(0xFF8A4010))),
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                Text('Industries We\nRegularly Serve',
-                    style: AppTypography.sectionHeading(color: AppColors.ink)),
-                const SizedBox(height: AppSpacing.sectionSm),
-                GridView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: isDesktop ? 3 : 1,
-                    crossAxisSpacing: AppSpacing.md,
-                    mainAxisSpacing: AppSpacing.md,
-                    childAspectRatio: isDesktop ? 1.8 : 3.5,
-                  ),
-                  itemCount: _groups.length,
-                  itemBuilder: (_, i) => Container(
-                    padding: const EdgeInsets.all(AppSpacing.xxl),
-                    decoration: AppComponents.cardBase(),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(10),
-                          decoration: BoxDecoration(
-                            color: AppColors.featurePeachLight,
-                            borderRadius: AppRadius.brMd,
-                          ),
-                          child: Icon(_groups[i][2] as IconData,
-                              color: const Color(0xFF8A4010), size: 20),
-                        ),
-                        const SizedBox(width: AppSpacing.lg),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Text(_groups[i][0] as String,
-                                  style: AppTypography.cardTitle(color: AppColors.ink)
-                                      .copyWith(fontSize: 15)),
-                              const SizedBox(height: AppSpacing.xs),
-                              Text(_groups[i][1] as String,
-                                  style: AppTypography.bodySm(
-                                      color: AppColors.textMuted),
-                                  maxLines: 3,
-                                  overflow: TextOverflow.ellipsis),
-                            ],
-                          ),
-                        ),
-                      ],
+                      color: LandingTheme.hairlineBorder,
+                      width: 1.0,
                     ),
+                    boxShadow: LandingTheme.subtleShadow,
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        _groups[i][2] as IconData,
+                        color: LandingTheme.charcoal,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 18),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _groups[i][0] as String,
+                              style: LandingTheme.cardTitle.copyWith(fontSize: 16),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              _groups[i][1] as String,
+                              style: LandingTheme.bodySm,
+                              maxLines: 3,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// STATS SECTION
+// STATS SECTION — Clean Architectural Metrics Band
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class StatsSection extends StatelessWidget {
@@ -1153,40 +1281,63 @@ class StatsSection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final stats = [
-      _AnimatedStat(customValue: 'Several Thousands of', label: 'Reports'),
-      _AnimatedStat(customValue: 'Empanelled with', label: 'Reputed Banks'),
-      _AnimatedStat(target: 10, suffix: '+', label: 'Years of\nExperience'),
-      _AnimatedStat(target: 100, suffix: '%', label: 'Client\nSatisfaction'),
+      const _StatItem(customValue: 'Several Thousands of', label: 'Reports Delivered'),
+      const _StatItem(customValue: 'Empanelled with', label: 'Reputed Banking Partners'),
+      const _StatItem(value: '10+', label: 'Years of Experience'),
+      const _StatItem(value: '100%', label: 'Client Satisfaction'),
     ];
 
     return Container(
       width: double.infinity,
-      color: AppColors.deepTeal,
+      color: LandingTheme.primaryBg,
       padding: EdgeInsets.symmetric(
         horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
-        vertical: AppSpacing.sectionSm,
+        vertical: 85,
       ),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1200),
-          child: isDesktop
-              ? Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: _interleaveWithDividers(stats),
-                )
-              : Column(
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [stats[0], stats[1]],
-                    ),
-                    const SizedBox(height: AppSpacing.xxl),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                      children: [stats[2], stats[3]],
-                    ),
-                  ],
-                ),
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              vertical: isDesktop ? 48 : 36,
+              horizontal: isDesktop ? 48 : 24,
+            ),
+            decoration: BoxDecoration(
+              color: LandingTheme.secondaryBg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: LandingTheme.hairlineBorder, width: 1.0),
+              boxShadow: LandingTheme.subtleShadow,
+            ),
+            child: isDesktop
+                ? Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: _interleaveWithDividers(stats),
+                  )
+                : Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Expanded(child: stats[0]),
+                          Container(width: 1, height: 60, color: LandingTheme.hairlineBorder),
+                          Expanded(child: stats[1]),
+                        ],
+                      ),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 24),
+                        child: Divider(color: LandingTheme.hairlineBorder, height: 1),
+                      ),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          Expanded(child: stats[2]),
+                          Container(width: 1, height: 60, color: LandingTheme.hairlineBorder),
+                          Expanded(child: stats[3]),
+                        ],
+                      ),
+                    ],
+                  ),
+          ),
         ),
       ),
     );
@@ -1195,12 +1346,12 @@ class StatsSection extends StatelessWidget {
   List<Widget> _interleaveWithDividers(List<Widget> items) {
     final result = <Widget>[];
     for (int i = 0; i < items.length; i++) {
-      result.add(items[i]);
+      result.add(Expanded(child: items[i]));
       if (i < items.length - 1) {
         result.add(Container(
           width: 1,
           height: 64,
-          color: AppColors.onDark.withOpacity(0.15),
+          color: LandingTheme.hairlineBorder,
         ));
       }
     }
@@ -1208,15 +1359,13 @@ class StatsSection extends StatelessWidget {
   }
 }
 
-class _AnimatedStat extends StatelessWidget {
-  final int? target;
-  final String? suffix;
+class _StatItem extends StatelessWidget {
+  final String? value;
   final String? customValue;
   final String label;
 
-  const _AnimatedStat({
-    this.target,
-    this.suffix,
+  const _StatItem({
+    this.value,
     this.customValue,
     required this.label,
   });
@@ -1227,31 +1376,21 @@ class _AnimatedStat extends StatelessWidget {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (isCustom)
-          Text(
-            customValue!,
-            style: AppTypography.statDisplay(color: AppColors.onDark).copyWith(
-              fontSize: customValue!.length > 12 ? 24 : 48,
-              letterSpacing: customValue!.length > 12 ? 0.0 : -1.0,
-            ),
-            textAlign: TextAlign.center,
-          ).animate(delay: 800.ms).fadeIn(duration: 600.ms)
-        else
-          Text(
-            '0${suffix ?? ""}',
-            style: AppTypography.statDisplay(color: AppColors.onDark),
-          ).animate(delay: 800.ms).custom(
-                duration: 2000.ms,
-                curve: Curves.easeOutCubic,
-                builder: (_, value, __) => Text(
-                  '${((target ?? 0) * value).round()}${suffix ?? ""}',
-                  style: AppTypography.statDisplay(color: AppColors.onDark),
-                ),
-              ),
-        const SizedBox(height: AppSpacing.xs),
+        Text(
+          isCustom ? customValue! : value!,
+          style: LandingTheme.statNumeral.copyWith(
+            fontSize: isCustom && customValue!.length > 12 ? 22 : 48,
+            letterSpacing: isCustom && customValue!.length > 12 ? -0.4 : -2.0,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        const SizedBox(height: 10),
         Text(
           label,
-          style: AppTypography.bodySm(color: AppColors.onDarkMuted),
+          style: LandingTheme.bodySmMedium.copyWith(
+            color: LandingTheme.textMuted,
+            fontSize: 13,
+          ),
           textAlign: TextAlign.center,
         ),
       ],
@@ -1260,7 +1399,7 @@ class _AnimatedStat extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TESTIMONIALS
+// TESTIMONIALS — Verified Feedback from Financial Partners
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class TestimonialsSection extends StatelessWidget {
@@ -1290,12 +1429,14 @@ class TestimonialsSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+
     return Container(
       width: double.infinity,
-      color: AppColors.canvas,
+      color: LandingTheme.primaryBg,
       padding: EdgeInsets.symmetric(
         horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
-        vertical: AppSpacing.sectionLg,
+        vertical: 125,
       ),
       child: Center(
         child: ConstrainedBox(
@@ -1303,82 +1444,79 @@ class TestimonialsSection extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppColors.featurePinkLight,
-                  borderRadius: AppRadius.brFull,
-                  border: Border.all(color: AppColors.featurePink.withOpacity(0.3)),
-                ),
-                child: Text('CLIENT STORIES',
-                    style: AppTypography.microUppercase(
-                        color: AppColors.featurePink)),
+              const LuxuryEyebrowBadge(text: 'Institutional Endorsements'),
+              const SizedBox(height: 20),
+              Text(
+                'Verified Feedback from Financial Partners',
+                style: LandingTheme.sectionTitleResponsive(w),
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: AppSpacing.lg),
-              Text('What Our Clients Say',
-                  style: AppTypography.sectionHeading(color: AppColors.ink),
-                  textAlign: TextAlign.center),
-              const SizedBox(height: AppSpacing.sectionSm),
+              const SizedBox(height: 56),
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
                 gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                   crossAxisCount: isDesktop ? 3 : 1,
-                  crossAxisSpacing: AppSpacing.md,
-                  mainAxisSpacing: AppSpacing.md,
-                  childAspectRatio: isDesktop ? 1.3 : 2.5,
+                  crossAxisSpacing: 24,
+                  mainAxisSpacing: 24,
+                  childAspectRatio: isDesktop ? 1.35 : 2.2,
                 ),
                 itemCount: _testimonials.length,
                 itemBuilder: (_, i) => Container(
-                  padding: const EdgeInsets.all(AppSpacing.xxl),
-                  decoration: AppComponents.cardBase(),
+                  padding: const EdgeInsets.all(32),
+                  decoration: BoxDecoration(
+                    color: LandingTheme.primaryBg,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: LandingTheme.hairlineBorder,
+                      width: 1.0,
+                    ),
+                    boxShadow: LandingTheme.subtleShadow,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Stars
                       Row(
                         children: List.generate(
                           5,
-                          (_) => const Icon(Icons.star,
-                              color: AppColors.featureOchre, size: 14),
-                        ),
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      Expanded(
-                        child: Text('"${_testimonials[i][0]}"',
-                            style: AppTypography.bodyMd(color: AppColors.textSecondary)
-                                .copyWith(
-                                    fontStyle: FontStyle.italic, height: 1.7)),
-                      ),
-                      const SizedBox(height: AppSpacing.lg),
-                      Row(
-                        children: [
-                          Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              color: AppColors.tealLight,
-                              shape: BoxShape.circle,
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              _testimonials[i][1][0],
-                              style: AppTypography.captionBold(
-                                  color: AppColors.deepTeal),
+                          (_) => const Padding(
+                            padding: EdgeInsets.only(right: 3),
+                            child: Icon(
+                              Icons.star_rounded,
+                              color: LandingTheme.charcoal,
+                              size: 15,
                             ),
                           ),
-                          const SizedBox(width: AppSpacing.sm),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(_testimonials[i][1],
-                                  style: AppTypography.bodySmMedium(
-                                      color: AppColors.ink)),
-                              Text(
-                                  '${_testimonials[i][2]} · ${_testimonials[i][3]}',
-                                  style: AppTypography.caption(
-                                      color: AppColors.textMuted)),
-                            ],
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      Expanded(
+                        child: Text(
+                          '"${_testimonials[i][0]}"',
+                          style: LandingTheme.bodyMd.copyWith(
+                            fontStyle: FontStyle.italic,
+                            color: LandingTheme.textPrimary,
+                            height: 1.65,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _testimonials[i][1],
+                            style: LandingTheme.bodySmMedium.copyWith(
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            '${_testimonials[i][2]} · ${_testimonials[i][3]}',
+                            style: LandingTheme.bodySm.copyWith(
+                              fontSize: 12.5,
+                              color: LandingTheme.textMuted,
+                            ),
                           ),
                         ],
                       ),
@@ -1395,7 +1533,7 @@ class TestimonialsSection extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// FAQ SECTION
+// FAQ SECTION — Apple / Stripe Clean Hairline List
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class FaqSection extends StatelessWidget {
@@ -1431,34 +1569,29 @@ class FaqSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+
     return Container(
       width: double.infinity,
-      color: AppColors.surfaceSoft,
+      color: LandingTheme.secondaryBg,
       padding: EdgeInsets.symmetric(
         horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
-        vertical: AppSpacing.sectionLg,
+        vertical: 125,
       ),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 800),
+          constraints: const BoxConstraints(maxWidth: 860),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                decoration: BoxDecoration(
-                  color: AppColors.tealLight,
-                  borderRadius: AppRadius.brFull,
-                  border: Border.all(color: AppColors.deepTeal.withOpacity(0.2)),
-                ),
-                child: Text('FAQ',
-                    style: AppTypography.microUppercase(color: AppColors.deepTeal)),
+              const LuxuryEyebrowBadge(text: 'Operational Inquiries'),
+              const SizedBox(height: 20),
+              Text(
+                'Frequently Addressed Questions',
+                style: LandingTheme.sectionTitleResponsive(w),
+                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: AppSpacing.lg),
-              Text('Frequently Asked Questions',
-                  style: AppTypography.sectionHeading(color: AppColors.ink),
-                  textAlign: TextAlign.center),
-              const SizedBox(height: AppSpacing.sectionSm),
+              const SizedBox(height: 56),
               ..._faqs.map((faq) => _FaqItem(
                     question: faq[0],
                     answer: faq[1],
@@ -1485,34 +1618,36 @@ class _FaqItemState extends State<_FaqItem> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: AppSpacing.sm),
-      decoration: BoxDecoration(
-        color: AppColors.canvas,
-        borderRadius: AppRadius.brXl,
-        border: Border.all(color: AppColors.hairline),
+      decoration: const BoxDecoration(
+        border: Border(
+          bottom: BorderSide(color: LandingTheme.hairlineBorder, width: 1.0),
+        ),
       ),
       child: InkWell(
         onTap: () => setState(() => _expanded = !_expanded),
-        borderRadius: AppRadius.brXl,
         child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xxl),
+          padding: const EdgeInsets.symmetric(vertical: 22),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
                 children: [
                   Expanded(
-                    child: Text(widget.question,
-                        style:
-                            AppTypography.bodyMdMedium(color: AppColors.ink)),
+                    child: Text(
+                      widget.question,
+                      style: LandingTheme.cardTitle.copyWith(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ),
                   AnimatedRotation(
                     turns: _expanded ? 0.25 : 0,
-                    duration: const Duration(milliseconds: 200),
-                    child: Icon(
-                      Icons.arrow_forward_ios,
-                      size: 14,
-                      color: AppColors.deepTeal,
+                    duration: const Duration(milliseconds: 160),
+                    child: const Icon(
+                      Icons.arrow_forward_ios_rounded,
+                      size: 13,
+                      color: LandingTheme.charcoal,
                     ),
                   ),
                 ],
@@ -1520,14 +1655,19 @@ class _FaqItemState extends State<_FaqItem> {
               AnimatedCrossFade(
                 firstChild: const SizedBox.shrink(),
                 secondChild: Padding(
-                  padding: const EdgeInsets.only(top: AppSpacing.md),
-                  child: Text(widget.answer,
-                      style: AppTypography.bodyMd(color: AppColors.textMuted)),
+                  padding: const EdgeInsets.only(top: 14),
+                  child: Text(
+                    widget.answer,
+                    style: LandingTheme.bodyMd.copyWith(
+                      color: LandingTheme.textSecondary,
+                      height: 1.65,
+                    ),
+                  ),
                 ),
                 crossFadeState: _expanded
                     ? CrossFadeState.showSecond
                     : CrossFadeState.showFirst,
-                duration: const Duration(milliseconds: 250),
+                duration: const Duration(milliseconds: 180),
               ),
             ],
           ),
@@ -1538,7 +1678,7 @@ class _FaqItemState extends State<_FaqItem> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CTA BANNER
+// CTA BANNER — High-Trust Executive Conversion Section
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class CtaBanner extends StatelessWidget {
@@ -1546,73 +1686,79 @@ class CtaBanner extends StatelessWidget {
   const CtaBanner({super.key, required this.launchWhatsApp});
 
   @override
-  Widget build(BuildContext context) => Container(
-        width: double.infinity,
-        color: AppColors.canvas,
-        padding: const EdgeInsets.all(AppSpacing.xxl),
-        child: Container(
-          padding: const EdgeInsets.all(AppSpacing.sectionSm),
-          decoration: BoxDecoration(
-            color: AppColors.deepTeal,
-            borderRadius: AppRadius.brXxl,
-          ),
-          child: Column(
-            children: [
-              Text('Ready to Get Started?',
-                  style: AppTypography.sectionHeading(color: AppColors.onDark),
-                  textAlign: TextAlign.center),
-              const SizedBox(height: AppSpacing.md),
-              Text(
-                'Connect with our expert valuation team today.\nFast turnaround. Banking-grade accuracy.',
-                style: AppTypography.bodyMd(color: AppColors.onDarkMuted),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: AppSpacing.xxl),
-              Wrap(
-                spacing: AppSpacing.md,
-                runSpacing: AppSpacing.md,
-                alignment: WrapAlignment.center,
-                children: [
-                  GestureDetector(
-                    onTap: () => launchWhatsApp(
-                        'Hello Provaluer, I would like to get started with a consultation.'),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 28, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: AppColors.onDark,
-                        borderRadius: AppRadius.brMd,
-                      ),
-                      child: Text('Request Consultation',
-                          style: AppTypography.buttonMd(
-                              color: AppColors.deepTeal)),
-                    ),
+  Widget build(BuildContext context) {
+    final w = MediaQuery.of(context).size.width;
+
+    return Container(
+      width: double.infinity,
+      color: LandingTheme.primaryBg,
+      padding: EdgeInsets.symmetric(
+        horizontal: w >= 1200 ? AppSpacing.sectionLg : AppSpacing.lg,
+        vertical: 125,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1100),
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              vertical: w >= 768 ? 72 : 48,
+              horizontal: w >= 768 ? 64 : 28,
+            ),
+            decoration: BoxDecoration(
+              color: LandingTheme.secondaryBg,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: LandingTheme.hairlineBorder, width: 1.0),
+              boxShadow: LandingTheme.subtleShadow,
+            ),
+            child: Column(
+              children: [
+                Text(
+                  'Ready to Get Started?',
+                  style: LandingTheme.sectionTitleResponsive(w),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 580),
+                  child: Text(
+                    'Connect with our expert valuation practice today.\nFast turnaround. Institutional-grade precision.',
+                    style: LandingTheme.bodyLg,
+                    textAlign: TextAlign.center,
                   ),
-                  GestureDetector(
-                    onTap: () => context.go('/login'),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 28, vertical: 14),
-                      decoration: BoxDecoration(
-                        color: Colors.transparent,
-                        borderRadius: AppRadius.brMd,
-                        border: Border.all(
-                            color: AppColors.onDark.withOpacity(0.3)),
+                ),
+                const SizedBox(height: 40),
+                Wrap(
+                  spacing: 14,
+                  runSpacing: 14,
+                  alignment: WrapAlignment.center,
+                  children: [
+                    _HeroCtaButton(
+                      isPrimary: true,
+                      label: 'Request Consultation',
+                      icon: Icons.arrow_forward_rounded,
+                      onTap: () => launchWhatsApp(
+                        'Hello Provaluer, I would like to get started with a consultation.',
                       ),
-                      child: Text('Client Login',
-                          style: AppTypography.buttonMd(color: AppColors.onDark)),
                     ),
-                  ),
-                ],
-              ),
-            ],
+                    _HeroCtaButton(
+                      isPrimary: false,
+                      label: 'Client Login',
+                      icon: Icons.login_rounded,
+                      onTap: () => context.go('/login'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
           ),
         ),
-      );
+      ),
+    );
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// FOOTER
+// FOOTER — Soft White (#FAFAFA) Luxury Enterprise Footer
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class LandingFooter extends StatelessWidget {
@@ -1621,79 +1767,98 @@ class LandingFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Container(
-        color: AppColors.footerBg,
+        color: LandingTheme.secondaryBg,
+        decoration: const BoxDecoration(
+          color: LandingTheme.secondaryBg,
+          border: Border(
+            top: BorderSide(color: LandingTheme.hairlineBorder, width: 1.0),
+          ),
+        ),
         padding: EdgeInsets.symmetric(
           horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
-          vertical: AppSpacing.sectionSm,
+          vertical: 72,
         ),
         width: double.infinity,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (isDesktop)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _companyInfo(),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 1200),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (isDesktop)
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      _footerCol('Services', [
-                        'Land & Building Valuation',
-                        'Plant & Machinery',
-                        'Net Worth Certificates',
-                        'Chartered Engineer',
-                        'LIE Reports',
-                      ]),
-                      const SizedBox(width: AppSpacing.sectionSm),
-                      _footerCol('Company', [
-                        'About Us',
-                        'Empanelment',
-                        'Who We Serve',
-                        'Contact',
-                        'Client Login',
-                      ]),
+                      _companyInfo(),
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _footerCol('Services', [
+                            'Land & Building Valuation',
+                            'Plant & Machinery',
+                            'Net Worth Certificates',
+                            'Chartered Engineer',
+                            'LIE Reports',
+                          ]),
+                          const SizedBox(width: 80),
+                          _footerCol('Company', [
+                            'About Us',
+                            'Empanelment',
+                            'Who We Serve',
+                            'Contact',
+                            'Client Login',
+                          ]),
+                        ],
+                      ),
                     ],
-                  ),
+                  )
+                else ...[
+                  _companyInfo(),
+                  const SizedBox(height: 36),
                 ],
-              )
-            else ...[
-              _companyInfo(),
-              const SizedBox(height: AppSpacing.xxl),
-            ],
-            const SizedBox(height: AppSpacing.xxxl),
-            Container(height: 1, color: const Color(0xFF1E1E1E)),
-            const SizedBox(height: AppSpacing.xl),
-            if (isDesktop)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [_copyright(), _tagline()],
-              )
-            else ...[
-              _copyright(),
-              const SizedBox(height: AppSpacing.xs),
-              _tagline(),
-            ],
-          ],
+                const SizedBox(height: 56),
+                const Divider(color: LandingTheme.hairlineBorder, height: 1),
+                const SizedBox(height: 28),
+                if (isDesktop)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [_copyright(), _tagline()],
+                  )
+                else ...[
+                  _copyright(),
+                  const SizedBox(height: 6),
+                  _tagline(),
+                ],
+              ],
+            ),
+          ),
         ),
       );
 
   Widget _companyInfo() => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          AppComponents.logo(fontSize: 18, darkMode: true),
-          const SizedBox(height: AppSpacing.md),
+          AppComponents.logo(
+            fontSize: 18,
+            darkMode: false,
+            overrideWordmark: LandingTheme.charcoal,
+            overrideAccent: LandingTheme.charcoal,
+          ),
+          const SizedBox(height: 18),
           ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 260),
+            constraints: const BoxConstraints(maxWidth: 280),
             child: Text(
               'Provaluer OPC Private Limited\nAccurate Valuations. Professional Insights.\nTrusted Decisions.',
-              style: AppTypography.caption(color: AppColors.onDarkMuted),
+              style: LandingTheme.bodySm.copyWith(
+                color: LandingTheme.textMuted,
+                height: 1.6,
+              ),
             ),
           ),
-          const SizedBox(height: AppSpacing.lg),
+          const SizedBox(height: 22),
           _credentialChip('IBBI Registered Valuers'),
-          const SizedBox(height: 6),
+          const SizedBox(height: 8),
           _credentialChip('Hyderabad & Secunderabad'),
         ],
       );
@@ -1702,37 +1867,62 @@ class LandingFooter extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            width: 5, height: 5,
+            width: 4,
+            height: 4,
             decoration: const BoxDecoration(
-              color: AppColors.onDarkMuted, shape: BoxShape.circle),
+              color: LandingTheme.textTertiary,
+              shape: BoxShape.circle,
+            ),
           ),
-          const SizedBox(width: 6),
-          Text(text, style: AppTypography.micro(color: AppColors.onDarkMuted)),
+          const SizedBox(width: 8),
+          Text(
+            text,
+            style: LandingTheme.bodySm.copyWith(
+              fontSize: 12,
+              color: LandingTheme.textTertiary,
+            ),
+          ),
         ],
       );
 
   Widget _footerCol(String heading, List<String> items) => Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(heading,
-              style: AppTypography.captionBold(color: AppColors.onDark)),
-          const SizedBox(height: AppSpacing.lg),
+          Text(
+            heading,
+            style: LandingTheme.cardTitle.copyWith(
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.2,
+            ),
+          ),
+          const SizedBox(height: 18),
           ...items.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Text(item,
-                    style: AppTypography.caption(color: AppColors.onDarkMuted)),
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Text(
+                  item,
+                  style: LandingTheme.bodySm.copyWith(
+                    color: LandingTheme.textMuted,
+                  ),
+                ),
               )),
         ],
       );
 
   Widget _copyright() => Text(
         '© 2026 Provaluer OPC Private Limited. All rights reserved.',
-        style: AppTypography.micro(color: const Color(0xFF555555)),
+        style: LandingTheme.bodySm.copyWith(
+          fontSize: 12,
+          color: LandingTheme.textTertiary,
+        ),
       );
 
   Widget _tagline() => Text(
         'Advisory Engineers & Registered Valuers',
-        style: AppTypography.micro(color: const Color(0xFF555555)),
+        style: LandingTheme.bodySm.copyWith(
+          fontSize: 12,
+          color: LandingTheme.textTertiary,
+        ),
       );
 }
 
@@ -1740,7 +1930,6 @@ class LandingFooter extends StatelessWidget {
 // LEGACY COMPAT — HeroOverlayContent alias
 // ═══════════════════════════════════════════════════════════════════════════════
 
-/// Kept for backward compatibility — redirects to HeroSection
 class HeroOverlayContent extends StatelessWidget {
   final bool isDesktop;
   final Future<void> Function(String) launchWhatsApp;
