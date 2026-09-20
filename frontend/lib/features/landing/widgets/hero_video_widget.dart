@@ -211,18 +211,23 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
       width: double.infinity,
       decoration: BoxDecoration(
         color: const Color(0xFFFFFFFF),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE5E7EB), width: 1.0),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.2),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x04000000), // 1.5% micro ambient depth
-            blurRadius: 24,
-            offset: Offset(0, 6),
+            color: Color(0x0C0F172A), // Midnight navy ambient depth
+            blurRadius: 36,
+            offset: Offset(0, 14),
+          ),
+          BoxShadow(
+            color: Color(0x062563EB), // Subtle enterprise blue aura
+            blurRadius: 16,
+            offset: Offset(0, 4),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(11),
+        borderRadius: BorderRadius.circular(13),
         child: AspectRatio(
           aspectRatio: (_controllerA != null && _controllerA!.value.isInitialized)
               ? _controllerA!.value.aspectRatio

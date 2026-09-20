@@ -346,25 +346,25 @@ class HeroSection extends StatelessWidget {
       width: double.infinity,
       color: LandingTheme.primaryBg,
       padding: EdgeInsets.only(
-        top: isDesktop ? 155 : 120,
-        bottom: isDesktop ? 120 : 80,
+        top: isDesktop ? 96 : 80,
+        bottom: isDesktop ? 88 : 60,
         left: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
         right: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
       ),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1200),
+          constraints: const BoxConstraints(maxWidth: 1380),
           child: isDesktop
               ? Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    Expanded(flex: 54, child: _leftContent(context, w)),
-                    const SizedBox(width: 52),
+                    Expanded(flex: 44, child: _leftContent(context, w)),
+                    const SizedBox(width: 44),
                     const Expanded(
-                      flex: 46,
+                      flex: 56,
                       child: HeroVideoWidget(
                         videoAssets: _videoAssets,
-                        height: 480,
+                        height: 540,
                       ),
                     ),
                   ],
@@ -373,10 +373,10 @@ class HeroSection extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     _leftContent(context, w),
-                    SizedBox(height: isTablet ? 52 : 36),
+                    SizedBox(height: isTablet ? 40 : 28),
                     HeroVideoWidget(
                       videoAssets: _videoAssets,
-                      height: isTablet ? 360 : 260,
+                      height: isTablet ? 440 : 300,
                     ),
                   ],
                 ),
