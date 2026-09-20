@@ -210,28 +210,28 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFFFFFFFF),
-        borderRadius: BorderRadius.circular(14),
+        color: const Color(0xFF07142B),
+        borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: const Color(0x2E2563EB), // rgba(37,99,235,0.18) Option F
-          width: 1.0,
+          color: const Color(0x405EA8FF), // Hairline cyan/blue institutional border
+          width: 1.2,
         ),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x0C0F172A), // Midnight navy ambient depth
-            blurRadius: 36,
-            offset: Offset(0, 14),
+            color: Color(0x4007142B),
+            blurRadius: 40,
+            offset: Offset(0, 18),
           ),
           BoxShadow(
-            color: Color(0x0A2563EB), // rgba(37,99,235,0.04) subtle enterprise blue glow
-            blurRadius: 24,
+            color: Color(0x280F4CFF), // Electric royal blue depth
+            blurRadius: 32,
             spreadRadius: 2,
-            offset: Offset(0, 4),
+            offset: Offset(0, 8),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(13),
+        borderRadius: BorderRadius.circular(15),
         child: AspectRatio(
           aspectRatio: (_controllerA != null && _controllerA!.value.isInitialized)
               ? _controllerA!.value.aspectRatio
@@ -273,16 +273,22 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
       child: Container(
         width: double.infinity,
         decoration: BoxDecoration(
-          color: const Color(0xFFFFFFFF),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: const Color(0xFFE5E7EB), width: 1.0),
+          color: const Color(0xFF07142B),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0x335EA8FF), width: 1.0),
           boxShadow: const [
             BoxShadow(
-              color: Color(0x04000000),
-              blurRadius: 20,
-              offset: Offset(0, 4),
+              color: Color(0x200F4CFF),
+              blurRadius: 24,
+              offset: Offset(0, 8),
             ),
           ],
+        ),
+        child: const Center(
+          child: CircularProgressIndicator(
+            strokeWidth: 2,
+            valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF5EA8FF)),
+          ),
         ),
       ),
     );

@@ -1,14 +1,14 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_components.dart';
 import '../../theme/app_spacing.dart';
-import 'animated_hero_words.dart';
 import 'landing_theme.dart';
 import 'widgets/hero_video_widget.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LANDING HEADER — Apple / Linear Minimalist Floating Navigation
+// 1. FLOATING GLASS NAVIGATION BAR (BlackRock / Palantir Luxury Glass)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class LandingHeader extends StatelessWidget {
@@ -16,8 +16,6 @@ class LandingHeader extends StatelessWidget {
   final bool isScrolled;
   final Future<void> Function(String) launchWhatsApp;
   final VoidCallback? onMenuTap;
-
-  bool get isTransparent => !isScrolled;
 
   const LandingHeader({
     super.key,
@@ -32,11 +30,11 @@ class LandingHeader extends StatelessWidget {
     return ClipRRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(
-          sigmaX: isScrolled ? 12 : 6,
-          sigmaY: isScrolled ? 12 : 6,
+          sigmaX: isScrolled ? 16 : 8,
+          sigmaY: isScrolled ? 16 : 8,
         ),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
+          duration: const Duration(milliseconds: 200),
           curve: Curves.easeOutCubic,
           padding: EdgeInsets.symmetric(
             horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
@@ -44,13 +42,13 @@ class LandingHeader extends StatelessWidget {
           ),
           decoration: BoxDecoration(
             color: isScrolled
-                ? LandingTheme.glassWhiteDense
-                : LandingTheme.primaryBg.withValues(alpha: 0.94),
+                ? LandingTheme.surfaceGlassDense
+                : LandingTheme.primaryBg.withValues(alpha: 0.85),
             border: Border(
               bottom: BorderSide(
                 color: isScrolled
-                    ? LandingTheme.hairlineBorder
-                    : LandingTheme.hairlineBorder.withValues(alpha: 0.5),
+                    ? LandingTheme.borderHover
+                    : LandingTheme.hairlineBorder,
                 width: 1.0,
               ),
             ),
@@ -63,35 +61,41 @@ class LandingHeader extends StatelessWidget {
               children: [
                 _brandLogo(),
                 if (isDesktop) ...[
-                  Row(
+                  const Row(
                     children: [
-                      _navLink('Services'),
-                      const SizedBox(width: 36),
-                      _navLink('Empanelment'),
-                      const SizedBox(width: 36),
-                      _navLink('Who We Serve'),
+                      _HeaderNavLink(text: 'Services', sectionKey: 'services'),
+                      SizedBox(width: 28),
+                      _HeaderNavLink(text: 'Industries', sectionKey: 'industries'),
+                      SizedBox(width: 28),
+                      _HeaderNavLink(text: 'Why Pro Valuer', sectionKey: 'why-us'),
+                      SizedBox(width: 28),
+                      _HeaderNavLink(text: 'Process', sectionKey: 'process'),
+                      SizedBox(width: 28),
+                      _HeaderNavLink(text: 'Case Studies', sectionKey: 'cases'),
+                      SizedBox(width: 28),
+                      _HeaderNavLink(text: 'Empanelments', sectionKey: 'empanelments'),
                     ],
                   ),
                   Row(
                     children: [
-                      _pillButton(
+                      _headerButton(
                         label: 'Client Login',
                         isPrimary: false,
                         onTap: () => context.go('/login'),
                       ),
                       const SizedBox(width: 12),
-                      _pillButton(
-                        label: 'Consult Now',
+                      _headerButton(
+                        label: 'Schedule Consultation',
                         isPrimary: true,
                         onTap: () => launchWhatsApp(
-                          'Hello Provaluer, I would like to consult with your valuation team.',
+                          'Hello Pro Valuer, I would like to schedule an institutional valuation consultation.',
                         ),
                       ),
                     ],
                   ),
                 ] else
                   IconButton(
-                    icon: const Icon(Icons.menu, color: LandingTheme.charcoal, size: 22),
+                    icon: const Icon(Icons.menu, color: LandingTheme.textPrimary, size: 24),
                     onPressed: onMenuTap,
                   ),
               ],
@@ -104,23 +108,19 @@ class LandingHeader extends StatelessWidget {
 
   Widget _brandLogo() {
     return AppComponents.logo(
-      fontSize: 18,
-      darkMode: false,
-      overrideWordmark: LandingTheme.charcoal,
-      overrideAccent: LandingTheme.primaryAccent,
+      fontSize: 20,
+      darkMode: true,
+      overrideWordmark: LandingTheme.textPrimary,
+      overrideAccent: LandingTheme.secondaryAccent,
     );
   }
 
-  Widget _navLink(String text) {
-    return _HeaderNavLink(text: text);
-  }
-
-  Widget _pillButton({
+  Widget _headerButton({
     required String label,
     required bool isPrimary,
     required VoidCallback onTap,
   }) {
-    return _HeaderButton(
+    return _HeaderActionButton(
       label: label,
       isPrimary: isPrimary,
       onTap: onTap,
@@ -130,7 +130,8 @@ class LandingHeader extends StatelessWidget {
 
 class _HeaderNavLink extends StatefulWidget {
   final String text;
-  const _HeaderNavLink({required this.text});
+  final String sectionKey;
+  const _HeaderNavLink({required this.text, required this.sectionKey});
 
   @override
   State<_HeaderNavLink> createState() => _HeaderNavLinkState();
@@ -145,51 +146,36 @@ class _HeaderNavLinkState extends State<_HeaderNavLink> {
       cursor: SystemMouseCursors.click,
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AnimatedDefaultTextStyle(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOutCubic,
-            style: LandingTheme.bodySmMedium.copyWith(
-              color: _hovered ? LandingTheme.primaryAccent : LandingTheme.textPrimary,
-              fontWeight: _hovered ? FontWeight.w600 : FontWeight.w500,
-            ),
-            child: Text(widget.text),
-          ),
-          const SizedBox(height: 3),
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOutCubic,
-            width: _hovered ? 16 : 0,
-            height: 2,
-            decoration: BoxDecoration(
-              color: LandingTheme.primaryAccent,
-              borderRadius: BorderRadius.circular(1),
-            ),
-          ),
-        ],
+      child: AnimatedDefaultTextStyle(
+        duration: const Duration(milliseconds: 150),
+        style: GoogleFonts.inter(
+          fontSize: 13.5,
+          fontWeight: _hovered ? FontWeight.w600 : FontWeight.w500,
+          color: _hovered ? LandingTheme.secondaryAccent : LandingTheme.textSecondary,
+          letterSpacing: -0.1,
+        ),
+        child: Text(widget.text),
       ),
     );
   }
 }
 
-class _HeaderButton extends StatefulWidget {
+class _HeaderActionButton extends StatefulWidget {
   final String label;
   final bool isPrimary;
   final VoidCallback onTap;
 
-  const _HeaderButton({
+  const _HeaderActionButton({
     required this.label,
     required this.isPrimary,
     required this.onTap,
   });
 
   @override
-  State<_HeaderButton> createState() => _HeaderButtonState();
+  State<_HeaderActionButton> createState() => _HeaderActionButtonState();
 }
 
-class _HeaderButtonState extends State<_HeaderButton> {
+class _HeaderActionButtonState extends State<_HeaderActionButton> {
   bool _hovered = false;
 
   @override
@@ -201,41 +187,41 @@ class _HeaderButtonState extends State<_HeaderButton> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8.5),
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 9),
           decoration: BoxDecoration(
-            color: widget.isPrimary
-                ? (_hovered ? LandingTheme.primaryAccent : LandingTheme.charcoal)
-                : (_hovered ? LandingTheme.softBgTint : Colors.transparent),
             borderRadius: BorderRadius.circular(8),
-            border: widget.isPrimary
+            gradient: widget.isPrimary ? LandingTheme.blueGradient : null,
+            color: widget.isPrimary
                 ? null
-                : Border.all(
-                    color: _hovered
-                        ? LandingTheme.primaryAccent.withValues(alpha: 0.3)
-                        : LandingTheme.hairlineBorder,
-                    width: 1.0,
-                  ),
+                : (_hovered
+                    ? LandingTheme.secondaryBg
+                    : LandingTheme.surfaceGlass),
+            border: Border.all(
+              color: widget.isPrimary
+                  ? (_hovered ? LandingTheme.glowAccent : LandingTheme.secondaryAccent)
+                  : (_hovered ? LandingTheme.borderHover : LandingTheme.hairlineBorder),
+              width: 1.0,
+            ),
             boxShadow: widget.isPrimary
                 ? [
-                    if (_hovered)
-                      BoxShadow(
-                        color: const Color(0xFF3B82F6).withValues(alpha: 0.08),
-                        blurRadius: 14,
-                        spreadRadius: 1,
-                        offset: const Offset(0, 2),
-                      )
-                    else
-                      ...LandingTheme.buttonShadow,
+                    BoxShadow(
+                      color: LandingTheme.primaryAccent.withValues(alpha: _hovered ? 0.45 : 0.25),
+                      blurRadius: _hovered ? 18 : 10,
+                      offset: const Offset(0, 3),
+                    ),
                   ]
-                : const [],
+                : [],
           ),
           child: Text(
             widget.label,
-            style: LandingTheme.button.copyWith(
-              color: widget.isPrimary ? Colors.white : LandingTheme.textPrimary,
+            style: GoogleFonts.inter(
               fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: widget.isPrimary
+                  ? LandingTheme.textPrimary
+                  : (_hovered ? LandingTheme.textPrimary : LandingTheme.textSecondary),
+              letterSpacing: -0.1,
             ),
           ),
         ),
@@ -245,120 +231,12 @@ class _HeaderButtonState extends State<_HeaderButton> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// MOBILE MENU DRAWER — Quiet Architectural Drawer
-// ═══════════════════════════════════════════════════════════════════════════════
-
-class MobileMenuDrawer extends StatelessWidget {
-  final Future<void> Function(String) launchWhatsApp;
-  const MobileMenuDrawer({super.key, required this.launchWhatsApp});
-
-  @override
-  Widget build(BuildContext context) {
-    return Drawer(
-      backgroundColor: LandingTheme.primaryBg,
-      child: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(AppSpacing.xl),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  AppComponents.logo(
-                    fontSize: 18,
-                    darkMode: false,
-                    overrideWordmark: LandingTheme.charcoal,
-                    overrideAccent: LandingTheme.charcoal,
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.close, color: LandingTheme.charcoal, size: 22),
-                    onPressed: () => Navigator.of(context).pop(),
-                  ),
-                ],
-              ),
-              const SizedBox(height: AppSpacing.xl),
-              const Divider(color: LandingTheme.hairlineBorder, height: 1),
-              const SizedBox(height: AppSpacing.xl),
-              _menuItem('Services'),
-              _menuItem('Empanelment'),
-              _menuItem('Who We Serve'),
-              const Spacer(),
-              SizedBox(
-                width: double.infinity,
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    context.go('/login');
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    decoration: BoxDecoration(
-                      color: LandingTheme.surfaceLight,
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: LandingTheme.hairlineBorder),
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      'Client Login',
-                      style: LandingTheme.button.copyWith(color: LandingTheme.textPrimary),
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).pop();
-                    launchWhatsApp(
-                      'Hello Provaluer, I would like to consult with your valuation team.',
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    decoration: BoxDecoration(
-                      color: LandingTheme.charcoal,
-                      borderRadius: BorderRadius.circular(8),
-                      boxShadow: LandingTheme.buttonShadow,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(
-                      'Consult Now',
-                      style: LandingTheme.button.copyWith(color: Colors.white),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _menuItem(String text) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
-        child: Text(
-          text,
-          style: LandingTheme.cardTitle.copyWith(fontSize: 15.5),
-        ),
-      );
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// HERO SECTION — Architectural Whitespace & Pure Editorial Centerpiece
+// 2. HERO SECTION — Institutional Asset Intelligence
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class HeroSection extends StatelessWidget {
   final bool isDesktop;
   final Future<void> Function(String) launchWhatsApp;
-
-  static const _videoAssets = [
-    'assets/videos/hero_animation.mp4',
-    'assets/videos/Create_a_premium_animated_hero.mp4',
-  ];
 
   const HeroSection({
     super.key,
@@ -368,78 +246,153 @@ class HeroSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final w = MediaQuery.of(context).size.width;
-    final isTablet = w >= 768 && w < 1024;
+    final double screenW = MediaQuery.of(context).size.width;
 
     return Container(
       width: double.infinity,
       color: LandingTheme.primaryBg,
-      padding: EdgeInsets.only(
-        top: isDesktop ? 96 : 80,
-        bottom: isDesktop ? 88 : 60,
-        left: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
-        right: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
-      ),
       child: Stack(
-        alignment: Alignment.center,
         children: [
-          if (isDesktop)
-            Positioned(
-              right: -30,
-              top: 10,
-              child: IgnorePointer(
-                child: Container(
-                  width: 780,
-                  height: 520,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    gradient: RadialGradient(
-                      colors: [
-                        const Color(0xFF3B82F6).withValues(alpha: 0.06),
-                        Colors.transparent,
-                      ],
-                      stops: const [0.0, 0.7],
-                    ),
+          // Ambient Radial Blue Lighting
+          Positioned(
+            top: -120,
+            left: screenW * 0.25,
+            child: const FloatingAmbientGlow(
+              width: 700,
+              height: 500,
+              opacity: 0.12,
+            ),
+          ),
+          Positioned(
+            top: 200,
+            right: -100,
+            child: const FloatingAmbientGlow(
+              width: 500,
+              height: 500,
+              opacity: 0.08,
+            ),
+          ),
+
+          Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
+              vertical: isDesktop ? 64 : 40,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 36),
+
+                // Institutional Authority Badge
+                const LuxuryEyebrowBadge(
+                  label: 'IBBI REGISTERED · CHARTERED ENGINEERS · 28+ BANK EMPANELMENTS',
+                  icon: Icons.verified_rounded,
+                ),
+
+                const SizedBox(height: 24),
+
+                // Hero Headline
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1040),
+                  child: Column(
+                    children: [
+                      Text(
+                        'Institutional Valuation Intelligence',
+                        textAlign: TextAlign.center,
+                        style: LandingTheme.heroHeading(screenW),
+                      ),
+                      const SizedBox(height: 4),
+                      GradientText(
+                        'For Banks, Funds & Enterprise Assets',
+                        style: LandingTheme.heroHeading(screenW).copyWith(
+                          fontWeight: FontWeight.w700,
+                        ),
+                        gradient: LandingTheme.cyanGlowGradient,
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            )
-          else
-            const FloatingAmbientGlow(
-              width: 500,
-              height: 380,
-              opacity: 0.06,
-              alignment: Alignment.bottomCenter,
-            ),
-          Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1380),
-              child: isDesktop
-                  ? Row(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        Expanded(flex: 44, child: _leftContent(context, w)),
-                        const SizedBox(width: 44),
-                        const Expanded(
-                          flex: 56,
-                          child: HeroVideoWidget(
-                            videoAssets: _videoAssets,
-                            height: 540,
-                          ),
+
+                const SizedBox(height: 22),
+
+                // Subheadline
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 820),
+                  child: Text(
+                    'IBBI Registered Valuers, Chartered Engineering Professionals, and Institutional Advisors delivering valuation, diligence, and risk assessment services for real estate, infrastructure, industrial, and enterprise assets.',
+                    textAlign: TextAlign.center,
+                    style: LandingTheme.bodyMediumResponsive(screenW),
+                  ),
+                ),
+
+                const SizedBox(height: 36),
+
+                // Dual CTAs
+                _buildHeroActions(context, isDesktop),
+
+                const SizedBox(height: 48),
+
+                // Trust Metrics / Verified Credentials Cards
+                _buildCredentialCards(isDesktop),
+
+                const SizedBox(height: 44),
+
+                // Hero Visual: Looping Palantir / BlackRock Asset Intelligence Console
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1140),
+                  child: Column(
+                    children: [
+                      // Telemetry HUD Bar
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: LandingTheme.secondaryBg,
+                          borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
+                          border: Border.all(color: LandingTheme.hairlineBorder, width: 1.0),
                         ),
-                      ],
-                    )
-                  : Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        _leftContent(context, w),
-                        SizedBox(height: isTablet ? 40 : 28),
-                        HeroVideoWidget(
-                          videoAssets: _videoAssets,
-                          height: isTablet ? 440 : 300,
+                        child: Row(
+                          children: [
+                            Row(
+                              children: [
+                                _hudDot(LandingTheme.secondaryAccent),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'PALANTIR GIS · SPATIAL ASSET INTELLIGENCE CONSOLE',
+                                  style: GoogleFonts.sourceCodePro(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: LandingTheme.secondaryAccent,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const Spacer(),
+                            if (isDesktop)
+                              Text(
+                                'REAL-TIME CADASTRAL BOUNDARY TELEMETRY · 0.3M RTK RESOLUTION',
+                                style: GoogleFonts.sourceCodePro(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: LandingTheme.textMuted,
+                                  letterSpacing: 0.8,
+                                ),
+                              ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                      // Video Player Container
+                      const HeroVideoWidget(
+                        videoAssets: [
+                          'assets/videos/hero_animation.mp4',
+                          'assets/videos/Create_a_premium_animated_hero.mp4',
+                        ],
+                        height: 540,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -447,199 +400,152 @@ class HeroSection extends StatelessWidget {
     );
   }
 
-  Widget _leftContent(BuildContext context, double w) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
+  Widget _hudDot(Color color) {
+    return Container(
+      width: 7,
+      height: 7,
+      decoration: BoxDecoration(
+        color: color,
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: color.withValues(alpha: 0.6),
+            blurRadius: 6,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeroActions(BuildContext context, bool isDesktop) {
+    return Wrap(
+      spacing: 16,
+      runSpacing: 14,
+      alignment: WrapAlignment.center,
       children: [
-        // Editorial Eyebrow Tag
-        const LuxuryEyebrowBadge(text: 'Institutional Asset Valuation & Advisory'),
-
-        const SizedBox(height: 24),
-
-        // Dominant Focal Point: Headline line 1 & 2
-        Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 14,
-          children: [
-            Text(
-              'Property',
-              style: LandingTheme.heroHeading(w),
-            ),
-            GradientText(
-              'Valuation',
-              style: LandingTheme.heroHeading(w),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 4),
-
-        Wrap(
-          crossAxisAlignment: WrapCrossAlignment.center,
-          spacing: 12,
-          children: [
-            Text(
-              'for',
-              style: LandingTheme.heroHeading(w),
-            ),
-            AnimatedHeroWords(
-              textSize: w >= 1280
-                  ? 66
-                  : w >= 1024
-                      ? 54
-                      : w >= 768
-                          ? 44
-                          : w >= 480
-                              ? 34
-                              : 29,
-              pillColor: Colors.transparent,
-              pillTextColor: LandingTheme.primaryAccent,
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 28),
-
-        // Subtitle with high readability & Option 3 trust highlighting
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 520),
-          child: Text.rich(
-            TextSpan(
-              style: LandingTheme.bodyLg,
-              children: const [
-                TextSpan(
-                  text: 'IBBI Registered',
-                  style: TextStyle(
-                    color: LandingTheme.primaryAccent,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                TextSpan(text: ' valuation, '),
-                TextSpan(
-                  text: 'Chartered Engineer',
-                  style: TextStyle(
-                    color: LandingTheme.primaryAccent,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                TextSpan(text: ' certification, and '),
-                TextSpan(
-                  text: 'Bank-Accepted',
-                  style: TextStyle(
-                    color: LandingTheme.primaryAccent,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                TextSpan(
-                  text: ' risk advisory engineered for leading financial institutions, corporate enterprises, and public consortiums.',
-                ),
-              ],
-            ),
+        // Primary CTA
+        _ActionButton(
+          label: 'Schedule Institutional Consultation',
+          icon: Icons.arrow_forward_rounded,
+          isPrimary: true,
+          onTap: () => launchWhatsApp(
+            'Hello Pro Valuer, I require an institutional valuation consultation for bank/fund review.',
           ),
         ),
-
-        const SizedBox(height: 40),
-
-        // CTA buttons (Razor-sharp, Apple/Linear style)
-        Wrap(
-          spacing: 12,
-          runSpacing: 12,
-          children: [
-            _HeroCtaButton(
-              isPrimary: true,
-              label: 'Request Consultation',
-              icon: Icons.arrow_forward_rounded,
-              onTap: () => launchWhatsApp(
-                'Hello Provaluer, I am seeking a valuation consultation for my property/asset.',
-              ),
-            ),
-            _HeroCtaButton(
-              isPrimary: false,
-              label: 'Client Login',
-              icon: Icons.login_rounded,
-              onTap: () => context.go('/login'),
-            ),
-          ],
-        ),
-
-        const SizedBox(height: 44),
-
-        // Institutional Credential Marks (Option E: Blue Glass Trust System)
-        Wrap(
-          spacing: 28,
-          runSpacing: 10,
-          children: [
-            _trustMark('IBBI Registered', ' Valuers'),
-            _trustMark('Bank Empanelled', ' Practice'),
-            _trustMark('Institutional Grade', ' Accuracy'),
-            _trustMark('Certified', ' Reports'),
-          ],
+        // Secondary CTA
+        _ActionButton(
+          label: 'Download Sample Valuation Report',
+          icon: Icons.file_download_outlined,
+          isPrimary: false,
+          onTap: () => launchWhatsApp(
+            'Hello Pro Valuer, please provide a sample institutional valuation report dossier.',
+          ),
         ),
       ],
     );
   }
 
-  Widget _trustMark(String highlight, String suffix) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(2.5),
-            decoration: BoxDecoration(
-              color: LandingTheme.softBgTint,
-              borderRadius: BorderRadius.circular(4),
-              border: Border.all(
-                color: LandingTheme.primaryAccent.withValues(alpha: 0.28),
-                width: 0.8,
-              ),
-            ),
-            child: const Icon(
-              Icons.check_rounded,
-              size: 11,
-              color: LandingTheme.primaryAccent,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text.rich(
-            TextSpan(
-              style: LandingTheme.bodySmMedium.copyWith(
-                color: LandingTheme.secondaryText,
-                fontSize: 12.5,
-              ),
-              children: [
-                TextSpan(
-                  text: highlight,
-                  style: const TextStyle(
-                    color: LandingTheme.primaryAccent,
-                    fontWeight: FontWeight.w600,
+  Widget _buildCredentialCards(bool isDesktop) {
+    final credentials = [
+      {'title': 'IBBI Registered', 'sub': 'Insolvency & Bankruptcy Board Compliant', 'icon': Icons.shield_outlined},
+      {'title': 'Bank Empanelled', 'sub': '28+ Public & Private Banking Consortia', 'icon': Icons.account_balance_outlined},
+      {'title': 'Chartered Engineering', 'sub': 'Institution of Engineers (India) Certified', 'icon': Icons.architecture_outlined},
+      {'title': 'Regulatory-Compliant', 'sub': 'Companies Act 2013 & RBI Prudential Norms', 'icon': Icons.gavel_outlined},
+      {'title': 'Institutional Documentation', 'sub': 'Multi-Tier Audit-Defensible Reports', 'icon': Icons.inventory_2_outlined},
+    ];
+
+    return ConstrainedBox(
+      constraints: const BoxConstraints(maxWidth: 1140),
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth >= 900;
+          return Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            alignment: WrapAlignment.center,
+            children: credentials.map((item) {
+              return SizedBox(
+                width: isWide ? (constraints.maxWidth - (4 * 12)) / 5 : (constraints.maxWidth > 500 ? (constraints.maxWidth - 12) / 2 : double.infinity),
+                child: PalantirGlassPanel(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+                  borderRadius: 10,
+                  child: Row(
+                    children: [
+                      Container(
+                        width: 34,
+                        height: 34,
+                        decoration: BoxDecoration(
+                          color: LandingTheme.primaryAccent.withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: LandingTheme.secondaryAccent.withValues(alpha: 0.3),
+                            width: 1.0,
+                          ),
+                        ),
+                        child: Icon(
+                          item['icon'] as IconData,
+                          size: 17,
+                          color: LandingTheme.secondaryAccent,
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              item['title'] as String,
+                              style: GoogleFonts.inter(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w700,
+                                color: LandingTheme.textPrimary,
+                                letterSpacing: -0.2,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              item['sub'] as String,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w400,
+                                color: LandingTheme.textMuted,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                TextSpan(text: suffix),
-              ],
-            ),
-          ),
-        ],
-      );
+              );
+            }).toList(),
+          );
+        },
+      ),
+    );
+  }
 }
 
-class _HeroCtaButton extends StatefulWidget {
-  final bool isPrimary;
+class _ActionButton extends StatefulWidget {
   final String label;
   final IconData icon;
+  final bool isPrimary;
   final VoidCallback onTap;
 
-  const _HeroCtaButton({
-    required this.isPrimary,
+  const _ActionButton({
     required this.label,
     required this.icon,
+    required this.isPrimary,
     required this.onTap,
   });
 
   @override
-  State<_HeroCtaButton> createState() => _HeroCtaButtonState();
+  State<_ActionButton> createState() => _ActionButtonState();
 }
 
-class _HeroCtaButtonState extends State<_HeroCtaButton> {
+class _ActionButtonState extends State<_ActionButton> {
   bool _hovered = false;
 
   @override
@@ -651,51 +557,51 @@ class _HeroCtaButtonState extends State<_HeroCtaButton> {
       child: GestureDetector(
         onTap: widget.onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 15),
           decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(10),
+            gradient: widget.isPrimary ? LandingTheme.blueGradient : null,
             color: widget.isPrimary
-                ? (_hovered ? LandingTheme.primaryAccent : LandingTheme.charcoal)
-                : (_hovered ? LandingTheme.softBgTint : Colors.transparent),
-            borderRadius: BorderRadius.circular(8),
-            border: widget.isPrimary
                 ? null
-                : Border.all(
-                    color: _hovered
-                        ? LandingTheme.primaryAccent.withValues(alpha: 0.3)
-                        : LandingTheme.hairlineBorder,
-                    width: 1.0,
-                  ),
+                : (_hovered ? LandingTheme.secondaryBg : LandingTheme.surfaceGlassDense),
+            border: Border.all(
+              color: widget.isPrimary
+                  ? (_hovered ? LandingTheme.glowAccent : LandingTheme.secondaryAccent)
+                  : (_hovered ? LandingTheme.secondaryAccent : LandingTheme.hairlineBorder),
+              width: 1.2,
+            ),
             boxShadow: widget.isPrimary
                 ? [
-                    if (_hovered)
-                      BoxShadow(
-                        color: const Color(0xFF3B82F6).withValues(alpha: 0.08),
-                        blurRadius: 18,
-                        spreadRadius: 2,
-                        offset: const Offset(0, 4),
-                      )
-                    else
-                      ...LandingTheme.buttonShadow,
+                    BoxShadow(
+                      color: LandingTheme.primaryAccent.withValues(alpha: _hovered ? 0.5 : 0.3),
+                      blurRadius: _hovered ? 24 : 14,
+                      offset: const Offset(0, 4),
+                    ),
                   ]
-                : const [],
+                : [],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 widget.label,
-                style: LandingTheme.button.copyWith(
-                  color: widget.isPrimary ? Colors.white : LandingTheme.textPrimary,
-                  fontSize: 14,
+                style: GoogleFonts.inter(
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w600,
+                  color: widget.isPrimary
+                      ? LandingTheme.textPrimary
+                      : (_hovered ? LandingTheme.secondaryAccent : LandingTheme.textPrimary),
+                  letterSpacing: -0.2,
                 ),
               ),
               const SizedBox(width: 8),
               Icon(
                 widget.icon,
-                color: widget.isPrimary ? Colors.white : LandingTheme.textPrimary,
-                size: 15,
+                size: 16,
+                color: widget.isPrimary
+                    ? LandingTheme.textPrimary
+                    : (_hovered ? LandingTheme.secondaryAccent : LandingTheme.textSecondary),
               ),
             ],
           ),
@@ -706,7 +612,7 @@ class _HeroCtaButtonState extends State<_HeroCtaButton> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// TRUST BAR — Understated Typographic Empanelment Row (McKinsey / Stripe Style)
+// 3. TRUST BAR — Regulatory Standards & Bank Empanelled Strip
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class TrustBar extends StatelessWidget {
@@ -714,194 +620,297 @@ class TrustBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final pillars = [
+      {'title': 'IBBI REGISTERED', 'sub': 'Statutory Valuation Authority'},
+      {'title': 'CHARTERED ENGINEERING', 'sub': 'Institution of Engineers Certified'},
+      {'title': 'BANK EMPANELLED', 'sub': '28+ Major Banking Consortia'},
+      {'title': 'INSTITUTIONAL REPORTING', 'sub': 'IBC, SARFAESI & Companies Act'},
+      {'title': 'INDEPENDENT METHODOLOGY', 'sub': 'DCF, GIS & Yield Capitalization'},
+    ];
+
+    final banks = [
+      'State Bank of India',
+      'HDFC Bank',
+      'ICICI Bank',
+      'Axis Bank',
+      'Bank of Baroda',
+      'Kotak Mahindra Bank',
+      'Punjab National Bank',
+      'Canara Bank',
+      'Union Bank of India',
+      'IDBI Bank',
+      'IndusInd Bank',
+    ];
+
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(
-        vertical: 36,
-        horizontal: AppSpacing.xxl,
-      ),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: LandingTheme.secondaryBg,
-        border: Border.symmetric(
+        border: const Border.symmetric(
           horizontal: BorderSide(color: LandingTheme.hairlineBorder, width: 1.0),
         ),
       ),
-      child: Center(
-        child: Column(
-          children: [
-            Text(
-              'EMPANELLED WITH LEADING SCHEDULED COMMERCIAL BANKS',
-              style: LandingTheme.eyebrow,
-              textAlign: TextAlign.center,
+      child: Column(
+        children: [
+          // Top Row: Core Regulatory Pillars
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 22),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1200),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isWide = constraints.maxWidth >= 850;
+                  return Wrap(
+                    spacing: 24,
+                    runSpacing: 16,
+                    alignment: WrapAlignment.spaceAround,
+                    children: pillars.map((p) {
+                      return SizedBox(
+                        width: isWide ? (constraints.maxWidth - (4 * 24)) / 5 : (constraints.maxWidth > 500 ? (constraints.maxWidth - 24) / 2 : double.infinity),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: LandingTheme.secondaryAccent,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    p['title']!,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 11.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: LandingTheme.textPrimary,
+                                      letterSpacing: 0.8,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    p['sub']!,
+                                    style: GoogleFonts.inter(
+                                      fontSize: 10.5,
+                                      fontWeight: FontWeight.w400,
+                                      color: LandingTheme.textMuted,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
             ),
-            const SizedBox(height: 20),
-            Wrap(
-              spacing: 24,
-              runSpacing: 10,
-              alignment: WrapAlignment.center,
-              children: [
-                _bankItem('State Bank of India'),
-                _bullet(),
-                _bankItem('Union Bank of India'),
-                _bullet(),
-                _bankItem('Punjab National Bank'),
-                _bullet(),
-                _bankItem('Central Bank of India'),
-                _bullet(),
-                _bankItem('Axis Bank'),
-                _bullet(),
-                _bankItem('Canara Bank'),
-              ],
+          ),
+
+          // Divider
+          const Divider(height: 1, color: LandingTheme.hairlineBorder),
+
+          // Bottom Row: Trusted Consortium Banking Ticker
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                children: [
+                  Text(
+                    'EMPANELLED & ACCEPTED BY :',
+                    style: GoogleFonts.sourceCodePro(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: LandingTheme.secondaryAccent,
+                      letterSpacing: 1.2,
+                    ),
+                  ),
+                  const SizedBox(width: 20),
+                  ...banks.map((b) => Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              b,
+                              style: GoogleFonts.inter(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w500,
+                                color: LandingTheme.textSecondary,
+                                letterSpacing: -0.1,
+                              ),
+                            ),
+                            const SizedBox(width: 14),
+                            Container(
+                              width: 3,
+                              height: 3,
+                              decoration: const BoxDecoration(
+                                color: LandingTheme.textTertiary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )),
+                ],
+              ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
-
-  Widget _bankItem(String name) => Text(
-        name,
-        style: LandingTheme.bodySmMedium.copyWith(
-          fontSize: 13.5,
-          color: LandingTheme.textPrimary,
-          fontWeight: FontWeight.w600,
-        ),
-      );
-
-  Widget _bullet() => const Text(
-        '·',
-        style: TextStyle(
-          color: LandingTheme.primaryAccent,
-          fontSize: 14,
-          fontWeight: FontWeight.bold,
-        ),
-      );
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// SERVICES GRID — Architectural Grid of Core Practice Areas
+// 4. SERVICES SECTION — 8 Institutional Asset Valuation Cards
 // ═══════════════════════════════════════════════════════════════════════════════
 
-class ServicesGrid extends StatelessWidget {
+class ServicesSection extends StatelessWidget {
   final bool isDesktop;
   final bool isTablet;
   final Future<void> Function(String) launchWhatsApp;
 
-  const ServicesGrid({
+  const ServicesSection({
     super.key,
     required this.isDesktop,
     required this.isTablet,
     required this.launchWhatsApp,
   });
 
-  static const _services = [
-    [
-      'Land & Building Valuation',
-      'Statutory, balance sheet, mortgage lending, and NCLT transactional valuation under IBBI mandate.',
-      'Hello Provaluer, I would like to request Land & Building Valuation details.',
-    ],
-    [
-      'Plant & Machinery Valuation',
-      'Technical assessment of industrial installations, fabrication units, and automated manufacturing lines.',
-      'Hello Provaluer, I would like to request Plant & Machinery Valuation details.',
-    ],
-    [
-      'Securities & Financial Assets',
-      'Corporate valuation for capital restructuring, mergers, share transfers, and regulatory compliance.',
-      'Hello Provaluer, I would like to request Securities & Financial Asset Valuation details.',
-    ],
-    [
-      'Net Worth Certificates',
-      'Audited financial documentation for statutory visa filings, institutional guarantees, and liquidity proof.',
-      'Hello Provaluer, I would like to request a Net Worth Certificate evaluation.',
-    ],
-    [
-      'Chartered Engineer Services',
-      'Technical certification for customs clearance, EPCG export schemes, and plant life assessment.',
-      'Hello Provaluer, I would like to request Chartered Engineer certification services.',
-    ],
-    [
-      'Lenders Independent Engineer',
-      'Independent technical review, project milestone monitoring, and fund drawdown verification for banks.',
-      'Hello Provaluer, I would like to request Lenders Independent Engineer (LIE) services.',
-    ],
-    [
-      'Cost Vetting',
-      'Detailed audit of civil construction expenditure, BOQ verification, and variance control analysis.',
-      'Hello Provaluer, I would like to request Cost Vetting services.',
-    ],
-    [
-      'Contractors Bill Ratification',
-      'Third-party milestone sign-off, workmanship certification, and contractor billing ratification.',
-      'Hello Provaluer, I would like to request Contractor Bill Ratification services.',
-    ],
-  ];
-
-  static const _cardIcons = [
-    Icons.apartment_rounded,
-    Icons.precision_manufacturing_rounded,
-    Icons.trending_up_rounded,
-    Icons.description_rounded,
-    Icons.engineering_rounded,
-    Icons.account_balance_rounded,
-    Icons.receipt_long_rounded,
-    Icons.fact_check_rounded,
-  ];
-
   @override
   Widget build(BuildContext context) {
-    final cols = isDesktop ? 4 : (isTablet ? 2 : 1);
-    final w = MediaQuery.of(context).size.width;
+    final double screenW = MediaQuery.of(context).size.width;
+
+    final services = [
+      {
+        'title': 'Property Valuation',
+        'tag': 'REAL ESTATE & COMMERCIAL',
+        'icon': Icons.business_rounded,
+        'desc': 'Valuation of prime commercial office towers, IT tech parks, shopping malls, logistics warehouses, and residential portfolios.',
+        'outputs': ['Discounted Cash Flow (DCF)', 'Direct Capitalization Yield', 'Fair Market & Forced Sale Value'],
+      },
+      {
+        'title': 'Land & Cadastral Valuation',
+        'tag': 'SPATIAL GIS RECONCILIATION',
+        'icon': Icons.terrain_rounded,
+        'desc': 'Valuation of industrial layouts, SEZs, agricultural parcels, open plotting projects, and contiguous land assemblies.',
+        'outputs': ['RTK Satellite Boundary Overlay', 'Master Plan Zoning Audit', 'Encumbrance Buffer Analysis'],
+      },
+      {
+        'title': 'Industrial Asset Valuation',
+        'tag': 'MANUFACTURING & PLANTS',
+        'icon': Icons.precision_manufacturing_rounded,
+        'desc': 'Appraisal of large-scale manufacturing facilities, chemical plants, pharmaceutical units, and automotive complexes.',
+        'outputs': ['Depreciated Replacement Cost', 'Operational Utility Index', 'Salvage & Scrap Realization'],
+      },
+      {
+        'title': 'Plant & Machinery Appraisals',
+        'tag': 'CHARTERED ENGINEER AUDIT',
+        'icon': Icons.build_circle_rounded,
+        'desc': 'Chartered Engineering technical assessment of specialized equipment, assembly lines, robotics, and heavy mining machinery.',
+        'outputs': ['Remaining Useful Life (RUL)', 'Physical Wear Calibration', 'IBC Liquidation Benchmark'],
+      },
+      {
+        'title': 'Infrastructure & Project Valuation',
+        'tag': 'UTILITIES & CONCESSIONS',
+        'icon': Icons.alt_route_rounded,
+        'desc': 'Valuation of toll highways, sea ports, container terminals, solar/wind renewable farms, and airport concessions.',
+        'outputs': ['Concession Agreement Audit', 'Traffic & Yield DCF Modeling', 'Asset Capitalization Proof'],
+      },
+      {
+        'title': 'Technical Due Diligence',
+        'tag': 'STRUCTURAL & STATUTORY',
+        'icon': Icons.engineering_rounded,
+        'desc': 'Comprehensive technical audit of civil integrity, sanctioned plan conformity, MEP systems, and environmental compliance.',
+        'outputs': ['Civil Defect Liability Review', 'Statutory NOC Audit', 'CAPEX / OPEX Forecasting'],
+      },
+      {
+        'title': 'Financial Risk Advisory',
+        'tag': 'IBC & IMPAIRMENT TESTING',
+        'icon': Icons.analytics_rounded,
+        'desc': 'Ind AS / IFRS impairment testing, CIRP liquidation valuation under IBC 2016, and dispute resolution expert testimony.',
+        'outputs': ['Section 29A Eligibility Audit', 'Liquidation Value Modeling', 'NCLT Tribunal Defense'],
+      },
+      {
+        'title': 'Chartered Engineering Certification',
+        'tag': 'CUSTOMS & EPC CERTIFICATION',
+        'icon': Icons.verified_rounded,
+        'desc': 'Statutory certification for customs duty exemption, EPC commercial commissioning, and lender independent engineer (LIE) reviews.',
+        'outputs': ['Capital Goods Installation Cert', 'Advance License Reconciliation', 'Lender Engineer Milestones'],
+      },
+    ];
 
     return Container(
+      width: double.infinity,
       color: LandingTheme.primaryBg,
       padding: EdgeInsets.symmetric(
         horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
-        vertical: 125,
+        vertical: 80,
       ),
       child: Center(
         child: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 1200),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const LuxuryEyebrowBadge(text: 'Core Practice Areas'),
-              const SizedBox(height: 20),
-              Text.rich(
-                TextSpan(
-                  text: 'Institutional Engineering\n& ',
-                  style: LandingTheme.sectionTitleResponsive(w),
-                  children: [
-                    WidgetSpan(
-                      child: GradientText(
-                        'Valuation',
-                        style: LandingTheme.sectionTitleResponsive(w),
-                      ),
-                    ),
-                    const TextSpan(text: ' Services'),
-                  ],
+              // Eyebrow
+              const LuxuryEyebrowBadge(
+                label: 'INSTITUTIONAL SERVICE SUITE',
+                icon: Icons.apps_rounded,
+              ),
+              const SizedBox(height: 18),
+              // Section Title
+              Text(
+                'Comprehensive Valuation & Asset Intelligence',
+                textAlign: TextAlign.center,
+                style: LandingTheme.sectionTitleResponsive(screenW),
+              ),
+              const SizedBox(height: 14),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Text(
+                  'Bank-approved, audit-defensible reporting across all asset classes with multi-tier statutory signoffs from IBBI Registered Valuers and Chartered Engineers.',
+                  textAlign: TextAlign.center,
+                  style: LandingTheme.bodyMediumResponsive(screenW),
                 ),
               ),
-              const SizedBox(height: 16),
-              const AppleHighlightBar(alignment: Alignment.centerLeft),
-              const SizedBox(height: 37),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: cols,
-                  crossAxisSpacing: 24,
-                  mainAxisSpacing: 24,
-                  childAspectRatio: isDesktop ? 0.92 : (isTablet ? 1.35 : 1.45),
-                ),
-                itemCount: _services.length,
-                itemBuilder: (_, i) => _ServiceCard(
-                  title: _services[i][0],
-                  description: _services[i][1],
-                  message: _services[i][2],
-                  icon: _cardIcons[i],
-                  launchWhatsApp: launchWhatsApp,
-                ),
+              const SizedBox(height: 52),
+
+              // 8-Card Grid
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final int columns = isDesktop ? 4 : (isTablet ? 2 : 1);
+                  final double spacing = 18;
+                  final double cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+                  return Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: services.map((s) {
+                      return SizedBox(
+                        width: cardWidth,
+                        child: _InstitutionalServiceCard(
+                          title: s['title'] as String,
+                          tag: s['tag'] as String,
+                          icon: s['icon'] as IconData,
+                          desc: s['desc'] as String,
+                          outputs: s['outputs'] as List<String>,
+                          onTap: () => launchWhatsApp(
+                            'Hello Pro Valuer, I require advisory for ${s['title']}.',
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
               ),
             ],
           ),
@@ -911,24 +920,28 @@ class ServicesGrid extends StatelessWidget {
   }
 }
 
-class _ServiceCard extends StatefulWidget {
-  final String title, description, message;
+class _InstitutionalServiceCard extends StatefulWidget {
+  final String title;
+  final String tag;
   final IconData icon;
-  final Future<void> Function(String) launchWhatsApp;
+  final String desc;
+  final List<String> outputs;
+  final VoidCallback onTap;
 
-  const _ServiceCard({
+  const _InstitutionalServiceCard({
     required this.title,
-    required this.description,
-    required this.message,
+    required this.tag,
     required this.icon,
-    required this.launchWhatsApp,
+    required this.desc,
+    required this.outputs,
+    required this.onTap,
   });
 
   @override
-  State<_ServiceCard> createState() => _ServiceCardState();
+  State<_InstitutionalServiceCard> createState() => _InstitutionalServiceCardState();
 }
 
-class _ServiceCardState extends State<_ServiceCard> {
+class _InstitutionalServiceCardState extends State<_InstitutionalServiceCard> {
   bool _hovered = false;
 
   @override
@@ -938,901 +951,102 @@ class _ServiceCardState extends State<_ServiceCard> {
       onEnter: (_) => setState(() => _hovered = true),
       onExit: (_) => setState(() => _hovered = false),
       child: GestureDetector(
-        onTap: () => widget.launchWhatsApp(widget.message),
+        onTap: widget.onTap,
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 250),
-          curve: Curves.easeOutCubic,
-          padding: const EdgeInsets.all(28),
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(
-            color: LandingTheme.primaryBg,
-            borderRadius: BorderRadius.circular(10),
+            color: _hovered ? LandingTheme.secondaryBg : LandingTheme.surfaceGlassDense,
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
-              color: _hovered
-                  ? LandingTheme.primaryAccent.withValues(alpha: 0.35)
-                  : LandingTheme.hairlineBorder,
-              width: 1.0,
+              color: _hovered ? LandingTheme.secondaryAccent : LandingTheme.hairlineBorder,
+              width: _hovered ? 1.2 : 1.0,
             ),
-            boxShadow: _hovered
-                ? LandingTheme.hoverShadow
-                : LandingTheme.subtleShadow,
+            boxShadow: _hovered ? LandingTheme.hoverShadow : LandingTheme.subtleShadow,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Icon(
-                widget.icon,
-                color: _hovered ? LandingTheme.primaryAccent : LandingTheme.charcoal,
-                size: 22,
-              ),
-              const SizedBox(height: 24),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    BrandAnchorText(
-                      text: widget.title,
-                      style: LandingTheme.cardTitle,
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      widget.description,
-                      style: LandingTheme.bodySm,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
+              // Header Tag & Icon
               Row(
-                mainAxisSize: MainAxisSize.min,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Get Enquiry',
-                    style: LandingTheme.bodySmMedium.copyWith(
-                      color: _hovered
-                          ? LandingTheme.primaryAccent
-                          : LandingTheme.textMuted,
-                      fontWeight: FontWeight.w600,
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: LandingTheme.primaryAccent.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(
+                        color: LandingTheme.secondaryAccent.withValues(alpha: 0.3),
+                        width: 1.0,
+                      ),
+                    ),
+                    child: Text(
+                      widget.tag,
+                      style: GoogleFonts.sourceCodePro(
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w600,
+                        color: LandingTheme.secondaryAccent,
+                        letterSpacing: 0.6,
+                      ),
                     ),
                   ),
-                  const SizedBox(width: 6),
                   Icon(
-                    Icons.arrow_forward_rounded,
-                    size: 14,
-                    color: _hovered
-                        ? LandingTheme.primaryAccent
-                        : LandingTheme.textMuted,
+                    widget.icon,
+                    size: 22,
+                    color: _hovered ? LandingTheme.glowAccent : LandingTheme.secondaryAccent,
                   ),
                 ],
               ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// WHY CHOOSE US — Institutional Rigor & Regulatory Governance
-// ═══════════════════════════════════════════════════════════════════════════════
-
-class WhyChooseUsSection extends StatelessWidget {
-  final bool isDesktop;
-  const WhyChooseUsSection({super.key, required this.isDesktop});
-
-  static const _reasons = [
-    [
-      Icons.verified_outlined,
-      'IBBI Registered',
-      'Valuers registered under Insolvency and Bankruptcy Board of India mandate across asset categories.',
-    ],
-    [
-      Icons.account_balance_outlined,
-      'Bank Empanelled',
-      'Active empanelment with public sector banks, private lenders, and NBFC consortiums.',
-    ],
-    [
-      Icons.speed_outlined,
-      'Disciplined Turnaround',
-      '24-48 hour turnaround on standardized appraisal files with strict milestone checkpoints.',
-    ],
-    [
-      Icons.gavel_outlined,
-      'Statutory Compliance',
-      'Full compliance with SEBI, RBI Master Directions, Companies Act, and Customs mandates.',
-    ],
-    [
-      Icons.support_agent_outlined,
-      'Chartered Engineers',
-      'Senior valuation practice led by chartered engineers with decade-plus technical authority.',
-    ],
-    [
-      Icons.star_outline_rounded,
-      'Dual-Layer Verification',
-      'Systematic quality assurance protocol ensuring institutional-grade evidentiary standards.',
-    ],
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.of(context).size.width;
-
-    return Container(
-      width: double.infinity,
-      color: LandingTheme.secondaryBg,
-      padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
-        vertical: 125,
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1200),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const LuxuryEyebrowBadge(text: 'Institutional Governance'),
-              const SizedBox(height: 20),
-              Text.rich(
-                TextSpan(
-                  text: 'Engineered for Banks, Built for\n',
-                  style: LandingTheme.sectionTitleResponsive(w),
-                  children: [
-                    WidgetSpan(
-                      child: GradientText(
-                        'Institutional',
-                        style: LandingTheme.sectionTitleResponsive(w),
-                      ),
-                    ),
-                    const TextSpan(text: ' Scrutiny'),
-                  ],
+              const SizedBox(height: 18),
+              // Title
+              Text(
+                widget.title,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                  color: LandingTheme.textPrimary,
+                  letterSpacing: -0.4,
                 ),
-                textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 16),
-              const AppleHighlightBar(alignment: Alignment.center),
-              const SizedBox(height: 37),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: isDesktop ? 3 : 1,
-                  crossAxisSpacing: 24,
-                  mainAxisSpacing: 24,
-                  childAspectRatio: isDesktop ? 1.8 : 3.2,
+              const SizedBox(height: 10),
+              // Description
+              Text(
+                widget.desc,
+                style: GoogleFonts.inter(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w400,
+                  color: LandingTheme.textSecondary,
+                  height: 1.45,
                 ),
-                itemCount: _reasons.length,
-                itemBuilder: (_, i) => Container(
-                  padding: const EdgeInsets.all(28),
-                  decoration: BoxDecoration(
-                    color: LandingTheme.primaryBg,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: LandingTheme.hairlineBorder,
-                      width: 1.0,
-                    ),
-                    boxShadow: LandingTheme.subtleShadow,
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        _reasons[i][0] as IconData,
-                        color: LandingTheme.primaryAccent,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 18),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            BrandAnchorText(
-                              text: _reasons[i][1] as String,
-                              style: LandingTheme.cardTitle.copyWith(fontSize: 16),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _reasons[i][2] as String,
-                              style: LandingTheme.bodySm,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
+              ),
+              const SizedBox(height: 18),
+              const Divider(height: 1, color: LandingTheme.hairlineBorder),
+              const SizedBox(height: 14),
+              // Key Deliverables
+              ...widget.outputs.map((out) => Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.check_circle_outline_rounded,
+                          size: 13,
+                          color: LandingTheme.secondaryAccent,
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// VALUATION WORKFLOW — 4-Stage Valuation Lifecycle
-// ═══════════════════════════════════════════════════════════════════════════════
-
-class ValuationWorkflowSection extends StatelessWidget {
-  final bool isDesktop;
-  const ValuationWorkflowSection({super.key, required this.isDesktop});
-
-  static const _steps = [
-    [
-      '01',
-      'Submit Request',
-      'Upload asset documents and cadastral records via our secure client portal or direct advisory desk.',
-    ],
-    [
-      '02',
-      'Site Inspection',
-      'Registered valuer conducts rigorous on-site measurements, structural checks, and physical audit.',
-    ],
-    [
-      '03',
-      'Analytical Appraisal',
-      'Data reconciled against government registries, circle rates, and discounted cash-flow models.',
-    ],
-    [
-      '04',
-      'Sign-Off & Delivery',
-      'Institutional report digitally signed under IBBI seal and dispatched directly to your lender.',
-    ],
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.of(context).size.width;
-
-    return Container(
-      width: double.infinity,
-      color: LandingTheme.primaryBg,
-      padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
-        vertical: 125,
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1200),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const LuxuryEyebrowBadge(text: 'Execution Methodology'),
-              const SizedBox(height: 20),
-              Text.rich(
-                TextSpan(
-                  text: 'Rigorous 4-Stage ',
-                  style: LandingTheme.sectionTitleResponsive(w),
-                  children: [
-                    WidgetSpan(
-                      child: GradientText(
-                        'Valuation',
-                        style: LandingTheme.sectionTitleResponsive(w),
-                      ),
-                    ),
-                    const TextSpan(text: ' Lifecycle'),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              const AppleHighlightBar(alignment: Alignment.centerLeft),
-              const SizedBox(height: 41),
-              if (isDesktop)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: List.generate(
-                    _steps.length,
-                    (i) => Expanded(
-                      child: Padding(
-                        padding: EdgeInsets.only(right: i < _steps.length - 1 ? 32 : 0),
-                        child: _WorkflowStep(
-                          number: _steps[i][0],
-                          title: _steps[i][1],
-                          description: _steps[i][2],
-                          isLast: i == _steps.length - 1,
-                        ),
-                      ),
-                    ),
-                  ),
-                )
-              else
-                Column(
-                  children: List.generate(
-                    _steps.length,
-                    (i) => Padding(
-                      padding: const EdgeInsets.only(bottom: 32),
-                      child: _WorkflowStep(
-                        number: _steps[i][0],
-                        title: _steps[i][1],
-                        description: _steps[i][2],
-                        isLast: i == _steps.length - 1,
-                      ),
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _WorkflowStep extends StatelessWidget {
-  final String number, title, description;
-  final bool isLast;
-
-  const _WorkflowStep({
-    required this.number,
-    required this.title,
-    required this.description,
-    required this.isLast,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              number,
-              style: LandingTheme.cardTitle.copyWith(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: LandingTheme.primaryAccent,
-              ),
-            ),
-            if (!isLast) ...[
-              const SizedBox(width: 16),
-              Expanded(
-                child: Container(
-                  height: 1,
-                  color: LandingTheme.hairlineBorder,
-                ),
-              ),
-            ],
-          ],
-        ),
-        const SizedBox(height: 22),
-        Text(
-          title,
-          style: LandingTheme.cardTitle.copyWith(fontSize: 16),
-        ),
-        const SizedBox(height: 10),
-        Text(
-          description,
-          style: LandingTheme.bodySm,
-        ),
-      ],
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// WHO WE SERVE — Specialized Practice Across Critical Sectors
-// ═══════════════════════════════════════════════════════════════════════════════
-
-class WhoWeServeSection extends StatelessWidget {
-  final bool isDesktop;
-  const WhoWeServeSection({super.key, required this.isDesktop});
-
-  static const _groups = [
-    [
-      'Banks & Financial Institutions',
-      'Providing technical asset appraisals, LIE audits, and bad-debt valuation backing empanelments.',
-      Icons.account_balance_rounded,
-    ],
-    [
-      'Corporates & Businesses',
-      'Assisting in statutory audit valuations, mergers/acquisitions, restructuring, and commercial due diligence.',
-      Icons.business_rounded,
-    ],
-    [
-      'Manufacturing & Industries',
-      'Valuation of factory premises, machinery life, asset capitalization, and EPCG licensing compliance.',
-      Icons.precision_manufacturing_rounded,
-    ],
-    [
-      'NBFCs & Fintechs',
-      'Collateral verification, digital lending support, and property risk assessment for modern lenders.',
-      Icons.credit_card_rounded,
-    ],
-    [
-      'Government & Public Sector',
-      'Government scheme valuations, EPCG compliance reports, and public sector asset assessments.',
-      Icons.gavel_rounded,
-    ],
-    [
-      'Individuals & HNIs',
-      'Personal property valuations for loans, insurance, estate planning, and net worth certifications.',
-      Icons.person_rounded,
-    ],
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.of(context).size.width;
-
-    return Container(
-      width: double.infinity,
-      color: LandingTheme.secondaryBg,
-      padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
-        vertical: 125,
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1200),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const LuxuryEyebrowBadge(text: 'Sector Coverage'),
-              const SizedBox(height: 20),
-              Text.rich(
-                TextSpan(
-                  text: 'Specialized Practice Across\n',
-                  style: LandingTheme.sectionTitleResponsive(w),
-                  children: [
-                    WidgetSpan(
-                      child: GradientText(
-                        'Institutional',
-                        style: LandingTheme.sectionTitleResponsive(w),
-                      ),
-                    ),
-                    const TextSpan(text: ' Sectors'),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              const AppleHighlightBar(alignment: Alignment.centerLeft),
-              const SizedBox(height: 37),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: isDesktop ? 3 : 1,
-                  crossAxisSpacing: 24,
-                  mainAxisSpacing: 24,
-                  childAspectRatio: isDesktop ? 1.8 : 3.2,
-                ),
-                itemCount: _groups.length,
-                itemBuilder: (_, i) => Container(
-                  padding: const EdgeInsets.all(28),
-                  decoration: BoxDecoration(
-                    color: LandingTheme.primaryBg,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: LandingTheme.hairlineBorder,
-                      width: 1.0,
-                    ),
-                    boxShadow: LandingTheme.subtleShadow,
-                  ),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Icon(
-                        _groups[i][2] as IconData,
-                        color: LandingTheme.primaryAccent,
-                        size: 20,
-                      ),
-                      const SizedBox(width: 18),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            BrandAnchorText(
-                              text: _groups[i][0] as String,
-                              style: LandingTheme.cardTitle.copyWith(fontSize: 16),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _groups[i][1] as String,
-                              style: LandingTheme.bodySm,
-                              maxLines: 3,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// STATS SECTION — Clean Architectural Metrics Band
-// ═══════════════════════════════════════════════════════════════════════════════
-
-class StatsSection extends StatelessWidget {
-  final bool isDesktop;
-  const StatsSection({super.key, required this.isDesktop});
-
-  @override
-  Widget build(BuildContext context) {
-    final stats = [
-      const _StatItem(value: '5000+', label: 'Appraisal Reports Delivered'),
-      const _StatItem(value: '28+', label: 'Bank & NBFC Empanelments'),
-      const _StatItem(value: '10+', label: 'Years of Technical Authority'),
-      const _StatItem(value: '100%', label: 'Institutional Acceptance Rate'),
-    ];
-
-    return Container(
-      width: double.infinity,
-      color: LandingTheme.primaryBg,
-      padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
-        vertical: 85,
-      ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          const FloatingAmbientGlow(
-            width: 650,
-            height: 280,
-            opacity: 0.04, // Option I: 4% subtle atmosphere
-            alignment: Alignment.center,
-          ),
-          Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1200),
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  vertical: isDesktop ? 48 : 36,
-                  horizontal: isDesktop ? 48 : 24,
-                ),
-                decoration: BoxDecoration(
-                  color: LandingTheme.secondaryBg,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: LandingTheme.hairlineBorder, width: 1.0),
-                  boxShadow: LandingTheme.subtleShadow,
-                ),
-                child: isDesktop
-                    ? Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: _interleaveWithDividers(stats),
-                      )
-                    : Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Expanded(child: stats[0]),
-                              Container(width: 1, height: 60, color: LandingTheme.hairlineBorder),
-                              Expanded(child: stats[1]),
-                            ],
-                          ),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 24),
-                            child: Divider(color: LandingTheme.hairlineBorder, height: 1),
-                          ),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                            children: [
-                              Expanded(child: stats[2]),
-                              Container(width: 1, height: 60, color: LandingTheme.hairlineBorder),
-                              Expanded(child: stats[3]),
-                            ],
-                          ),
-                        ],
-                      ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  List<Widget> _interleaveWithDividers(List<Widget> items) {
-    final result = <Widget>[];
-    for (int i = 0; i < items.length; i++) {
-      result.add(Expanded(child: items[i]));
-      if (i < items.length - 1) {
-        result.add(Container(
-          width: 1,
-          height: 64,
-          color: LandingTheme.hairlineBorder,
-        ));
-      }
-    }
-    return result;
-  }
-}
-
-class _StatItem extends StatelessWidget {
-  final String value;
-  final String label;
-
-  const _StatItem({
-    required this.value,
-    required this.label,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Stack(
-          alignment: Alignment.center,
-          children: [
-            Text(
-              value,
-              style: LandingTheme.statNumeral.copyWith(
-                fontSize: 48,
-                letterSpacing: -2.0,
-                color: Colors.transparent,
-                shadows: const [
-                  Shadow(
-                    color: Color(0x143B82F6), // rgba(59,130,246,0.08) Option C depth
-                    offset: Offset(0, 3),
-                    blurRadius: 6,
-                  ),
-                ],
-              ),
-            ),
-            GradientText(
-              value,
-              style: LandingTheme.statNumeral.copyWith(
-                fontSize: 48,
-                letterSpacing: -2.0,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Text(
-          label,
-          style: LandingTheme.bodySmMedium.copyWith(
-            color: LandingTheme.textSecondary,
-            fontSize: 13,
-            fontWeight: FontWeight.w500,
-          ),
-          textAlign: TextAlign.center,
-        ),
-      ],
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// TESTIMONIALS — Verified Feedback from Financial Partners
-// ═══════════════════════════════════════════════════════════════════════════════
-
-class TestimonialsSection extends StatelessWidget {
-  final bool isDesktop;
-  const TestimonialsSection({super.key, required this.isDesktop});
-
-  static const _testimonials = [
-    [
-      'The valuation report was delivered within 48 hours and accepted by the bank without any queries. Extremely professional team.',
-      'Rajesh K.',
-      'Home Loan Applicant',
-      'State Bank of India',
-    ],
-    [
-      'We needed a Chartered Engineer Certificate for customs clearance urgently. Pro Valuer delivered in record time with complete accuracy.',
-      'Priya M.',
-      'Import/Export Manager',
-      'Manufacturing Co.',
-    ],
-    [
-      'Their LIE reports for our infrastructure project were thorough and met all consortium bank requirements perfectly.',
-      'Suresh R.',
-      'CFO',
-      'Infrastructure Pvt. Ltd.',
-    ],
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.of(context).size.width;
-
-    return Container(
-      width: double.infinity,
-      color: LandingTheme.primaryBg,
-      padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
-        vertical: 125,
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1200),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const LuxuryEyebrowBadge(text: 'Institutional Endorsements'),
-              const SizedBox(height: 20),
-              Text.rich(
-                TextSpan(
-                  text: 'Verified Feedback from\n',
-                  style: LandingTheme.sectionTitleResponsive(w),
-                  children: [
-                    WidgetSpan(
-                      child: GradientText(
-                        'Institutional',
-                        style: LandingTheme.sectionTitleResponsive(w),
-                      ),
-                    ),
-                    const TextSpan(text: ' Partners'),
-                  ],
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              const AppleHighlightBar(alignment: Alignment.center),
-              const SizedBox(height: 37),
-              GridView.builder(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: isDesktop ? 3 : 1,
-                  crossAxisSpacing: 24,
-                  mainAxisSpacing: 24,
-                  childAspectRatio: isDesktop ? 1.35 : 2.2,
-                ),
-                itemCount: _testimonials.length,
-                itemBuilder: (_, i) => Container(
-                  padding: const EdgeInsets.all(32),
-                  decoration: BoxDecoration(
-                    color: LandingTheme.primaryBg,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: LandingTheme.hairlineBorder,
-                      width: 1.0,
-                    ),
-                    boxShadow: LandingTheme.subtleShadow,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: List.generate(
-                          5,
-                          (_) => const Padding(
-                            padding: EdgeInsets.only(right: 3),
-                            child: Icon(
-                              Icons.star_rounded,
-                              color: LandingTheme.primaryAccent,
-                              size: 15,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 22),
-                      Expanded(
-                        child: Text(
-                          '"${_testimonials[i][0]}"',
-                          style: LandingTheme.bodyMd.copyWith(
-                            fontStyle: FontStyle.italic,
-                            color: LandingTheme.textPrimary,
-                            height: 1.65,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 22),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            _testimonials[i][1],
-                            style: LandingTheme.bodySmMedium.copyWith(
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            '${_testimonials[i][2]} · ${_testimonials[i][3]}',
-                            style: LandingTheme.bodySm.copyWith(
-                              fontSize: 12.5,
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            out,
+                            style: GoogleFonts.inter(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w500,
                               color: LandingTheme.textMuted,
                             ),
                           ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ═══════════════════════════════════════════════════════════════════════════════
-// FAQ SECTION — Apple / Stripe Clean Hairline List
-// ═══════════════════════════════════════════════════════════════════════════════
-
-class FaqSection extends StatelessWidget {
-  final bool isDesktop;
-  const FaqSection({super.key, required this.isDesktop});
-
-  static const _faqs = [
-    [
-      'What is an IBBI Registered Valuer?',
-      'IBBI (Insolvency and Bankruptcy Board of India) registers qualified valuers who are authorized to provide valuation services for statutory and regulatory purposes including bank loans, NCLT proceedings, and government compliance.',
-    ],
-    [
-      'How long does a property valuation take?',
-      'Standard residential valuations take 24-48 hours after site inspection. Commercial and industrial valuations may take 3-5 working days depending on complexity.',
-    ],
-    [
-      'Which banks accept your valuation reports?',
-      'We are empanelled with banks including State Bank of India, Union Bank, Punjab National Bank, Axis Bank, Central Bank of India, and many more leading lenders.',
-    ],
-    [
-      'Can you provide valuation for properties outside Hyderabad?',
-      'Our primary service area is Hyderabad and Secunderabad. For properties in other locations within Telangana and Andhra Pradesh, please contact us to discuss coverage.',
-    ],
-    [
-      'What documents are needed for a valuation?',
-      'Typically: Sale/Title Deed, Approved Building Plan, Occupancy Certificate, Property Tax Receipts, and Electricity Bill. Specific documents vary by property type and purpose.',
-    ],
-    [
-      'Do you provide Chartered Engineer certificates for EPCG?',
-      'Yes, we provide Chartered Engineer Certificates for EPCG schemes, import/export, customs valuation, insurance, and government compliance requirements.',
-    ],
-  ];
-
-  @override
-  Widget build(BuildContext context) {
-    final w = MediaQuery.of(context).size.width;
-
-    return Container(
-      width: double.infinity,
-      color: LandingTheme.secondaryBg,
-      padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
-        vertical: 125,
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 860),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const LuxuryEyebrowBadge(text: 'Operational Inquiries'),
-              const SizedBox(height: 20),
-              Text.rich(
-                TextSpan(
-                  text: 'Frequently Addressed\n',
-                  style: LandingTheme.sectionTitleResponsive(w),
-                  children: [
-                    WidgetSpan(
-                      child: GradientText(
-                        'Certified',
-                        style: LandingTheme.sectionTitleResponsive(w),
-                      ),
+                        ),
+                      ],
                     ),
-                    const TextSpan(text: ' Inquiries'),
-                  ],
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
-              const AppleHighlightBar(alignment: Alignment.center),
-              const SizedBox(height: 37),
-              ..._faqs.map((faq) => _FaqItem(
-                    question: faq[0],
-                    answer: faq[1],
                   )),
             ],
           ),
@@ -1842,72 +1056,168 @@ class FaqSection extends StatelessWidget {
   }
 }
 
-class _FaqItem extends StatefulWidget {
-  final String question, answer;
-  const _FaqItem({required this.question, required this.answer});
+// ═══════════════════════════════════════════════════════════════════════════════
+// 5. INDUSTRIES SECTION — 10 Institutional Ecosystem Sectors
+// ═══════════════════════════════════════════════════════════════════════════════
 
-  @override
-  State<_FaqItem> createState() => _FaqItemState();
-}
+class IndustriesSection extends StatelessWidget {
+  final bool isDesktop;
 
-class _FaqItemState extends State<_FaqItem> {
-  bool _expanded = false;
+  const IndustriesSection({super.key, required this.isDesktop});
 
   @override
   Widget build(BuildContext context) {
+    final double screenW = MediaQuery.of(context).size.width;
+
+    final industries = [
+      {
+        'title': 'Banks & Lending Consortia',
+        'desc': 'Pre-disbursement mortgage appraisal, SARFAESI auction reserves, and periodic collateral revaluation.',
+        'icon': Icons.account_balance_rounded,
+      },
+      {
+        'title': 'NBFCs & Private Credit',
+        'desc': 'Rapid underwriting diligence, loan-to-value stress tests, and structured debt security validation.',
+        'icon': Icons.credit_score_rounded,
+      },
+      {
+        'title': 'Private Equity Funds',
+        'desc': 'Platform acquisition due diligence, post-merger integration assets, and portfolio mark-to-market.',
+        'icon': Icons.trending_up_rounded,
+      },
+      {
+        'title': 'Venture Capital Firms',
+        'desc': 'High-growth asset appraisal, specialized tech hardware verification, and IP/equipment valuation.',
+        'icon': Icons.rocket_launch_rounded,
+      },
+      {
+        'title': 'Corporate Treasury Teams',
+        'desc': 'Balance sheet asset revaluation under Ind AS 16/36, M&A carve-out pricing, and tax optimization.',
+        'icon': Icons.corporate_fare_rounded,
+      },
+      {
+        'title': 'Government & PSUs',
+        'desc': 'Disinvestment valuation, public asset concession pricing, and sovereign infrastructure audits.',
+        'icon': Icons.account_balance_outlined,
+      },
+      {
+        'title': 'Infrastructure Developers',
+        'desc': 'BOT / HAM project asset appraisal, toll road refinancing, and airport/port concessions.',
+        'icon': Icons.traffic_rounded,
+      },
+      {
+        'title': 'Asset Reconstruction (ARCs)',
+        'desc': 'NPL stressed asset fair value determination, liquidation benchmarks, and security enforcement.',
+        'icon': Icons.restore_page_rounded,
+      },
+      {
+        'title': 'Insolvency Professionals (IPs)',
+        'desc': 'IBC Section 35(1) CIRP liquidation and fair value determinations defensible before NCLT benches.',
+        'icon': Icons.gavel_rounded,
+      },
+      {
+        'title': 'Real Estate Investment Funds (REITs)',
+        'desc': 'Statutory half-yearly NAV valuations, tenant covenant risk models, and asset acquisition underwriting.',
+        'icon': Icons.domain_rounded,
+      },
+    ];
+
     return Container(
-      decoration: const BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: LandingTheme.hairlineBorder, width: 1.0),
-        ),
+      width: double.infinity,
+      color: LandingTheme.secondaryBg,
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
+        vertical: 80,
       ),
-      child: InkWell(
-        onTap: () => setState(() => _expanded = !_expanded),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 22),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      widget.question,
-                      style: LandingTheme.cardTitle.copyWith(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  AnimatedRotation(
-                    turns: _expanded ? 0.25 : 0,
-                    duration: const Duration(milliseconds: 250),
-                    child: Icon(
-                      Icons.arrow_forward_ios_rounded,
-                      size: 13,
-                      color: _expanded
-                          ? LandingTheme.primaryAccent
-                          : LandingTheme.charcoal,
-                    ),
-                  ),
-                ],
+              const LuxuryEyebrowBadge(
+                label: 'ECOSYSTEM COVERAGE',
+                icon: Icons.public_rounded,
               ),
-              AnimatedCrossFade(
-                firstChild: const SizedBox.shrink(),
-                secondChild: Padding(
-                  padding: const EdgeInsets.only(top: 14),
-                  child: Text(
-                    widget.answer,
-                    style: LandingTheme.bodyMd.copyWith(
-                      color: LandingTheme.textSecondary,
-                      height: 1.65,
-                    ),
-                  ),
+              const SizedBox(height: 18),
+              Text(
+                'Trusted by Institutional Capital & Enterprise Risk Officers',
+                textAlign: TextAlign.center,
+                style: LandingTheme.sectionTitleResponsive(screenW),
+              ),
+              const SizedBox(height: 14),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Text(
+                  'Delivering audit-defensible valuation intelligence tailored to the statutory and risk mandate of every institutional stakeholder.',
+                  textAlign: TextAlign.center,
+                  style: LandingTheme.bodyMediumResponsive(screenW),
                 ),
-                crossFadeState: _expanded
-                    ? CrossFadeState.showSecond
-                    : CrossFadeState.showFirst,
-                duration: const Duration(milliseconds: 180),
+              ),
+              const SizedBox(height: 48),
+
+              // 10-item Grid
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final int columns = isDesktop ? 5 : (constraints.maxWidth >= 700 ? 3 : 2);
+                  final double spacing = 14;
+                  final double cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+                  return Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: industries.map((ind) {
+                      return SizedBox(
+                        width: cardWidth,
+                        child: PalantirGlassPanel(
+                          padding: const EdgeInsets.all(18),
+                          borderRadius: 12,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  color: LandingTheme.primaryAccent.withValues(alpha: 0.15),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: LandingTheme.secondaryAccent.withValues(alpha: 0.25),
+                                    width: 1.0,
+                                  ),
+                                ),
+                                child: Icon(
+                                  ind['icon'] as IconData,
+                                  size: 18,
+                                  color: LandingTheme.secondaryAccent,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                ind['title'] as String,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: LandingTheme.textPrimary,
+                                  letterSpacing: -0.2,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                ind['desc'] as String,
+                                style: GoogleFonts.inter(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w400,
+                                  color: LandingTheme.textSecondary,
+                                  height: 1.4,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
               ),
             ],
           ),
@@ -1918,94 +1228,975 @@ class _FaqItemState extends State<_FaqItem> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// CTA BANNER — High-Trust Executive Conversion Section
+// 6. WHY PRO VALUER — Institutional Advantage Matrix
 // ═══════════════════════════════════════════════════════════════════════════════
 
-class CtaBanner extends StatelessWidget {
-  final Future<void> Function(String) launchWhatsApp;
-  const CtaBanner({super.key, required this.launchWhatsApp});
+class WhyProValuerSection extends StatelessWidget {
+  final bool isDesktop;
+
+  const WhyProValuerSection({super.key, required this.isDesktop});
 
   @override
   Widget build(BuildContext context) {
-    final w = MediaQuery.of(context).size.width;
+    final double screenW = MediaQuery.of(context).size.width;
+
+    final matrix = [
+      {
+        'criterion': 'IBBI Registration & Accreditation',
+        'proValuer': 'Full IBBI Institutional Entity Registration across Land & Building, Plant & Machinery, and Securities/Financial Assets.',
+        'traditional': 'Unaccredited local firms or single-license individuals with limited statutory authority.',
+      },
+      {
+        'criterion': 'Chartered Engineer Technical Review',
+        'proValuer': 'In-house certified Chartered Engineers (Civil, Mechanical, Electrical) conduct physical on-site technical audits.',
+        'traditional': 'Omitted or outsourced to third-party consultants with no unified legal accountability.',
+      },
+      {
+        'criterion': 'Institutional Methodology',
+        'proValuer': 'Palantir GIS spatial mapping + DCF Discounted Cash Flow + Depreciated Replacement Cost (DRC) modeling.',
+        'traditional': 'Rough rule-of-thumb guesswork and unverified circle rate extrapolations.',
+      },
+      {
+        'criterion': 'Regulatory Documentation',
+        'proValuer': '100% compliant with IBC 2016, Companies Act 2013, SARFAESI, and RBI Prudential Guidelines.',
+        'traditional': 'Generic templates prone to rejection by banking credit committees and statutory auditors.',
+      },
+      {
+        'criterion': 'Audit Readiness & Legal Defense',
+        'proValuer': 'Legally binding, audit-ready defense before NCLT, DRT, SEBI, and CAG audit teams.',
+        'traditional': 'Zero post-submission support; reports frequently challenged and disqualified.',
+      },
+      {
+        'criterion': 'Multi-Level Verification Protocol',
+        'proValuer': 'Mandatory 3-tier review: Field Surveyor → Technical Valuer → Partner Dual-Signoff.',
+        'traditional': 'Single-individual unverified draft with high likelihood of clerical and valuation errors.',
+      },
+      {
+        'criterion': 'Bank Acceptance & Track Record',
+        'proValuer': 'Empanelled with 28+ leading PSU and private banking consortia nationwide.',
+        'traditional': 'Limited panel presence requiring cumbersome one-off approval letters.',
+      },
+      {
+        'criterion': 'Institutional Turnaround Time (SLA)',
+        'proValuer': 'Guaranteed 48–72 hours for urban assets; 5 business days for complex multi-location industrial plants.',
+        'traditional': 'Unpredictable 3–5 week delivery cycles with complete communication blackout.',
+      },
+    ];
 
     return Container(
       width: double.infinity,
       color: LandingTheme.primaryBg,
       padding: EdgeInsets.symmetric(
-        horizontal: w >= 1200 ? AppSpacing.sectionLg : AppSpacing.lg,
-        vertical: 125,
+        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
+        vertical: 80,
       ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          const FloatingAmbientGlow(
-            width: 700,
-            height: 400,
-            opacity: 0.05, // Option I: 5% subtle atmosphere
-            alignment: Alignment.center,
-          ),
-          Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1100),
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  vertical: w >= 768 ? 72 : 48,
-                  horizontal: w >= 768 ? 64 : 28,
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Column(
+            children: [
+              const LuxuryEyebrowBadge(
+                label: 'INSTITUTIONAL BENCHMARK',
+                icon: Icons.compare_arrows_rounded,
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'The Institutional Advantage Matrix',
+                textAlign: TextAlign.center,
+                style: LandingTheme.sectionTitleResponsive(screenW),
+              ),
+              const SizedBox(height: 14),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 740),
+                child: Text(
+                  'Why leading banks, credit funds, and insolvency professionals mandate Pro Valuer over traditional appraisal firms for high-stakes capital decisions.',
+                  textAlign: TextAlign.center,
+                  style: LandingTheme.bodyMediumResponsive(screenW),
                 ),
+              ),
+              const SizedBox(height: 48),
+
+              // Advantage Matrix Table Container
+              Container(
                 decoration: BoxDecoration(
-                  color: LandingTheme.secondaryBg,
-                  borderRadius: BorderRadius.circular(12),
+                  color: LandingTheme.surfaceGlassDense,
+                  borderRadius: BorderRadius.circular(14),
                   border: Border.all(color: LandingTheme.hairlineBorder, width: 1.0),
-                  boxShadow: LandingTheme.subtleShadow,
                 ),
-                child: Column(
-                  children: [
-                    Text.rich(
-                      TextSpan(
-                        text: 'Ready for Institutional ',
-                        style: LandingTheme.sectionTitleResponsive(w),
-                        children: [
-                          WidgetSpan(
-                            child: GradientText(
-                              'Valuation?',
-                              style: LandingTheme.sectionTitleResponsive(w),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(13),
+                  child: Column(
+                    children: [
+                      // Table Header
+                      Container(
+                        color: LandingTheme.secondaryBg,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              flex: 3,
+                              child: Text(
+                                'EVALUATION CRITERIA',
+                                style: GoogleFonts.sourceCodePro(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: LandingTheme.textMuted,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                            Expanded(
+                              flex: 4,
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 7,
+                                    height: 7,
+                                    decoration: const BoxDecoration(
+                                      color: LandingTheme.secondaryAccent,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Text(
+                                    'PRO VALUER INSTITUTIONAL',
+                                    style: GoogleFonts.sourceCodePro(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: LandingTheme.secondaryAccent,
+                                      letterSpacing: 1.0,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            if (isDesktop)
+                              Expanded(
+                                flex: 4,
+                                child: Text(
+                                  'TRADITIONAL APPRAISAL FIRMS',
+                                  style: GoogleFonts.sourceCodePro(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: LandingTheme.textTertiary,
+                                    letterSpacing: 1.0,
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 14),
-                    const AppleHighlightBar(alignment: Alignment.center),
-                    const SizedBox(height: 18),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 580),
-                  child: Text(
-                    'Connect with our expert valuation practice today.\nFast turnaround. Institutional-grade precision.',
-                    style: LandingTheme.bodyLg,
-                    textAlign: TextAlign.center,
+                      const Divider(height: 1, color: LandingTheme.hairlineBorder),
+
+                      // Table Rows
+                      ...matrix.asMap().entries.map((entry) {
+                        final i = entry.key;
+                        final row = entry.value;
+                        final isEven = i % 2 == 0;
+
+                        return Container(
+                          color: isEven ? Colors.transparent : LandingTheme.secondaryBg.withValues(alpha: 0.3),
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              // Criterion
+                              Expanded(
+                                flex: 3,
+                                child: Text(
+                                  row['criterion']!,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: LandingTheme.textPrimary,
+                                    letterSpacing: -0.2,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              // Pro Valuer
+                              Expanded(
+                                flex: 4,
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Icon(
+                                      Icons.check_circle_rounded,
+                                      size: 16,
+                                      color: LandingTheme.secondaryAccent,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        row['proValuer']!,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.w500,
+                                          color: LandingTheme.textPrimary,
+                                          height: 1.4,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              // Traditional
+                              if (isDesktop) ...[
+                                const SizedBox(width: 16),
+                                Expanded(
+                                  flex: 4,
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      const Icon(
+                                        Icons.cancel_outlined,
+                                        size: 15,
+                                        color: LandingTheme.textTertiary,
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          row['traditional']!,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w400,
+                                            color: LandingTheme.textMuted,
+                                            height: 1.4,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ],
+                          ),
+                        );
+                      }),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 40),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 7. PROCESS SECTION — 6-Stage Institutional Valuation Workflow
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class ProcessSection extends StatelessWidget {
+  final bool isDesktop;
+
+  const ProcessSection({super.key, required this.isDesktop});
+
+  @override
+  Widget build(BuildContext context) {
+    final double screenW = MediaQuery.of(context).size.width;
+
+    final steps = [
+      {
+        'step': '01',
+        'title': 'Mandate & Cadastral Ingestion',
+        'desc': 'Digital intake of title deeds, sanctioned plans, asset registers, and automated satellite GIS parcel demarcation.',
+        'tag': 'DAY 1 · INTAKE',
+      },
+      {
+        'step': '02',
+        'title': 'Physical Inspection & CE Audit',
+        'desc': 'On-site geo-tagged inspection by certified Chartered Engineers, assessing structural condition and machinery wear.',
+        'tag': 'DAY 1–2 · FIELDWORK',
+      },
+      {
+        'step': '03',
+        'title': 'Market & Spatial Data Reconciliation',
+        'desc': 'Cross-referencing municipal master plans, sub-registrar transaction indices, and micro-market commercial lease yields.',
+        'tag': 'DAY 2–3 · ANALYTICS',
+      },
+      {
+        'step': '04',
+        'title': 'Multi-Model Valuation & Stress Testing',
+        'desc': 'Executing Discounted Cash Flow (DCF), Depreciated Replacement Cost (DRC), and liquidation value stress tests.',
+        'tag': 'DAY 3 · MODELING',
+      },
+      {
+        'step': '05',
+        'title': 'Dual Peer Review & Statutory Audit',
+        'desc': 'Mandatory sign-off by IBBI Registered Valuer and Chartered Engineer, verifying compliance against IBC / RBI norms.',
+        'tag': 'DAY 4 · QUALITY ASSURANCE',
+      },
+      {
+        'step': '06',
+        'title': 'Encrypted Delivery & Bank Ingestion',
+        'desc': 'Delivery of tamper-evident digital reports, institutional summary dashboards, and full post-mandate audit defense.',
+        'tag': 'DAY 4–5 · ACCEPTANCE',
+      },
+    ];
+
+    return Container(
+      width: double.infinity,
+      color: LandingTheme.secondaryBg,
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
+        vertical: 80,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Column(
+            children: [
+              const LuxuryEyebrowBadge(
+                label: 'RIGOROUS EXECUTION',
+                icon: Icons.timeline_rounded,
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'Institutional Valuation Workflow',
+                textAlign: TextAlign.center,
+                style: LandingTheme.sectionTitleResponsive(screenW),
+              ),
+              const SizedBox(height: 14),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Text(
+                  'End-to-end data integrity, physical ground truth, and regulatory verification at every step of the assignment.',
+                  textAlign: TextAlign.center,
+                  style: LandingTheme.bodyMediumResponsive(screenW),
+                ),
+              ),
+              const SizedBox(height: 52),
+
+              // 6-Step Workflow Cards
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final int columns = isDesktop ? 3 : (constraints.maxWidth >= 700 ? 2 : 1);
+                  final double spacing = 18;
+                  final double cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+                  return Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: steps.map((s) {
+                      return SizedBox(
+                        width: cardWidth,
+                        child: PalantirGlassPanel(
+                          padding: const EdgeInsets.all(22),
+                          borderRadius: 14,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    s['step']!,
+                                    style: GoogleFonts.sourceCodePro(
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: LandingTheme.secondaryAccent,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: LandingTheme.primaryAccent.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(
+                                        color: LandingTheme.secondaryAccent.withValues(alpha: 0.25),
+                                        width: 1.0,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      s['tag']!,
+                                      style: GoogleFonts.sourceCodePro(
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: LandingTheme.secondaryAccent,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                s['title']!,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: LandingTheme.textPrimary,
+                                  letterSpacing: -0.3,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                s['desc']!,
+                                style: GoogleFonts.inter(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w400,
+                                  color: LandingTheme.textSecondary,
+                                  height: 1.45,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 8. CASE STUDIES SECTION — ₹100+ Crore Enterprise Asset Engagements
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class CaseStudiesSection extends StatelessWidget {
+  final bool isDesktop;
+
+  const CaseStudiesSection({super.key, required this.isDesktop});
+
+  @override
+  Widget build(BuildContext context) {
+    final double screenW = MediaQuery.of(context).size.width;
+
+    final cases = [
+      {
+        'value': '₹1,250 Cr',
+        'title': 'Maritime Bulk Port & Container Terminal',
+        'sector': 'INFRASTRUCTURE & LOGISTICS',
+        'mandate': 'Technical Due Diligence & Asset Valuation for a 7-Bank Consortium Refinancing.',
+        'metrics': '180 Acres · 3 Berths · Accepted without queries by lead PSU bank',
+      },
+      {
+        'value': '₹850 Cr',
+        'title': 'Grade-A Commercial IT Park Portfolio',
+        'sector': 'REIT & INSTITUTIONAL REAL ESTATE',
+        'mandate': 'Fair Market Valuation under Ind AS for Ingestion into an Institutional REIT.',
+        'metrics': '3.2M Sq. Ft. GLA · DCF Multi-Tenant Lease Review · Approved by Global PE',
+      },
+      {
+        'value': '₹420 Cr',
+        'title': 'Integrated Steel & Rolling Mill Complex',
+        'sector': 'HEAVY MANUFACTURING & IBC',
+        'mandate': 'Fair Value & Liquidation Appraisal under Section 35(1) IBC CIRP Proceedings.',
+        'metrics': '1,400+ Machinery Lines · Defended successfully before NCLT CoC Bench',
+      },
+      {
+        'value': '₹2,100 Cr',
+        'title': 'Greenfield Expressway & Toll Concession',
+        'sector': 'TRANSPORTATION & NHAI ASSETS',
+        'mandate': 'Chartered Engineering Milestone Verification & Project Asset Capitalization.',
+        'metrics': '142 KM Toll Corridor · 72-Hour Rapid Technical Audit Verification',
+      },
+    ];
+
+    return Container(
+      width: double.infinity,
+      color: LandingTheme.primaryBg,
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
+        vertical: 80,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Column(
+            children: [
+              const LuxuryEyebrowBadge(
+                label: 'PROVEN TRACK RECORD',
+                icon: Icons.workspace_premium_rounded,
+              ),
+              const SizedBox(height: 18),
+              Text(
+                '₹100+ Crore Institutional Case Studies',
+                textAlign: TextAlign.center,
+                style: LandingTheme.sectionTitleResponsive(screenW),
+              ),
+              const SizedBox(height: 14),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Text(
+                  'Delivering audit-defensible valuation certainty on complex, multi-asset institutional transactions.',
+                  textAlign: TextAlign.center,
+                  style: LandingTheme.bodyMediumResponsive(screenW),
+                ),
+              ),
+              const SizedBox(height: 52),
+
+              // 4 Case Studies Grid
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final int columns = isDesktop ? 2 : 1;
+                  final double spacing = 20;
+                  final double cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+                  return Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: cases.map((c) {
+                      return SizedBox(
+                        width: cardWidth,
+                        child: PalantirGlassPanel(
+                          padding: const EdgeInsets.all(26),
+                          borderRadius: 14,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    c['value']!,
+                                    style: GoogleFonts.sourceCodePro(
+                                      fontSize: 28,
+                                      fontWeight: FontWeight.w800,
+                                      color: LandingTheme.secondaryAccent,
+                                      letterSpacing: -1.0,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: LandingTheme.primaryAccent.withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(4),
+                                      border: Border.all(
+                                        color: LandingTheme.secondaryAccent.withValues(alpha: 0.3),
+                                        width: 1.0,
+                                      ),
+                                    ),
+                                    child: Text(
+                                      c['sector']!,
+                                      style: GoogleFonts.sourceCodePro(
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: LandingTheme.secondaryAccent,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                c['title']!,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: LandingTheme.textPrimary,
+                                  letterSpacing: -0.4,
+                                ),
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                c['mandate']!,
+                                style: GoogleFonts.inter(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w400,
+                                  color: LandingTheme.textSecondary,
+                                  height: 1.45,
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+                              const Divider(height: 1, color: LandingTheme.hairlineBorder),
+                              const SizedBox(height: 12),
+                              Row(
+                                children: [
+                                  const Icon(
+                                    Icons.insights_rounded,
+                                    size: 15,
+                                    color: LandingTheme.secondaryAccent,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      c['metrics']!,
+                                      style: GoogleFonts.sourceCodePro(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w500,
+                                        color: LandingTheme.textMuted,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 9. TESTIMONIALS SECTION — Institutional C-Suite Endorsements
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class TestimonialsSection extends StatelessWidget {
+  final bool isDesktop;
+
+  const TestimonialsSection({super.key, required this.isDesktop});
+
+  @override
+  Widget build(BuildContext context) {
+    final double screenW = MediaQuery.of(context).size.width;
+
+    final endorsements = [
+      {
+        'quote': 'Pro Valuer’s reports have consistently withstood our highest level of credit committee scrutiny. Their depth of technical diligence and IBBI compliance is unmatched in the Indian market.',
+        'name': 'Executive Director & Chief Risk Officer',
+        'org': 'Leading Private Sector Bank',
+      },
+      {
+        'quote': 'In high-stakes ₹500 Cr+ resolutions, precision is non-negotiable. Pro Valuer delivers institutional-grade modeling and spatial clarity that gives our investment committee absolute conviction.',
+        'name': 'Managing Director',
+        'org': 'Global Private Credit & Stressed Assets Fund',
+      },
+      {
+        'quote': 'Their valuation reports for CIRP mandates are watertight. Flawless methodology, prompt turnaround, and total audit defense before the NCLT benches nationwide.',
+        'name': 'Senior Partner & Insolvency Professional',
+        'org': 'National Insolvency Resolution Practice',
+      },
+    ];
+
+    return Container(
+      width: double.infinity,
+      color: LandingTheme.secondaryBg,
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
+        vertical: 80,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Column(
+            children: [
+              const LuxuryEyebrowBadge(
+                label: 'INSTITUTIONAL TRUST',
+                icon: Icons.format_quote_rounded,
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'C-Suite & Risk Committee Endorsements',
+                textAlign: TextAlign.center,
+                style: LandingTheme.sectionTitleResponsive(screenW),
+              ),
+              const SizedBox(height: 48),
+
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final int columns = isDesktop ? 3 : 1;
+                  final double spacing = 20;
+                  final double cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+                  return Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: endorsements.map((e) {
+                      return SizedBox(
+                        width: cardWidth,
+                        child: PalantirGlassPanel(
+                          padding: const EdgeInsets.all(24),
+                          borderRadius: 14,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Icon(
+                                Icons.format_quote_rounded,
+                                size: 28,
+                                color: LandingTheme.secondaryAccent,
+                              ),
+                              const SizedBox(height: 14),
+                              Text(
+                                e['quote']!,
+                                style: GoogleFonts.inter(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w400,
+                                  color: LandingTheme.textPrimary,
+                                  height: 1.55,
+                                ),
+                              ),
+                              const SizedBox(height: 22),
+                              const Divider(height: 1, color: LandingTheme.hairlineBorder),
+                              const SizedBox(height: 14),
+                              Text(
+                                e['name']!,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: LandingTheme.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                e['org']!,
+                                style: GoogleFonts.inter(
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w500,
+                                  color: LandingTheme.secondaryAccent,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 10. EMPANELMENTS & REGULATORY CREDENTIALS SECTION
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class EmpanelmentsSection extends StatelessWidget {
+  final bool isDesktop;
+
+  const EmpanelmentsSection({super.key, required this.isDesktop});
+
+  @override
+  Widget build(BuildContext context) {
+    final double screenW = MediaQuery.of(context).size.width;
+
+    final credentials = [
+      {
+        'title': 'Insolvency & Bankruptcy Board of India (IBBI)',
+        'sub': 'Registered Valuer Entity under the Companies (Registered Valuers & Valuation) Rules 2017.',
+        'code': 'IBBI / VALUATION REGISTERED ENTITY',
+      },
+      {
+        'title': 'The Institution of Engineers (India)',
+        'sub': 'Chartered Engineers authorized for Technical Inspections, Plant Audits & EPC Certifications.',
+        'code': 'CHARTERED ENGINEERING DIVISION',
+      },
+      {
+        'title': 'Registered Valuers Organisations (RVO)',
+        'sub': 'Affiliated with prominent RVOs recognized by IBBI across all three statutory asset classes.',
+        'code': 'MULTI-ASSET STATUTORY LICENSURE',
+      },
+      {
+        'title': '28+ Major Banking Consortia',
+        'sub': 'Regularly empanelled with India’s leading Public Sector and Private Scheduled Commercial Banks.',
+        'code': 'CONSORTIUM EMPANELLED',
+      },
+    ];
+
+    return Container(
+      width: double.infinity,
+      color: LandingTheme.primaryBg,
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
+        vertical: 80,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Column(
+            children: [
+              const LuxuryEyebrowBadge(
+                label: 'STATUTORY LICENSURE & EMPANELMENTS',
+                icon: Icons.verified_user_rounded,
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'Accredited by National Regulatory Authorities',
+                textAlign: TextAlign.center,
+                style: LandingTheme.sectionTitleResponsive(screenW),
+              ),
+              const SizedBox(height: 14),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Text(
+                  'Every valuation report issued complies strictly with statutory mandates and is recognized across judicial, regulatory, and financial forums.',
+                  textAlign: TextAlign.center,
+                  style: LandingTheme.bodyMediumResponsive(screenW),
+                ),
+              ),
+              const SizedBox(height: 48),
+
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final int columns = isDesktop ? 2 : 1;
+                  final double spacing = 18;
+                  final double cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+                  return Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: credentials.map((c) {
+                      return SizedBox(
+                        width: cardWidth,
+                        child: PalantirGlassPanel(
+                          padding: const EdgeInsets.all(22),
+                          borderRadius: 12,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                c['code']!,
+                                style: GoogleFonts.sourceCodePro(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
+                                  color: LandingTheme.secondaryAccent,
+                                  letterSpacing: 1.0,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                c['title']!,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: LandingTheme.textPrimary,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                c['sub']!,
+                                style: GoogleFonts.inter(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.w400,
+                                  color: LandingTheme.textSecondary,
+                                  height: 1.45,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      );
+                    }).toList(),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 11. FINAL CTA BANNER — Institutional Mandate Engagement
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class CtaBanner extends StatelessWidget {
+  final Future<void> Function(String) launchWhatsApp;
+
+  const CtaBanner({super.key, required this.launchWhatsApp});
+
+  @override
+  Widget build(BuildContext context) {
+    final double screenW = MediaQuery.of(context).size.width;
+    final bool isDesktop = screenW >= 1024;
+
+    return Container(
+      width: double.infinity,
+      color: LandingTheme.secondaryBg,
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
+        vertical: 80,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1040),
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: isDesktop ? 48 : 24,
+              vertical: isDesktop ? 48 : 36,
+            ),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: LandingTheme.meshGradient,
+              border: Border.all(
+                color: LandingTheme.glowAccent.withValues(alpha: 0.4),
+                width: 1.2,
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: LandingTheme.primaryAccent.withValues(alpha: 0.35),
+                  blurRadius: 40,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              children: [
+                const LuxuryEyebrowBadge(
+                  label: 'INSTITUTIONAL ASSET MANDATES',
+                  icon: Icons.flash_on_rounded,
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Need a Valuation Report Accepted by Leading Financial Institutions?',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: isDesktop ? 34 : 24,
+                    fontWeight: FontWeight.w800,
+                    color: LandingTheme.textPrimary,
+                    letterSpacing: -1.0,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 680),
+                  child: Text(
+                    'Empanel our team for your lending consortium, schedule an institutional asset audit, or request a confidential valuation dossier.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w400,
+                      color: LandingTheme.textSecondary,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 32),
                 Wrap(
-                  spacing: 14,
+                  spacing: 16,
                   runSpacing: 14,
                   alignment: WrapAlignment.center,
                   children: [
-                    _HeroCtaButton(
-                      isPrimary: true,
-                      label: 'Request Consultation',
+                    _ActionButton(
+                      label: 'Schedule Institutional Consultation',
                       icon: Icons.arrow_forward_rounded,
+                      isPrimary: true,
                       onTap: () => launchWhatsApp(
-                        'Hello Provaluer, I would like to get started with a consultation.',
+                        'Hello Pro Valuer, I would like to schedule an institutional valuation consultation.',
                       ),
                     ),
-                    _HeroCtaButton(
+                    _ActionButton(
+                      label: 'Request Empanelment Dossier',
+                      icon: Icons.description_outlined,
                       isPrimary: false,
-                      label: 'Client Login',
-                      icon: Icons.login_rounded,
-                      onTap: () => context.go('/login'),
+                      onTap: () => launchWhatsApp(
+                        'Hello Pro Valuer, please share your corporate empanelment dossier and credentials.',
+                      ),
                     ),
                   ],
                 ),
@@ -2014,197 +2205,287 @@ class CtaBanner extends StatelessWidget {
           ),
         ),
       ),
-    ],
-  ),
-);
-}
+    );
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// FOOTER — Soft White (#FAFAFA) Luxury Enterprise Footer
+// 12. EXECUTIVE FOOTER — Institutional Dark Navy
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class LandingFooter extends StatelessWidget {
   final bool isDesktop;
+
   const LandingFooter({super.key, required this.isDesktop});
 
   @override
-  Widget build(BuildContext context) => Container(
-        color: LandingTheme.secondaryBg,
-        decoration: const BoxDecoration(
-          color: LandingTheme.secondaryBg,
-          border: Border(
-            top: BorderSide(color: LandingTheme.hairlineBorder, width: 1.0),
-          ),
-        ),
-        padding: EdgeInsets.symmetric(
-          horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
-          vertical: 72,
-        ),
-        width: double.infinity,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1200),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                if (isDesktop)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _companyInfo(),
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          _footerCol('Services', [
-                            'Land & Building Valuation',
-                            'Plant & Machinery',
-                            'Net Worth Certificates',
-                            'Chartered Engineer',
-                            'LIE Reports',
-                          ]),
-                          const SizedBox(width: 80),
-                          _footerCol('Company', [
-                            'About Us',
-                            'Empanelment',
-                            'Who We Serve',
-                            'Contact',
-                            'Client Login',
-                          ]),
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      color: LandingTheme.primaryBg,
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? AppSpacing.sectionLg : AppSpacing.lg,
+        vertical: 60,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1200),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Top Row: Brand + Columns
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Brand & Summary
+                  Expanded(
+                    flex: isDesktop ? 4 : 12,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        AppComponents.logo(
+                          fontSize: 20,
+                          darkMode: true,
+                          overrideWordmark: LandingTheme.textPrimary,
+                          overrideAccent: LandingTheme.secondaryAccent,
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          'Institutional asset intelligence and valuation advisory for banks, private credit funds, and enterprise asset holders.',
+                          style: GoogleFonts.inter(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w400,
+                            color: LandingTheme.textMuted,
+                            height: 1.5,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'IBBI REGISTERED VALUER ENTITY · CHARTERED ENGINEERS',
+                          style: GoogleFonts.sourceCodePro(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                            color: LandingTheme.secondaryAccent,
+                            letterSpacing: 1.0,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  if (isDesktop) ...[
+                    const Spacer(flex: 1),
+                    // Col 1: Services
+                    Expanded(
+                      flex: 2,
+                      child: _footerCol(
+                        'SERVICES',
+                        [
+                          'Property Valuation',
+                          'Land & Cadastral GIS',
+                          'Industrial Plant Valuation',
+                          'Plant & Machinery',
+                          'Infrastructure Assets',
+                          'Technical Due Diligence',
+                          'Financial Risk Advisory',
                         ],
                       ),
-                    ],
-                  )
-                else ...[
-                  _companyInfo(),
-                  const SizedBox(height: 36),
+                    ),
+                    // Col 2: Sectors
+                    Expanded(
+                      flex: 2,
+                      child: _footerCol(
+                        'SECTORS',
+                        [
+                          'Banks & Consortia',
+                          'NBFCs & Private Credit',
+                          'Private Equity Funds',
+                          'Insolvency (IBC / CIRP)',
+                          'Asset Reconstruction',
+                          'REITs & InvITs',
+                          'Government & PSUs',
+                        ],
+                      ),
+                    ),
+                    // Col 3: Compliance
+                    Expanded(
+                      flex: 3,
+                      child: _footerCol(
+                        'COMPLIANCE',
+                        [
+                          'IBBI Valuation Rules 2017',
+                          'Companies Act 2013 §247',
+                          'Insolvency & Bankruptcy Code',
+                          'SARFAESI Security Valuation',
+                          'Ind AS 16 / 36 Fair Value',
+                          'Chartered Engineers Division',
+                        ],
+                      ),
+                    ),
+                  ],
                 ],
-                const SizedBox(height: 56),
-                const Divider(color: LandingTheme.hairlineBorder, height: 1),
-                const SizedBox(height: 28),
-                if (isDesktop)
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [_copyright(), _tagline()],
-                  )
-                else ...[
-                  _copyright(),
-                  const SizedBox(height: 6),
-                  _tagline(),
-                ],
-              ],
-            ),
-          ),
-        ),
-      );
-
-  Widget _companyInfo() => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          AppComponents.logo(
-            fontSize: 18,
-            darkMode: false,
-            overrideWordmark: LandingTheme.charcoal,
-            overrideAccent: LandingTheme.charcoal,
-          ),
-          const SizedBox(height: 18),
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 280),
-            child: Text(
-              'Provaluer OPC Private Limited\nAccurate Valuations. Professional Insights.\nTrusted Decisions.',
-              style: LandingTheme.bodySm.copyWith(
-                color: LandingTheme.textMuted,
-                height: 1.6,
               ),
-            ),
-          ),
-          const SizedBox(height: 22),
-          _credentialChip('IBBI Registered Valuers'),
-          const SizedBox(height: 8),
-          _credentialChip('Hyderabad & Secunderabad'),
-        ],
-      );
 
-  Widget _credentialChip(String text) => Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 5,
-            height: 5,
-            decoration: const BoxDecoration(
-              color: LandingTheme.primaryAccent,
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            text,
-            style: LandingTheme.bodySm.copyWith(
-              fontSize: 12,
-              color: LandingTheme.textTertiary,
-            ),
-          ),
-        ],
-      );
+              const SizedBox(height: 48),
+              const Divider(height: 1, color: LandingTheme.hairlineBorder),
+              const SizedBox(height: 24),
 
-  Widget _footerCol(String heading, List<String> items) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            heading,
-            style: LandingTheme.cardTitle.copyWith(
-              fontSize: 13.5,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.2,
-            ),
-          ),
-          const SizedBox(height: 18),
-          ...items.map((item) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
-                child: Text(
-                  item,
-                  style: LandingTheme.bodySm.copyWith(
-                    color: LandingTheme.textMuted,
+              // Bottom Bar: Statutory Notes & Copyright
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      '© ${DateTime.now().year} Pro Valuer. All rights reserved. Institutional Reports are confidential and prepared under statutory valuation guidelines.',
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w400,
+                        color: LandingTheme.textTertiary,
+                      ),
+                    ),
                   ),
+                  Text(
+                    '256-BIT ENCRYPTED DOSSIERS',
+                    style: GoogleFonts.sourceCodePro(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                      color: LandingTheme.textMuted,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _footerCol(String header, List<String> links) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          header,
+          style: GoogleFonts.sourceCodePro(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            color: LandingTheme.secondaryAccent,
+            letterSpacing: 1.0,
+          ),
+        ),
+        const SizedBox(height: 14),
+        ...links.map((link) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: Text(
+                link,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  color: LandingTheme.textSecondary,
                 ),
-              )),
-        ],
-      );
-
-  Widget _copyright() => Text(
-        '© 2026 Provaluer OPC Private Limited. All rights reserved.',
-        style: LandingTheme.bodySm.copyWith(
-          fontSize: 12,
-          color: LandingTheme.textTertiary,
-        ),
-      );
-
-  Widget _tagline() => Text(
-        'Advisory Engineers & Registered Valuers',
-        style: LandingTheme.bodySm.copyWith(
-          fontSize: 12,
-          color: LandingTheme.textTertiary,
-        ),
-      );
+              ),
+            )),
+      ],
+    );
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LEGACY COMPAT — HeroOverlayContent alias
+// 13. MOBILE MENU DRAWER
 // ═══════════════════════════════════════════════════════════════════════════════
 
-class HeroOverlayContent extends StatelessWidget {
-  final bool isDesktop;
+class MobileMenuDrawer extends StatelessWidget {
   final Future<void> Function(String) launchWhatsApp;
-  const HeroOverlayContent({
-    super.key,
-    required this.isDesktop,
-    required this.launchWhatsApp,
-  });
+
+  const MobileMenuDrawer({super.key, required this.launchWhatsApp});
 
   @override
-  Widget build(BuildContext context) => HeroSection(
-        isDesktop: isDesktop,
-        launchWhatsApp: launchWhatsApp,
-      );
+  Widget build(BuildContext context) {
+    return Drawer(
+      backgroundColor: LandingTheme.secondaryBg,
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  AppComponents.logo(
+                    fontSize: 18,
+                    darkMode: true,
+                    overrideWordmark: LandingTheme.textPrimary,
+                    overrideAccent: LandingTheme.secondaryAccent,
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.close, color: LandingTheme.textPrimary),
+                    onPressed: () => Navigator.of(context).pop(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 32),
+              _drawerItem('Services', () => Navigator.of(context).pop()),
+              _drawerItem('Industries', () => Navigator.of(context).pop()),
+              _drawerItem('Why Pro Valuer', () => Navigator.of(context).pop()),
+              _drawerItem('Process', () => Navigator.of(context).pop()),
+              _drawerItem('Case Studies', () => Navigator.of(context).pop()),
+              _drawerItem('Empanelments', () => Navigator.of(context).pop()),
+              const Spacer(),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    context.go('/login');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: LandingTheme.surfaceGlassDense,
+                    foregroundColor: LandingTheme.textPrimary,
+                    side: const BorderSide(color: LandingTheme.hairlineBorder),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text('Client Login'),
+                ),
+              ),
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                    launchWhatsApp('Hello Pro Valuer, I would like to schedule an institutional valuation consultation.');
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: LandingTheme.primaryAccent,
+                    foregroundColor: LandingTheme.textPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text('Schedule Consultation'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _drawerItem(String title, VoidCallback onTap) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12),
+      child: GestureDetector(
+        onTap: onTap,
+        child: Text(
+          title,
+          style: GoogleFonts.inter(
+            fontSize: 16,
+            fontWeight: FontWeight.w600,
+            color: LandingTheme.textPrimary,
+          ),
+        ),
+      ),
+    );
+  }
 }

@@ -61,24 +61,34 @@ class _LandingPageState extends State<LandingPage> {
             controller: _scrollController,
             child: Column(
               children: [
-                // Hero — editorial cream layout (no dark background)
+                // 1. Hero Section with Palantir asset intelligence visual & dual CTAs
                 HeroSection(
                   isDesktop: isDesktop,
                   launchWhatsApp: _launchWhatsApp,
                 ),
+                // 2. Trust Bar with IBBI, CE, and Bank consortium strip
                 const TrustBar(),
-                ServicesGrid(
+                // 3. 8 Institutional Service Cards
+                ServicesSection(
                   isDesktop: isDesktop,
                   isTablet: isTablet,
                   launchWhatsApp: _launchWhatsApp,
                 ),
-                WhyChooseUsSection(isDesktop: isDesktop),
-                ValuationWorkflowSection(isDesktop: isDesktop),
-                WhoWeServeSection(isDesktop: isDesktop),
-                StatsSection(isDesktop: isDesktop),
+                // 4. Ecosystem Coverage — 10 Institutional Sectors
+                IndustriesSection(isDesktop: isDesktop),
+                // 5. Institutional Advantage Matrix (Pro Valuer vs Traditional)
+                WhyProValuerSection(isDesktop: isDesktop),
+                // 6. 6-Stage Institutional Valuation Workflow
+                ProcessSection(isDesktop: isDesktop),
+                // 7. ₹100+ Crore Case Studies Showcase
+                CaseStudiesSection(isDesktop: isDesktop),
+                // 8. C-Suite & Risk Committee Endorsements
                 TestimonialsSection(isDesktop: isDesktop),
-                FaqSection(isDesktop: isDesktop),
+                // 9. Statutory Licensure & Empanelments
+                EmpanelmentsSection(isDesktop: isDesktop),
+                // 10. Final Institutional CTA Banner
                 CtaBanner(launchWhatsApp: _launchWhatsApp),
+                // 11. Executive Dark Navy Footer
                 LandingFooter(isDesktop: isDesktop),
               ],
             ),
