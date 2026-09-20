@@ -337,7 +337,7 @@ class _HeaderLink extends StatelessWidget {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// 2. HERO SECTION — CINEMATIC STORY MODE (ONE-TIME INSTITUTIONAL SHOWCASE)
+// 2. HERO SECTION — FULL-WIDTH CINEMATIC VIDEO BACKGROUND (APPLE BUSINESS × STRIPE ENTERPRISE)
 // ═══════════════════════════════════════════════════════════════════════════════
 
 class HeroSection extends StatefulWidget {
@@ -354,7 +354,7 @@ class HeroSection extends StatefulWidget {
   State<HeroSection> createState() => _HeroSectionState();
 }
 
-class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin {
+class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStateMixin {
   // Ordered sequence of 8 institutional story videos
   static const List<String> _heroStoryVideos = [
     'assets/videos/hero_story/1.mp4',
@@ -385,12 +385,9 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
   late Animation<double> _keywordOpacityAnimation;
   Timer? _keywordTimer;
 
-  // Cinematic 500ms text fade controller (1.0 = visible, 0.0 = faded out)
-  late AnimationController _textFadeController;
+  // 3-second initial delay timer before video starts
   Timer? _cinematicHoldTimer;
-
   bool _playStory = false;
-  bool _storyCompleted = false;
 
   @override
   void initState() {
@@ -420,33 +417,13 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
       });
     });
 
-    // 2. Cinematic Text Fade Controller (starts fully visible at 1.0)
-    _textFadeController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-      value: 1.0,
-    );
-
-    // 3. Phase 1 (0–3 Seconds): Everything visible, no videos playing.
-    // At exactly 3.0s: Smoothly fade out text over 500ms and start video 1.
+    // 2. Wait exactly 3 seconds after page load, then start sequential playback
     _cinematicHoldTimer = Timer(const Duration(seconds: 3), () {
-      if (!mounted || _storyCompleted) return;
-      // Fade text out over 500ms
-      _textFadeController.reverse();
+      if (!mounted) return;
       setState(() {
         _playStory = true;
       });
     });
-  }
-
-  void _onStorySequenceComplete() {
-    if (!mounted || _storyCompleted) return;
-    setState(() {
-      _storyCompleted = true;
-    });
-    // Smoothly fade headline, keyword, description, and trust indicators back in over 500ms
-    _textFadeController.forward();
-    // Entering Reading Mode forever: never restart or hide text again.
   }
 
   @override
@@ -454,165 +431,311 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
     _cinematicHoldTimer?.cancel();
     _keywordTimer?.cancel();
     _keywordAnimController.dispose();
-    _textFadeController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    final double screenH = MediaQuery.of(context).size.height;
     final double screenW = MediaQuery.of(context).size.width;
     final bool isDesktop = screenW >= 1024;
+    final bool isTablet = screenW >= 768 && screenW < 1024;
 
-    return Container(
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        gradient: RadialGradient(
-          center: Alignment(0.6, -0.4),
-          radius: 1.2,
-          colors: [
-            Color(0xFFF8FAFC),
-            Color(0xFFFFFFFF),
-          ],
-        ),
-      ),
-      child: Padding(
-        padding: EdgeInsets.only(
-          left: isDesktop ? 60 : 24,
-          right: isDesktop ? 60 : 24,
-          top: isDesktop ? 40 : 20, // Reduced unused whitespace above showcase
-          bottom: isDesktop ? 64 : 40,
-        ),
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1320),
-            child: isDesktop
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // Left Column: Editorial Content + Permanent CTAs
-                      Expanded(
-                        flex: 5,
-                        child: _buildHeroLeftContent(screenW),
-                      ),
-                      const SizedBox(width: 48),
-                      // Right Column: Dominant Digital Billboard Showcase
-                      Expanded(
-                        flex: 6,
-                        child: _buildDigitalBillboard(),
-                      ),
-                    ],
-                  )
-                : Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      _buildHeroLeftContent(screenW),
-                      const SizedBox(height: 36),
-                      _buildDigitalBillboard(),
+    // Viewport dominance: Desktop 90-100vh, Tablet 85vh, Mobile 80vh min
+    final double targetMinHeight = isDesktop
+        ? (screenH * 0.95).clamp(700.0, 1050.0)
+        : isTablet
+            ? (screenH * 0.85).clamp(600.0, 900.0)
+            : (screenH * 0.80).clamp(560.0, 800.0);
+
+    return ClipRect(
+      child: Container(
+        width: double.infinity,
+        constraints: BoxConstraints(minHeight: targetMinHeight),
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            // ── LAYER 1: Full-Width Cinematic Video Background ────────────────
+            Positioned.fill(
+              child: HeroVideoWidget(
+                videoAssets: _heroStoryVideos,
+                playStory: _playStory,
+                isBackground: true,
+              ),
+            ),
+
+            // ── LAYER 2: Midnight Navy Overlay rgba(15, 23, 42, 0.45) ─────────
+            Positioned.fill(
+              child: Container(
+                color: const Color(0x730F172A), // 45% Midnight Navy
+              ),
+            ),
+
+            // Directional text contrast gradient (high legibility on left)
+            Positioned.fill(
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                    colors: [
+                      Color(0xB80F172A), // 72% Midnight Navy behind text
+                      Color(0x730F172A), // 45% Midnight Navy in center
+                      Color(0x330F172A), // 20% Midnight Navy on right
                     ],
                   ),
-          ),
+                ),
+              ),
+            ),
+
+            // ── LAYER 3: 8px–12px Gaussian Backdrop Blur ──────────────────────
+            Positioned.fill(
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
+                child: const SizedBox.expand(),
+              ),
+            ),
+
+            // ── ATMOSPHERE GLOWS (Stripe Enterprise / Apple Business) ─────────
+            // Top Right Glow: #2563EB Opacity ~5%
+            Positioned(
+              top: -100,
+              right: -100,
+              width: 600,
+              height: 600,
+              child: IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        const Color(0xFF2563EB).withValues(alpha: 0.06),
+                        const Color(0xFF2563EB).withValues(alpha: 0.0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // Bottom Left Glow: #38BDF8 Opacity ~5%
+            Positioned(
+              bottom: -80,
+              left: -80,
+              width: 550,
+              height: 550,
+              child: IgnorePointer(
+                child: Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        const Color(0xFF38BDF8).withValues(alpha: 0.06),
+                        const Color(0xFF38BDF8).withValues(alpha: 0.0),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+            // Bottom seamless dissolve into white background
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              height: 90,
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Color(0x000F172A),
+                      Color(0x400F172A),
+                      Color(0xFFFFFFFF),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // ── LAYER 4: Foreground Hero Content (PERMANENTLY VISIBLE) ────────
+            Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: isDesktop ? 60 : 24,
+                vertical: isDesktop ? 80 : 60,
+              ),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1320),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: _buildForegroundContent(screenW, isDesktop),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildHeroLeftContent(double screenW) {
+  Widget _buildForegroundContent(double screenW, bool isDesktop) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // ── FADING EDITORIAL CONTENT (Headline, Rotating Word, Description, Trust) ──
-        FadeTransition(
-          opacity: _textFadeController,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+        // Frosted Eyebrow Badge (Apple Business Crystal Style)
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0x33FFFFFF), // Frosted glass
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(color: const Color(0x4DFFFFFF), width: 1.0),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x1F000000),
+                blurRadius: 14,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Glass Eyebrow Badge
-              const GlassEyebrowBadge(
-                label: 'IBBI Registered Valuers • Asset Intelligence',
-                icon: Icons.verified_rounded,
-              ),
-              const SizedBox(height: 22),
-
-              // Headline
+              const Icon(Icons.verified_rounded, size: 14, color: Color(0xFF60A5FA)),
+              const SizedBox(width: 8),
               Text(
-                'Independent Valuation\nFor',
-                style: LandingTheme.heroHeading(screenW),
-              ),
-
-              const SizedBox(height: 6),
-
-              // Rotating Morphing Keyword
-              AnimatedBuilder(
-                animation: _keywordAnimController,
-                builder: (context, child) {
-                  return Transform.translate(
-                    offset: Offset(0, _keywordSlideAnimation.value),
-                    child: Opacity(
-                      opacity: _keywordOpacityAnimation.value,
-                      child: ShaderMask(
-                        shaderCallback: (bounds) {
-                          return LandingTheme.textPlatinumGradient.createShader(bounds);
-                        },
-                        child: Text(
-                          _keywords[_currentKeywordIndex],
-                          style: LandingTheme.heroKeyword(screenW).copyWith(color: Colors.white),
-                        ),
-                      ),
-                    ),
-                  );
-                },
-              ),
-
-              const SizedBox(height: 20),
-
-              // Institutional Description
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 520),
-                child: Text(
-                  'Independent statutory valuation and asset intelligence for leading banks, NBFCs, private equity funds, insolvency professionals, and public corporations.',
-                  style: LandingTheme.bodyLargeResponsive(screenW),
+                'IBBI REGISTERED VALUERS • ASSET INTELLIGENCE',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  letterSpacing: 1.2,
                 ),
-              ),
-
-              const SizedBox(height: 22),
-
-              // Trust Indicators
-              Wrap(
-                spacing: 16,
-                runSpacing: 10,
-                children: [
-                  _buildTrustBadge(Icons.verified_user_outlined, 'IBBI / Sec 247 Compliant'),
-                  _buildTrustBadge(Icons.account_balance_outlined, '₹15,000+ Cr Valued'),
-                  _buildTrustBadge(Icons.assured_workload_outlined, 'Bank Empanelled'),
-                ],
               ),
             ],
           ),
         ),
 
-        const SizedBox(height: 32),
+        const SizedBox(height: 24),
 
-        // ── PERMANENT CTA BUTTONS (ALWAYS VISIBLE & CLICKABLE AT ALL TIMES) ──
+        // Hero Headline (High-Contrast White with soft drop shadow)
+        Text(
+          'Independent Valuation\nFor',
+          style: LandingTheme.heroHeading(screenW).copyWith(
+            color: Colors.white,
+            shadows: const [
+              Shadow(
+                color: Color(0x99000000),
+                blurRadius: 24,
+                offset: Offset(0, 4),
+              ),
+            ],
+          ),
+        ),
+
+        const SizedBox(height: 6),
+
+        // Rotating Morphing Keyword (Specular Platinum / Icy Highlight)
+        AnimatedBuilder(
+          animation: _keywordAnimController,
+          builder: (context, child) {
+            return Transform.translate(
+              offset: Offset(0, _keywordSlideAnimation.value),
+              child: Opacity(
+                opacity: _keywordOpacityAnimation.value,
+                child: ShaderMask(
+                  shaderCallback: (bounds) {
+                    return const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        Color(0xFFFFFFFF),
+                        Color(0xFFE2E8F0),
+                        Color(0xFF93C5FD), // Icy platinum-blue highlight
+                      ],
+                    ).createShader(bounds);
+                  },
+                  child: Text(
+                    _keywords[_currentKeywordIndex],
+                    style: LandingTheme.heroKeyword(screenW).copyWith(
+                      color: Colors.white,
+                      shadows: const [
+                        Shadow(
+                          color: Color(0x99000000),
+                          blurRadius: 24,
+                          offset: Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+
+        const SizedBox(height: 24),
+
+        // Description (Crisp Silver-Platinum, Highly Legible)
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 620),
+          child: Text(
+            'Independent statutory valuation and asset intelligence for leading banks, NBFCs, private equity funds, insolvency professionals, and public corporations.',
+            style: GoogleFonts.inter(
+              fontSize: isDesktop ? 18.5 : 16,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFFE2E8F0),
+              letterSpacing: -0.2,
+              height: 1.6,
+              shadows: const [
+                Shadow(
+                  color: Color(0x80000000),
+                  blurRadius: 14,
+                  offset: Offset(0, 2),
+                ),
+              ],
+            ),
+          ),
+        ),
+
+        const SizedBox(height: 26),
+
+        // Trust Indicators (Frosted Glass Chips)
+        Wrap(
+          spacing: 12,
+          runSpacing: 10,
+          children: [
+            _buildFrostedTrustBadge(Icons.verified_user_outlined, 'IBBI / Sec 247 Compliant'),
+            _buildFrostedTrustBadge(Icons.account_balance_outlined, '₹15,000+ Cr Valued'),
+            _buildFrostedTrustBadge(Icons.assured_workload_outlined, 'Bank Empanelled'),
+          ],
+        ),
+
+        const SizedBox(height: 36),
+
+        // CTA Buttons (Always Visible & Immediately Clickable)
         Wrap(
           spacing: 14,
           runSpacing: 12,
           children: [
-            // Primary CTA: Request Consultation (Obsidian & Platinum)
+            // Primary CTA: Request Consultation (Pure Pearl White with High Contrast Obsidian Text)
             GestureDetector(
               onTap: () => widget.launchWhatsApp('Hello, I would like to request an institutional valuation consultation with Pro Valuer.'),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 15),
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
                 decoration: BoxDecoration(
-                  gradient: LandingTheme.platinumButtonGradient,
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(100),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x240F172A),
-                      blurRadius: 20,
-                      offset: Offset(0, 6),
+                      color: Color(0x3D000000),
+                      blurRadius: 24,
+                      offset: Offset(0, 8),
                     ),
                   ],
                 ),
@@ -624,29 +747,29 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14.5,
                         fontWeight: FontWeight.w700,
-                        color: Colors.white,
+                        color: const Color(0xFF0F172A), // Midnight Navy
                         letterSpacing: -0.2,
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Icon(Icons.arrow_forward_rounded, size: 15, color: Colors.white),
+                    const Icon(Icons.arrow_forward_rounded, size: 15, color: Color(0xFF0F172A)),
                   ],
                 ),
               ),
             ),
 
-            // Secondary CTA: Client Login (Direct route to /login)
+            // Secondary CTA: Client Login (Frosted Crystal Glass Pill)
             GestureDetector(
               onTap: () => context.go('/login'),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 15),
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF0F172A), // Midnight Navy
+                  color: const Color(0x33FFFFFF), // Frosted glass
                   borderRadius: BorderRadius.circular(100),
-                  border: Border.all(color: const Color(0x33334155), width: 1.2),
+                  border: Border.all(color: const Color(0x4DFFFFFF), width: 1.2),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x140F172A),
+                      color: Color(0x1F000000),
                       blurRadius: 16,
                       offset: Offset(0, 4),
                     ),
@@ -671,19 +794,19 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
               ),
             ),
 
-            // Tertiary CTA: View Sample Report
+            // Tertiary CTA: View Sample Report (Frosted Crystal Glass Pill)
             GestureDetector(
               onTap: () => widget.launchWhatsApp('Hello, please provide the sample institutional valuation report.'),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 15),
+                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
                 decoration: BoxDecoration(
-                  color: LandingTheme.pearlWhite,
+                  color: const Color(0x1FFFFFFF),
                   borderRadius: BorderRadius.circular(100),
-                  border: Border.all(color: const Color(0xE2E8F0CC), width: 1.2),
+                  border: Border.all(color: const Color(0x33FFFFFF), width: 1.2),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x0A0F172A),
-                      blurRadius: 16,
+                      color: Color(0x14000000),
+                      blurRadius: 14,
                       offset: Offset(0, 4),
                     ),
                   ],
@@ -696,12 +819,12 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.w600,
-                        color: LandingTheme.textPrimary,
+                        color: Colors.white,
                         letterSpacing: -0.2,
                       ),
                     ),
                     const SizedBox(width: 6),
-                    const Icon(Icons.arrow_outward_rounded, size: 14, color: LandingTheme.textSecondary),
+                    const Icon(Icons.arrow_outward_rounded, size: 14, color: Color(0xFFCBD5E1)),
                   ],
                 ),
               ),
@@ -712,31 +835,30 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildTrustBadge(IconData icon, String text) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 14, color: const Color(0xFF0F172A)),
-        const SizedBox(width: 6),
-        Text(
-          text,
-          style: GoogleFonts.inter(
-            fontSize: 12.5,
-            fontWeight: FontWeight.w600,
-            color: LandingTheme.textSecondary,
-            letterSpacing: -0.1,
+  Widget _buildFrostedTrustBadge(IconData icon, String text) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+      decoration: BoxDecoration(
+        color: const Color(0x26FFFFFF),
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(color: const Color(0x33FFFFFF), width: 1.0),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 14, color: const Color(0xFF93C5FD)),
+          const SizedBox(width: 7),
+          Text(
+            text,
+            style: GoogleFonts.inter(
+              fontSize: 12.5,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFFF1F5F9),
+              letterSpacing: -0.1,
+            ),
           ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDigitalBillboard() {
-    return HeroVideoWidget(
-      videoAssets: _heroStoryVideos,
-      playStory: _playStory,
-      onSequenceComplete: _onStorySequenceComplete,
-      aspectRatio: 16 / 9,
+        ],
+      ),
     );
   }
 }
