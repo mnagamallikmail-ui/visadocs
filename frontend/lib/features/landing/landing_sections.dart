@@ -508,37 +508,56 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
         width: double.infinity,
         height: isDesktop ? heroHeight : null,
         constraints: BoxConstraints(minHeight: heroHeight),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          gradient: RadialGradient(
+            center: Alignment(0.6, -0.4),
+            radius: 1.2,
+            colors: [
+              Color(0xFFF8FAFC),
+              Color(0xFFFFFFFF),
+            ],
+          ),
+        ),
         child: Stack(
           alignment: Alignment.center,
           children: [
             // ── LAYER 1: Full-Width Cinematic Video Background (SHARP & UNBLURRED) ──
-            Positioned.fill(
-              child: HeroVideoWidget(
-                videoAssets: _heroStoryVideos,
-                activeVideoIndex: _currentVideoIndex,
-                isPlaying: _isVideoPlaying,
-                onVideoCompleted: _onVideoCompleted,
-              ),
-            ),
-
-            // ── LAYER 2: Existing Dark Horizontal Gradient Overlay ───────────────────
-            // Permanently present to maintain enterprise contrast (Sharp, Crisp, Zero Blur)
-            Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: isDesktop ? Alignment.centerLeft : Alignment.topCenter,
-                    end: isDesktop ? Alignment.centerRight : Alignment.bottomCenter,
-                    stops: const [0.0, 0.50, 1.0],
-                    colors: const [
-                      Color.fromRGBO(8, 14, 26, 0.82), // Left (or Top on mobile): 82%
-                      Color.fromRGBO(8, 14, 26, 0.55), // Center: 55%
-                      Color.fromRGBO(8, 14, 26, 0.20), // Right (or Bottom on mobile): 20%
-                    ],
+            // ONLY rendered/visible during Video Mode. In Reading Mode, the video layer is
+            // completely hidden so ZERO frozen frame, paused image, or static poster frame remains!
+            if (!_storyCompleted)
+              Positioned.fill(
+                child: Visibility(
+                  visible: _isVideoPlaying,
+                  maintainState: true,
+                  child: HeroVideoWidget(
+                    videoAssets: _heroStoryVideos,
+                    activeVideoIndex: _currentVideoIndex,
+                    isPlaying: _isVideoPlaying,
+                    onVideoCompleted: _onVideoCompleted,
                   ),
                 ),
               ),
-            ),
+
+            // ── LAYER 2: Existing Dark Horizontal Gradient Overlay ───────────────────
+            // ONLY present during Video Mode for cinematic contrast
+            if (_isVideoPlaying)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: isDesktop ? Alignment.centerLeft : Alignment.topCenter,
+                      end: isDesktop ? Alignment.centerRight : Alignment.bottomCenter,
+                      stops: const [0.0, 0.50, 1.0],
+                      colors: const [
+                        Color.fromRGBO(8, 14, 26, 0.82), // Left (or Top on mobile): 82%
+                        Color.fromRGBO(8, 14, 26, 0.55), // Center: 55%
+                        Color.fromRGBO(8, 14, 26, 0.20), // Right (or Bottom on mobile): 20%
+                      ],
+                    ),
+                  ),
+                ),
+              ),
 
             // ── LAYER 3: Foreground Hero Content (Headline, Keyword, Description, CTAs, Trust) ──
             // Fades OUT completely during video playback (Opacity 1.0 -> 0.0 over 500ms)
@@ -597,35 +616,35 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Frosted Eyebrow Badge (Apple Business Crystal Style)
+        // Eyebrow Badge (Pearl White Glass Pill)
         Container(
           padding: EdgeInsets.symmetric(
             horizontal: isCompactLaptop ? 14 : 16,
             vertical: isCompactLaptop ? 6 : 8,
           ),
           decoration: BoxDecoration(
-            color: const Color(0x33FFFFFF), // Frosted glass
+            color: LandingTheme.pearlWhite,
             borderRadius: BorderRadius.circular(100),
-            border: Border.all(color: const Color(0x4DFFFFFF), width: 1.0),
+            border: Border.all(color: const Color(0xE2E8F0CC), width: 1.0),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x1F000000),
-                blurRadius: 14,
-                offset: Offset(0, 4),
+                color: Color(0x0A0F172A),
+                blurRadius: 10,
+                offset: Offset(0, 2),
               ),
             ],
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.verified_rounded, size: 14, color: Color(0xFF60A5FA)),
+              const Icon(Icons.verified_rounded, size: 14, color: LandingTheme.primaryAccent),
               const SizedBox(width: 8),
               Text(
                 'IBBI REGISTERED VALUERS • ASSET INTELLIGENCE',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: isCompactLaptop ? 11.0 : 11.5,
                   fontWeight: FontWeight.w700,
-                  color: Colors.white,
+                  color: LandingTheme.textPrimary,
                   letterSpacing: 1.2,
                 ),
               ),
@@ -635,28 +654,21 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
 
         SizedBox(height: badgeGap),
 
-        // Hero Headline (High-Contrast White with soft drop shadow)
+        // Hero Headline (High-Contrast Obsidian Charcoal Slate)
         Text(
           'Independent Valuation\nFor',
           style: GoogleFonts.plusJakartaSans(
             fontSize: headlineSize,
             fontWeight: FontWeight.w800,
-            color: Colors.white,
+            color: LandingTheme.textPrimary,
             letterSpacing: -1.8,
             height: 1.08,
-            shadows: const [
-              Shadow(
-                color: Color(0x99000000),
-                blurRadius: 20,
-                offset: Offset(0, 4),
-              ),
-            ],
           ),
         ),
 
         SizedBox(height: keywordGap),
 
-        // Rotating Morphing Keyword (Specular Platinum / Icy Highlight)
+        // Rotating Morphing Keyword (Platinum Obsidian Gradient)
         AnimatedBuilder(
           animation: _keywordAnimController,
           builder: (context, child) {
@@ -666,31 +678,16 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                 opacity: _keywordOpacityAnimation.value,
                 child: ShaderMask(
                   shaderCallback: (bounds) {
-                    return const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        Color(0xFFFFFFFF),
-                        Color(0xFFE2E8F0),
-                        Color(0xFF93C5FD), // Icy platinum-blue highlight
-                      ],
-                    ).createShader(bounds);
+                    return LandingTheme.textPlatinumGradient.createShader(bounds);
                   },
                   child: Text(
                     _keywords[_currentKeywordIndex],
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: keywordSize,
                       fontWeight: FontWeight.w800,
-                      color: Colors.white,
+                      color: Colors.white, // Masked with dark platinum gradient
                       letterSpacing: -1.8,
                       height: 1.08,
-                      shadows: const [
-                        Shadow(
-                          color: Color(0x99000000),
-                          blurRadius: 20,
-                          offset: Offset(0, 4),
-                        ),
-                      ],
                     ),
                   ),
                 ),
@@ -701,7 +698,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
 
         SizedBox(height: descGap),
 
-        // Description (Crisp Silver-Platinum, Highly Legible)
+        // Description (Soft Architectural Graphite)
         ConstrainedBox(
           constraints: BoxConstraints(maxWidth: isCompactLaptop ? 560 : 620),
           child: Text(
@@ -709,30 +706,23 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
             style: GoogleFonts.inter(
               fontSize: bodySize,
               fontWeight: FontWeight.w400,
-              color: const Color(0xFFE2E8F0),
+              color: LandingTheme.textSecondary,
               letterSpacing: -0.2,
               height: 1.55,
-              shadows: const [
-                Shadow(
-                  color: Color(0x80000000),
-                  blurRadius: 14,
-                  offset: Offset(0, 2),
-                ),
-              ],
             ),
           ),
         ),
 
         SizedBox(height: trustGap),
 
-        // Trust Indicators (Frosted Glass Chips)
+        // Trust Indicators (Light Ambient Pills)
         Wrap(
           spacing: 10,
           runSpacing: 8,
           children: [
-            _buildFrostedTrustBadge(Icons.verified_user_outlined, 'IBBI / Sec 247 Compliant', isCompactLaptop),
-            _buildFrostedTrustBadge(Icons.account_balance_outlined, '₹15,000+ Cr Valued', isCompactLaptop),
-            _buildFrostedTrustBadge(Icons.assured_workload_outlined, 'Bank Empanelled', isCompactLaptop),
+            _buildTrustBadge(Icons.verified_user_outlined, 'IBBI / Sec 247 Compliant', isCompactLaptop),
+            _buildTrustBadge(Icons.account_balance_outlined, '₹15,000+ Cr Valued', isCompactLaptop),
+            _buildTrustBadge(Icons.assured_workload_outlined, 'Bank Empanelled', isCompactLaptop),
           ],
         ),
 
@@ -743,7 +733,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
           spacing: 12,
           runSpacing: 10,
           children: [
-            // Primary CTA: Request Consultation (Pure Pearl White with High Contrast Obsidian Text)
+            // Primary CTA: Request Consultation (Obsidian Platinum Gradient)
             GestureDetector(
               onTap: () => widget.launchWhatsApp('Hello, I would like to request an institutional valuation consultation with Pro Valuer.'),
               child: Container(
@@ -752,11 +742,11 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                   vertical: isCompactLaptop ? 13 : 16,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  gradient: LandingTheme.platinumButtonGradient,
                   borderRadius: BorderRadius.circular(100),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x3D000000),
+                      color: Color(0x240F172A),
                       blurRadius: 20,
                       offset: Offset(0, 6),
                     ),
@@ -770,18 +760,18 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: isCompactLaptop ? 13.5 : 14.5,
                         fontWeight: FontWeight.w700,
-                        color: const Color(0xFF0F172A), // Midnight Navy
+                        color: Colors.white,
                         letterSpacing: -0.2,
                       ),
                     ),
                     const SizedBox(width: 8),
-                    const Icon(Icons.arrow_forward_rounded, size: 15, color: Color(0xFF0F172A)),
+                    const Icon(Icons.arrow_forward_rounded, size: 15, color: Colors.white),
                   ],
                 ),
               ),
             ),
 
-            // Secondary CTA: Client Login (Frosted Crystal Glass Pill)
+            // Secondary CTA: Client Login (Midnight Navy Pill)
             GestureDetector(
               onTap: () => context.go('/login'),
               child: Container(
@@ -790,13 +780,13 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                   vertical: isCompactLaptop ? 13 : 16,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0x33FFFFFF), // Frosted glass
+                  color: const Color(0xFF0F172A), // Midnight Navy
                   borderRadius: BorderRadius.circular(100),
-                  border: Border.all(color: const Color(0x4DFFFFFF), width: 1.2),
+                  border: Border.all(color: const Color(0x33334155), width: 1.2),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x1F000000),
-                      blurRadius: 14,
+                      color: Color(0x140F172A),
+                      blurRadius: 16,
                       offset: Offset(0, 4),
                     ),
                   ],
@@ -820,7 +810,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
               ),
             ),
 
-            // Tertiary CTA: View Sample Report (Frosted Crystal Glass Pill)
+            // Tertiary CTA: View Sample Report (Pearl White Pill)
             GestureDetector(
               onTap: () => widget.launchWhatsApp('Hello, please provide the sample institutional valuation report.'),
               child: Container(
@@ -829,13 +819,13 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                   vertical: isCompactLaptop ? 13 : 16,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0x1FFFFFFF),
+                  color: LandingTheme.pearlWhite,
                   borderRadius: BorderRadius.circular(100),
-                  border: Border.all(color: const Color(0x33FFFFFF), width: 1.2),
+                  border: Border.all(color: const Color(0xE2E8F0CC), width: 1.2),
                   boxShadow: const [
                     BoxShadow(
-                      color: Color(0x14000000),
-                      blurRadius: 12,
+                      color: Color(0x0A0F172A),
+                      blurRadius: 16,
                       offset: Offset(0, 4),
                     ),
                   ],
@@ -848,12 +838,12 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: isCompactLaptop ? 13.0 : 14.0,
                         fontWeight: FontWeight.w600,
-                        color: Colors.white,
+                        color: LandingTheme.textPrimary,
                         letterSpacing: -0.2,
                       ),
                     ),
                     const SizedBox(width: 6),
-                    const Icon(Icons.arrow_outward_rounded, size: 14, color: Color(0xFFCBD5E1)),
+                    const Icon(Icons.arrow_outward_rounded, size: 14, color: LandingTheme.textSecondary),
                   ],
                 ),
               ),
@@ -864,28 +854,28 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
     );
   }
 
-  Widget _buildFrostedTrustBadge(IconData icon, String text, bool isCompact) {
+  Widget _buildTrustBadge(IconData icon, String text, bool isCompact) {
     return Container(
       padding: EdgeInsets.symmetric(
         horizontal: isCompact ? 11 : 14,
         vertical: isCompact ? 5 : 7,
       ),
       decoration: BoxDecoration(
-        color: const Color(0x26FFFFFF),
+        color: const Color(0xFFF1F5F9),
         borderRadius: BorderRadius.circular(100),
-        border: Border.all(color: const Color(0x33FFFFFF), width: 1.0),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: isCompact ? 13 : 14, color: const Color(0xFF93C5FD)),
+          Icon(icon, size: isCompact ? 13 : 14, color: LandingTheme.primaryAccent),
           const SizedBox(width: 6),
           Text(
             text,
             style: GoogleFonts.inter(
               fontSize: isCompact ? 11.5 : 12.5,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFFF1F5F9),
+              color: LandingTheme.textPrimary,
               letterSpacing: -0.1,
             ),
           ),

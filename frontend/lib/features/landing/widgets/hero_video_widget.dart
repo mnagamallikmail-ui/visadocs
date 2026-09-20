@@ -271,8 +271,8 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
 
   @override
   Widget build(BuildContext context) {
-    if (_hasError) {
-      return const ColoredBox(color: Color(0xFF080E1A));
+    if (_hasError || !widget.isPlaying) {
+      return const SizedBox.shrink();
     }
 
     return Stack(
