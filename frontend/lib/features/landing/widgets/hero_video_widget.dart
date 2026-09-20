@@ -4,34 +4,35 @@ import 'package:video_player/video_player.dart';
 
 /// HeroVideoWidget
 ///
-/// An institutional-grade, zero-flash sequential video player.
+/// An institutional-grade, zero-flash sequential video player with reading break support.
 ///
 /// Key Capabilities:
 /// - Plays 8 videos strictly in numerical sequence (1.mp4 -> 8.mp4).
-/// - Dual-controller architecture with 500ms cross-fade between Layer A and Layer B.
-/// - Preloads video (N+1) in the background while video N is playing.
-/// - Covers entire hero background seamlessly with BoxFit.cover (no card, no frame, no borders).
-/// - Paused on initial frame for 3 seconds, plays upon [playStory] signal.
-/// - After Video 8 completes, softly loops Video 8 continuously without ever restarting the sequence.
+/// - Completely unblurred, sharp, crisp 1080p full-bleed cinematic background (BoxFit.cover).
+/// - Dual-controller architecture with 400ms cross-fade between Layer A and Layer B.
+/// - Preloads only (N+1) in the background while video N is ready or playing.
+/// - Controlled playback with [activeVideoIndex] and [isPlaying].
+/// - Notifies [onVideoCompleted] when each video finishes so the parent can initiate reading breaks.
+/// - When Video 8 completes, softly loops Video 8 continuously without restarting the sequence.
 class HeroVideoWidget extends StatefulWidget {
   /// Ordered list of video asset paths (assets/videos/hero_story/1.mp4 .. 8.mp4)
   final List<String> videoAssets;
 
-  /// Trigger to start playback (after initial 3.0s delay)
-  final bool playStory;
+  /// The active video index to display/play (0 to 7)
+  final int activeVideoIndex;
 
-  /// Callback fired when Video 8 finishes the first sequential run
-  final VoidCallback? onSequenceComplete;
+  /// Whether the active video is currently playing
+  final bool isPlaying;
 
-  /// Whether to render full-bleed as a background layer
-  final bool isBackground;
+  /// Callback fired when the active video reaches its end
+  final ValueChanged<int>? onVideoCompleted;
 
   const HeroVideoWidget({
     super.key,
     required this.videoAssets,
-    this.playStory = false,
-    this.onSequenceComplete,
-    this.isBackground = true,
+    required this.activeVideoIndex,
+    required this.isPlaying,
+    this.onVideoCompleted,
   });
 
   @override
@@ -39,33 +40,42 @@ class HeroVideoWidget extends StatefulWidget {
 }
 
 class _HeroVideoWidgetState extends State<HeroVideoWidget> {
-  int _currentIndex = 0;
-
   // Dual-controller buffer to ensure zero-flash seamless transitions
   VideoPlayerController? _controllerA;
   VideoPlayerController? _controllerB;
 
+  int _loadedIndexA = 0;
+  int _loadedIndexB = 1;
   bool _isAActive = true;
+
   bool _hasError = false;
   bool _transitioning = false;
-  bool _sequenceFinished = false;
-  bool _isPlaying = false;
+  bool _activeListenerAttached = false;
 
   @override
   void initState() {
     super.initState();
-    _initSequence();
+    _initInitialControllers();
   }
 
   @override
   void didUpdateWidget(covariant HeroVideoWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.playStory && !oldWidget.playStory && !_isPlaying) {
-      _startPlayback();
+
+    // If active video index changed, transition to the new video
+    if (widget.activeVideoIndex != oldWidget.activeVideoIndex) {
+      _switchToVideo(widget.activeVideoIndex);
+    } else if (widget.isPlaying != oldWidget.isPlaying) {
+      // If play/pause state changed
+      if (widget.isPlaying) {
+        _playActive();
+      } else {
+        _pauseActive();
+      }
     }
   }
 
-  Future<void> _initSequence() async {
+  Future<void> _initInitialControllers() async {
     if (widget.videoAssets.isEmpty) {
       if (mounted) setState(() => _hasError = true);
       return;
@@ -76,7 +86,7 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
       final firstAsset = widget.videoAssets[0];
       final ctrlA = VideoPlayerController.asset(firstAsset);
       await ctrlA.initialize();
-      await ctrlA.setVolume(0); // Muted for browser autoplay compatibility
+      await ctrlA.setVolume(0); // Muted for browser autoplay compliance
       await ctrlA.setPlaybackSpeed(1.0);
       await ctrlA.seekTo(Duration.zero);
 
@@ -86,58 +96,144 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
       }
 
       _controllerA = ctrlA;
+      _loadedIndexA = 0;
+      _isAActive = true;
       setState(() {});
 
       // 2. Preload Video 2 on Controller B immediately in the background
       if (widget.videoAssets.length > 1) {
-        _preloadNextSlot(1, isSlotB: true);
+        _preloadSlotB(1);
       }
 
-      // If playStory was already enabled at init, start now
-      if (widget.playStory && !_sequenceFinished) {
-        _startPlayback();
+      // If already asked to play at initialization
+      if (widget.isPlaying) {
+        _playActive();
       }
-    } catch (e) {
+    } catch (_) {
       if (mounted) setState(() => _hasError = true);
     }
   }
 
-  Future<void> _preloadNextSlot(int targetIndex, {required bool isSlotB}) async {
-    if (targetIndex >= widget.videoAssets.length) return;
-
+  Future<void> _preloadSlotA(int index) async {
+    if (index >= widget.videoAssets.length) return;
     try {
-      final assetPath = widget.videoAssets[targetIndex];
-      final nextCtrl = VideoPlayerController.asset(assetPath);
-      await nextCtrl.initialize();
-      await nextCtrl.setVolume(0);
-      await nextCtrl.setPlaybackSpeed(1.0);
-      await nextCtrl.seekTo(Duration.zero);
-
+      final ctrl = VideoPlayerController.asset(widget.videoAssets[index]);
+      await ctrl.initialize();
+      await ctrl.setVolume(0);
+      await ctrl.setPlaybackSpeed(1.0);
+      await ctrl.seekTo(Duration.zero);
       if (!mounted) {
-        nextCtrl.dispose();
+        ctrl.dispose();
         return;
       }
+      _controllerA?.dispose();
+      _controllerA = ctrl;
+      _loadedIndexA = index;
+    } catch (_) {}
+  }
 
-      if (isSlotB) {
-        _controllerB?.dispose();
-        _controllerB = nextCtrl;
-      } else {
-        _controllerA?.dispose();
-        _controllerA = nextCtrl;
+  Future<void> _preloadSlotB(int index) async {
+    if (index >= widget.videoAssets.length) return;
+    try {
+      final ctrl = VideoPlayerController.asset(widget.videoAssets[index]);
+      await ctrl.initialize();
+      await ctrl.setVolume(0);
+      await ctrl.setPlaybackSpeed(1.0);
+      await ctrl.seekTo(Duration.zero);
+      if (!mounted) {
+        ctrl.dispose();
+        return;
       }
-    } catch (_) {
-      // Background preload error safely handled on fallback
+      _controllerB?.dispose();
+      _controllerB = ctrl;
+      _loadedIndexB = index;
+    } catch (_) {}
+  }
+
+  Future<void> _switchToVideo(int newIndex) async {
+    if (_transitioning) return;
+    _transitioning = true;
+
+    final targetIsSlotA = (_loadedIndexA == newIndex);
+    final targetIsSlotB = (_loadedIndexB == newIndex);
+
+    // Make sure target controller is ready
+    if (!targetIsSlotA && !targetIsSlotB) {
+      // Need on-the-fly load into whichever slot is inactive
+      if (_isAActive) {
+        await _preloadSlotB(newIndex);
+      } else {
+        await _preloadSlotA(newIndex);
+      }
+    }
+
+    final newIsAActive = (_loadedIndexA == newIndex);
+    final nextCtrl = newIsAActive ? _controllerA : _controllerB;
+    final oldCtrl = _isAActive ? _controllerA : _controllerB;
+
+    if (oldCtrl != null && _activeListenerAttached) {
+      oldCtrl.removeListener(_videoTickListener);
+      _activeListenerAttached = false;
+      await oldCtrl.pause();
+    }
+
+    if (nextCtrl != null && nextCtrl.value.isInitialized) {
+      await nextCtrl.seekTo(Duration.zero);
+      await nextCtrl.setVolume(0);
+
+      // If reaching Video 8, enable continuous soft loop on it
+      if (newIndex >= widget.videoAssets.length - 1) {
+        await nextCtrl.setLooping(true);
+      }
+
+      if (widget.isPlaying) {
+        nextCtrl.addListener(_videoTickListener);
+        _activeListenerAttached = true;
+        await nextCtrl.play();
+      }
+    }
+
+    if (mounted) {
+      setState(() {
+        _isAActive = newIsAActive;
+      });
+    }
+
+    // Wait for 400ms crossfade to settle
+    await Future.delayed(const Duration(milliseconds: 400));
+
+    // Preload next upcoming video in the inactive slot
+    final nextUpcomingIndex = newIndex + 1;
+    if (nextUpcomingIndex < widget.videoAssets.length) {
+      if (_isAActive) {
+        _preloadSlotB(nextUpcomingIndex);
+      } else {
+        _preloadSlotA(nextUpcomingIndex);
+      }
+    }
+
+    _transitioning = false;
+  }
+
+  Future<void> _playActive() async {
+    final activeCtrl = _isAActive ? _controllerA : _controllerB;
+    if (activeCtrl != null && activeCtrl.value.isInitialized) {
+      if (!_activeListenerAttached) {
+        activeCtrl.addListener(_videoTickListener);
+        _activeListenerAttached = true;
+      }
+      await activeCtrl.play();
     }
   }
 
-  Future<void> _startPlayback() async {
-    if (_isPlaying) return;
-    _isPlaying = true;
-
+  Future<void> _pauseActive() async {
     final activeCtrl = _isAActive ? _controllerA : _controllerB;
     if (activeCtrl != null && activeCtrl.value.isInitialized) {
-      activeCtrl.addListener(_videoTickListener);
-      await activeCtrl.play();
+      if (_activeListenerAttached) {
+        activeCtrl.removeListener(_videoTickListener);
+        _activeListenerAttached = false;
+      }
+      await activeCtrl.pause();
     }
   }
 
@@ -152,98 +248,31 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
 
     if (dur <= Duration.zero) return;
 
-    // Check if this is the final video (Video 8)
-    if (_currentIndex >= widget.videoAssets.length - 1) {
-      if (!_sequenceFinished &&
-          (pos >= dur - const Duration(milliseconds: 300) ||
-              (!activeCtrl.value.isPlaying && pos > const Duration(seconds: 1)))) {
-        _sequenceFinished = true;
-        activeCtrl.setLooping(true); // Loop only final video softly
+    // Check if video reached its end
+    if (pos >= dur - const Duration(milliseconds: 150) ||
+        (!activeCtrl.value.isPlaying && pos > const Duration(seconds: 1))) {
+      // Video completed
+      activeCtrl.removeListener(_videoTickListener);
+      _activeListenerAttached = false;
+
+      // If it's Video 8, let it loop softly
+      if (widget.activeVideoIndex >= widget.videoAssets.length - 1) {
+        activeCtrl.setLooping(true);
         if (!activeCtrl.value.isPlaying) activeCtrl.play();
-        widget.onSequenceComplete?.call();
+      } else {
+        activeCtrl.pause();
       }
-      return;
+
+      widget.onVideoCompleted?.call(widget.activeVideoIndex);
     }
-
-    // Crossfade 300ms before video reaches its end for a completely seamless dissolve
-    final remaining = dur - pos;
-    if (remaining <= const Duration(milliseconds: 300) || pos >= dur) {
-      _advanceToNext();
-    }
-  }
-
-  Future<void> _advanceToNext() async {
-    if (_transitioning || _sequenceFinished) return;
-    if (_currentIndex >= widget.videoAssets.length - 1) return;
-
-    _transitioning = true;
-    final nextIndex = _currentIndex + 1;
-    final currentCtrl = _isAActive ? _controllerA : _controllerB;
-    final nextCtrlSlot = _isAActive ? _controllerB : _controllerA;
-
-    // Safety fallback: ensure next controller is initialized
-    VideoPlayerController readyCtrl;
-    if (nextCtrlSlot != null && nextCtrlSlot.value.isInitialized) {
-      readyCtrl = nextCtrlSlot;
-    } else {
-      try {
-        final fallback = VideoPlayerController.asset(widget.videoAssets[nextIndex]);
-        await fallback.initialize();
-        await fallback.setVolume(0);
-        await fallback.seekTo(Duration.zero);
-        if (_isAActive) {
-          _controllerB = fallback;
-        } else {
-          _controllerA = fallback;
-        }
-        readyCtrl = fallback;
-      } catch (_) {
-        _transitioning = false;
-        return;
-      }
-    }
-
-    await readyCtrl.setVolume(0);
-    await readyCtrl.seekTo(Duration.zero);
-
-    // If reaching Video 8, enable continuous soft loop on it
-    if (nextIndex >= widget.videoAssets.length - 1) {
-      await readyCtrl.setLooping(true);
-    }
-
-    readyCtrl.addListener(_videoTickListener);
-    await readyCtrl.play();
-
-    // Trigger seamless 500ms cross-fade between layers
-    if (mounted) {
-      setState(() {
-        _isAActive = !_isAActive;
-        _currentIndex = nextIndex;
-      });
-    }
-
-    // Allow crossfade animation to settle
-    await Future.delayed(const Duration(milliseconds: 500));
-
-    // Pause old controller and detach its listener
-    if (currentCtrl != null) {
-      currentCtrl.removeListener(_videoTickListener);
-      await currentCtrl.pause();
-    }
-
-    // Preload next-next video in the inactive slot
-    final upcomingIndex = _currentIndex + 1;
-    if (upcomingIndex < widget.videoAssets.length) {
-      _preloadNextSlot(upcomingIndex, isSlotB: _isAActive);
-    }
-
-    _transitioning = false;
   }
 
   @override
   void dispose() {
-    _controllerA?.removeListener(_videoTickListener);
-    _controllerB?.removeListener(_videoTickListener);
+    final activeCtrl = _isAActive ? _controllerA : _controllerB;
+    if (_activeListenerAttached) {
+      activeCtrl?.removeListener(_videoTickListener);
+    }
     _controllerA?.dispose();
     _controllerB?.dispose();
     super.dispose();
@@ -252,19 +281,19 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
   @override
   Widget build(BuildContext context) {
     if (_hasError) {
-      return const ColoredBox(color: Color(0xFF0F172A));
+      return const ColoredBox(color: Color(0xFF080E1A));
     }
 
     return Stack(
       fit: StackFit.expand,
       children: [
-        // Base Midnight Navy canvas to prevent any white flashes
-        const ColoredBox(color: Color(0xFF0F172A)),
+        // Solid dark base to eliminate any possible white flashes
+        const ColoredBox(color: Color(0xFF080E1A)),
 
-        // Video Layer A
+        // Video Layer A (Sharp, Native 1080p, Zero Blur)
         AnimatedOpacity(
           opacity: _isAActive ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 500),
+          duration: const Duration(milliseconds: 400),
           curve: Curves.easeInOut,
           child: _controllerA != null && _controllerA!.value.isInitialized
               ? FittedBox(
@@ -278,10 +307,10 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
               : const SizedBox.shrink(),
         ),
 
-        // Video Layer B
+        // Video Layer B (Sharp, Native 1080p, Zero Blur)
         AnimatedOpacity(
           opacity: !_isAActive ? 1.0 : 0.0,
-          duration: const Duration(milliseconds: 500),
+          duration: const Duration(milliseconds: 400),
           curve: Curves.easeInOut,
           child: _controllerB != null && _controllerB!.value.isInitialized
               ? FittedBox(

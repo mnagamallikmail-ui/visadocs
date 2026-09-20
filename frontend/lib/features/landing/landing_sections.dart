@@ -354,7 +354,7 @@ class HeroSection extends StatefulWidget {
   State<HeroSection> createState() => _HeroSectionState();
 }
 
-class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStateMixin {
+class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin {
   // Ordered sequence of 8 institutional story videos
   static const List<String> _heroStoryVideos = [
     'assets/videos/hero_story/1.mp4',
@@ -385,9 +385,14 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
   late Animation<double> _keywordOpacityAnimation;
   Timer? _keywordTimer;
 
-  // 3-second initial delay timer before video starts
-  Timer? _cinematicHoldTimer;
-  bool _playStory = false;
+  // Video story cycle state
+  int _currentVideoIndex = 0;
+  bool _isVideoPlaying = false;
+  bool _storyCompleted = false;
+
+  // 450ms content fade controller (1.0 = visible during reading breaks, 0.0 = hidden during video playback)
+  late AnimationController _contentFadeController;
+  Timer? _cycleTimer;
 
   @override
   void initState() {
@@ -417,20 +422,64 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
       });
     });
 
-    // 2. Wait exactly 3 seconds after page load, then start sequential playback
-    _cinematicHoldTimer = Timer(const Duration(seconds: 3), () {
-      if (!mounted) return;
+    // 2. Content fade controller (starts fully visible at 1.0)
+    _contentFadeController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 450),
+      value: 1.0,
+    );
+
+    // 3. Initial page load: Hero content shown normally for 3 seconds, then Video 1 starts
+    _cycleTimer = Timer(const Duration(seconds: 3), () {
+      _startCurrentVideo();
+    });
+  }
+
+  void _startCurrentVideo() {
+    if (!mounted || _storyCompleted) return;
+
+    // Smoothly fade OUT headline, keywords, description, trust indicators, CTA buttons, and overlay (450ms)
+    _contentFadeController.reverse().then((_) {
+      if (!mounted || _storyCompleted) return;
       setState(() {
-        _playStory = true;
+        _isVideoPlaying = true;
       });
+    });
+  }
+
+  void _onVideoCompleted(int completedIndex) {
+    if (!mounted) return;
+
+    setState(() {
+      _isVideoPlaying = false;
+    });
+
+    // Smoothly fade IN headline, keywords, description, trust indicators, CTA buttons, and overlay (450ms)
+    _contentFadeController.forward();
+
+    // If Video 8 has completed, the story finishes and stays permanently visible
+    if (completedIndex >= _heroStoryVideos.length - 1) {
+      _storyCompleted = true;
+      return;
+    }
+
+    // 10-second pause / reading break before next video plays
+    _cycleTimer?.cancel();
+    _cycleTimer = Timer(const Duration(seconds: 10), () {
+      if (!mounted || _storyCompleted) return;
+      setState(() {
+        _currentVideoIndex = completedIndex + 1;
+      });
+      _startCurrentVideo();
     });
   }
 
   @override
   void dispose() {
-    _cinematicHoldTimer?.cancel();
+    _cycleTimer?.cancel();
     _keywordTimer?.cancel();
     _keywordAnimController.dispose();
+    _contentFadeController.dispose();
     super.dispose();
   }
 
@@ -455,31 +504,33 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
         child: Stack(
           alignment: Alignment.center,
           children: [
-            // ── LAYER 1: Full-Width Cinematic Video Background ────────────────
+            // ── LAYER 1: Full-Width Cinematic Video Background (SHARP & UNBLURRED) ──
             Positioned.fill(
               child: HeroVideoWidget(
                 videoAssets: _heroStoryVideos,
-                playStory: _playStory,
-                isBackground: true,
+                activeVideoIndex: _currentVideoIndex,
+                isPlaying: _isVideoPlaying,
+                onVideoCompleted: _onVideoCompleted,
               ),
             ),
 
             // ── LAYER 2: Premium Enterprise Horizontal Gradient Overlay ──────────────
-            // Left side:  rgba(8,14,26,0.82) - Ensures complete readability of typography
-            // Center:     rgba(8,14,26,0.55) - Smooth transitional balance
-            // Right side: rgba(8,14,26,0.20) - Showcases sharp, vibrant, cinematic video footage
+            // Smoothly fades in/out with the text so video is 100% unobstructed during playback
             Positioned.fill(
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: isDesktop ? Alignment.centerLeft : Alignment.topCenter,
-                    end: isDesktop ? Alignment.centerRight : Alignment.bottomCenter,
-                    stops: const [0.0, 0.50, 1.0],
-                    colors: const [
-                      Color.fromRGBO(8, 14, 26, 0.82), // Left (or Top on mobile): 82%
-                      Color.fromRGBO(8, 14, 26, 0.55), // Center: 55%
-                      Color.fromRGBO(8, 14, 26, 0.20), // Right (or Bottom on mobile): 20%
-                    ],
+              child: FadeTransition(
+                opacity: _contentFadeController,
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: isDesktop ? Alignment.centerLeft : Alignment.topCenter,
+                      end: isDesktop ? Alignment.centerRight : Alignment.bottomCenter,
+                      stops: const [0.0, 0.50, 1.0],
+                      colors: const [
+                        Color.fromRGBO(8, 14, 26, 0.82), // Left (or Top on mobile): 82%
+                        Color.fromRGBO(8, 14, 26, 0.55), // Center: 55%
+                        Color.fromRGBO(8, 14, 26, 0.20), // Right (or Bottom on mobile): 20%
+                      ],
+                    ),
                   ),
                 ),
               ),
@@ -506,18 +557,24 @@ class _HeroSectionState extends State<HeroSection> with SingleTickerProviderStat
               ),
             ),
 
-            // ── LAYER 4: Foreground Hero Content (PERMANENTLY VISIBLE) ────────
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: isDesktop ? 60 : 24,
-                vertical: isDesktop ? 80 : 60,
-              ),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1320),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: _buildForegroundContent(screenW, isDesktop),
+            // ── LAYER 3: Foreground Hero Content (Headline, Keyword, Description, CTAs, Trust) ──
+            FadeTransition(
+              opacity: _contentFadeController,
+              child: IgnorePointer(
+                ignoring: _isVideoPlaying,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isDesktop ? 60 : 24,
+                    vertical: isDesktop ? 80 : 60,
+                  ),
+                  child: Center(
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 1320),
+                      child: SizedBox(
+                        width: double.infinity,
+                        child: _buildForegroundContent(screenW, isDesktop),
+                      ),
+                    ),
                   ),
                 ),
               ),
