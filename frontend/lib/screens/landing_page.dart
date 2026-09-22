@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../features/landing/landing_theme.dart';
 import '../features/landing/landing_sections.dart';
@@ -126,10 +127,10 @@ class _LandingPageState extends State<LandingPage> {
                     ],
                   ),
                   child: const Center(
-                    child: Icon(
-                      Icons.chat_bubble_rounded,
+                    child: FaIcon(
+                      FontAwesomeIcons.whatsapp,
                       color: Colors.white,
-                      size: 28,
+                      size: 32,
                     ),
                   ),
                 ),

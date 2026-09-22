@@ -897,14 +897,18 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                   }
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(100),
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       const Icon(
                         Icons.phone_in_talk_rounded,
-                        size: 18,
                         color: Color(0xFF005C5C),
+                        size: 20,
                       ),
                       const SizedBox(width: 8),
                       Text(
