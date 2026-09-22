@@ -266,11 +266,11 @@ class LandingHeader extends StatelessWidget {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
                             decoration: BoxDecoration(
-                              gradient: LandingTheme.platinumButtonGradient,
+                              color: const Color(0xFF005C5C),
                               borderRadius: BorderRadius.circular(100),
                               boxShadow: const [
                                 BoxShadow(
-                                  color: Color(0x1F0F172A),
+                                  color: Color(0x2E005C5C),
                                   blurRadius: 14,
                                   offset: Offset(0, 4),
                                 ),
@@ -887,46 +887,8 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
               ),
             ),
 
-            // Secondary Contact: Direct Phone Call
-            MouseRegion(
-              cursor: SystemMouseCursors.click,
-              child: GestureDetector(
-                onTap: () async {
-                  final uri = Uri.parse('tel:+918500019091');
-                  if (await canLaunchUrl(uri)) {
-                    await launchUrl(uri);
-                  }
-                },
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  decoration: BoxDecoration(
-                    border: Border.all(color: const Color(0xFF005C5C).withValues(alpha: 0.3), width: 1),
-                    borderRadius: BorderRadius.circular(100),
-                    color: Colors.transparent,
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const FaIcon(
-                        FontAwesomeIcons.phone,
-                        color: Color(0xFF005C5C),
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        '+91 8500019091',
-                        style: GoogleFonts.montserrat(
-                          fontSize: isCompactLaptop ? 13.5 : 14.5,
-                          fontWeight: FontWeight.w600,
-                          color: const Color(0xFF005C5C),
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
+            // Secondary Contact: Direct Phone Call (Matching Height & Smooth Hover Transition)
+            _HeroPhonePill(isCompactLaptop: isCompactLaptop),
           ],
         ),
       ],
@@ -959,6 +921,74 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/// Symmetrical Hero Phone Pill with Smooth Hover Transition
+class _HeroPhonePill extends StatefulWidget {
+  final bool isCompactLaptop;
+
+  const _HeroPhonePill({required this.isCompactLaptop});
+
+  @override
+  State<_HeroPhonePill> createState() => _HeroPhonePillState();
+}
+
+class _HeroPhonePillState extends State<_HeroPhonePill> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: () async {
+          final uri = Uri.parse('tel:+918500019091');
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri);
+          }
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: EdgeInsets.symmetric(
+            horizontal: widget.isCompactLaptop ? 20 : 24,
+            vertical: widget.isCompactLaptop ? 13 : 16,
+          ),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: const Color(0xFF005C5C).withValues(alpha: 0.3),
+              width: 1,
+            ),
+            borderRadius: BorderRadius.circular(100),
+            color: _isHovered
+                ? const Color(0xFF005C5C).withValues(alpha: 0.05)
+                : Colors.transparent,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const FaIcon(
+                FontAwesomeIcons.phone,
+                color: Color(0xFF005C5C),
+                size: 15,
+              ),
+              const SizedBox(width: 8),
+              Text(
+                '+91 85000 19091',
+                style: GoogleFonts.montserrat(
+                  fontSize: widget.isCompactLaptop ? 13.5 : 14.5,
+                  fontWeight: FontWeight.w600,
+                  color: const Color(0xFF005C5C),
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -1300,14 +1330,11 @@ class _ServiceCardTileState extends State<_ServiceCardTile> {
             const SizedBox(width: 8),
             AnimatedOpacity(
               duration: const Duration(milliseconds: 160),
-              opacity: _isHovered ? 1.0 : 0.45,
-              child: Transform.translate(
-                offset: Offset(_isHovered ? 2.0 : 0.0, 0),
-                child: Icon(
-                  Icons.chevron_right_rounded,
-                  size: widget.isCompact ? 15 : 17,
-                  color: _isHovered ? const Color(0xFF005C5C) : const Color(0xFF0F172A),
-                ),
+              opacity: _isHovered ? 1.0 : 0.55,
+              child: Icon(
+                Icons.keyboard_arrow_down,
+                size: 20,
+                color: _isHovered ? const Color(0xFF005C5C) : const Color(0xFF0F172A),
               ),
             ),
           ],
@@ -2173,7 +2200,7 @@ class MobileMenuDrawer extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
-                      gradient: LandingTheme.platinumButtonGradient,
+                      color: const Color(0xFF005C5C),
                       borderRadius: BorderRadius.circular(100),
                     ),
                     child: Center(
