@@ -98,6 +98,44 @@ class _LandingPageState extends State<LandingPage> {
               onMenuTap: () => _scaffoldKey.currentState?.openEndDrawer(),
             ),
           ),
+          // ── Persistent Sticky Floating Action Button ──────────────────────
+          Positioned(
+            bottom: 32,
+            right: 32,
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () async {
+                  final uri = Uri.parse('https://wa.me/918500019091');
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  }
+                },
+                child: Container(
+                  width: 58,
+                  height: 58,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFF25D366), // Standard WhatsApp Green
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black26,
+                        blurRadius: 12,
+                        offset: Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  child: const Center(
+                    child: Icon(
+                      Icons.chat_bubble_rounded,
+                      color: Colors.white,
+                      size: 28,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );

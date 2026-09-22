@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'landing_theme.dart';
 import 'widgets/hero_video_widget.dart';
@@ -885,41 +886,38 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
               ),
             ),
 
-            // Secondary CTA: View Sample Report (High-Contrast Ghost Button)
-            GestureDetector(
-              onTap: () => widget.launchWhatsApp('Hello, please provide the sample institutional valuation report.'),
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isCompactLaptop ? 18 : 22,
-                  vertical: isCompactLaptop ? 13 : 16,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(100),
-                  border: Border.all(color: const Color(0xFF005C5C), width: 1.5),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x0A0F172A),
-                      blurRadius: 16,
-                      offset: Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Sample Report',
-                      style: GoogleFonts.montserrat(
-                        fontSize: isCompactLaptop ? 13.0 : 14.0,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF005C5C),
-                        letterSpacing: -0.2,
+            // Secondary Contact: Direct Phone Call
+            MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: GestureDetector(
+                onTap: () async {
+                  final uri = Uri.parse('tel:+918500019091');
+                  if (await canLaunchUrl(uri)) {
+                    await launchUrl(uri);
+                  }
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.phone_in_talk_rounded,
+                        size: 18,
+                        color: Color(0xFF005C5C),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    const Icon(Icons.arrow_outward_rounded, size: 14, color: Color(0xFF005C5C)),
-                  ],
+                      const SizedBox(width: 8),
+                      Text(
+                        '+91 8500019091',
+                        style: GoogleFonts.montserrat(
+                          fontSize: isCompactLaptop ? 13.5 : 14.5,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF005C5C),
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),
