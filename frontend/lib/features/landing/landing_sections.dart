@@ -205,7 +205,7 @@ class LandingHeader extends StatelessWidget {
                               width: 32,
                               height: 32,
                               decoration: BoxDecoration(
-                                gradient: LandingTheme.platinumButtonGradient,
+                                color: const Color(0xFF005C5C),
                                 borderRadius: BorderRadius.circular(8),
                                 boxShadow: const [
                                   BoxShadow(
@@ -656,13 +656,13 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
             children: [
               // Left Column: Hero Content, Headline, Trust, CTAs
               Expanded(
-                flex: isCompactLaptop ? 12 : 13,
+                flex: isCompactLaptop ? 13 : 14,
                 child: _buildLeftHeroContent(screenW, screenH, isDesktop, isTablet, isCompactLaptop),
               ),
-              SizedBox(width: isCompactLaptop ? 32 : 48),
+              SizedBox(width: isCompactLaptop ? 28 : 40),
               // Right Column: Specialized Services Cascading Card Stack (Visible during Reading Mode)
               Expanded(
-                flex: isCompactLaptop ? 10 : 11,
+                flex: isCompactLaptop ? 9 : 10,
                 child: _CascadingServiceStack(
                   isCompact: isCompactLaptop,
                   isVideoPlaying: _isVideoPlaying,
@@ -693,8 +693,8 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
         : (isDesktop ? 56.0 : (isTablet ? 38.0 : 32.0));
 
     final double keywordSize = isCompactLaptop
-        ? 44.0
-        : (isDesktop ? 56.0 : (isTablet ? 38.0 : 32.0));
+        ? 38.0
+        : (isDesktop ? 48.0 : (isTablet ? 32.0 : 28.0));
 
     final double bodySize = isCompactLaptop
         ? 15.0
@@ -749,9 +749,11 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
 
         SizedBox(height: badgeGap),
 
-        // Hero Headline (High-Contrast Obsidian Charcoal Slate)
+        // Hero Headline Line 1 (High-Contrast Obsidian Charcoal Slate)
         Text(
-          'Independent Valuation\nFor',
+          'Independent Valuation',
+          maxLines: 1,
+          softWrap: false,
           style: GoogleFonts.montserrat(
             fontSize: headlineSize,
             fontWeight: FontWeight.w800,
@@ -763,27 +765,49 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
 
         SizedBox(height: keywordGap),
 
-        // Rotating Morphing Keyword (Solid Deep Teal)
-        AnimatedBuilder(
-          animation: _keywordAnimController,
-          builder: (context, child) {
-            return Transform.translate(
-              offset: Offset(0, _keywordSlideAnimation.value),
-              child: Opacity(
-                opacity: _keywordOpacityAnimation.value,
-                child: Text(
-                  _keywords[_currentKeywordIndex],
-                  style: GoogleFonts.montserrat(
-                    fontSize: keywordSize,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF005C5C), // Solid Deep Teal
-                    letterSpacing: -1.8,
-                    height: 1.08,
+        // Hero Headline Line 2: "For" permanently attached to Animated Phrase (Solid Deep Teal)
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: AnimatedBuilder(
+            animation: _keywordAnimController,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(0, _keywordSlideAnimation.value),
+                child: Opacity(
+                  opacity: _keywordOpacityAnimation.value,
+                  child: Text.rich(
+                    TextSpan(
+                      children: [
+                        TextSpan(
+                          text: 'For ',
+                          style: GoogleFonts.montserrat(
+                            fontSize: keywordSize,
+                            fontWeight: FontWeight.w800,
+                            color: LandingTheme.textPrimary,
+                            letterSpacing: -1.8,
+                            height: 1.08,
+                          ),
+                        ),
+                        TextSpan(
+                          text: _keywords[_currentKeywordIndex],
+                          style: GoogleFonts.montserrat(
+                            fontSize: keywordSize,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF005C5C), // Solid Deep Teal
+                            letterSpacing: -1.8,
+                            height: 1.08,
+                          ),
+                        ),
+                      ],
+                    ),
+                    maxLines: 1,
+                    softWrap: false,
                   ),
                 ),
-              ),
-            );
-          },
+              );
+            },
+          ),
         ),
 
         SizedBox(height: descGap),
