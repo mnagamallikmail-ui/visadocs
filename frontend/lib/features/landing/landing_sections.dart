@@ -3,6 +3,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import 'landing_theme.dart';
@@ -897,18 +898,19 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                   }
                 },
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                   decoration: BoxDecoration(
-                    color: Colors.grey.withValues(alpha: 0.05),
+                    border: Border.all(color: const Color(0xFF005C5C).withValues(alpha: 0.3), width: 1),
                     borderRadius: BorderRadius.circular(100),
+                    color: Colors.transparent,
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(
-                        Icons.phone_in_talk_rounded,
+                      const FaIcon(
+                        FontAwesomeIcons.phone,
                         color: Color(0xFF005C5C),
-                        size: 20,
+                        size: 16,
                       ),
                       const SizedBox(width: 8),
                       Text(
