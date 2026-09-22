@@ -735,12 +735,12 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
               const Icon(Icons.verified_rounded, size: 14, color: LandingTheme.primaryAccent),
               const SizedBox(width: 8),
               Text(
-                'IBBI REGISTERED VALUERS • ASSET INTELLIGENCE',
+                'REGISTERED VALUERS (GOVT APPROVED) - IBBI & INCOME TAX • ASSET INTELLIGENCE',
                 style: GoogleFonts.montserrat(
-                  fontSize: isCompactLaptop ? 11.0 : 11.5,
+                  fontSize: isCompactLaptop ? 9.5 : 10.5,
                   fontWeight: FontWeight.w700,
                   color: LandingTheme.textPrimary,
-                  letterSpacing: 1.2,
+                  letterSpacing: isCompactLaptop ? 0.8 : 1.0,
                 ),
               ),
             ],
@@ -1126,7 +1126,7 @@ class _CascadingServiceStackState extends State<_CascadingServiceStack> with Sin
                 width: 6,
                 height: 6,
                 decoration: const BoxDecoration(
-                  color: Color(0xFF38BDF8),
+                  color: Color(0xFF005C5C),
                   shape: BoxShape.circle,
                 ),
               ),
