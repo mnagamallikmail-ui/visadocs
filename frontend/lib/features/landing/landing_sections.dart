@@ -1085,55 +1085,53 @@ class _HeroPhonePillState extends State<_HeroPhonePill> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// VALUATION EXPERTISE — INSTITUTIONAL PRACTICE AREA SPOTLIGHT
+// VALUATION EXPERTISE — EXECUTIVE CAPABILITY CARD SYSTEM
 // ═══════════════════════════════════════════════════════════════════════════════
 
-class _PracticeAreaItem {
+class _ExecutiveCapabilityCardData {
   final String id;
-  final String title;
-  final List<String> services;
+  final String domainLabel;
+  final String practiceArea;
+  final String capability;
+  final String clientType;
 
-  const _PracticeAreaItem({
+  const _ExecutiveCapabilityCardData({
     required this.id,
-    required this.title,
-    required this.services,
+    required this.domainLabel,
+    required this.practiceArea,
+    required this.capability,
+    required this.clientType,
   });
 }
 
-const List<_PracticeAreaItem> _practiceAreas = [
-  _PracticeAreaItem(
+const List<_ExecutiveCapabilityCardData> _capabilityCards = [
+  _ExecutiveCapabilityCardData(
     id: '01',
-    title: 'BANKING',
-    services: [
-      'Bank Security Valuations',
-      'Credit Exposure Assessment',
-      "Lenders' Independent Engineer Services",
-    ],
+    domainLabel: 'DOMAIN 1 OF 4',
+    practiceArea: 'BANKING',
+    capability: 'Collateral & Security Valuation',
+    clientType: 'For PSU & Private Banks',
   ),
-  _PracticeAreaItem(
+  _ExecutiveCapabilityCardData(
     id: '02',
-    title: 'CORPORATE',
-    services: [
-      'Valuation of Shares',
-      'Net Worth Certifications',
-    ],
+    domainLabel: 'DOMAIN 2 OF 4',
+    practiceArea: 'CORPORATE',
+    capability: 'Share Valuation &\nNet Worth Certification',
+    clientType: 'For Corporates & Investors',
   ),
-  _PracticeAreaItem(
+  _ExecutiveCapabilityCardData(
     id: '03',
-    title: 'REGULATORY',
-    services: [
-      'NCLT Transaction Support',
-      'Valuations under IBC',
-    ],
+    domainLabel: 'DOMAIN 3 OF 4',
+    practiceArea: 'REGULATORY',
+    capability: 'NCLT & IBC\nValuation Support',
+    clientType: 'For Resolution Professionals',
   ),
-  _PracticeAreaItem(
+  _ExecutiveCapabilityCardData(
     id: '04',
-    title: 'TECHNICAL',
-    services: [
-      'Plant & Machinery Valuations',
-      'Chartered Engineer Services',
-      'Visa & Immigration Valuations',
-    ],
+    domainLabel: 'DOMAIN 4 OF 4',
+    practiceArea: 'TECHNICAL',
+    capability: 'Plant & Machinery\nTechnical Certification',
+    clientType: 'For Industry & Engineering Assets',
   ),
 ];
 
@@ -1175,9 +1173,9 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
       if (_isHovered) return;
 
       setState(() {
-        final nextIndex = (_currentIndex + 1) % _practiceAreas.length;
+        final nextIndex = (_currentIndex + 1) % _capabilityCards.length;
         if (nextIndex == 0) {
-          // Completed full cycle of 4 practice areas (01 -> 02 -> 03 -> 04)
+          // Completed full cycle of 4 capability cards (01 -> 02 -> 03 -> 04)
           if (!_hasTriggeredSettled) {
             _hasTriggeredSettled = true;
             widget.onDeckSettled?.call();
@@ -1221,7 +1219,7 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
 
   @override
   Widget build(BuildContext context) {
-    final area = _practiceAreas[_currentIndex];
+    final card = _capabilityCards[_currentIndex];
     final bool isCompact = widget.isCompact;
 
     return MouseRegion(
@@ -1279,12 +1277,12 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
 
           const SizedBox(height: 1.5), // Hairline spacing between header and card
 
-          // ── ROTATING PRACTICE AREA SPOTLIGHT CARD ────────────────────────────────
+          // ── ROTATING EXECUTIVE CAPABILITY CARD ────────────────────────────────────
           Container(
             width: double.infinity,
             padding: EdgeInsets.symmetric(
-              horizontal: isCompact ? 16 : 20,
-              vertical: isCompact ? 14 : 16,
+              horizontal: isCompact ? 18 : 24,
+              vertical: isCompact ? 18 : 22,
             ),
             decoration: BoxDecoration(
               color: const Color(0xFFF8FAFC),
@@ -1298,9 +1296,9 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
               ),
               boxShadow: const [
                 BoxShadow(
-                  color: Color(0x080F172A),
-                  blurRadius: 10,
-                  offset: Offset(0, 3),
+                  color: Color(0x0A0F172A),
+                  blurRadius: 14,
+                  offset: Offset(0, 4),
                 ),
               ],
             ),
@@ -1308,7 +1306,7 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Animated Switcher for smooth spotlight transition
+                // Animated Switcher: card fades out and slides upward, new card enters and settles
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 380),
                   switchInCurve: Curves.easeOutCubic,
@@ -1323,13 +1321,25 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
                     );
                   },
                   transitionBuilder: (child, animation) {
+                    final bool isIncoming = child.key == ValueKey<int>(_currentIndex);
                     return FadeTransition(
                       opacity: animation,
                       child: SlideTransition(
-                        position: Tween<Offset>(
-                          begin: const Offset(0.0, 0.04),
-                          end: Offset.zero,
-                        ).animate(animation),
+                        position: isIncoming
+                            ? Tween<Offset>(
+                                begin: const Offset(0.0, 0.08),
+                                end: Offset.zero,
+                              ).animate(CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOutCubic,
+                              ))
+                            : Tween<Offset>(
+                                begin: const Offset(0.0, -0.08),
+                                end: Offset.zero,
+                              ).animate(CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeInCubic,
+                              )),
                         child: child,
                       ),
                     );
@@ -1340,45 +1350,118 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Category Header Row + Institutional Counter
+                        // Top Meta Row: Prominent Institutional Counter + Domain Tag
                         Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            // Brand Green Left Accent Bar
                             Container(
-                              width: 3.5,
-                              height: isCompact ? 15 : 17,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: isCompact ? 8 : 10,
+                                vertical: isCompact ? 3.5 : 4.5,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0F172A),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    '${card.id} / 04',
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: isCompact ? 11.0 : 12.0,
+                                      fontWeight: FontWeight.w800,
+                                      color: const Color(0xFFFFFFFF),
+                                      letterSpacing: 0.6,
+                                    ),
+                                  ),
+                                  Container(
+                                    width: 1,
+                                    height: 10,
+                                    color: const Color(0x40FFFFFF),
+                                    margin: const EdgeInsets.symmetric(horizontal: 7),
+                                  ),
+                                  Text(
+                                    card.domainLabel,
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: isCompact ? 9.5 : 10.5,
+                                      fontWeight: FontWeight.w700,
+                                      color: LandingTheme.brandGreen,
+                                      letterSpacing: 0.8,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            // Institutional Capability Badge
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: LandingTheme.brandGreen.withValues(alpha: 0.08),
+                                borderRadius: BorderRadius.circular(100),
+                                border: Border.all(
+                                  color: LandingTheme.brandGreen.withValues(alpha: 0.25),
+                                  width: 1,
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 5,
+                                    height: 5,
+                                    decoration: const BoxDecoration(
+                                      color: LandingTheme.brandGreen,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    'CORE PRACTICE',
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: 9.0,
+                                      fontWeight: FontWeight.w700,
+                                      color: LandingTheme.brandGreen,
+                                      letterSpacing: 0.6,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+
+                        SizedBox(height: isCompact ? 14 : 18),
+
+                        // Tier 1: Practice Area (Large, Strong, Dominant)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 4,
+                              height: isCompact ? 22 : 26,
                               decoration: BoxDecoration(
                                 color: LandingTheme.brandGreen,
                                 borderRadius: BorderRadius.circular(2),
                               ),
                             ),
-                            const SizedBox(width: 8),
+                            const SizedBox(width: 10),
                             Expanded(
                               child: FittedBox(
                                 fit: BoxFit.scaleDown,
                                 alignment: Alignment.centerLeft,
                                 child: Text(
-                                  area.title,
+                                  card.practiceArea,
                                   style: GoogleFonts.montserrat(
-                                    fontSize: isCompact ? 14.5 : 16.0,
-                                    fontWeight: FontWeight.w800,
+                                    fontSize: isCompact ? 22.0 : 26.0,
+                                    fontWeight: FontWeight.w900,
                                     color: const Color(0xFF0F172A),
-                                    letterSpacing: 0.6,
+                                    letterSpacing: 0.8,
                                   ),
                                   maxLines: 1,
                                   softWrap: false,
                                 ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            // Institutional Counter (e.g. 01 / 04)
-                            Text(
-                              '${area.id} / 04',
-                              style: GoogleFonts.montserrat(
-                                fontSize: isCompact ? 11.0 : 12.0,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF64748B),
-                                letterSpacing: 0.4,
                               ),
                             ),
                           ],
@@ -1388,71 +1471,70 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
                         Container(
                           height: 1,
                           color: const Color(0xFFE2E8F0),
-                          margin: EdgeInsets.only(
-                            top: isCompact ? 10 : 12,
-                            bottom: isCompact ? 10 : 12,
+                          margin: EdgeInsets.symmetric(vertical: isCompact ? 12 : 14),
+                        ),
+
+                        // Tier 2: Core Capability Statement (Medium size, fixed-height slot for stability)
+                        SizedBox(
+                          height: isCompact ? 50 : 58,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                card.capability,
+                                style: GoogleFonts.montserrat(
+                                  fontSize: isCompact ? 16.0 : 18.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF1E293B),
+                                  letterSpacing: -0.3,
+                                  height: 1.3,
+                                ),
+                                maxLines: 2,
+                                softWrap: true,
+                              ),
+                            ),
                           ),
                         ),
 
-                        // Fixed-height service mandates slot (Guarantees zero height-jumping between 2 and 3 services)
-                        SizedBox(
-                          height: isCompact ? 84 : 96,
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: List.generate(area.services.length, (serviceIndex) {
-                              final service = area.services[serviceIndex];
-                              return Padding(
-                                padding: EdgeInsets.only(
-                                  bottom: serviceIndex == area.services.length - 1
-                                      ? 0.0
-                                      : (isCompact ? 6.5 : 8.0),
+                        SizedBox(height: isCompact ? 10 : 14),
+
+                        // Tier 3: Client Type Supporting Line
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 13,
+                              color: LandingTheme.brandGreen,
+                            ),
+                            const SizedBox(width: 7),
+                            Expanded(
+                              child: Text(
+                                card.clientType,
+                                style: GoogleFonts.montserrat(
+                                  fontSize: isCompact ? 12.0 : 13.5,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF64748B),
+                                  letterSpacing: -0.2,
                                 ),
-                                child: Row(
-                                  crossAxisAlignment: CrossAxisAlignment.center,
-                                  children: [
-                                    Container(
-                                      width: 4.5,
-                                      height: 4.5,
-                                      decoration: const BoxDecoration(
-                                        color: LandingTheme.brandGreen,
-                                        shape: BoxShape.circle,
-                                      ),
-                                    ),
-                                    SizedBox(width: isCompact ? 8 : 10),
-                                    Expanded(
-                                      child: FittedBox(
-                                        fit: BoxFit.scaleDown,
-                                        alignment: Alignment.centerLeft,
-                                        child: Text(
-                                          service,
-                                          style: GoogleFonts.montserrat(
-                                            fontSize: isCompact ? 12.5 : 13.5,
-                                            fontWeight: FontWeight.w600,
-                                            color: const Color(0xFF1E293B),
-                                            letterSpacing: -0.2,
-                                          ),
-                                          maxLines: 1,
-                                          softWrap: false,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              );
-                            }),
-                          ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
                         ),
                       ],
                     ),
                   ),
                 ),
 
-                SizedBox(height: isCompact ? 12 : 14),
+                SizedBox(height: isCompact ? 16 : 20),
 
-                // ── PROGRESS RAIL (4 SEGMENTS: 01, 02, 03, 04) ───────────────────────────
+                // ── PROGRESS RAIL (4 PROMINENT SEGMENTS: 01, 02, 03, 04) ────────────────
                 Row(
-                  children: List.generate(_practiceAreas.length, (index) {
+                  children: List.generate(_capabilityCards.length, (index) {
                     final bool isActive = index == _currentIndex;
                     return Expanded(
                       child: GestureDetector(
@@ -1464,13 +1546,13 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
                           _resetTimer();
                         },
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 4.0),
+                          padding: const EdgeInsets.symmetric(horizontal: 2.5, vertical: 4.0),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 250),
-                            height: 3.0,
+                            height: 3.5,
                             decoration: BoxDecoration(
                               color: isActive ? LandingTheme.brandGreen : const Color(0xFFCBD5E1),
-                              borderRadius: BorderRadius.circular(1.5),
+                              borderRadius: BorderRadius.circular(2),
                             ),
                           ),
                         ),
