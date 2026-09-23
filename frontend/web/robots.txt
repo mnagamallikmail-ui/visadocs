@@ -1,0 +1,45 @@
+# ==============================================================================
+# ProValuer Commercial (visadocs.online) - Robots Configuration
+# ==============================================================================
+
+User-agent: *
+Allow: /
+Allow: /index.html
+Allow: /manifest.json
+Allow: /favicon.png
+Allow: /icons/
+Allow: /assets/
+
+# Disallow Private Internal Dashboards and API Endpoints
+Disallow: /client/
+Disallow: /pa/
+Disallow: /spa/
+Disallow: /admin/
+Disallow: /api/
+
+# Dedicated Directives for AI Search Engines & LLM Scrapers
+User-agent: Google-Extended
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+Disallow: /client/
+Disallow: /pa/
+Disallow: /spa/
+Disallow: /admin/
+Disallow: /api/
+
+User-agent: OAI-SearchBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# Canonical XML Sitemap
+Sitemap: https://visadocs.online/sitemap.xml
