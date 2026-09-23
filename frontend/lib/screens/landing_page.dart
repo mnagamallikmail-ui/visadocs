@@ -62,7 +62,7 @@ class _LandingPageState extends State<LandingPage> {
             controller: _scrollController,
             child: Column(
               children: [
-                const SizedBox(height: 80), // Clearance for floating header
+                const SizedBox(height: 16), // Minimized clearance for floating header (elevating Hero higher above fold)
                 // 1. Hero Section (50% Left / 50% Right Apple Vision Pro Layout)
                 HeroSection(
                   isDesktop: isDesktop,

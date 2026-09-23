@@ -549,9 +549,9 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
 
     // Viewport-aware sizing: Fit inside browser viewport without scrolling
     final double heroHeight = isDesktop
-        ? (screenH - 80).clamp(420.0, 820.0)
+        ? (screenH - 16).clamp(420.0, 820.0)
         : isTablet
-            ? (screenH - 80).clamp(480.0, 750.0)
+            ? (screenH - 16).clamp(480.0, 750.0)
             : (screenH * 0.82).clamp(480.0, 700.0);
 
     final bool isCompactLaptop = isDesktop && (screenH < 850 || screenW < 1440);
@@ -560,7 +560,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
       child: Container(
         width: double.infinity,
         height: isDesktop ? heroHeight : null,
-        constraints: BoxConstraints(minHeight: heroHeight),
+        constraints: isDesktop ? BoxConstraints(minHeight: heroHeight) : null,
         decoration: const BoxDecoration(
           color: Colors.white,
           gradient: RadialGradient(
@@ -573,9 +573,11 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
           ),
         ),
         child: Padding(
-          padding: EdgeInsets.symmetric(
-            horizontal: isDesktop ? 60 : 24,
-            vertical: isDesktop ? (isCompactLaptop ? 16 : 24) : 20,
+          padding: EdgeInsets.only(
+            left: isDesktop ? 60 : 24,
+            right: isDesktop ? 60 : 24,
+            top: isDesktop ? (isCompactLaptop ? 6 : 8) : 12,
+            bottom: isDesktop ? (isCompactLaptop ? 12 : 16) : 18,
           ),
           child: Center(
             child: ConstrainedBox(
@@ -593,6 +595,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
 
   Widget _buildForegroundContent(double screenW, double screenH, bool isDesktop, bool isTablet) {
     final bool isCompactLaptop = isDesktop && (screenH < 850 || screenW < 1440);
+    final bool isNarrow = !isDesktop || isCompactLaptop;
 
     return isDesktop
         ? Row(
@@ -616,9 +619,9 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
             mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildLeftHeroContent(screenW, screenH, isDesktop, isTablet, isCompactLaptop),
+              _buildLeftHeroContent(screenW, screenH, isDesktop, isTablet, isNarrow),
               const SizedBox(height: 28),
-              _buildRightDynamicContent(isCompactLaptop),
+              _buildRightDynamicContent(isNarrow),
             ],
           );
   }
@@ -663,11 +666,11 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
         ? 15.0
         : (isDesktop ? 17.5 : 14.5);
 
-    final double badgeGap = isCompactLaptop ? 10.0 : 16.0;
     final double keywordGap = isCompactLaptop ? 4.0 : 6.0;
     final double descGap = isCompactLaptop ? 12.0 : 18.0;
     final double trustGap = isCompactLaptop ? 14.0 : 20.0;
     final double ctaGap = isCompactLaptop ? 18.0 : 26.0;
+    final bool isNarrow = !isDesktop || isCompactLaptop;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -697,20 +700,36 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
             children: [
               const Icon(Icons.verified_rounded, size: 14, color: LandingTheme.primaryAccent),
               const SizedBox(width: 8),
-              Text(
-                'REGISTERED VALUERS (GOVT APPROVED) - IBBI & INCOME TAX • ASSET INTELLIGENCE',
-                style: GoogleFonts.montserrat(
-                  fontSize: isCompactLaptop ? 9.5 : 10.5,
-                  fontWeight: FontWeight.w700,
-                  color: LandingTheme.textPrimary,
-                  letterSpacing: isCompactLaptop ? 0.8 : 1.0,
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'REGISTERED VALUERS (GOVT APPROVED) • IBBI • INCOME TAX • ASSET INTELLIGENCE',
+                    style: GoogleFonts.montserrat(
+                      fontSize: isCompactLaptop ? 9.5 : 10.5,
+                      fontWeight: FontWeight.w700,
+                      color: LandingTheme.textPrimary,
+                      letterSpacing: isCompactLaptop ? 0.8 : 1.0,
+                    ),
+                    maxLines: 1,
+                    softWrap: false,
+                  ),
                 ),
               ),
             ],
           ),
         ),
 
-        SizedBox(height: badgeGap),
+        SizedBox(height: isNarrow ? 6.0 : (isCompactLaptop ? 7.0 : 8.0)),
+
+        // High-Trust Ribbon (Subtle single row on desktop, balanced 2-line on mobile)
+        _HeroTrustStrip(
+          isNarrow: isNarrow,
+          isCompact: isCompactLaptop,
+        ),
+
+        SizedBox(height: isNarrow ? 10.0 : (isCompactLaptop ? 11.0 : 13.0)),
 
         // Hero Headline Line 1: "Independent Valuation" (Guaranteed 1 line)
         FittedBox(
@@ -796,14 +815,18 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
 
         SizedBox(height: trustGap),
 
-        // Trust Indicators (Light Ambient Pills)
+        // Trust Indicators (Light Ambient Pills — Non-Duplicative Regulatory Mandates)
         Wrap(
           spacing: 10,
           runSpacing: 8,
           children: [
-            _buildTrustBadge(Icons.verified_user_outlined, 'IBBI / Sec 247 Compliant', isCompactLaptop),
-            _buildTrustBadge(Icons.account_balance_outlined, '₹15,000+ Cr Valued', isCompactLaptop),
-            _buildTrustBadge(Icons.assured_workload_outlined, 'Bank Empanelled', isCompactLaptop),
+            _buildTrustBadge(Icons.verified_user_outlined, 'Companies Act Sec 247 & IBBI', isCompactLaptop),
+            _buildTrustBadge(Icons.gavel_outlined, 'Rule 11UA / Income Tax', isCompactLaptop),
+            _buildTrustBadge(
+              Icons.assured_workload_outlined,
+              (!isDesktop || isCompactLaptop) ? 'PSU & Private Banks' : 'Empanelled with PSU & Private Banks',
+              isCompactLaptop,
+            ),
           ],
         ),
 
@@ -819,8 +842,8 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
               onTap: () => widget.launchWhatsApp('Hello, I would like to request an institutional valuation consultation with Pro Valuer.'),
               child: Container(
                 padding: EdgeInsets.symmetric(
-                  horizontal: isCompactLaptop ? 22 : 28,
-                  vertical: isCompactLaptop ? 13 : 16,
+                  horizontal: isCompactLaptop ? 18 : 28,
+                  vertical: isCompactLaptop ? 12 : 16,
                 ),
                 decoration: BoxDecoration(
                   color: LandingTheme.brandGreen, // Reusing brand green token
@@ -833,21 +856,24 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                     ),
                   ],
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      'Request Consultation',
-                      style: GoogleFonts.montserrat(
-                        fontSize: isCompactLaptop ? 13.5 : 14.5,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        letterSpacing: -0.2,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Request Consultation',
+                        style: GoogleFonts.montserrat(
+                          fontSize: isCompactLaptop ? 13.5 : 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          letterSpacing: -0.2,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.arrow_forward_rounded, size: 15, color: Colors.white),
-                  ],
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward_rounded, size: 15, color: Colors.white),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -863,7 +889,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
   Widget _buildTrustBadge(IconData icon, String text, bool isCompact) {
     return Container(
       padding: EdgeInsets.symmetric(
-        horizontal: isCompact ? 11 : 14,
+        horizontal: isCompact ? 10 : 14,
         vertical: isCompact ? 5 : 7,
       ),
       decoration: BoxDecoration(
@@ -875,16 +901,112 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: isCompact ? 13 : 14, color: LandingTheme.primaryAccent),
-          const SizedBox(width: 6),
-          Text(
-            text,
-            style: GoogleFonts.montserrat(
-              fontSize: isCompact ? 11.5 : 12.5,
-              fontWeight: FontWeight.w600,
-              color: LandingTheme.textPrimary,
-              letterSpacing: -0.1,
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              text,
+              style: GoogleFonts.montserrat(
+                fontSize: isCompact ? 11.0 : 12.5,
+                fontWeight: FontWeight.w600,
+                color: LandingTheme.textPrimary,
+                letterSpacing: -0.1,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
+        ],
+      ),
+    );
+  }
+}
+
+/// Subtle Institutional Trust Strip (Executive Masthead Ribbon)
+class _HeroTrustStrip extends StatelessWidget {
+  final bool isNarrow;
+  final bool isCompact;
+
+  const _HeroTrustStrip({
+    required this.isNarrow,
+    required this.isCompact,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final double fontSize = isNarrow ? 10.5 : (isCompact ? 11.5 : 12.5);
+    final TextStyle itemStyle = GoogleFonts.montserrat(
+      fontSize: fontSize,
+      fontWeight: FontWeight.w600,
+      color: const Color(0xFF334155), // Slate-700 executive tone
+      letterSpacing: -0.1,
+    );
+    final TextStyle strongStyle = GoogleFonts.montserrat(
+      fontSize: fontSize,
+      fontWeight: FontWeight.w700,
+      color: LandingTheme.textPrimary,
+      letterSpacing: -0.1,
+    );
+    const Widget bullet = Padding(
+      padding: EdgeInsets.symmetric(horizontal: 7),
+      child: Text(
+        '•',
+        style: TextStyle(
+          fontSize: 12,
+          color: Color(0xFF94A3B8), // Slate-400 subtle bullet
+          fontWeight: FontWeight.w800,
+        ),
+      ),
+    );
+
+    if (isNarrow) {
+      // Balanced two-line layout on mobile / compact viewports
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('₹15,000+ Cr Valued', style: strongStyle),
+                bullet,
+                Text('PSU & Private Banks', style: itemStyle),
+              ],
+            ),
+          ),
+          const SizedBox(height: 3.5),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('IBBI Registered Valuers', style: itemStyle),
+                bullet,
+                Text('PAN India Coverage', style: itemStyle),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Single unbroken horizontal row on desktop and tablet
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('₹15,000+ Cr Valued', style: strongStyle),
+          bullet,
+          Text('PSU & Private Banks', style: itemStyle),
+          bullet,
+          Text('IBBI Registered Valuers', style: itemStyle),
+          bullet,
+          Text('PAN India Coverage', style: itemStyle),
         ],
       ),
     );
@@ -933,25 +1055,28 @@ class _HeroPhonePillState extends State<_HeroPhonePill> {
                 ? LandingTheme.brandGreen.withValues(alpha: 0.05)
                 : Colors.transparent,
           ),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const FaIcon(
-                FontAwesomeIcons.phone,
-                color: LandingTheme.brandGreen,
-                size: 15,
-              ),
-              const SizedBox(width: 8),
-              Text(
-                '+91 85000 19091',
-                style: GoogleFonts.montserrat(
-                  fontSize: widget.isCompactLaptop ? 13.5 : 14.5,
-                  fontWeight: FontWeight.w600,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const FaIcon(
+                  FontAwesomeIcons.phone,
                   color: LandingTheme.brandGreen,
-                  letterSpacing: -0.2,
+                  size: 15,
                 ),
-              ),
-            ],
+                const SizedBox(width: 8),
+                Text(
+                  '+91 85000 19091',
+                  style: GoogleFonts.montserrat(
+                    fontSize: widget.isCompactLaptop ? 13.5 : 14.5,
+                    fontWeight: FontWeight.w600,
+                    color: LandingTheme.brandGreen,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -976,35 +1101,39 @@ class _ServiceCardData {
 const List<_ServiceCardData> _cascadingServiceCards = [
   _ServiceCardData(
     title: 'Visa & Immigration Valuations',
-    backgroundColor: Color(0xFFE8F1F5), // Soft Ice Blue
+    backgroundColor: Color(0xFFF7F8FA),
   ),
   _ServiceCardData(
     title: 'Bank Security Valuations',
-    backgroundColor: Color(0xFFE7EFE9), // Soft Sage
+    backgroundColor: Color(0xFFF3F4F6),
   ),
   _ServiceCardData(
     title: 'NCLT Transaction Support',
-    backgroundColor: Color(0xFFF6EFE6), // Soft Sand
+    backgroundColor: Color(0xFFEEF2F3),
   ),
   _ServiceCardData(
     title: 'Valuations under IBC',
-    backgroundColor: Color(0xFFEDEBF5), // Soft Lavender
+    backgroundColor: Color(0xFFECEFF1),
+  ),
+  _ServiceCardData(
+    title: 'Plant & Machinery Valuations',
+    backgroundColor: Color(0xFFE7EAED),
   ),
   _ServiceCardData(
     title: 'Chartered Engineer Services',
-    backgroundColor: Color(0xFFE5F3ED), // Soft Mint
+    backgroundColor: Color(0xFFE3E6E9),
   ),
   _ServiceCardData(
     title: 'Net Worth Certifications',
-    backgroundColor: Color(0xFFF3EAF1), // Soft Lilac
+    backgroundColor: Color(0xFFE0E4E8),
   ),
   _ServiceCardData(
     title: 'Valuation of Shares',
-    backgroundColor: Color(0xFFE6EEF6), // Soft Powder Blue
+    backgroundColor: Color(0xFFDCE1E5),
   ),
   _ServiceCardData(
-    title: 'Lenders Independent Engineer Services',
-    backgroundColor: Color(0xFFEEEFF1), // Soft Stone
+    title: "Lenders' Independent Engineer Services",
+    backgroundColor: Color(0xFFD8DDE1),
   ),
 ];
 
@@ -1035,12 +1164,12 @@ class _CascadingServiceStackState extends State<_CascadingServiceStack> with Sin
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2400),
+      duration: const Duration(milliseconds: 2430),
     );
 
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
-        // Requirement 5: Reading timer begins ONLY AFTER Card 8 has fully settled
+        // Requirement 5: Reading timer begins ONLY AFTER Card 9 has fully settled
         widget.onDeckSettled?.call();
 
         // Once all service cards have stacked:
@@ -1103,7 +1232,7 @@ class _CascadingServiceStackState extends State<_CascadingServiceStack> with Sin
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // ── TOP PERMANENT FIXED HEADER TILE (#0F172A, #FFFFFF text, brand green dot) ────
+        // ── TOP PERMANENT FIXED HEADER TILE (#0F172A, #FFFFFF text, brand green dot, SINGLE LINE) ────
         Container(
           width: double.infinity,
           padding: EdgeInsets.symmetric(
@@ -1128,13 +1257,21 @@ class _CascadingServiceStackState extends State<_CascadingServiceStack> with Sin
                 ),
               ),
               const SizedBox(width: 9),
-              Text(
-                'VALUATION EXPERTISE',
-                style: GoogleFonts.montserrat(
-                  fontSize: widget.isCompact ? 11.5 : 12.5,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFFFFFFFF),
-                  letterSpacing: 1.4,
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'VALUATION EXPERTISE',
+                    style: GoogleFonts.montserrat(
+                      fontSize: widget.isCompact ? 11.5 : 12.5,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFFFFFFFF),
+                      letterSpacing: 1.4,
+                    ),
+                    maxLines: 1,
+                    softWrap: false,
+                  ),
                 ),
               ),
             ],
@@ -1154,9 +1291,9 @@ class _CascadingServiceStackState extends State<_CascadingServiceStack> with Sin
                 final card = _cascadingServiceCards[index];
                 final bool isLast = index == _cascadingServiceCards.length - 1;
 
-                // Staggered timing per card: 1/8th of total duration each (~300ms)
-                final double start = (index / 8.0).clamp(0.0, 1.0);
-                final double end = ((index + 1) / 8.0).clamp(0.0, 1.0);
+                // Staggered timing per card: 1/9th of total duration each (~270ms)
+                final double start = (index / 9.0).clamp(0.0, 1.0);
+                final double end = ((index + 1) / 9.0).clamp(0.0, 1.0);
 
                 // If this card has not started its drop yet, do not display it.
                 // Ensures initially ONLY the fixed header tile is visible.
@@ -1234,8 +1371,8 @@ class _ServiceCardTile extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: EdgeInsets.symmetric(
-        horizontal: isCompact ? 14 : 18,
-        vertical: isCompact ? 8.5 : 10.5,
+        horizontal: isCompact ? 12 : 16,
+        vertical: isCompact ? 8.0 : 9.5,
       ),
       decoration: BoxDecoration(
         color: backgroundColor,
@@ -1246,20 +1383,36 @@ class _ServiceCardTile extends StatelessWidget {
               )
             : BorderRadius.zero,
       ),
-      child: FittedBox(
-        fit: BoxFit.scaleDown,
-        alignment: Alignment.centerLeft,
-        child: Text(
-          title,
-          style: GoogleFonts.montserrat(
-            fontSize: isCompact ? 13.0 : 14.0,
-            fontWeight: FontWeight.w700,
-            color: const Color(0xFF0F172A),
-            letterSpacing: -0.2,
+      child: Row(
+        children: [
+          // Precision Institutional Left Accent Strip:
+          Container(
+            width: 3,
+            height: isCompact ? 14 : 16,
+            decoration: BoxDecoration(
+              color: LandingTheme.brandGreen, // Only green element!
+              borderRadius: BorderRadius.circular(1.5),
+            ),
           ),
-          maxLines: 1,
-          softWrap: false,
-        ),
+          SizedBox(width: isCompact ? 8 : 10),
+          Expanded(
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                title,
+                style: GoogleFonts.montserrat(
+                  fontSize: isCompact ? 12.5 : 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF0F172A),
+                  letterSpacing: -0.2,
+                ),
+                maxLines: 1,
+                softWrap: false,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
