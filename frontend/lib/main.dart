@@ -10,6 +10,8 @@ import 'screens/spa_dashboard.dart';
 import 'screens/admin_dashboard.dart';
 import 'screens/landing_page.dart';
 import 'screens/services/bank_collateral_valuation_screen.dart';
+import 'screens/services/nclt_ibc_valuation_screen.dart';
+import 'screens/services/government_approved_valuers_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -39,8 +41,16 @@ class ProValuerApp extends StatelessWidget {
           builder: (context, state) => const LandingPage(),
         ),
         GoRoute(
+          path: '/government-approved-valuers',
+          builder: (context, state) => const GovernmentApprovedValuersScreen(),
+        ),
+        GoRoute(
           path: '/services/bank-collateral-valuation',
           builder: (context, state) => const BankCollateralValuationScreen(),
+        ),
+        GoRoute(
+          path: '/services/nclt-ibc-valuation',
+          builder: (context, state) => const NcltIbcValuationScreen(),
         ),
         GoRoute(
           path: '/login',
@@ -66,7 +76,10 @@ class ProValuerApp extends StatelessWidget {
       redirect: (context, state) {
         final loggedIn = auth.isAuthenticated;
         final loc = state.matchedLocation;
-        final isPublic = loc == '/' || loc == '/login' || loc.startsWith('/services/');
+        final isPublic = loc == '/' ||
+            loc == '/login' ||
+            loc.startsWith('/services/') ||
+            loc == '/government-approved-valuers';
 
         if (!loggedIn && !isPublic) {
           return '/login';

@@ -4,7 +4,15 @@
 
 ## Practice Areas & Core Capabilities
 
-### 1. Banking Practice — Collateral & Security Valuation
+### 1. Statutory & Government Practice — Government Approved Valuers
+- **Canonical Authority Page:** https://www.provaluer.in/government-approved-valuers
+- **Focus:** Government Approved Valuation, Property Valuation Expert Services, Wealth Tax Act Sec 34AB Appraisals, Income Tax Sec 50C/55A Defense, Visa Financial Solvency, Court & Matrimonial Valuations.
+- **Client Base:** Property Owners, Taxpayers, Chartered Accountants, Legal Advocates, Family Offices, NRIs, and Visa Applicants.
+- **Statutory Mandates:** Wealth Tax Act 1957 (Section 34AB), Income Tax Act 1961 (Sections 50C, 54, 55A, 56(2)(x)), Indian Evidence Act 1872 (Section 45), Family Courts Act 1984, Indian Succession Act 1925.
+- **Core Valuation Metrics:** Fair Market Value (FMV), SRO Circle Rate Discrepancy Defense, Historical FMV as of April 1, 2001, Visa Liquid Net Worth.
+- **Regional Footprint:** Hyderabad, Secunderabad, Telangana (HMDA, GHMC, Dharani, IGRS), Andhra Pradesh, and Nationwide coverage with 24-48 hours turnaround for standard appraisals.
+
+### 2. Banking Practice — Collateral & Security Valuation
 - **Canonical Service Page:** https://www.provaluer.in/services/bank-collateral-valuation
 - **Focus:** Bank Collateral Valuation, Mortgage Security Due Diligence, Lenders' Independent Engineer (LIE) Services.
 - **Client Base:** Nationalized PSU Banks (SBI, PNB, Canara Bank, BoB), Private Scheduled Commercial Banks (HDFC, ICICI, Axis), Foreign Banks, and Tier-1 NBFCs.
@@ -13,18 +21,21 @@
 - **Asset Classes:** Commercial Office Towers, IT/ITeS Parks, Industrial Manufacturing Sheds, Warehousing & Logistics Hubs, Plant & Machinery, Special Economic Zones (SEZs).
 - **Regional Footprint:** Deep operational presence in Hyderabad, Telangana (HMDA, GHMC, TSIIC industrial corridors), Andhra Pradesh, and South India with guaranteed 3-5 business days turnaround time.
 
-### 2. Corporate Practice — Equity & Financial Assets
+### 3. Corporate Practice — Equity & Financial Assets
 - **Focus:** Share Valuation & Net Worth Certification
 - **Client Base:** Corporates, Institutional Investors, Family Offices, and High-Growth Startups.
 - **Mandates:** Companies Act 2013 Section 247 compliance, FEMA cross-border equity pricing, Ind AS fair value measurement, and M&A share entitlement ratios.
 
-### 3. Regulatory Practice — NCLT & Insolvency
+### 4. Regulatory Practice — NCLT & Insolvency
 - **Canonical Service Page:** https://www.provaluer.in/services/nclt-ibc-valuation
-- **Focus:** NCLT & IBC Valuation Support
-- **Client Base:** Resolution Professionals (RPs), Liquidators, and Corporate Debtors.
-- **Mandates:** Statutory Fair Value and Liquidation Value determinations under Regulation 27 of CIRP Regulations.
+- **Focus:** CIRP Statutory Fair Value & Liquidation Value Appraisals, Regulation 27 Valuer Appointments, Section 30(2)(b) Distribution Floor Benchmarking, Forensic PUFE Economic Valuations.
+- **Client Base:** Insolvency Professionals (IPs), Interim Resolution Professionals (IRPs), Resolution Professionals (RPs), Liquidators, and Committee of Creditors (CoC).
+- **Statutory Mandates:** Insolvency and Bankruptcy Code 2016 (IBC), Regulation 27 & 35 of IBBI (CIRP) Regulations 2016, Companies Act 2013 (Section 247), IBBI (Liquidation Process) Regulations 2016.
+- **Core Valuation Metrics:** Regulation 2(1)(hb) Fair Value (Highest and Best Use arm's-length exchange), Regulation 2(1)(k) Liquidation Value (forced distress realization under statutory court timelines).
+- **Asset Classes:** Land & Building (industrial parks, SEZs), Plant & Machinery (heavy continuous process, chemical, pharma, steel), Securities & Financial Assets, Intangibles & Avoidance Transactions (Sections 43, 45, 50, 66).
+- **Regional Jurisdictions:** NCLT Hyderabad Bench, NCLT Bengaluru, NCLT Chennai, NCLT Amaravati, and Pan-India Benches with 30-45 day delivery SLA.
 
-### 4. Technical Practice — Engineering & Industrial Assets
+### 5. Technical Practice — Engineering & Industrial Assets
 - **Canonical Service Page:** https://www.provaluer.in/services/plant-machinery-technical-valuation
 - **Focus:** Plant & Machinery Technical Certification
 - **Client Base:** Heavy Manufacturing, Infrastructure, SEZ Developers, and Energy Assets.
