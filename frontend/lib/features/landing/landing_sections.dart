@@ -1090,14 +1090,12 @@ class _HeroPhonePillState extends State<_HeroPhonePill> {
 
 class _ExecutiveCapabilityCardData {
   final String id;
-  final String domainLabel;
   final String practiceArea;
   final String capability;
   final String clientType;
 
   const _ExecutiveCapabilityCardData({
     required this.id,
-    required this.domainLabel,
     required this.practiceArea,
     required this.capability,
     required this.clientType,
@@ -1107,28 +1105,24 @@ class _ExecutiveCapabilityCardData {
 const List<_ExecutiveCapabilityCardData> _capabilityCards = [
   _ExecutiveCapabilityCardData(
     id: '01',
-    domainLabel: 'DOMAIN 1 OF 4',
     practiceArea: 'BANKING',
     capability: 'Collateral & Security Valuation',
     clientType: 'For PSU & Private Banks',
   ),
   _ExecutiveCapabilityCardData(
     id: '02',
-    domainLabel: 'DOMAIN 2 OF 4',
     practiceArea: 'CORPORATE',
     capability: 'Share Valuation &\nNet Worth Certification',
     clientType: 'For Corporates & Investors',
   ),
   _ExecutiveCapabilityCardData(
     id: '03',
-    domainLabel: 'DOMAIN 3 OF 4',
     practiceArea: 'REGULATORY',
     capability: 'NCLT & IBC\nValuation Support',
     clientType: 'For Resolution Professionals',
   ),
   _ExecutiveCapabilityCardData(
     id: '04',
-    domainLabel: 'DOMAIN 4 OF 4',
     practiceArea: 'TECHNICAL',
     capability: 'Plant & Machinery\nTechnical Certification',
     clientType: 'For Industry & Engineering Assets',
@@ -1281,8 +1275,8 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
           Container(
             width: double.infinity,
             padding: EdgeInsets.symmetric(
-              horizontal: isCompact ? 18 : 24,
-              vertical: isCompact ? 18 : 22,
+              horizontal: isCompact ? 18 : 22,
+              vertical: isCompact ? 15 : 18,
             ),
             decoration: BoxDecoration(
               color: const Color(0xFFF8FAFC),
@@ -1307,6 +1301,7 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 // Animated Switcher: card fades out and slides upward, new card enters and settles
+                // Wrapped in an opaque surface to eliminate ALL ghosted background text
                 AnimatedSwitcher(
                   duration: const Duration(milliseconds: 380),
                   switchInCurve: Curves.easeOutCubic,
@@ -1340,7 +1335,10 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
                                 parent: animation,
                                 curve: Curves.easeInCubic,
                               )),
-                        child: child,
+                        child: Container(
+                          color: const Color(0xFFF8FAFC), // Opaque background eliminates ghosting
+                          child: child,
+                        ),
                       ),
                     );
                   },
@@ -1350,89 +1348,21 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        // Top Meta Row: Prominent Institutional Counter + Domain Tag
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.center,
-                          children: [
-                            Container(
-                              padding: EdgeInsets.symmetric(
-                                horizontal: isCompact ? 8 : 10,
-                                vertical: isCompact ? 3.5 : 4.5,
-                              ),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF0F172A),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    '${card.id} / 04',
-                                    style: GoogleFonts.montserrat(
-                                      fontSize: isCompact ? 11.0 : 12.0,
-                                      fontWeight: FontWeight.w800,
-                                      color: const Color(0xFFFFFFFF),
-                                      letterSpacing: 0.6,
-                                    ),
-                                  ),
-                                  Container(
-                                    width: 1,
-                                    height: 10,
-                                    color: const Color(0x40FFFFFF),
-                                    margin: const EdgeInsets.symmetric(horizontal: 7),
-                                  ),
-                                  Text(
-                                    card.domainLabel,
-                                    style: GoogleFonts.montserrat(
-                                      fontSize: isCompact ? 9.5 : 10.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: LandingTheme.brandGreen,
-                                      letterSpacing: 0.8,
-                                    ),
-                                  ),
-                                ],
-                              ),
+                        // Standalone Primary Counter Row (Sole Progression Indicator)
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '${card.id} / 04',
+                            style: GoogleFonts.montserrat(
+                              fontSize: isCompact ? 13.0 : 14.5,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF0F172A),
+                              letterSpacing: 0.8,
                             ),
-                            // Institutional Capability Badge
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                              decoration: BoxDecoration(
-                                color: LandingTheme.brandGreen.withValues(alpha: 0.08),
-                                borderRadius: BorderRadius.circular(100),
-                                border: Border.all(
-                                  color: LandingTheme.brandGreen.withValues(alpha: 0.25),
-                                  width: 1,
-                                ),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Container(
-                                    width: 5,
-                                    height: 5,
-                                    decoration: const BoxDecoration(
-                                      color: LandingTheme.brandGreen,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 5),
-                                  Text(
-                                    'CORE PRACTICE',
-                                    style: GoogleFonts.montserrat(
-                                      fontSize: 9.0,
-                                      fontWeight: FontWeight.w700,
-                                      color: LandingTheme.brandGreen,
-                                      letterSpacing: 0.6,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
 
-                        SizedBox(height: isCompact ? 14 : 18),
+                        SizedBox(height: isCompact ? 10 : 12),
 
                         // Tier 1: Practice Area (Large, Strong, Dominant)
                         Row(
@@ -1471,12 +1401,12 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
                         Container(
                           height: 1,
                           color: const Color(0xFFE2E8F0),
-                          margin: EdgeInsets.symmetric(vertical: isCompact ? 12 : 14),
+                          margin: EdgeInsets.symmetric(vertical: isCompact ? 8 : 10),
                         ),
 
-                        // Tier 2: Core Capability Statement (Medium size, fixed-height slot for stability)
+                        // Tier 2: Core Capability Statement (+15%-20% visual prominence)
                         SizedBox(
-                          height: isCompact ? 50 : 58,
+                          height: isCompact ? 48 : 54,
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: FittedBox(
@@ -1485,11 +1415,11 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
                               child: Text(
                                 card.capability,
                                 style: GoogleFonts.montserrat(
-                                  fontSize: isCompact ? 16.0 : 18.5,
-                                  fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF1E293B),
+                                  fontSize: isCompact ? 18.5 : 21.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF0F172A),
                                   letterSpacing: -0.3,
-                                  height: 1.3,
+                                  height: 1.25,
                                 ),
                                 maxLines: 2,
                                 softWrap: true,
@@ -1498,7 +1428,7 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
                           ),
                         ),
 
-                        SizedBox(height: isCompact ? 10 : 14),
+                        SizedBox(height: isCompact ? 8 : 10),
 
                         // Tier 3: Client Type Supporting Line
                         Row(
@@ -1514,7 +1444,7 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
                               child: Text(
                                 card.clientType,
                                 style: GoogleFonts.montserrat(
-                                  fontSize: isCompact ? 12.0 : 13.5,
+                                  fontSize: isCompact ? 12.0 : 13.0,
                                   fontWeight: FontWeight.w600,
                                   color: const Color(0xFF64748B),
                                   letterSpacing: -0.2,
@@ -1530,9 +1460,9 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
                   ),
                 ),
 
-                SizedBox(height: isCompact ? 16 : 20),
+                SizedBox(height: isCompact ? 12 : 14),
 
-                // ── PROGRESS RAIL (4 PROMINENT SEGMENTS: 01, 02, 03, 04) ────────────────
+                // ── PROGRESS RAIL (SUBTLE SECONDARY CUE, 2.0PX HEIGHT) ─────────────────
                 Row(
                   children: List.generate(_capabilityCards.length, (index) {
                     final bool isActive = index == _currentIndex;
@@ -1546,13 +1476,13 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
                           _resetTimer();
                         },
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 2.5, vertical: 4.0),
+                          padding: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 3.0),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 250),
-                            height: 3.5,
+                            height: 2.0,
                             decoration: BoxDecoration(
-                              color: isActive ? LandingTheme.brandGreen : const Color(0xFFCBD5E1),
-                              borderRadius: BorderRadius.circular(2),
+                              color: isActive ? LandingTheme.brandGreen : const Color(0xFFE2E8F0),
+                              borderRadius: BorderRadius.circular(1.0),
                             ),
                           ),
                         ),
