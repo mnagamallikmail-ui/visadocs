@@ -207,7 +207,7 @@ class LandingHeader extends StatelessWidget {
                               width: 32,
                               height: 32,
                               decoration: BoxDecoration(
-                                color: const Color(0xFF005C5C),
+                                color: LandingTheme.brandGreen,
                                 borderRadius: BorderRadius.circular(8),
                                 boxShadow: const [
                                   BoxShadow(
@@ -266,13 +266,13 @@ class LandingHeader extends StatelessWidget {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF005C5C),
+                              color: LandingTheme.brandGreen,
                               borderRadius: BorderRadius.circular(100),
-                              boxShadow: const [
+                              boxShadow: [
                                 BoxShadow(
-                                  color: Color(0x2E005C5C),
+                                  color: LandingTheme.brandGreen.withValues(alpha: 0.18),
                                   blurRadius: 14,
-                                  offset: Offset(0, 4),
+                                  offset: const Offset(0, 4),
                                 ),
                               ],
                             ),
@@ -449,9 +449,8 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
   bool _isVideoPlaying = false;
   bool _storyCompleted = false;
 
-  // 500ms content fade controller (1.0 = reading mode, 0.0 = video mode)
-  late AnimationController _contentFadeController;
-  Timer? _storyTimer;
+  int? _pendingNextVideoIndex = 0;
+  Timer? _readingCountdownTimer;
 
   @override
   void initState() {
@@ -481,67 +480,63 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
       });
     });
 
-    // 2. Content fade controller (starts fully visible at 1.0)
-    _contentFadeController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-      value: 1.0,
-    );
+    // 2. Initial page load: Page starts in Reading Mode with Valuation Expertise deck building.
+    // Reading timer begins ONLY after Card 8 has fully settled (_onDeckSettled callback).
+  }
 
-    // 3. Initial page load: Hero content shown normally for 3 seconds, then Video 1 starts
-    _storyTimer = Timer(const Duration(seconds: 3), () {
-      _startVideo(0);
+  void _onDeckSettled() {
+    if (!mounted || _storyCompleted || _isVideoPlaying) return;
+    if (_pendingNextVideoIndex == null) return;
+
+    // Requirement 5: Reading timer begins ONLY AFTER Card 8 has fully settled
+    _readingCountdownTimer?.cancel();
+    _readingCountdownTimer = Timer(const Duration(seconds: 10), () {
+      if (!mounted || _storyCompleted || _isVideoPlaying) return;
+      final nextIndex = _pendingNextVideoIndex;
+      _pendingNextVideoIndex = null;
+      if (nextIndex != null && nextIndex < _heroStoryVideos.length) {
+        _startVideo(nextIndex);
+      }
     });
   }
 
   void _startVideo(int index) {
     if (!mounted || _storyCompleted) return;
-
-    // Smoothly fade OUT all hero content (500ms):
-    // Headline, rotating keywords, description, trust indicators, CTA buttons, and eyebrow badge
-    _contentFadeController.reverse().then((_) {
-      if (!mounted || _storyCompleted) return;
-      // After fade completes: content is completely invisible (opacity 0.0).
-      // Now activate video playback so user ONLY sees full-width video + dark overlay!
-      setState(() {
-        _currentVideoIndex = index;
-        _isVideoPlaying = true;
-      });
+    _readingCountdownTimer?.cancel();
+    setState(() {
+      _currentVideoIndex = index;
+      _isVideoPlaying = true;
     });
   }
 
   void _onVideoCompleted(int completedIndex) {
     if (!mounted) return;
 
+    _readingCountdownTimer?.cancel();
+
     // Immediately stop video playback
     setState(() {
       _isVideoPlaying = false;
     });
 
-    // Smoothly fade IN all hero content (500ms)
-    _contentFadeController.forward();
-
-    // If Video 8 has finished, sequence finishes permanently
+    // If final video in story has finished:
     if (completedIndex >= _heroStoryVideos.length - 1) {
-      _storyCompleted = true;
+      setState(() {
+        _storyCompleted = true;
+        _pendingNextVideoIndex = null;
+      });
       return;
     }
 
-    // 10-second reading window where content is fully visible and interactive,
-    // and NO video is playing.
-    _storyTimer?.cancel();
-    _storyTimer = Timer(const Duration(seconds: 10), () {
-      if (!mounted || _storyCompleted) return;
-      _startVideo(completedIndex + 1);
-    });
+    // Next video will be queued; reading timer triggers once the deck settles
+    _pendingNextVideoIndex = completedIndex + 1;
   }
 
   @override
   void dispose() {
-    _storyTimer?.cancel();
+    _readingCountdownTimer?.cancel();
     _keywordTimer?.cancel();
     _keywordAnimController.dispose();
-    _contentFadeController.dispose();
     super.dispose();
   }
 
@@ -553,7 +548,6 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
     final bool isTablet = screenW >= 768 && screenW < 1024;
 
     // Viewport-aware sizing: Fit inside browser viewport without scrolling
-    // Top clearance above Hero is 80px (SizedBox(height: 80) in landing_page.dart).
     final double heroHeight = isDesktop
         ? (screenH - 80).clamp(420.0, 820.0)
         : isTablet
@@ -578,98 +572,42 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
             ],
           ),
         ),
-        child: Stack(
-          alignment: Alignment.center,
-          children: [
-            // ── LAYER 1: Full-Width Cinematic Video Background (SHARP & UNBLURRED) ──
-            // ONLY rendered/visible during Video Mode. In Reading Mode, the video layer is
-            // completely hidden so ZERO frozen frame, paused image, or static poster frame remains!
-            if (!_storyCompleted)
-              Positioned.fill(
-                child: Visibility(
-                  visible: _isVideoPlaying,
-                  maintainState: true,
-                  child: HeroVideoWidget(
-                    videoAssets: _heroStoryVideos,
-                    activeVideoIndex: _currentVideoIndex,
-                    isPlaying: _isVideoPlaying,
-                    onVideoCompleted: _onVideoCompleted,
-                  ),
-                ),
-              ),
-
-            // ── LAYER 2: Existing Dark Horizontal Gradient Overlay ───────────────────
-            // ONLY present during Video Mode for cinematic contrast
-            if (_isVideoPlaying)
-              Positioned.fill(
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: isDesktop ? Alignment.centerLeft : Alignment.topCenter,
-                      end: isDesktop ? Alignment.centerRight : Alignment.bottomCenter,
-                      stops: const [0.0, 0.50, 1.0],
-                      colors: const [
-                        Color.fromRGBO(8, 14, 26, 0.82), // Left (or Top on mobile): 82%
-                        Color.fromRGBO(8, 14, 26, 0.55), // Center: 55%
-                        Color.fromRGBO(8, 14, 26, 0.20), // Right (or Bottom on mobile): 20%
-                      ],
-                    ),
-                  ),
-                ),
-              ),
-
-            // ── LAYER 3: Foreground Hero Content (Headline, Keyword, Description, CTAs, Trust) ──
-            // Fades OUT completely during video playback (Opacity 1.0 -> 0.0 over 500ms)
-            // Fades IN completely during reading window (Opacity 0.0 -> 1.0 over 500ms)
-            FadeTransition(
-              opacity: _contentFadeController,
-              child: IgnorePointer(
-                ignoring: _isVideoPlaying,
-                child: Padding(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: isDesktop ? 60 : 24,
-                    vertical: isDesktop ? (isCompactLaptop ? 16 : 24) : 20,
-                  ),
-                  child: Center(
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 1320),
-                      child: SizedBox(
-                        width: double.infinity,
-                        child: _buildForegroundContent(screenW, screenH, isDesktop, isTablet),
-                      ),
-                    ),
-                  ),
-                ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(
+            horizontal: isDesktop ? 60 : 24,
+            vertical: isDesktop ? (isCompactLaptop ? 16 : 24) : 20,
+          ),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1320),
+              child: SizedBox(
+                width: double.infinity,
+                child: _buildForegroundContent(screenW, screenH, isDesktop, isTablet),
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildForegroundContent(double screenW, double screenH, bool isDesktop, bool isTablet) {
-    // Viewport-aware typography & spacing to guarantee zero scrolling on laptops (1366x768, 1440x900, 1536x864)
     final bool isCompactLaptop = isDesktop && (screenH < 850 || screenW < 1440);
 
     return isDesktop
         ? Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Left Column: Hero Content, Headline, Trust, CTAs
+              // Left Column: Hero Content, Headline, Trust, CTAs (Permanently visible on white background)
               Expanded(
                 flex: isCompactLaptop ? 13 : 14,
                 child: _buildLeftHeroContent(screenW, screenH, isDesktop, isTablet, isCompactLaptop),
               ),
               SizedBox(width: isCompactLaptop ? 28 : 40),
-              // Right Column: Specialized Services Cascading Card Stack (Visible during Reading Mode)
+              // Right Column: Dynamic area (Video Mode OR Valuation Expertise Mode)
               Expanded(
                 flex: isCompactLaptop ? 9 : 10,
-                child: _CascadingServiceStack(
-                  isCompact: isCompactLaptop,
-                  isVideoPlaying: _isVideoPlaying,
-                  isCompleted: _storyCompleted,
-                ),
+                child: _buildRightDynamicContent(isCompactLaptop),
               ),
             ],
           )
@@ -680,13 +618,36 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
             children: [
               _buildLeftHeroContent(screenW, screenH, isDesktop, isTablet, isCompactLaptop),
               const SizedBox(height: 28),
-              _CascadingServiceStack(
-                isCompact: true,
-                isVideoPlaying: _isVideoPlaying,
-                isCompleted: _storyCompleted,
-              ),
+              _buildRightDynamicContent(isCompactLaptop),
             ],
           );
+  }
+
+  Widget _buildRightDynamicContent(bool isCompact) {
+    if (_isVideoPlaying) {
+      // VIDEO MODE:
+      // Video occupies ONLY the right side.
+      // Valuation Expertise heading, service deck, and service tile animation are completely hidden.
+      // Remove ALL visual framing around the video:
+      // No borders, no rounded frame, no card appearance, no drop shadows, no outlines, no floating container.
+      return ClipRect(
+        child: HeroVideoWidget(
+          videoAssets: _heroStoryVideos,
+          activeVideoIndex: _currentVideoIndex,
+          isPlaying: _isVideoPlaying,
+          onVideoCompleted: _onVideoCompleted,
+        ),
+      );
+    } else {
+      // VALUATION EXPERTISE MODE:
+      // Animated service deck under fixed #0F172A header tile
+      return _CascadingServiceStack(
+        isCompact: isCompact,
+        isVideoPlaying: _isVideoPlaying,
+        isCompleted: _storyCompleted,
+        onDeckSettled: _onDeckSettled,
+      );
+    }
   }
 
   Widget _buildLeftHeroContent(double screenW, double screenH, bool isDesktop, bool isTablet, bool isCompactLaptop) {
@@ -751,23 +712,27 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
 
         SizedBox(height: badgeGap),
 
-        // Hero Headline Line 1 (High-Contrast Obsidian Charcoal Slate)
-        Text(
-          'Independent Valuation',
-          maxLines: 1,
-          softWrap: false,
-          style: GoogleFonts.montserrat(
-            fontSize: headlineSize,
-            fontWeight: FontWeight.w800,
-            color: LandingTheme.textPrimary,
-            letterSpacing: -1.8,
-            height: 1.08,
+        // Hero Headline Line 1: "Independent Valuation" (Guaranteed 1 line)
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'Independent Valuation',
+            maxLines: 1,
+            softWrap: false,
+            style: GoogleFonts.montserrat(
+              fontSize: headlineSize,
+              fontWeight: FontWeight.w800,
+              color: LandingTheme.textPrimary,
+              letterSpacing: -1.8,
+              height: 1.08,
+            ),
           ),
         ),
 
         SizedBox(height: keywordGap),
 
-        // Hero Headline Line 2: "For" permanently attached to Animated Phrase (Solid Deep Teal)
+        // Hero Headline Line 2: "For <Animated Phrase>" (Guaranteed 1 line)
         FittedBox(
           fit: BoxFit.scaleDown,
           alignment: Alignment.centerLeft,
@@ -796,7 +761,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                           style: GoogleFonts.montserrat(
                             fontSize: keywordSize,
                             fontWeight: FontWeight.w800,
-                            color: const Color(0xFF005C5C), // Solid Deep Teal
+                            color: LandingTheme.brandGreen, // Reusing brand green token
                             letterSpacing: -1.8,
                             height: 1.08,
                           ),
@@ -858,13 +823,13 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                   vertical: isCompactLaptop ? 13 : 16,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF005C5C), // Solid Deep Teal
+                  color: LandingTheme.brandGreen, // Reusing brand green token
                   borderRadius: BorderRadius.circular(100),
-                  boxShadow: const [
+                  boxShadow: [
                     BoxShadow(
-                      color: Color(0x2E005C5C),
+                      color: LandingTheme.brandGreen.withValues(alpha: 0.18),
                       blurRadius: 20,
-                      offset: Offset(0, 6),
+                      offset: const Offset(0, 6),
                     ),
                   ],
                 ),
@@ -960,12 +925,12 @@ class _HeroPhonePillState extends State<_HeroPhonePill> {
           ),
           decoration: BoxDecoration(
             border: Border.all(
-              color: const Color(0xFF005C5C).withValues(alpha: 0.3),
+              color: LandingTheme.brandGreen.withValues(alpha: 0.3),
               width: 1,
             ),
             borderRadius: BorderRadius.circular(100),
             color: _isHovered
-                ? const Color(0xFF005C5C).withValues(alpha: 0.05)
+                ? LandingTheme.brandGreen.withValues(alpha: 0.05)
                 : Colors.transparent,
           ),
           child: Row(
@@ -973,7 +938,7 @@ class _HeroPhonePillState extends State<_HeroPhonePill> {
             children: [
               const FaIcon(
                 FontAwesomeIcons.phone,
-                color: Color(0xFF005C5C),
+                color: LandingTheme.brandGreen,
                 size: 15,
               ),
               const SizedBox(width: 8),
@@ -982,7 +947,7 @@ class _HeroPhonePillState extends State<_HeroPhonePill> {
                 style: GoogleFonts.montserrat(
                   fontSize: widget.isCompactLaptop ? 13.5 : 14.5,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF005C5C),
+                  color: LandingTheme.brandGreen,
                   letterSpacing: -0.2,
                 ),
               ),
@@ -1011,35 +976,35 @@ class _ServiceCardData {
 const List<_ServiceCardData> _cascadingServiceCards = [
   _ServiceCardData(
     title: 'Visa & Immigration Valuations',
-    backgroundColor: Color(0xFFFFFFFF),
+    backgroundColor: Color(0xFFE8F1F5), // Soft Ice Blue
   ),
   _ServiceCardData(
     title: 'Bank Security Valuations',
-    backgroundColor: Color(0xFFFFFFFF),
+    backgroundColor: Color(0xFFE7EFE9), // Soft Sage
   ),
   _ServiceCardData(
     title: 'NCLT Transaction Support',
-    backgroundColor: Color(0xFFFFFFFF),
+    backgroundColor: Color(0xFFF6EFE6), // Soft Sand
   ),
   _ServiceCardData(
     title: 'Valuations under IBC',
-    backgroundColor: Color(0xFFFFFFFF),
+    backgroundColor: Color(0xFFEDEBF5), // Soft Lavender
   ),
   _ServiceCardData(
     title: 'Chartered Engineer Services',
-    backgroundColor: Color(0xFFFFFFFF),
+    backgroundColor: Color(0xFFE5F3ED), // Soft Mint
   ),
   _ServiceCardData(
     title: 'Net Worth Certifications',
-    backgroundColor: Color(0xFFFFFFFF),
+    backgroundColor: Color(0xFFF3EAF1), // Soft Lilac
   ),
   _ServiceCardData(
     title: 'Valuation of Shares',
-    backgroundColor: Color(0xFFFFFFFF),
+    backgroundColor: Color(0xFFE6EEF6), // Soft Powder Blue
   ),
   _ServiceCardData(
     title: 'Lenders Independent Engineer Services',
-    backgroundColor: Color(0xFFFFFFFF),
+    backgroundColor: Color(0xFFEEEFF1), // Soft Stone
   ),
 ];
 
@@ -1047,11 +1012,13 @@ class _CascadingServiceStack extends StatefulWidget {
   final bool isCompact;
   final bool isVideoPlaying;
   final bool isCompleted;
+  final VoidCallback? onDeckSettled;
 
   const _CascadingServiceStack({
     required this.isCompact,
     required this.isVideoPlaying,
     required this.isCompleted,
+    this.onDeckSettled,
   });
 
   @override
@@ -1068,20 +1035,24 @@ class _CascadingServiceStackState extends State<_CascadingServiceStack> with Sin
     super.initState();
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2560),
+      duration: const Duration(milliseconds: 2400),
     );
 
     _controller.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
+        // Requirement 5: Reading timer begins ONLY AFTER Card 8 has fully settled
+        widget.onDeckSettled?.call();
+
         // Once all service cards have stacked:
-        // Pause briefly (1800ms) so user can read the complete deck.
+        // Hold for 3000ms so user can read the complete deck.
         _pauseTimer?.cancel();
-        _pauseTimer = Timer(const Duration(milliseconds: 1800), () {
+        _pauseTimer = Timer(const Duration(milliseconds: 3000), () {
           if (!mounted) return;
-          // Then remove all service cards: return to VALUATION EXPERTISE only!
+          // Return to VALUATION EXPERTISE header only
           _controller.reset();
 
           // Pause briefly (400ms) on header card only, then repeat stacking sequence:
+          // Kept alive continuously during reading mode and after final video
           _restartTimer?.cancel();
           _restartTimer = Timer(const Duration(milliseconds: 400), () {
             if (!mounted) return;
@@ -1105,6 +1076,7 @@ class _CascadingServiceStackState extends State<_CascadingServiceStack> with Sin
 
     if (oldWidget.isVideoPlaying && !widget.isVideoPlaying) {
       // Returning to Reading Mode from Video Mode:
+      // Start with header only, then rebuild deck from scratch
       _pauseTimer?.cancel();
       _restartTimer?.cancel();
       _controller.reset();
@@ -1131,7 +1103,7 @@ class _CascadingServiceStackState extends State<_CascadingServiceStack> with Sin
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // ── TOP FIXED HEADER CARD (Never moves, remains fixed at top) ────
+        // ── TOP PERMANENT FIXED HEADER TILE (#0F172A, #FFFFFF text, brand green dot) ────
         Container(
           width: double.infinity,
           padding: EdgeInsets.symmetric(
@@ -1141,36 +1113,27 @@ class _CascadingServiceStackState extends State<_CascadingServiceStack> with Sin
           decoration: const BoxDecoration(
             color: Color(0xFF0F172A),
             borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(8),
-              topRight: Radius.circular(8),
-              bottomLeft: Radius.circular(2),
-              bottomRight: Radius.circular(2),
+              topLeft: Radius.circular(6),
+              topRight: Radius.circular(6),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Color(0x180F172A),
-                blurRadius: 10,
-                offset: Offset(0, 2),
-              ),
-            ],
           ),
           child: Row(
             children: [
               Container(
-                width: 6,
-                height: 6,
+                width: 7,
+                height: 7,
                 decoration: const BoxDecoration(
-                  color: Color(0xFF005C5C),
+                  color: LandingTheme.brandGreen, // Exact unified brand green token
                   shape: BoxShape.circle,
                 ),
               ),
-              const SizedBox(width: 8),
+              const SizedBox(width: 9),
               Text(
                 'VALUATION EXPERTISE',
                 style: GoogleFonts.montserrat(
                   fontSize: widget.isCompact ? 11.5 : 12.5,
                   fontWeight: FontWeight.w800,
-                  color: Colors.white,
+                  color: const Color(0xFFFFFFFF),
                   letterSpacing: 1.4,
                 ),
               ),
@@ -1178,9 +1141,9 @@ class _CascadingServiceStackState extends State<_CascadingServiceStack> with Sin
           ),
         ),
 
-        const SizedBox(height: 1.0),
+        const SizedBox(height: 1.5), // Hairline spacing between header and deck
 
-        // ── SERVICE TILES (STAGGERED DROP, EXPAND & CONTINUOUS LOOP) ───────
+        // ── SERVICE TILES (STAGGERED DROP, EXPAND & CONTINUOUS STACK BUILD) ───────
         AnimatedBuilder(
           animation: _controller,
           builder: (context, child) {
@@ -1191,12 +1154,12 @@ class _CascadingServiceStackState extends State<_CascadingServiceStack> with Sin
                 final card = _cascadingServiceCards[index];
                 final bool isLast = index == _cascadingServiceCards.length - 1;
 
-                // Staggered timing per card: 1/8th of total duration each (~320ms)
+                // Staggered timing per card: 1/8th of total duration each (~300ms)
                 final double start = (index / 8.0).clamp(0.0, 1.0);
                 final double end = ((index + 1) / 8.0).clamp(0.0, 1.0);
 
-                // If this card has not started its drop yet, do not display it!
-                // This ensures initially ONLY the fixed header card is visible.
+                // If this card has not started its drop yet, do not display it.
+                // Ensures initially ONLY the fixed header tile is visible.
                 if (_controller.value < start) {
                   return const SizedBox.shrink();
                 }
@@ -1210,17 +1173,17 @@ class _CascadingServiceStackState extends State<_CascadingServiceStack> with Sin
                 final double springCurve = Curves.easeOutBack.transform(rawProgress.clamp(0.0, 1.0));
 
                 // Drops downward from above the stack
-                final double translateY = (1.0 - dropCurve) * -22.0;
+                final double translateY = (1.0 - dropCurve) * -20.0;
 
-                // Expands horizontally to full width
-                final double scaleX = 0.93 + 0.07 * springCurve;
+                // Expands horizontally into position
+                final double scaleX = 0.94 + 0.06 * springCurve;
 
                 // Vertical reveal into the deck
                 final double heightFactor = dropCurve;
-                final double opacity = (rawProgress / 0.30).clamp(0.0, 1.0);
+                final double opacity = (rawProgress / 0.28).clamp(0.0, 1.0);
 
                 return Padding(
-                  padding: EdgeInsets.only(bottom: isLast ? 0.0 : 1.0),
+                  padding: EdgeInsets.only(bottom: isLast ? 0.0 : 1.5), // Hairline 1.5px gap
                   child: ClipRect(
                     child: Align(
                       alignment: Alignment.topCenter,
@@ -1253,7 +1216,7 @@ class _CascadingServiceStackState extends State<_CascadingServiceStack> with Sin
   }
 }
 
-class _ServiceCardTile extends StatefulWidget {
+class _ServiceCardTile extends StatelessWidget {
   final String title;
   final Color backgroundColor;
   final bool isCompact;
@@ -1267,77 +1230,35 @@ class _ServiceCardTile extends StatefulWidget {
   });
 
   @override
-  State<_ServiceCardTile> createState() => _ServiceCardTileState();
-}
-
-class _ServiceCardTileState extends State<_ServiceCardTile> {
-  bool _isHovered = false;
-
-  @override
   Widget build(BuildContext context) {
-    return MouseRegion(
-      cursor: SystemMouseCursors.click,
-      onEnter: (_) => setState(() => _isHovered = true),
-      onExit: (_) => setState(() => _isHovered = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        width: double.infinity,
-        padding: EdgeInsets.symmetric(
-          horizontal: widget.isCompact ? 14 : 18,
-          vertical: widget.isCompact ? 8.5 : 10.5,
-        ),
-        decoration: BoxDecoration(
-          color: widget.backgroundColor,
-          borderRadius: widget.isLast
-              ? const BorderRadius.only(
-                  topLeft: Radius.circular(2),
-                  topRight: Radius.circular(2),
-                  bottomLeft: Radius.circular(8),
-                  bottomRight: Radius.circular(8),
-                )
-              : BorderRadius.circular(2),
-          border: const Border(
-            bottom: BorderSide(
-              color: Color(0xFFE2E8F0),
-              width: 1.0,
-            ),
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 14 : 18,
+        vertical: isCompact ? 8.5 : 10.5,
+      ),
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        borderRadius: isLast
+            ? const BorderRadius.only(
+                bottomLeft: Radius.circular(6),
+                bottomRight: Radius.circular(6),
+              )
+            : BorderRadius.zero,
+      ),
+      child: FittedBox(
+        fit: BoxFit.scaleDown,
+        alignment: Alignment.centerLeft,
+        child: Text(
+          title,
+          style: GoogleFonts.montserrat(
+            fontSize: isCompact ? 13.0 : 14.0,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF0F172A),
+            letterSpacing: -0.2,
           ),
-          boxShadow: _isHovered
-              ? const [
-                  BoxShadow(
-                    color: Color(0x0A005C5C),
-                    blurRadius: 6,
-                    offset: Offset(0, 2),
-                  ),
-                ]
-              : null,
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Text(
-                widget.title,
-                style: GoogleFonts.montserrat(
-                  fontSize: widget.isCompact ? 13.0 : 14.0,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0F172A),
-                  letterSpacing: -0.2,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            const SizedBox(width: 8),
-            AnimatedOpacity(
-              duration: const Duration(milliseconds: 160),
-              opacity: _isHovered ? 1.0 : 0.55,
-              child: Icon(
-                Icons.keyboard_arrow_down,
-                size: 20,
-                color: _isHovered ? const Color(0xFF005C5C) : const Color(0xFF0F172A),
-              ),
-            ),
-          ],
+          maxLines: 1,
+          softWrap: false,
         ),
       ),
     );
@@ -2200,7 +2121,7 @@ class MobileMenuDrawer extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF005C5C),
+                      color: LandingTheme.brandGreen,
                       borderRadius: BorderRadius.circular(100),
                     ),
                     child: Center(

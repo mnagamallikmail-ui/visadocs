@@ -266,23 +266,23 @@ class _HeroVideoWidgetState extends State<HeroVideoWidget> {
     }
 
     final ctrl = _currentController!;
+    final double videoAspect = ctrl.value.aspectRatio > 0 ? ctrl.value.aspectRatio : (16 / 9);
 
-    return Stack(
-      fit: StackFit.expand,
-      children: [
-        // Solid dark base to eliminate any possible flicker
-        const ColoredBox(color: Color(0xFF080E1A)),
-
-        // Native 1080p unblurred sharp video
-        FittedBox(
-          fit: BoxFit.cover,
-          child: SizedBox(
-            width: ctrl.value.size.width > 0 ? ctrl.value.size.width : 1920,
-            height: ctrl.value.size.height > 0 ? ctrl.value.size.height : 1080,
-            child: VideoPlayer(ctrl),
+    return Center(
+      child: AspectRatio(
+        aspectRatio: videoAspect,
+        child: ColoredBox(
+          color: const Color(0xFF080E1A),
+          child: FittedBox(
+            fit: BoxFit.contain,
+            child: SizedBox(
+              width: ctrl.value.size.width > 0 ? ctrl.value.size.width : 1920,
+              height: ctrl.value.size.height > 0 ? ctrl.value.size.height : 1080,
+              child: VideoPlayer(ctrl),
+            ),
           ),
         ),
-      ],
+      ),
     );
   }
 }

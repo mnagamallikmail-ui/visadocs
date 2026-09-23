@@ -22,6 +22,7 @@ class LandingTheme {
 
   // ── Architectural Platinum & Graphite Material Palette ─────────────────────
   static const Color primaryAccent = Color(0xFF111827); // Deep Graphite / Charcoal
+  static const Color brandGreen = Color(0xFF005C5C); // Solid Deep Teal / Institutional Brand Green
   static const Color secondaryAccent = Color(0xFF334155); // Slate Graphite
   static const Color platinumHighlight = Color(0xFFE2E8F0); // Polished Platinum
   static const Color pearlWhite = Color(0xFFF8FAFC); // Pearl White
