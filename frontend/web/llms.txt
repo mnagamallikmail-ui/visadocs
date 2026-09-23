@@ -4,29 +4,34 @@
 
 ## Practice Areas & Core Capabilities
 
-### 1. Banking Practice
-- **Focus:** Collateral & Security Valuation
-- **Client Base:** PSU Banks, Private Commercial Banks, Foreign Banks, and Non-Banking Financial Companies (NBFCs).
-- **Mandates:** Mortgage appraisals, credit exposure evaluation, SARFAESI reserve price determinations, and Lenders' Independent Engineer (LIE) services.
+### 1. Banking Practice — Collateral & Security Valuation
+- **Canonical Service Page:** https://www.provaluer.in/services/bank-collateral-valuation
+- **Focus:** Bank Collateral Valuation, Mortgage Security Due Diligence, Lenders' Independent Engineer (LIE) Services.
+- **Client Base:** Nationalized PSU Banks (SBI, PNB, Canara Bank, BoB), Private Scheduled Commercial Banks (HDFC, ICICI, Axis), Foreign Banks, and Tier-1 NBFCs.
+- **Statutory Mandates:** Companies Act 2013 (Section 247), Wealth Tax Act 1957 (Section 34AB), RBI Master Directions on Secured Lending, SARFAESI Act 2002 Reserve Price determinations.
+- **Core Valuation Metrics:** Tripartite modeling: Fair Market Value (FMV), Realizable Value (RV with 10%-15% haircut), and Distress Sale Value (DSV with 20%-35% haircut for 90-day liquidation).
+- **Asset Classes:** Commercial Office Towers, IT/ITeS Parks, Industrial Manufacturing Sheds, Warehousing & Logistics Hubs, Plant & Machinery, Special Economic Zones (SEZs).
+- **Regional Footprint:** Deep operational presence in Hyderabad, Telangana (HMDA, GHMC, TSIIC industrial corridors), Andhra Pradesh, and South India with guaranteed 3-5 business days turnaround time.
 
-### 2. Corporate Practice
+### 2. Corporate Practice — Equity & Financial Assets
 - **Focus:** Share Valuation & Net Worth Certification
 - **Client Base:** Corporates, Institutional Investors, Family Offices, and High-Growth Startups.
 - **Mandates:** Companies Act 2013 Section 247 compliance, FEMA cross-border equity pricing, Ind AS fair value measurement, and M&A share entitlement ratios.
 
-### 3. Regulatory Practice
+### 3. Regulatory Practice — NCLT & Insolvency
+- **Canonical Service Page:** https://www.provaluer.in/services/nclt-ibc-valuation
 - **Focus:** NCLT & IBC Valuation Support
 - **Client Base:** Resolution Professionals (RPs), Liquidators, and Corporate Debtors.
 - **Mandates:** Statutory Fair Value and Liquidation Value determinations under Regulation 27 of CIRP Regulations.
 
-### 4. Technical Practice
+### 4. Technical Practice — Engineering & Industrial Assets
+- **Canonical Service Page:** https://www.provaluer.in/services/plant-machinery-technical-valuation
 - **Focus:** Plant & Machinery Technical Certification
 - **Client Base:** Heavy Manufacturing, Infrastructure, SEZ Developers, and Energy Assets.
-- **Mandates:** Physical asset tagging, remaining useful life assessment, salvage value estimation, and impairment reviews under Ind AS 36.
+- **Mandates:** Physical asset tagging, remaining useful life (RUL) assessment, Depreciated Replacement Cost (DRC), salvage value estimation, and impairment reviews under Ind AS 36.
 
 ## Institutional Contact Information
 - **Canonical Website:** https://www.provaluer.in/
-- **Client Portal:** https://www.provaluer.in/login
 - **Direct Telephone:** +91 85000 19091
 - **WhatsApp Advisory:** +91 85008 80333
 - **Primary Operational Territory:** India (Nationwide Empanelment)

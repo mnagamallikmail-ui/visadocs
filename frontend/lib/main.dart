@@ -9,6 +9,7 @@ import 'screens/pa_dashboard.dart';
 import 'screens/spa_dashboard.dart';
 import 'screens/admin_dashboard.dart';
 import 'screens/landing_page.dart';
+import 'screens/services/bank_collateral_valuation_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -38,6 +39,10 @@ class ProValuerApp extends StatelessWidget {
           builder: (context, state) => const LandingPage(),
         ),
         GoRoute(
+          path: '/services/bank-collateral-valuation',
+          builder: (context, state) => const BankCollateralValuationScreen(),
+        ),
+        GoRoute(
           path: '/login',
           builder: (context, state) => const LoginScreen(),
         ),
@@ -61,7 +66,7 @@ class ProValuerApp extends StatelessWidget {
       redirect: (context, state) {
         final loggedIn = auth.isAuthenticated;
         final loc = state.matchedLocation;
-        final isPublic = loc == '/' || loc == '/login';
+        final isPublic = loc == '/' || loc == '/login' || loc.startsWith('/services/');
 
         if (!loggedIn && !isPublic) {
           return '/login';
