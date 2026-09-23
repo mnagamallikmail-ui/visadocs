@@ -1,5 +1,5 @@
 # ==============================================================================
-# ProValuer Commercial (visadocs.online) - Robots Configuration
+# ProValuer Commercial (www.provaluer.in) - Robots Configuration
 # ==============================================================================
 
 User-agent: *
@@ -9,6 +9,7 @@ Allow: /manifest.json
 Allow: /favicon.png
 Allow: /icons/
 Allow: /assets/
+Allow: /llms.txt
 
 # Disallow Private Internal Dashboards and API Endpoints
 Disallow: /client/
@@ -42,4 +43,4 @@ User-agent: Applebot-Extended
 Allow: /
 
 # Canonical XML Sitemap
-Sitemap: https://visadocs.online/sitemap.xml
+Sitemap: https://www.provaluer.in/sitemap.xml
