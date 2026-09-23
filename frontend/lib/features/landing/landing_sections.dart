@@ -574,8 +574,8 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
         ),
         child: Padding(
           padding: EdgeInsets.only(
-            left: isDesktop ? 60 : 24,
-            right: isDesktop ? 60 : 24,
+            left: isDesktop ? 60 : (screenW < 360 ? 14 : (screenW < 400 ? 18 : 24)),
+            right: isDesktop ? 60 : (screenW < 360 ? 14 : (screenW < 400 ? 18 : 24)),
             top: isDesktop ? (isCompactLaptop ? 6 : 8) : 12,
             bottom: isDesktop ? (isCompactLaptop ? 12 : 16) : 18,
           ),
@@ -643,8 +643,8 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
       );
     } else {
       // VALUATION EXPERTISE MODE:
-      // Animated service deck under fixed #0F172A header tile
-      return _CascadingServiceStack(
+      // Institutional Practice Area Spotlight under fixed #0F172A header tile
+      return _PracticeAreaSpotlight(
         isCompact: isCompact,
         isVideoPlaying: _isVideoPlaying,
         isCompleted: _storyCompleted,
@@ -1085,65 +1085,65 @@ class _HeroPhonePillState extends State<_HeroPhonePill> {
 }
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// VALUATION EXPERTISE — PREMIUM CASCADING SERVICE DECK
+// VALUATION EXPERTISE — INSTITUTIONAL PRACTICE AREA SPOTLIGHT
 // ═══════════════════════════════════════════════════════════════════════════════
 
-class _ServiceCardData {
+class _PracticeAreaItem {
+  final String id;
   final String title;
-  final Color backgroundColor;
+  final List<String> services;
 
-  const _ServiceCardData({
+  const _PracticeAreaItem({
+    required this.id,
     required this.title,
-    required this.backgroundColor,
+    required this.services,
   });
 }
 
-const List<_ServiceCardData> _cascadingServiceCards = [
-  _ServiceCardData(
-    title: 'Visa & Immigration Valuations',
-    backgroundColor: Color(0xFFF7F8FA),
+const List<_PracticeAreaItem> _practiceAreas = [
+  _PracticeAreaItem(
+    id: '01',
+    title: 'BANKING',
+    services: [
+      'Bank Security Valuations',
+      'Credit Exposure Assessment',
+      "Lenders' Independent Engineer Services",
+    ],
   ),
-  _ServiceCardData(
-    title: 'Bank Security Valuations',
-    backgroundColor: Color(0xFFF3F4F6),
+  _PracticeAreaItem(
+    id: '02',
+    title: 'CORPORATE',
+    services: [
+      'Valuation of Shares',
+      'Net Worth Certifications',
+    ],
   ),
-  _ServiceCardData(
-    title: 'NCLT Transaction Support',
-    backgroundColor: Color(0xFFEEF2F3),
+  _PracticeAreaItem(
+    id: '03',
+    title: 'REGULATORY',
+    services: [
+      'NCLT Transaction Support',
+      'Valuations under IBC',
+    ],
   ),
-  _ServiceCardData(
-    title: 'Valuations under IBC',
-    backgroundColor: Color(0xFFECEFF1),
-  ),
-  _ServiceCardData(
-    title: 'Plant & Machinery Valuations',
-    backgroundColor: Color(0xFFE7EAED),
-  ),
-  _ServiceCardData(
-    title: 'Chartered Engineer Services',
-    backgroundColor: Color(0xFFE3E6E9),
-  ),
-  _ServiceCardData(
-    title: 'Net Worth Certifications',
-    backgroundColor: Color(0xFFE0E4E8),
-  ),
-  _ServiceCardData(
-    title: 'Valuation of Shares',
-    backgroundColor: Color(0xFFDCE1E5),
-  ),
-  _ServiceCardData(
-    title: "Lenders' Independent Engineer Services",
-    backgroundColor: Color(0xFFD8DDE1),
+  _PracticeAreaItem(
+    id: '04',
+    title: 'TECHNICAL',
+    services: [
+      'Plant & Machinery Valuations',
+      'Chartered Engineer Services',
+      'Visa & Immigration Valuations',
+    ],
   ),
 ];
 
-class _CascadingServiceStack extends StatefulWidget {
+class _PracticeAreaSpotlight extends StatefulWidget {
   final bool isCompact;
   final bool isVideoPlaying;
   final bool isCompleted;
   final VoidCallback? onDeckSettled;
 
-  const _CascadingServiceStack({
+  const _PracticeAreaSpotlight({
     required this.isCompact,
     required this.isVideoPlaying,
     required this.isCompleted,
@@ -1151,265 +1151,334 @@ class _CascadingServiceStack extends StatefulWidget {
   });
 
   @override
-  State<_CascadingServiceStack> createState() => _CascadingServiceStackState();
+  State<_PracticeAreaSpotlight> createState() => _PracticeAreaSpotlightState();
 }
 
-class _CascadingServiceStackState extends State<_CascadingServiceStack> with SingleTickerProviderStateMixin {
-  late AnimationController _controller;
-  Timer? _pauseTimer;
-  Timer? _restartTimer;
+class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
+  int _currentIndex = 0;
+  Timer? _rotationTimer;
+  bool _hasTriggeredSettled = false;
+  bool _isHovered = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 2430),
-    );
-
-    _controller.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {
-        // Requirement 5: Reading timer begins ONLY AFTER Card 9 has fully settled
-        widget.onDeckSettled?.call();
-
-        // Once all service cards have stacked:
-        // Hold for 3000ms so user can read the complete deck.
-        _pauseTimer?.cancel();
-        _pauseTimer = Timer(const Duration(milliseconds: 3000), () {
-          if (!mounted) return;
-          // Return to VALUATION EXPERTISE header only
-          _controller.reset();
-
-          // Pause briefly (400ms) on header card only, then repeat stacking sequence:
-          // Kept alive continuously during reading mode and after final video
-          _restartTimer?.cancel();
-          _restartTimer = Timer(const Duration(milliseconds: 400), () {
-            if (!mounted) return;
-            if (!widget.isVideoPlaying) {
-              _controller.forward();
-            }
-          });
-        });
-      }
-    });
-
-    // Initial load in Reading Mode: trigger cascading drop sequence
     if (!widget.isVideoPlaying) {
-      _controller.forward();
+      _startRotation();
     }
   }
 
+  void _startRotation() {
+    _rotationTimer?.cancel();
+    _rotationTimer = Timer.periodic(const Duration(milliseconds: 3500), (timer) {
+      if (!mounted) return;
+      if (_isHovered) return;
+
+      setState(() {
+        final nextIndex = (_currentIndex + 1) % _practiceAreas.length;
+        if (nextIndex == 0) {
+          // Completed full cycle of 4 practice areas (01 -> 02 -> 03 -> 04)
+          if (!_hasTriggeredSettled) {
+            _hasTriggeredSettled = true;
+            widget.onDeckSettled?.call();
+          }
+        }
+        _currentIndex = nextIndex;
+      });
+    });
+  }
+
+  void _stopRotation() {
+    _rotationTimer?.cancel();
+    _rotationTimer = null;
+  }
+
+  void _resetTimer() {
+    _stopRotation();
+    _startRotation();
+  }
+
   @override
-  void didUpdateWidget(covariant _CascadingServiceStack oldWidget) {
+  void didUpdateWidget(covariant _PracticeAreaSpotlight oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     if (oldWidget.isVideoPlaying && !widget.isVideoPlaying) {
       // Returning to Reading Mode from Video Mode:
-      // Start with header only, then rebuild deck from scratch
-      _pauseTimer?.cancel();
-      _restartTimer?.cancel();
-      _controller.reset();
-      _controller.forward();
+      _hasTriggeredSettled = false;
+      _currentIndex = 0;
+      _startRotation();
     } else if (!oldWidget.isVideoPlaying && widget.isVideoPlaying) {
       // Entering Video Mode:
-      _pauseTimer?.cancel();
-      _restartTimer?.cancel();
-      _controller.stop();
+      _stopRotation();
     }
   }
 
   @override
   void dispose() {
-    _pauseTimer?.cancel();
-    _restartTimer?.cancel();
-    _controller.dispose();
+    _stopRotation();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // ── TOP PERMANENT FIXED HEADER TILE (#0F172A, #FFFFFF text, brand green dot, SINGLE LINE) ────
-        Container(
-          width: double.infinity,
-          padding: EdgeInsets.symmetric(
-            horizontal: widget.isCompact ? 16 : 20,
-            vertical: widget.isCompact ? 10.5 : 12.5,
-          ),
-          decoration: const BoxDecoration(
-            color: Color(0xFF0F172A),
-            borderRadius: BorderRadius.only(
-              topLeft: Radius.circular(6),
-              topRight: Radius.circular(6),
+    final area = _practiceAreas[_currentIndex];
+    final bool isCompact = widget.isCompact;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── TOP PERMANENT FIXED HEADER TILE (#0F172A, #FFFFFF text, brand green dot, SINGLE LINE) ────
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+              horizontal: isCompact ? 16 : 20,
+              vertical: isCompact ? 10.5 : 12.5,
             ),
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 7,
-                height: 7,
-                decoration: const BoxDecoration(
-                  color: LandingTheme.brandGreen, // Exact unified brand green token
-                  shape: BoxShape.circle,
-                ),
+            decoration: const BoxDecoration(
+              color: Color(0xFF0F172A),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(6),
+                topRight: Radius.circular(6),
               ),
-              const SizedBox(width: 9),
-              Flexible(
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'VALUATION EXPERTISE',
-                    style: GoogleFonts.montserrat(
-                      fontSize: widget.isCompact ? 11.5 : 12.5,
-                      fontWeight: FontWeight.w800,
-                      color: const Color(0xFFFFFFFF),
-                      letterSpacing: 1.4,
-                    ),
-                    maxLines: 1,
-                    softWrap: false,
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: const BoxDecoration(
+                    color: LandingTheme.brandGreen, // Exact unified brand green token
+                    shape: BoxShape.circle,
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(width: 9),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'VALUATION EXPERTISE',
+                      style: GoogleFonts.montserrat(
+                        fontSize: isCompact ? 11.5 : 12.5,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFFFFFFFF),
+                        letterSpacing: 1.4,
+                      ),
+                      maxLines: 1,
+                      softWrap: false,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
 
-        const SizedBox(height: 1.5), // Hairline spacing between header and deck
+          const SizedBox(height: 1.5), // Hairline spacing between header and card
 
-        // ── SERVICE TILES (STAGGERED DROP, EXPAND & CONTINUOUS STACK BUILD) ───────
-        AnimatedBuilder(
-          animation: _controller,
-          builder: (context, child) {
-            return Column(
+          // ── ROTATING PRACTICE AREA SPOTLIGHT CARD ────────────────────────────────
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+              horizontal: isCompact ? 16 : 20,
+              vertical: isCompact ? 14 : 16,
+            ),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              border: Border.all(
+                color: const Color(0xFFE2E8F0),
+                width: 1.0,
+              ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(6),
+                bottomRight: Radius.circular(6),
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x080F172A),
+                  blurRadius: 10,
+                  offset: Offset(0, 3),
+                ),
+              ],
+            ),
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               mainAxisSize: MainAxisSize.min,
-              children: List.generate(_cascadingServiceCards.length, (index) {
-                final card = _cascadingServiceCards[index];
-                final bool isLast = index == _cascadingServiceCards.length - 1;
+              children: [
+                // Animated Switcher for smooth spotlight transition
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 380),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  layoutBuilder: (currentChild, previousChildren) {
+                    return Stack(
+                      alignment: Alignment.topLeft,
+                      children: <Widget>[
+                        ...previousChildren,
+                        if (currentChild != null) currentChild,
+                      ],
+                    );
+                  },
+                  transitionBuilder: (child, animation) {
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: Tween<Offset>(
+                          begin: const Offset(0.0, 0.04),
+                          end: Offset.zero,
+                        ).animate(animation),
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: KeyedSubtree(
+                    key: ValueKey<int>(_currentIndex),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Category Header Row + Institutional Counter
+                        Row(
+                          children: [
+                            // Brand Green Left Accent Bar
+                            Container(
+                              width: 3.5,
+                              height: isCompact ? 15 : 17,
+                              decoration: BoxDecoration(
+                                color: LandingTheme.brandGreen,
+                                borderRadius: BorderRadius.circular(2),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  area.title,
+                                  style: GoogleFonts.montserrat(
+                                    fontSize: isCompact ? 14.5 : 16.0,
+                                    fontWeight: FontWeight.w800,
+                                    color: const Color(0xFF0F172A),
+                                    letterSpacing: 0.6,
+                                  ),
+                                  maxLines: 1,
+                                  softWrap: false,
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            // Institutional Counter (e.g. 01 / 04)
+                            Text(
+                              '${area.id} / 04',
+                              style: GoogleFonts.montserrat(
+                                fontSize: isCompact ? 11.0 : 12.0,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF64748B),
+                                letterSpacing: 0.4,
+                              ),
+                            ),
+                          ],
+                        ),
 
-                // Staggered timing per card: 1/9th of total duration each (~270ms)
-                final double start = (index / 9.0).clamp(0.0, 1.0);
-                final double end = ((index + 1) / 9.0).clamp(0.0, 1.0);
+                        // Hairline Divider
+                        Container(
+                          height: 1,
+                          color: const Color(0xFFE2E8F0),
+                          margin: EdgeInsets.only(
+                            top: isCompact ? 10 : 12,
+                            bottom: isCompact ? 10 : 12,
+                          ),
+                        ),
 
-                // If this card has not started its drop yet, do not display it.
-                // Ensures initially ONLY the fixed header tile is visible.
-                if (_controller.value < start) {
-                  return const SizedBox.shrink();
-                }
+                        // Fixed-height service mandates slot (Guarantees zero height-jumping between 2 and 3 services)
+                        SizedBox(
+                          height: isCompact ? 84 : 96,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: List.generate(area.services.length, (serviceIndex) {
+                              final service = area.services[serviceIndex];
+                              return Padding(
+                                padding: EdgeInsets.only(
+                                  bottom: serviceIndex == area.services.length - 1
+                                      ? 0.0
+                                      : (isCompact ? 6.5 : 8.0),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Container(
+                                      width: 4.5,
+                                      height: 4.5,
+                                      decoration: const BoxDecoration(
+                                        color: LandingTheme.brandGreen,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    SizedBox(width: isCompact ? 8 : 10),
+                                    Expanded(
+                                      child: FittedBox(
+                                        fit: BoxFit.scaleDown,
+                                        alignment: Alignment.centerLeft,
+                                        child: Text(
+                                          service,
+                                          style: GoogleFonts.montserrat(
+                                            fontSize: isCompact ? 12.5 : 13.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: const Color(0xFF1E293B),
+                                            letterSpacing: -0.2,
+                                          ),
+                                          maxLines: 1,
+                                          softWrap: false,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
 
-                double rawProgress = 1.0;
-                if (_controller.value < end) {
-                  rawProgress = (_controller.value - start) / (end - start);
-                }
+                SizedBox(height: isCompact ? 12 : 14),
 
-                final double dropCurve = Curves.easeOutCubic.transform(rawProgress.clamp(0.0, 1.0));
-                final double springCurve = Curves.easeOutBack.transform(rawProgress.clamp(0.0, 1.0));
-
-                // Drops downward from above the stack
-                final double translateY = (1.0 - dropCurve) * -20.0;
-
-                // Expands horizontally into position
-                final double scaleX = 0.94 + 0.06 * springCurve;
-
-                // Vertical reveal into the deck
-                final double heightFactor = dropCurve;
-                final double opacity = (rawProgress / 0.28).clamp(0.0, 1.0);
-
-                return Padding(
-                  padding: EdgeInsets.only(bottom: isLast ? 0.0 : 1.5), // Hairline 1.5px gap
-                  child: ClipRect(
-                    child: Align(
-                      alignment: Alignment.topCenter,
-                      heightFactor: heightFactor,
-                      child: Opacity(
-                        opacity: opacity,
-                        child: Transform.translate(
-                          offset: Offset(0, translateY),
-                          child: Transform.scale(
-                            scaleX: scaleX,
-                            alignment: Alignment.center,
-                            child: _ServiceCardTile(
-                              title: card.title,
-                              backgroundColor: card.backgroundColor,
-                              isCompact: widget.isCompact,
-                              isLast: isLast,
+                // ── PROGRESS RAIL (4 SEGMENTS: 01, 02, 03, 04) ───────────────────────────
+                Row(
+                  children: List.generate(_practiceAreas.length, (index) {
+                    final bool isActive = index == _currentIndex;
+                    return Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          setState(() {
+                            _currentIndex = index;
+                          });
+                          _resetTimer();
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 4.0),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            height: 3.0,
+                            decoration: BoxDecoration(
+                              color: isActive ? LandingTheme.brandGreen : const Color(0xFFCBD5E1),
+                              borderRadius: BorderRadius.circular(1.5),
                             ),
                           ),
                         ),
                       ),
-                    ),
-                  ),
-                );
-              }),
-            );
-          },
-        ),
-      ],
-    );
-  }
-}
-
-class _ServiceCardTile extends StatelessWidget {
-  final String title;
-  final Color backgroundColor;
-  final bool isCompact;
-  final bool isLast;
-
-  const _ServiceCardTile({
-    required this.title,
-    required this.backgroundColor,
-    required this.isCompact,
-    required this.isLast,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.symmetric(
-        horizontal: isCompact ? 12 : 16,
-        vertical: isCompact ? 8.0 : 9.5,
-      ),
-      decoration: BoxDecoration(
-        color: backgroundColor,
-        borderRadius: isLast
-            ? const BorderRadius.only(
-                bottomLeft: Radius.circular(6),
-                bottomRight: Radius.circular(6),
-              )
-            : BorderRadius.zero,
-      ),
-      child: Row(
-        children: [
-          // Precision Institutional Left Accent Strip:
-          Container(
-            width: 3,
-            height: isCompact ? 14 : 16,
-            decoration: BoxDecoration(
-              color: LandingTheme.brandGreen, // Only green element!
-              borderRadius: BorderRadius.circular(1.5),
-            ),
-          ),
-          SizedBox(width: isCompact ? 8 : 10),
-          Expanded(
-            child: FittedBox(
-              fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
-              child: Text(
-                title,
-                style: GoogleFonts.montserrat(
-                  fontSize: isCompact ? 12.5 : 13.5,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0F172A),
-                  letterSpacing: -0.2,
+                    );
+                  }),
                 ),
-                maxLines: 1,
-                softWrap: false,
-              ),
+              ],
             ),
           ),
         ],
@@ -1417,6 +1486,7 @@ class _ServiceCardTile extends StatelessWidget {
     );
   }
 }
+
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 3. SERVICES SECTION — 6 LUXURY MONOCHROMATIC ARCHITECTURAL CARDS
