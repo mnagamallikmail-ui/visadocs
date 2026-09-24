@@ -8,6 +8,8 @@ RUN flutter build web --release
 
 # Stage 2: Nginx Web Server
 FROM nginx:alpine
+# Copy custom Nginx configuration with SPA fallback and asset caching
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 # Copy the compiled web assets from Stage 1 into Nginx default public directory
 COPY --from=build /app/build/web /usr/share/nginx/html
 EXPOSE 80
