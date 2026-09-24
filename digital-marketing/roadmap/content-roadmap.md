@@ -49,24 +49,36 @@ This roadmap establishes the 16-topic topical authority engine for ProValuer. It
 
 11. **Government Approved Valuers Complete Guide**
     - **Target URL:** `/knowledge/government-approved-valuers-complete-guide`
-    - **Focus:** Section 34AB Wealth Tax Act registration, IBBI Registered Valuers vs Approved Valuers, jurisdictional validity.
+    - **Canonical URL:** `https://www.provaluer.in/knowledge/government-approved-valuers-complete-guide`
+    - **Primary Keyword:** `government approved valuer india`
+    - **Focus:** Section 34AB Wealth Tax Act registration, Form O-1 report standards, Approved Valuers vs IBBI Registered Valuers, Capital Gains (FMV 2001, Section 50C), Probate & High Court valuation admissibility.
 
 12. **Visa & Immigration Valuation Complete Guide**
-    - **Target URL:** `/knowledge/visa-immigration-valuation-complete-guide`
-    - **Focus:** Embassy compliance, tie-breaker documentation, liquidity verification, foreign education & investor visas.
+    - **Target URL:** `/knowledge/visa-and-immigration-valuation-complete-guide`
+    - **Canonical URL:** `https://www.provaluer.in/knowledge/visa-and-immigration-valuation-complete-guide`
+    - **Primary Keyword:** `visa and immigration valuation india`
+    - **Focus:** Immovable & movable asset appraisal, Section 34AB Government Approved Valuer reports, CA Net Worth Certificates with UDIN, US F-1 (INA 214(b)), Canada IRCC, UK Student Route, Australia Subclass 500, EB-5 and Golden Visa source of funds verification.
 
 13. **ESOP Valuation Complete Guide**
     - **Target URL:** `/knowledge/esop-valuation-complete-guide`
-    - **Focus:** Grant vs exercise FMV, perquisite tax calculation, Black-Scholes model, cashless exercise structures.
+    - **Canonical URL:** `https://www.provaluer.in/knowledge/esop-valuation-complete-guide`
+    - **Primary Keyword:** `esop valuation india`
+    - **Focus:** Black-Scholes option pricing model, Ind AS 102 accounting, Section 17(2)(vi) perquisite tax, Rule 3(8) Merchant Banker FMV certification, Section 192(1C) startup deferrals, cap table dilution analysis, Budget 2024 LTCG rules, FEMA cross-border compliance.
 
 14. **Divorce & Matrimonial Asset Valuation Guide**
-    - **Target URL:** `/knowledge/divorce-matrimonial-asset-valuation-guide`
-    - **Focus:** Spousal maintenance disclosures, hidden asset tracing, business interest partitioning, court-admissible forensic valuation.
+    - **Target URL:** `/knowledge/divorce-and-matrimonial-asset-valuation-guide`
+    - **Canonical URL:** `https://www.provaluer.in/knowledge/divorce-and-matrimonial-asset-valuation-guide`
+    - **Primary Keyword:** `divorce asset valuation india`
+    - **Focus:** Matrimonial property appraisal, family business & private company valuation, startup equity & ESOPs, Rajnesh v. Neha asset disclosure compliance, forensic hidden asset discovery, lifestyle analysis, permanent alimony & maintenance calculations.
 
 15. **NCLT Valuation Complete Guide**
     - **Target URL:** `/knowledge/nclt-valuation-complete-guide`
-    - **Focus:** Insolvency and Bankruptcy Code (IBC), CIRP timelines, regulation 35 mandatory dual valuer regime.
+    - **Canonical URL:** `https://www.provaluer.in/knowledge/nclt-valuation-complete-guide`
+    - **Primary Keyword:** `nclt valuation india`
+    - **Focus:** Section 247 Companies Act 2013, IBBI Registered Valuers, Sections 230–232 Schemes of Arrangement & Share Exchange Ratio, Section 236 Minority Squeeze-Out, Section 242 Oppression & Mismanagement Share Buyout, Section 66 Capital Reduction, IBC CIRP Regulation 35 Fair Value & Liquidation Value.
 
 16. **Fair Value vs Liquidation Value Guide**
     - **Target URL:** `/knowledge/fair-value-vs-liquidation-value-guide`
-    - **Focus:** Going concern vs distress realization, orderly liquidation value, IBC Section 30(2) waterfall compliance.
+    - **Canonical URL:** `https://www.provaluer.in/knowledge/fair-value-vs-liquidation-value-guide`
+    - **Primary Keyword:** `fair value vs liquidation value`
+    - **Focus:** IBC Regulation 35 CIRP valuation framework, going concern vs forced distress realization, Section 53 waterfall calculations, Section 30(2)(b) dissenting creditor protections, CoC commercial wisdom.
