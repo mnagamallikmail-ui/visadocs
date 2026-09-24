@@ -12,7 +12,43 @@
 - **Core Valuation Metrics:** Fair Market Value (FMV), SRO Circle Rate Discrepancy Defense, Historical FMV as of April 1, 2001, Visa Liquid Net Worth.
 - **Regional Footprint:** Hyderabad, Secunderabad, Telangana (HMDA, GHMC, Dharani, IGRS), Andhra Pradesh, and Nationwide coverage with 24-48 hours turnaround for standard appraisals.
 
-### 2. Banking Practice — Collateral & Security Valuation
+### 2. Core Real Estate Practice — Property Valuation Services
+- **Canonical Service Page:** https://www.provaluer.in/services/property-valuation
+- **Focus:** Residential, Commercial, Industrial, and Agricultural Property Valuation Reports, Fair Market Value (FMV) Certificates, Capital Gains Tax Defense (Sec 50C & 55A), Bank Mortgage Collateral Appraisals, Probate & Family Settlement Valuations.
+- **Client Base:** Property Owners, Buyers, Sellers, NRIs, Chartered Accountants, Tax Advocates, Commercial Banks, Family Offices, and Corporate Enterprises.
+- **Asset Classes:** Residential Apartments & Condominiums (UDS model), Independent Freehold Bungalows, Luxury Gated Villas, Commercial Office Towers, High-Street Retail Showrooms, Logistics Warehouses, Industrial Plants, Vacant Plotted Land, and Agricultural Acreage.
+- **Valuation Methodologies:** Sales Comparison Method, Cost Approach (Depreciated Replacement Cost - DRC using CPWD Plinth Area Rates), Direct Income Capitalization (Yield Model), Discounted Cash Flow (DCF under Ind AS 113), and Residual Land Development Technique.
+- **Statutory Mandates:** Wealth Tax Act 1957 (Section 34AB CBDT Registration), Companies Act 2013 (Section 247 IBBI Registration), Income Tax Act 1961 (Sections 50C, 54, 55A, 56(2)(x)), Indian Evidence Act 1872 (Section 45 Expert Testimony Admissibility).
+- **Regional Footprint:** Hyderabad Metropolitan Region (HMDA Master Plan 2031, GHMC building bylaws), Telangana Revenue Districts (Dharani portal integration, NALA conversion audits), Andhra Pradesh, and Nationwide coverage with 24-48 hours turnaround for standard appraisals.
+
+### 3. Consular Practice — Visa & Immigration Property Valuation
+- **Canonical Service Page:** https://www.provaluer.in/services/visa-and-immigration-valuations
+- **Focus:** Consular Property Valuation Reports, Visa Net Worth Certificates, Financial Solvency Affidavits, Genuine Student (GS) Financial Backing, Lawful Source of Funds (SOF) Appraisals.
+- **Client Base:** Visa Applicants, Overseas Students, Immigration Lawyers, NRIs, EB-5 Investors, and Sponsoring Family Offices.
+- **Destinations Covered:** United States (USCIS F-1, B-1/B-2, EB-5, I-20 proof of funds), Canada (IRCC Study Permit, Express Entry FSW, PNP net worth audits), United Kingdom (UKVI CAS financial maintenance & Appendix FM accommodation), Australia (DHA Subclass 500 Genuine Student & Subclass 188 BIIP), European Schengen Area (National Type-D & Golden Visas).
+- **Statutory Mandates:** Wealth Tax Act 1957 (Section 34AB CBDT Approved Valuers), Companies Act 2013 (Section 247 IBBI Registered), Indian Evidence Act 1872 (Section 45 Expert Witness Admissibility), Hague Apostille Convention & MEA Attestation Standards.
+- **Core Valuation Metrics:** Dual-currency valuation schedules (INR + USD/CAD/GBP/AUD/EUR at official RBI exchange rates), Gross Fair Market Value, Net Realizable Equity (FMV minus outstanding bank mortgage balances), Undivided Share of Land (UDS), and CPWD Depreciated Replacement Cost (DRC).
+- **Quality & Security:** 100% on-site physical inspection with embedded GPS coordinates & timestamps, tamper-evident digital QR code verification, 24-48 hours emergency express turnaround across Hyderabad, Telangana, and South India.
+
+### 4. Matrimonial & Family Law Practice — Divorce & Asset Division
+- **Canonical Service Page:** https://www.provaluer.in/services/divorce-matrimonial-valuation
+- **Focus:** Court-Admissible Matrimonial Property Valuation, Spousal Buyout Calculations, Forensic Asset Tracing, Net Equity Formulations, Permanent Alimony & Maintenance Appraisals.
+- **Client Base:** Family Court Litigants, Divorce Advocates, Accredited Mediators, High-Net-Worth Individuals (HNIs), and NRI Spouses.
+- **Statutory Mandates:** Family Courts Act 1984, Indian Evidence Act 1872 (Section 45 Expert Testimony), Hindu Marriage Act 1955 (Sections 25 & 27), Special Marriage Act 1954 (Section 37), Code of Civil Procedure 1908 (Order XXVI Rule 9), Supreme Court Mandate (*Rajnesh v. Neha* (2021) 2 SCC 324 Affidavit of Assets & Liabilities compliance).
+- **Core Valuation Metrics:** Net Equity Formulation: [Gross Fair Market Value (FMV)] − [Active Bank Mortgage / Encumbrances] − [Selling / Brokerage Costs] − [Applicable Capital Gains Tax Liability] = [True Distributable Marital Net Equity].
+- **Multi-Asset Coverage:** Matrimonial Residential Real Estate (Flats, Freehold Houses, Luxury Villas), Commercial Properties & Rental Incomes, Closely Held Family Businesses & Unlisted Private Shares (DCF/NAV), Agricultural Land & Farmhouses, Gold, Diamond & Polki Jewellery (Stridhan certified appraisals), High-End Vehicles, and ESOPs / RSUs.
+- **Regional Jurisdictions:** Hyderabad Family Court (City Civil Court Complex, Purani Haveli), Secunderabad, Ranga Reddy District Family Courts (L.B. Nagar, Kukatpally), and Pan-India Family Courts with strict professional confidentiality protocols.
+
+### 5. Testamentary & Succession Practice — Probate, Inheritance & Estate Valuation
+- **Canonical Service Page:** https://www.provaluer.in/services/probate-inheritance-valuation
+- **Focus:** High Court Probate Schedule of Assets, Letters of Administration Appraisals, Succession Certificate Movable Valuations, Family Partition Deed Owelty Parity, and Section 45 Indian Evidence Act Expert Testimony.
+- **Client Base:** Testamentary Executors, Class-I Legal Heirs, Beneficiaries, High Court Advocates, Family Offices, and NRI Heirs.
+- **Statutory Mandates:** Indian Succession Act 1925 (Sections 213, 222, 276, 278, 370–390), Hindu Succession Act 1956 (Section 6 Coparcenary Devolution), Indian Evidence Act 1872 (Section 45), State Court Fees Acts (Ad Valorem fee calculation), CPC Order XXVI Rule 9 (Local Commission), Income Tax Act 1961 (Sections 49(1) & 55A Stepped-Up Basis).
+- **Core Valuation Metrics:** Net Distributable Estate Formulation: [Gross Fair Market Value (FMV)] − [Active Bank Mortgages & Encumbrances] − [Municipal Property Taxes & Arrears] − [Demolition & Unapproved Rectification Costs] − [Court Fees & Transfer Liabilities] = [True Distributable Estate Net Equity].
+- **Multi-Asset Coverage:** Residential Real Estate (Flats, Freehold Houses, Villas), Commercial Office Towers, High-Street Retail, Agricultural Land & Farmhouses (Dharani Portal & NALA Audits), Closely Held Family Businesses (DCF/NAV under Section 247), Unlisted Equity & Partnership Stakes (Rule 11UA), Stridhan & Estate Jewellery (Certified Assaying), and Private Family Trusts.
+- **Regional Jurisdictions:** Telangana High Court (Original Side Rules), City Civil Court Complex (Purani Haveli), Rangareddy District Courts (L.B. Nagar), Medchal-Malkajgiri, and Pan-India High Courts.
+
+### 6. Banking Practice — Collateral & Security Valuation
 - **Canonical Service Page:** https://www.provaluer.in/services/bank-collateral-valuation
 - **Focus:** Bank Collateral Valuation, Mortgage Security Due Diligence, Lenders' Independent Engineer (LIE) Services.
 - **Client Base:** Nationalized PSU Banks (SBI, PNB, Canara Bank, BoB), Private Scheduled Commercial Banks (HDFC, ICICI, Axis), Foreign Banks, and Tier-1 NBFCs.
@@ -21,12 +57,15 @@
 - **Asset Classes:** Commercial Office Towers, IT/ITeS Parks, Industrial Manufacturing Sheds, Warehousing & Logistics Hubs, Plant & Machinery, Special Economic Zones (SEZs).
 - **Regional Footprint:** Deep operational presence in Hyderabad, Telangana (HMDA, GHMC, TSIIC industrial corridors), Andhra Pradesh, and South India with guaranteed 3-5 business days turnaround time.
 
-### 3. Corporate Practice — Equity & Financial Assets
-- **Focus:** Share Valuation & Net Worth Certification
-- **Client Base:** Corporates, Institutional Investors, Family Offices, and High-Growth Startups.
-- **Mandates:** Companies Act 2013 Section 247 compliance, FEMA cross-border equity pricing, Ind AS fair value measurement, and M&A share entitlement ratios.
+### 7. Corporate Practice — Equity & Financial Assets
+- **Canonical Service Page:** https://www.provaluer.in/services/share-valuation
+- **Focus:** Unlisted Share Valuation, Startup Equity Pricing, Rule 11UA Fair Market Value Certification, FEMA Cross-Border Pricing, Complex Hybrid Instrument Modeling (CCPS, CCDs, Warrants), and M&A Swap Ratios.
+- **Client Base:** High-growth VC/PE-backed Startups, Angel Investors, Family Offices, Listed/Unlisted Indian Corporates, MNC Subsidiaries, and Tech Founders.
+- **Statutory Mandates:** Companies Act 2013 (Section 247, 42, 62, 54, 68), Income Tax Act 1961 (Section 56(2)(viib) "Angel Tax", Rule 11UA(1)(c)/(2), Section 50CA, Section 56(2)(x)), FEMA Non-Debt Instruments (NDI) Rules 2019 (FDI entry pricing floor & ODI transfer ceiling), and Ind AS 113 Fair Value Measurement.
+- **Valuation Methodologies:** Discounted Cash Flow (DCF with CAPM-derived WACC and DLOM/DLOC adjustments), Net Asset Value (Book NAV & Rule 11UA Adjusted NAV), Comparable Company Multiple (CCM), Precedent Transaction Multiple (PTM), Profit Earning Capacity Value (PECV), and Option Pricing Models (Black-Scholes & Binomial Trees) for liquidation waterfalls.
+- **Regional Hub:** Hyderabad Innovation Corridor (T-Hub 2.0, HITEC City, Genome Valley biotech cluster, Financial District) with filing representation before ROC Hyderabad and NCLT Hyderabad Bench.
 
-### 4. Regulatory Practice — NCLT & Insolvency
+### 8. Regulatory Practice — NCLT & Insolvency
 - **Canonical Service Page:** https://www.provaluer.in/services/nclt-ibc-valuation
 - **Focus:** CIRP Statutory Fair Value & Liquidation Value Appraisals, Regulation 27 Valuer Appointments, Section 30(2)(b) Distribution Floor Benchmarking, Forensic PUFE Economic Valuations.
 - **Client Base:** Insolvency Professionals (IPs), Interim Resolution Professionals (IRPs), Resolution Professionals (RPs), Liquidators, and Committee of Creditors (CoC).
@@ -35,11 +74,35 @@
 - **Asset Classes:** Land & Building (industrial parks, SEZs), Plant & Machinery (heavy continuous process, chemical, pharma, steel), Securities & Financial Assets, Intangibles & Avoidance Transactions (Sections 43, 45, 50, 66).
 - **Regional Jurisdictions:** NCLT Hyderabad Bench, NCLT Bengaluru, NCLT Chennai, NCLT Amaravati, and Pan-India Benches with 30-45 day delivery SLA.
 
-### 5. Technical Practice — Engineering & Industrial Assets
+### 9. Technical Practice — Engineering & Industrial Assets
 - **Canonical Service Page:** https://www.provaluer.in/services/plant-machinery-technical-valuation
 - **Focus:** Plant & Machinery Technical Certification
 - **Client Base:** Heavy Manufacturing, Infrastructure, SEZ Developers, and Energy Assets.
-- **Mandates:** Physical asset tagging, remaining useful life (RUL) assessment, Depreciated Replacement Cost (DRC), salvage value estimation, and impairment reviews under Ind AS 36.
+### 10. Authority Cluster V1 — Cornerstone Statutory Knowledge Treatises
+
+1. **Government Approved Valuers Complete Guide**
+   - Canonical URL: https://www.provaluer.in/knowledge/government-approved-valuers-complete-guide
+   - Focus: Section 34AB Wealth Tax Act registration, Section 247 Companies Act IBBI mandates, capital gains tax defense, visa financial solvency, probate and family court evidentiary appraisals under Section 45 Indian Evidence Act.
+
+2. **Rule 11UA Complete Guide**
+   - Canonical URL: https://www.provaluer.in/knowledge/rule-11ua-complete-guide
+   - Focus: Fair market value of unquoted equity shares, Net Asset Value (NAV) balance sheet formula, Discounted Cash Flow (DCF) modified CAPM modeling, SEBI Merchant Banker certifications, Section 56(2)(x) deemed gift tax, and Section 50CA secondary transfers.
+
+3. **Property Valuation Methods Complete Guide**
+   - Canonical URL: https://www.provaluer.in/knowledge/property-valuation-methods-complete-guide
+   - Focus: Real estate appraisal methodologies in India: Sales Comparison, Income Capitalization, Depreciated Replacement Cost (DRC), Land & Building Method, Section 50C circle rate rebuttals, and Section 55A FMV as of April 1, 2001.
+
+4. **Plant and Machinery Valuation Complete Guide**
+   - Canonical URL: https://www.provaluer.in/knowledge/plant-and-machinery-valuation-complete-guide
+   - Focus: Industrial asset valuation methodologies: Cost, Market, and Income approaches, PPA under Ind AS 103, IBC Regulation 35 liquidation and fair value, CPWD depreciation indices, and remaining useful life schedules.
+
+5. **Angel Tax Complete Guide**
+   - Canonical URL: https://www.provaluer.in/knowledge/angel-tax-complete-guide
+   - Focus: Section 56(2)(viib) statutory architecture, Rule 11UA DCF models certified exclusively by SEBI Merchant Bankers, Notification 81/2023 non-resident methods, 10% safe harbor band, Finance Act 2024 prospective abolition, and NeFAC legacy audit defense.
+
+6. **Visa and Immigration Valuation Complete Guide**
+   - Canonical URL: https://www.provaluer.in/knowledge/visa-and-immigration-valuation-complete-guide
+   - Focus: Foreign embassy financial solvency documentation, consular property valuation reports, CA liquid net worth certificates, US, UK, Canada, Australia, and European Schengen visa compliance protocols.
 
 ## Institutional Contact Information
 - **Canonical Website:** https://www.provaluer.in/

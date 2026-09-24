@@ -42,5 +42,6 @@ Allow: /
 User-agent: Applebot-Extended
 Allow: /
 
-# Canonical XML Sitemap
+# Canonical XML Sitemaps
 Sitemap: https://www.provaluer.in/sitemap.xml
+Sitemap: https://www.provaluer.in/knowledge-sitemap.xml

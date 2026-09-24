@@ -2249,7 +2249,22 @@ class LandingFooter extends StatelessWidget {
           child: Column(
             children: [
               const Divider(height: 1, color: Color(0x29CBD5E1)),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
+              Wrap(
+                spacing: 24,
+                runSpacing: 12,
+                children: [
+                  _buildFooterServiceLink(context, 'Government Approved Valuers', '/government-approved-valuers'),
+                  _buildFooterServiceLink(context, 'Property Valuation Services', '/services/property-valuation'),
+                  _buildFooterServiceLink(context, 'Visa & Immigration Valuations', '/services/visa-and-immigration-valuations'),
+                  _buildFooterServiceLink(context, 'Bank Collateral Valuation', '/services/bank-collateral-valuation'),
+                  _buildFooterServiceLink(context, 'NCLT & IBC Valuation', '/services/nclt-ibc-valuation'),
+                  _buildFooterServiceLink(context, 'Divorce & Matrimonial Valuation', '/services/divorce-matrimonial-valuation'),
+                  _buildFooterServiceLink(context, 'Probate & Estate Valuation', '/services/probate-inheritance-valuation'),
+                  _buildFooterServiceLink(context, 'Share & Equity Valuation', '/services/share-valuation'),
+                ],
+              ),
+              const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
@@ -2297,6 +2312,23 @@ class LandingFooter extends StatelessWidget {
                 ],
               ),
             ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildFooterServiceLink(BuildContext context, String title, String route) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () => context.go(route),
+        child: Text(
+          title,
+          style: GoogleFonts.montserrat(
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: LandingTheme.textSecondary,
           ),
         ),
       ),

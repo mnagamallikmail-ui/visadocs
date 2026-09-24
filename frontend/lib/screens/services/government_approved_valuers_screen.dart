@@ -970,8 +970,8 @@ class _GovernmentApprovedValuersScreenState extends State<GovernmentApprovedValu
         'actionText': 'Confidential Matrimonial Advisory',
         'waMessage':
             'Hello ProValuer Commercial, I need an impartial, court-admissible valuation for a matrimonial property settlement.',
-        'linkRoute': '',
-        'linkText': '',
+        'linkRoute': '/services/divorce-matrimonial-valuation',
+        'linkText': 'View Matrimonial Valuation Service',
       },
       {
         'title': 'Inheritance & Probate',
@@ -982,8 +982,8 @@ class _GovernmentApprovedValuersScreenState extends State<GovernmentApprovedValu
         'actionText': 'Consult Succession Valuer',
         'waMessage':
             'Hello ProValuer Commercial, I need a valuation report for High Court probate / succession certificate filing.',
-        'linkRoute': '',
-        'linkText': '',
+        'linkRoute': '/services/probate-inheritance-valuation',
+        'linkText': 'View Probate Valuation Service',
       },
       {
         'title': 'NCLT & Insolvency',
@@ -2157,6 +2157,7 @@ class _GovernmentApprovedValuersScreenState extends State<GovernmentApprovedValu
                             ),
                             const SizedBox(height: 12),
                             _buildFooterLink('Government Approved Valuers', () => context.go('/government-approved-valuers')),
+                            _buildFooterLink('Share & Equity Valuation', () => context.go('/services/share-valuation')),
                             _buildFooterLink('Bank Collateral Valuation', () => context.go('/services/bank-collateral-valuation')),
                             _buildFooterLink('NCLT & IBC Valuation', () => context.go('/services/nclt-ibc-valuation')),
                             _buildFooterLink('Plant & Machinery Valuation', () => context.go('/services/plant-machinery-technical-valuation')),
@@ -2182,8 +2183,8 @@ class _GovernmentApprovedValuersScreenState extends State<GovernmentApprovedValu
                             const SizedBox(height: 12),
                             _buildFooterText('Income Tax Section 50C & 55A'),
                             _buildFooterText('Visa Financial Solvency (US/UK/Canada)'),
-                            _buildFooterText('Family Court Divorce Settlements'),
-                            _buildFooterText('High Court Probate & Succession'),
+                            _buildFooterLink('Family Court Divorce Settlements', () => context.go('/services/divorce-matrimonial-valuation')),
+                            _buildFooterLink('High Court Probate & Succession', () => context.go('/services/probate-inheritance-valuation')),
                           ],
                         ),
                       ),

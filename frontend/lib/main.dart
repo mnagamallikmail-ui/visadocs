@@ -12,6 +12,11 @@ import 'screens/landing_page.dart';
 import 'screens/services/bank_collateral_valuation_screen.dart';
 import 'screens/services/nclt_ibc_valuation_screen.dart';
 import 'screens/services/government_approved_valuers_screen.dart';
+import 'screens/services/visa_immigration_valuation_screen.dart';
+import 'screens/services/property_valuation_screen.dart';
+import 'screens/services/divorce_matrimonial_valuation_screen.dart';
+import 'screens/services/probate_inheritance_valuation_screen.dart';
+import 'screens/services/share_valuation_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -45,12 +50,32 @@ class ProValuerApp extends StatelessWidget {
           builder: (context, state) => const GovernmentApprovedValuersScreen(),
         ),
         GoRoute(
+          path: '/services/property-valuation',
+          builder: (context, state) => const PropertyValuationScreen(),
+        ),
+        GoRoute(
           path: '/services/bank-collateral-valuation',
           builder: (context, state) => const BankCollateralValuationScreen(),
         ),
         GoRoute(
           path: '/services/nclt-ibc-valuation',
           builder: (context, state) => const NcltIbcValuationScreen(),
+        ),
+        GoRoute(
+          path: '/services/visa-and-immigration-valuations',
+          builder: (context, state) => const VisaImmigrationValuationScreen(),
+        ),
+        GoRoute(
+          path: '/services/divorce-matrimonial-valuation',
+          builder: (context, state) => const DivorceMatrimonialValuationScreen(),
+        ),
+        GoRoute(
+          path: '/services/probate-inheritance-valuation',
+          builder: (context, state) => const ProbateInheritanceValuationScreen(),
+        ),
+        GoRoute(
+          path: '/services/share-valuation',
+          builder: (context, state) => const ShareValuationScreen(),
         ),
         GoRoute(
           path: '/login',

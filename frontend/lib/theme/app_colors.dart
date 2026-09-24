@@ -159,8 +159,12 @@ class AppColors {
 
   // Semantic aliases
   static const Color success            = successAccent;
+  static const Color brandGreen         = successAccent;
+  static const Color brandGreenSoft     = successBg;
+  static const Color brandRedSoft       = brandRed;
   static const Color error              = brandRedDark;
   static const Color errorBg            = brandRed;
   static const Color info               = primaryBlue;
   static const Color infoBg             = primaryBlueLight;
 }
+

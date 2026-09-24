@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
-import '../../theme/app_spacing.dart';
 import '../../theme/app_components.dart';
 import '../../services/api_service.dart';
 import '../valuation_portal/valuation_portal_widget.dart';
 import 'admin_sections.dart';
+import 'admin_seo_intelligence_section.dart';
 
 class SuperAdminWidget extends StatefulWidget {
   final String role;
@@ -639,6 +638,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
   // ─── Sidebar ─────────────────────────────────────────────
   static const _menuItems = [
     {'key': 'overview', 'label': 'Overview', 'icon': Icons.dashboard_outlined},
+    {'key': 'seo_intelligence', 'label': 'SEO Intelligence', 'icon': Icons.insights_rounded},
     {'key': 'valuation_portal', 'label': 'Valuation Portal', 'icon': Icons.swap_horiz_outlined},
     {'key': 'users', 'label': 'User Management', 'icon': Icons.manage_accounts_outlined},
     {'key': 'queue', 'label': 'Queue Management', 'icon': Icons.queue_play_next_outlined},
@@ -658,7 +658,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
     return _menuItems.where((m) {
       final key = m['key'] as String;
       if (isSuper) return true;
-      return key == 'overview' || key == 'templates' || key == 'signing' || key == 'valuation_portal';
+      return key == 'overview' || key == 'templates' || key == 'signing' || key == 'valuation_portal' || key == 'seo_intelligence';
     }).toList();
   }
 
@@ -861,12 +861,14 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
   Widget _buildCanvas() {
     final isSuper = widget.role == 'SUPER_ADMIN';
     final menu = _selectedMenu;
-    if (!isSuper && menu != 'overview' && menu != 'templates' && menu != 'signing') {
+    if (!isSuper && menu != 'overview' && menu != 'templates' && menu != 'signing' && menu != 'seo_intelligence') {
       return const AdminOverviewSection();
     }
     switch (menu) {
       case 'overview':
         return const AdminOverviewSection();
+      case 'seo_intelligence':
+        return const AdminSeoIntelligenceSection();
       case 'users':
         return _buildUserManagement();
       case 'queue':
