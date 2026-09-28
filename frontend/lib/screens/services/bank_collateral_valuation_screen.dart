@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../features/landing/landing_theme.dart';
+import '../../features/landing/widgets/commercial_intake_modal.dart';
 
 /// Bank Collateral Valuation Services — Cornerstone Institutional Landing Page
 /// Canonical URL: https://www.provaluer.in/services/bank-collateral-valuation
@@ -1278,47 +1279,48 @@ class _BankCollateralValuationScreenState extends State<BankCollateralValuationS
                 runSpacing: 14,
                 alignment: WrapAlignment.center,
                 children: [
-                  ElevatedButton(
+                  ElevatedButton.icon(
+                    onPressed: () => CommercialIntakeModal.show(context, initialService: 'BANK_COLLATERAL'),
+                    icon: const Icon(Icons.bolt_rounded, size: 20),
+                    label: Text(
+                      '⚡ Request Valuation Quote',
+                      style: GoogleFonts.montserrat(fontSize: 14.5, fontWeight: FontWeight.w700),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: LandingTheme.primaryAccent,
+                      foregroundColor: const Color(0xFF0F172A),
+                      padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 18),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                      elevation: 4,
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: _makePhoneCall,
+                    icon: const Icon(Icons.phone_in_talk, size: 18),
+                    label: Text(
+                      '📞 Speak With A Senior Valuer',
+                      style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      side: const BorderSide(color: Colors.white54, width: 1.2),
+                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                    ),
+                  ),
+                  OutlinedButton.icon(
                     onPressed: () => _launchWhatsApp(
                       'Hello, I would like to Request an Immediate Bank Collateral Valuation Consultation with a Senior Partner.',
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: LandingTheme.brandGreen,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 20),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      elevation: 4,
+                    icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 17, color: Color(0xFF25D366)),
+                    label: Text(
+                      '💬 WhatsApp Desk',
+                      style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700, color: const Color(0xFF25D366)),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const FaIcon(FontAwesomeIcons.whatsapp, size: 18),
-                        const SizedBox(width: 10),
-                        Text(
-                          'WhatsApp Consultation',
-                          style: GoogleFonts.montserrat(fontSize: 15, fontWeight: FontWeight.w700),
-                        ),
-                      ],
-                    ),
-                  ),
-                  OutlinedButton(
-                    onPressed: _makePhoneCall,
                     style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.white,
-                      side: const BorderSide(color: Colors.white60, width: 1.5),
-                      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const FaIcon(FontAwesomeIcons.phone, size: 15, color: LandingTheme.brandGreen),
-                        const SizedBox(width: 10),
-                        Text(
-                          'Direct Call: $_primaryPhoneFormatted',
-                          style: GoogleFonts.montserrat(fontSize: 14.5, fontWeight: FontWeight.w700),
-                        ),
-                      ],
+                      side: const BorderSide(color: Color(0xFF25D366), width: 1.2),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
                     ),
                   ),
                 ],

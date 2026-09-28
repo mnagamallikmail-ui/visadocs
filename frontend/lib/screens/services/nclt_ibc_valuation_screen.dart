@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../features/landing/landing_theme.dart';
+import '../../features/landing/widgets/commercial_intake_modal.dart';
 
 /// Statutory NCLT & IBC Valuation Services — Institutional Landing Page
 /// Canonical URL: https://www.provaluer.in/services/nclt-ibc-valuation
@@ -1990,27 +1991,25 @@ class _NcltIbcValuationScreenState extends State<NcltIbcValuationScreen> {
                   runSpacing: 14,
                   children: [
                     ElevatedButton.icon(
-                      onPressed: () => _launchWhatsApp(
-                        'Hello ProValuer Commercial, I am an Insolvency Professional and require an IBBI Registered Valuer appointment under Regulation 27.',
-                      ),
-                      icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 20, color: Colors.white),
+                      onPressed: () => CommercialIntakeModal.show(context, initialService: 'NCLT_IBC'),
+                      icon: const Icon(Icons.bolt_rounded, size: 20),
                       label: Text(
-                        'WhatsApp CIRP Advisory Desk',
+                        '⚡ Request Valuation Quote',
                         style: GoogleFonts.montserrat(fontSize: 14.5, fontWeight: FontWeight.w700),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF25D366),
-                        foregroundColor: Colors.white,
+                        backgroundColor: LandingTheme.primaryAccent,
+                        foregroundColor: const Color(0xFF0F172A),
                         padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 18),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                        elevation: 0,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                        elevation: 4,
                       ),
                     ),
                     OutlinedButton.icon(
                       onPressed: _makePhoneCall,
                       icon: const Icon(Icons.phone_in_talk, size: 18, color: Colors.white),
                       label: Text(
-                        'Call Direct: $_primaryPhoneFormatted',
+                        '📞 Speak With A Senior Valuer',
                         style: GoogleFonts.montserrat(
                           fontSize: 14.5,
                           fontWeight: FontWeight.w700,
@@ -2020,7 +2019,22 @@ class _NcltIbcValuationScreenState extends State<NcltIbcValuationScreen> {
                       style: OutlinedButton.styleFrom(
                         side: const BorderSide(color: Color(0xFF475569), width: 1.5),
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                      ),
+                    ),
+                    OutlinedButton.icon(
+                      onPressed: () => _launchWhatsApp(
+                        'Hello ProValuer Commercial, I am an Insolvency Professional and require an IBBI Registered Valuer appointment under Regulation 27.',
+                      ),
+                      icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 17, color: Color(0xFF25D366)),
+                      label: Text(
+                        '💬 WhatsApp Desk',
+                        style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700, color: const Color(0xFF25D366)),
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFF25D366), width: 1.2),
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
                       ),
                     ),
                   ],

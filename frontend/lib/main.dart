@@ -17,6 +17,7 @@ import 'screens/services/property_valuation_screen.dart';
 import 'screens/services/divorce_matrimonial_valuation_screen.dart';
 import 'screens/services/probate_inheritance_valuation_screen.dart';
 import 'screens/services/share_valuation_screen.dart';
+import 'screens/services/plant_machinery_valuation_screen.dart';
 import 'theme/app_theme.dart';
 
 void main() {
@@ -76,6 +77,10 @@ class ProValuerApp extends StatelessWidget {
         GoRoute(
           path: '/services/share-valuation',
           builder: (context, state) => const ShareValuationScreen(),
+        ),
+        GoRoute(
+          path: '/services/plant-and-machinery-valuation',
+          builder: (context, state) => const PlantMachineryValuationScreen(),
         ),
         GoRoute(
           path: '/login',

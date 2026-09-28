@@ -5,6 +5,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/landing/landing_theme.dart';
+import '../../features/landing/widgets/commercial_intake_modal.dart';
 
 /// Professional Service Page: Certified Share Valuation & Equity Intelligence
 /// Canonical URL: https://www.provaluer.in/services/share-valuation
@@ -2052,40 +2053,46 @@ class _ShareValuationScreenState extends State<ShareValuationScreen> {
                 alignment: WrapAlignment.center,
                 children: [
                   ElevatedButton.icon(
-                    onPressed: () => _launchWhatsApp(
-                      'Hello ProValuer Commercial, I would like to schedule an equity valuation consultation for a funding round / Section 247 report.',
-                    ),
-                    icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 18, color: Colors.white),
+                    onPressed: () => CommercialIntakeModal.show(context, initialService: 'SHARE_VALUATION'),
+                    icon: const Icon(Icons.bolt_rounded, size: 20),
                     label: Text(
-                      'WhatsApp Equity Advisory Desk',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
+                      '⚡ Request Valuation Quote',
+                      style: GoogleFonts.montserrat(fontSize: 14.5, fontWeight: FontWeight.w700),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF10B981),
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                      elevation: 0,
+                      backgroundColor: LandingTheme.primaryAccent,
+                      foregroundColor: const Color(0xFF0F172A),
+                      padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                      elevation: 4,
                     ),
                   ),
                   OutlinedButton.icon(
                     onPressed: () => _launchDialer(_primaryPhone),
                     icon: const Icon(Icons.phone_in_talk, size: 18, color: Colors.white),
                     label: Text(
-                      'Direct Line: $_primaryPhoneFormatted',
-                      style: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
+                      '📞 Speak With A Senior Valuer',
+                      style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700, color: Colors.white),
                     ),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFF475569)),
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      side: const BorderSide(color: Color(0xFF475569), width: 1.2),
+                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => _launchWhatsApp(
+                      'Hello ProValuer Commercial, I would like to schedule an equity valuation consultation for a funding round / Section 247 report.',
+                    ),
+                    icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 17, color: Color(0xFF25D366)),
+                    label: Text(
+                      '💬 WhatsApp Desk',
+                      style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700, color: const Color(0xFF25D366)),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFF25D366), width: 1.2),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
                     ),
                   ),
                 ],

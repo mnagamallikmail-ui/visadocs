@@ -68,21 +68,28 @@ class _LandingPageState extends State<LandingPage> {
                   isDesktop: isDesktop,
                   launchWhatsApp: _launchWhatsApp,
                 ),
-                // 2. Services Section (4-6 Luxury Glass Cards)
+                // 2. Authority Metrics — Verified Track Record (₹ Valued, Assignments, Years, Cities)
+                //    Immediately below hero to anchor social proof before service listings.
+                //    DEPLOYMENT NOTE: Confirm all metric values before going live.
+                AuthorityMetricsSection(
+                  isDesktop: isDesktop,
+                  isTablet: isTablet,
+                ),
+                // 3. Services Section (6 Luxury Glass Cards)
                 ServicesSection(
                   isDesktop: isDesktop,
                   isTablet: isTablet,
                   launchWhatsApp: _launchWhatsApp,
                 ),
-                // 3. Why Pro Valuer (4 Spatial Glass Pillars)
+                // 4. Why Pro Valuer (4 Spatial Glass Pillars)
                 WhyProValuerSection(isDesktop: isDesktop),
-                // 4. Process (4-Stage Crystal Flow)
+                // 5. Process (4-Stage Crystal Flow)
                 ProcessSection(isDesktop: isDesktop),
-                // 5. Credentials (Licensure & Bank Recognition)
+                // 6. Credentials (Licensure & Bank Recognition)
                 CredentialsSection(isDesktop: isDesktop),
-                // 6. Final Consultation Section (Luxury Glass CTA)
+                // 7. Final Consultation Section (Luxury Glass CTA)
                 CtaBanner(launchWhatsApp: _launchWhatsApp),
-                // 7. Luxury Minimal Footer
+                // 8. Luxury Minimal Footer
                 LandingFooter(isDesktop: isDesktop),
               ],
             ),

@@ -5,6 +5,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/landing/landing_theme.dart';
+import '../../features/landing/widgets/commercial_intake_modal.dart';
 
 /// Professional Service Page: Certified Property Valuation Services
 /// Canonical URL: https://www.provaluer.in/services/property-valuation
@@ -2034,33 +2035,46 @@ class _PropertyValuationScreenState extends State<PropertyValuationScreen> {
                 alignment: WrapAlignment.center,
                 children: [
                   ElevatedButton.icon(
-                    onPressed: () => _launchWhatsApp(
-                      'Hello ProValuer Commercial, I would like to schedule a certified property valuation.',
-                    ),
-                    icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 18),
+                    onPressed: () => CommercialIntakeModal.show(context, initialService: 'PROPERTY_VALUATION'),
+                    icon: const Icon(Icons.bolt_rounded, size: 20),
                     label: Text(
-                      'Consult via WhatsApp',
-                      style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700),
+                      '⚡ Request Valuation Quote',
+                      style: GoogleFonts.montserrat(fontSize: 14.5, fontWeight: FontWeight.w700),
                     ),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF25D366),
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      backgroundColor: LandingTheme.primaryAccent,
+                      foregroundColor: const Color(0xFF0F172A),
+                      padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
-                      elevation: 0,
+                      elevation: 4,
                     ),
                   ),
                   OutlinedButton.icon(
                     onPressed: _makePhoneCall,
                     icon: const Icon(Icons.phone_in_talk, size: 18),
                     label: Text(
-                      'Direct Line: $_primaryPhoneFormatted',
+                      '📞 Speak With A Senior Valuer',
                       style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700),
                     ),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.white,
                       side: const BorderSide(color: Colors.white54, width: 1.2),
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
+                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
+                    ),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () => _launchWhatsApp(
+                      'Hello ProValuer Commercial, I would like to schedule a certified property valuation.',
+                    ),
+                    icon: const FaIcon(FontAwesomeIcons.whatsapp, size: 17, color: Color(0xFF25D366)),
+                    label: Text(
+                      '💬 WhatsApp Desk',
+                      style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700, color: const Color(0xFF25D366)),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFF25D366), width: 1.2),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(100)),
                     ),
                   ),

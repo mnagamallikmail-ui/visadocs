@@ -8,6 +8,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import 'landing_theme.dart';
 import 'widgets/hero_video_widget.dart';
+import 'widgets/commercial_intake_modal.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // APPLE VISION PRO / ARCHITECTURAL MONOCHROMATIC GLASS UTILITIES
@@ -260,9 +261,9 @@ class LandingHeader extends StatelessWidget {
                         const _HeaderClientLoginButton(),
                         const SizedBox(width: 10),
 
-                        // Request Consultation Button (Obsidian & Platinum)
+                        // Request Valuation Report Button (Obsidian & Platinum)
                         GestureDetector(
-                          onTap: () => launchWhatsApp('Hello, I would like to request an institutional valuation consultation with Pro Valuer.'),
+                          onTap: () => CommercialIntakeModal.show(context),
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
                             decoration: BoxDecoration(
@@ -280,7 +281,7 @@ class LandingHeader extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  'Request Consultation',
+                                  'Request Valuation Report',
                                   style: GoogleFonts.montserrat(
                                     fontSize: 13.5,
                                     fontWeight: FontWeight.w700,
@@ -426,14 +427,16 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
     'assets/videos/hero_story/8.mp4',
   ];
 
+  // Trust-signal keyword pool — answers WHY TRUST PROVALUER, not what we value.
+  // Each keyword is independently comprehensible at T+0; breadth is shown by the right panel.
+  // 'Government Approved' leads (index 0) to front-load the most underemphasized credential.
   final List<String> _keywords = [
-    'Institutional Assets',
-    'Commercial Towers',
-    'Industrial Facilities',
-    'Infrastructure Portfolios',
-    'Banking Collaterals',
-    'Shopping Malls',
-    'Net Worth Certificates',
+    'Government Approved',
+    'IBBI Registered',
+    '₹15,000+ Cr Valued',
+    'Bank Empanelled',
+    'Court Compliant',
+    'PAN India Coverage',
   ];
 
   int _currentKeywordIndex = 0;
@@ -751,7 +754,9 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
 
         SizedBox(height: keywordGap),
 
-        // Hero Headline Line 2: "For <Animated Phrase>" (Guaranteed 1 line)
+        // Hero Headline Line 2: Rotating trust credential (Guaranteed 1 line).
+        // No 'For ' prefix — each trust signal stands alone as a declarative credential.
+        // Rotation answers WHY TRUST PROVALUER at any single animation frame.
         FittedBox(
           fit: BoxFit.scaleDown,
           alignment: Alignment.centerLeft,
@@ -762,30 +767,14 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                 offset: Offset(0, _keywordSlideAnimation.value),
                 child: Opacity(
                   opacity: _keywordOpacityAnimation.value,
-                  child: Text.rich(
-                    TextSpan(
-                      children: [
-                        TextSpan(
-                          text: 'For ',
-                          style: GoogleFonts.montserrat(
-                            fontSize: keywordSize,
-                            fontWeight: FontWeight.w800,
-                            color: LandingTheme.textPrimary,
-                            letterSpacing: -1.8,
-                            height: 1.08,
-                          ),
-                        ),
-                        TextSpan(
-                          text: _keywords[_currentKeywordIndex],
-                          style: GoogleFonts.montserrat(
-                            fontSize: keywordSize,
-                            fontWeight: FontWeight.w800,
-                            color: LandingTheme.brandGreen, // Reusing brand green token
-                            letterSpacing: -1.8,
-                            height: 1.08,
-                          ),
-                        ),
-                      ],
+                  child: Text(
+                    _keywords[_currentKeywordIndex],
+                    style: GoogleFonts.montserrat(
+                      fontSize: keywordSize,
+                      fontWeight: FontWeight.w800,
+                      color: LandingTheme.brandGreen,
+                      letterSpacing: -1.8,
+                      height: 1.08,
                     ),
                     maxLines: 1,
                     softWrap: false,
@@ -798,11 +787,12 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
 
         SizedBox(height: descGap),
 
-        // Description (Soft Architectural Graphite)
+        // Description — includes institutional AND individual clients for full-spectrum coverage.
+        // 'property owners' provides retail/NRI/visa client recognition without diluting institutional tone.
         ConstrainedBox(
           constraints: BoxConstraints(maxWidth: isCompactLaptop ? 560 : 620),
           child: Text(
-            'Independent statutory valuation and asset intelligence for leading banks, NBFCs, private equity funds, insolvency professionals, and public corporations.',
+            'Statutory valuation and asset intelligence for banks, NBFCs, private equity funds, insolvency professionals, and property owners — across India.',
             style: GoogleFonts.montserrat(
               fontSize: bodySize,
               fontWeight: FontWeight.w500,
@@ -815,18 +805,16 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
 
         SizedBox(height: trustGap),
 
-        // Trust Indicators (Light Ambient Pills — Non-Duplicative Regulatory Mandates)
+        // Trust Indicators — Tier 2 authority (Govt Approved, elevated) + Tier 3 regulatory mandates.
+        // Government Approved Valuers receives a dedicated green-tinted badge: higher visual weight
+        // than the standard charcoal pills to signal primary institutional authority.
         Wrap(
           spacing: 10,
           runSpacing: 8,
           children: [
-            _buildTrustBadge(Icons.verified_user_outlined, 'Companies Act Sec 247 & IBBI', isCompactLaptop),
+            _buildGovtApprovedBadge(isCompactLaptop),
+            _buildTrustBadge(Icons.verified_user_outlined, 'IBBI Registered · Sec 247', isCompactLaptop),
             _buildTrustBadge(Icons.gavel_outlined, 'Rule 11UA / Income Tax', isCompactLaptop),
-            _buildTrustBadge(
-              Icons.assured_workload_outlined,
-              (!isDesktop || isCompactLaptop) ? 'PSU & Private Banks' : 'Empanelled with PSU & Private Banks',
-              isCompactLaptop,
-            ),
           ],
         ),
 
@@ -837,9 +825,9 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
           spacing: 12,
           runSpacing: 10,
           children: [
-            // Primary CTA: Request Consultation (Solid Deep Teal)
+            // Primary CTA: Request Valuation Report (Solid Deep Teal)
             GestureDetector(
-              onTap: () => widget.launchWhatsApp('Hello, I would like to request an institutional valuation consultation with Pro Valuer.'),
+              onTap: () => CommercialIntakeModal.show(context),
               child: Container(
                 padding: EdgeInsets.symmetric(
                   horizontal: isCompactLaptop ? 18 : 28,
@@ -862,7 +850,7 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Request Consultation',
+                        'Request Valuation Report',
                         style: GoogleFonts.montserrat(
                           fontSize: isCompactLaptop ? 13.5 : 14.5,
                           fontWeight: FontWeight.w700,
@@ -919,6 +907,49 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
       ),
     );
   }
+
+  /// Dedicated Government Approved Valuers badge — Tier 2 authority signal.
+  /// Green-tinted background, green border, and green text give it higher visual
+  /// weight than the standard charcoal trust badges, making it immediately
+  /// distinguishable as the primary statutory credential for retail and
+  /// institutional visitors alike.
+  Widget _buildGovtApprovedBadge(bool isCompact) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 10 : 14,
+        vertical: isCompact ? 5 : 7,
+      ),
+      decoration: BoxDecoration(
+        color: LandingTheme.brandGreen.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(
+          color: LandingTheme.brandGreen.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.verified_rounded,
+            size: isCompact ? 13 : 14,
+            color: LandingTheme.brandGreen,
+          ),
+          const SizedBox(width: 5),
+          Text(
+            'Government Approved Valuers',
+            style: GoogleFonts.montserrat(
+              fontSize: isCompact ? 11.0 : 12.5,
+              fontWeight: FontWeight.w700,
+              color: LandingTheme.brandGreen,
+              letterSpacing: -0.1,
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 /// Subtle Institutional Trust Strip (Executive Masthead Ribbon)
@@ -959,7 +990,8 @@ class _HeroTrustStrip extends StatelessWidget {
     );
 
     if (isNarrow) {
-      // Balanced two-line layout on mobile / compact viewports
+      // Mobile trust strip — Tier 1 (volume) → Tier 2 (authority) → Tier 3 (credential) → Tier 4 (scope)
+      // PSU & Private Banks removed; it appears in the trust badge row below.
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -972,7 +1004,7 @@ class _HeroTrustStrip extends StatelessWidget {
               children: [
                 Text('₹15,000+ Cr Valued', style: strongStyle),
                 bullet,
-                Text('PSU & Private Banks', style: itemStyle),
+                Text('Govt. Approved', style: strongStyle),
               ],
             ),
           ),
@@ -983,9 +1015,9 @@ class _HeroTrustStrip extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('IBBI Registered Valuers', style: itemStyle),
+                Text('IBBI Registered', style: itemStyle),
                 bullet,
-                Text('PAN India Coverage', style: itemStyle),
+                Text('PAN India', style: itemStyle),
               ],
             ),
           ),
@@ -993,7 +1025,9 @@ class _HeroTrustStrip extends StatelessWidget {
       );
     }
 
-    // Single unbroken horizontal row on desktop and tablet
+    // Desktop trust strip — Tier 1 → Tier 2 → Tier 3 → Tier 4.
+    // 'PSU & Private Banks' removed from strip; it was duplicated 3× across the hero.
+    // 'Govt. Approved Valuers' elevated to Tier 2, rendered in strongStyle (bold, dark).
     return FittedBox(
       fit: BoxFit.scaleDown,
       alignment: Alignment.centerLeft,
@@ -1002,11 +1036,11 @@ class _HeroTrustStrip extends StatelessWidget {
         children: [
           Text('₹15,000+ Cr Valued', style: strongStyle),
           bullet,
-          Text('PSU & Private Banks', style: itemStyle),
+          Text('Govt. Approved Valuers', style: strongStyle),
           bullet,
-          Text('IBBI Registered Valuers', style: itemStyle),
+          Text('IBBI Registered', style: itemStyle),
           bullet,
-          Text('PAN India Coverage', style: itemStyle),
+          Text('PAN India', style: itemStyle),
         ],
       ),
     );
@@ -1499,6 +1533,299 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
   }
 }
 
+
+// ═══════════════════════════════════════════════════════════════════════════════
+// 2. AUTHORITY METRICS SECTION — VERIFIED TRACK RECORD
+// ═══════════════════════════════════════════════════════════════════════════════
+// Positioned immediately below the hero to anchor social proof before the
+// visitor reads service or credential descriptions.
+// DEPLOYMENT NOTE: Replace all TODO placeholders with exact verified figures
+// from business records before going live. Using inflated or unverified numbers
+// constitutes a compliance risk for a regulated valuation firm.
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class AuthorityMetricsSection extends StatelessWidget {
+  final bool isDesktop;
+  final bool isTablet;
+
+  const AuthorityMetricsSection({
+    super.key,
+    required this.isDesktop,
+    required this.isTablet,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final double screenW = MediaQuery.of(context).size.width;
+    final bool isNarrow = !isDesktop;
+
+    // TODO: Replace placeholder metric values with exact verified business figures
+    // before deployment. Each value must be supportable by internal assignment records.
+    final metrics = [
+      _MetricData(
+        value: '₹15,000+\u202fCr',    // TODO: Confirm exact figure
+        label: 'Total Assets Valued',
+        sublabel: 'Across All Asset Classes',
+        icon: Icons.trending_up_rounded,
+      ),
+      _MetricData(
+        value: '5,000+',             // TODO: Replace with actual completed assignment count
+        label: 'Assignments Completed',
+        sublabel: 'Statutory & Advisory Reports',
+        icon: Icons.description_rounded,
+      ),
+      _MetricData(
+        value: '15+',                // TODO: Replace with actual years since firm establishment
+        label: 'Years Operating',
+        sublabel: 'Institutional Practice',
+        icon: Icons.history_rounded,
+      ),
+      _MetricData(
+        value: '22+',                // TODO: Replace with actual city/district coverage count
+        label: 'Cities Served',
+        sublabel: 'PAN India Coverage',
+        icon: Icons.location_on_rounded,
+      ),
+    ];
+
+    // TODO: Replace with actual empanelled bank names (verify each empanelment is documented).
+    // If specific bank logos require trademark permission, use text-only names.
+    const String bankStrip =
+        'SBI  ·  Bank of Baroda  ·  Union Bank  ·  HDFC Bank  ·  ICICI Bank  ·  Axis Bank  ·  PNB  ·  Canara Bank  ·  and 18+ more';
+
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        color: Color(0xFFF8FAFC), // Pearl slate — visually separates from hero white
+        border: Border(
+          top: BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+          bottom: BorderSide(color: Color(0xFFE2E8F0), width: 1.0),
+        ),
+      ),
+      padding: EdgeInsets.symmetric(
+        horizontal: isDesktop ? 60 : 24,
+        vertical: isDesktop ? 72 : 48,
+      ),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1240),
+          child: Column(
+            children: [
+              // ── Section Eyebrow ────────────────────────────────────────────
+              const GlassEyebrowBadge(
+                label: 'Verified Track Record',
+                icon: Icons.military_tech_rounded,
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'Proof in Every Assignment',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.montserrat(
+                  fontSize: screenW >= 1024 ? 38 : (screenW >= 768 ? 30 : 24),
+                  fontWeight: FontWeight.w800,
+                  color: LandingTheme.textPrimary,
+                  letterSpacing: -1.2,
+                  height: 1.15,
+                ),
+              ),
+              const SizedBox(height: 10),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 540),
+                child: Text(
+                  'Numbers drawn from completed statutory assignments across India\'s banking, corporate, and regulatory sectors.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.montserrat(
+                    fontSize: screenW >= 768 ? 15.5 : 13.5,
+                    fontWeight: FontWeight.w400,
+                    color: LandingTheme.textSecondary,
+                    height: 1.55,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 48),
+
+              // ── 4 Authority Metrics ────────────────────────────────────────
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final int columns = isDesktop ? 4 : (constraints.maxWidth >= 640 ? 2 : 2);
+                  const double spacing = 16;
+                  final double tileW = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+                  return Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: metrics.map((m) => SizedBox(
+                      width: tileW,
+                      child: _AuthorityMetricTile(metric: m, isNarrow: isNarrow),
+                    )).toList(),
+                  );
+                },
+              ),
+
+              const SizedBox(height: 40),
+
+              // ── Bank Empanelment Strip ────────────────────────────────────
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isDesktop ? 32 : 20,
+                  vertical: isDesktop ? 18 : 14,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE2E8F0), width: 1.0),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x060F172A),
+                      blurRadius: 12,
+                      offset: Offset(0, 3),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'EMPANELLED ACROSS',
+                      style: GoogleFonts.montserrat(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: LandingTheme.textMuted,
+                        letterSpacing: 1.6,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        bankStrip,
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.montserrat(
+                          fontSize: isNarrow ? 12.5 : 14,
+                          fontWeight: FontWeight.w600,
+                          color: LandingTheme.textPrimary,
+                          letterSpacing: -0.1,
+                          height: 1.5,
+                        ),
+                        maxLines: 2,
+                        softWrap: true,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Data model for a single authority metric tile.
+class _MetricData {
+  final String value;
+  final String label;
+  final String sublabel;
+  final IconData icon;
+
+  const _MetricData({
+    required this.value,
+    required this.label,
+    required this.sublabel,
+    required this.icon,
+  });
+}
+
+/// Individual metric display tile.
+/// Large value (48px), label (14px), sublabel (11px), hairline border.
+class _AuthorityMetricTile extends StatelessWidget {
+  final _MetricData metric;
+  final bool isNarrow;
+
+  const _AuthorityMetricTile({required this.metric, required this.isNarrow});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isNarrow ? 16 : 24,
+        vertical: isNarrow ? 20 : 28,
+      ),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE2E8F0), width: 1.0),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x060F172A),
+            blurRadius: 16,
+            offset: Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Icon (subtle, small, charcoal)
+          Icon(
+            metric.icon,
+            size: 18,
+            color: LandingTheme.brandGreen,
+          ),
+          SizedBox(height: isNarrow ? 10 : 14),
+
+          // Large metric value
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              metric.value,
+              style: GoogleFonts.montserrat(
+                fontSize: isNarrow ? 34 : 42,
+                fontWeight: FontWeight.w800,
+                color: LandingTheme.textPrimary,
+                letterSpacing: -1.8,
+                height: 1.0,
+              ),
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          // Primary label
+          Text(
+            metric.label,
+            style: GoogleFonts.montserrat(
+              fontSize: isNarrow ? 13 : 14,
+              fontWeight: FontWeight.w700,
+              color: LandingTheme.textPrimary,
+              letterSpacing: -0.2,
+            ),
+          ),
+
+          const SizedBox(height: 3),
+
+          // Sublabel (muted)
+          Text(
+            metric.sublabel,
+            style: GoogleFonts.montserrat(
+              fontSize: isNarrow ? 11 : 12,
+              fontWeight: FontWeight.w400,
+              color: LandingTheme.textMuted,
+              letterSpacing: -0.1,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // 3. SERVICES SECTION — 6 LUXURY MONOCHROMATIC ARCHITECTURAL CARDS
@@ -2155,7 +2482,7 @@ class CtaBanner extends StatelessWidget {
                   alignment: WrapAlignment.center,
                   children: [
                     GestureDetector(
-                      onTap: () => launchWhatsApp('Hello, I would like to schedule a valuation consultation with Pro Valuer.'),
+                      onTap: () => CommercialIntakeModal.show(context),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                         decoration: BoxDecoration(
@@ -2173,7 +2500,7 @@ class CtaBanner extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              'Request Consultation',
+                              'Request Valuation Report',
                               style: GoogleFonts.montserrat(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
@@ -2383,7 +2710,7 @@ class MobileMenuDrawer extends StatelessWidget {
                 child: GestureDetector(
                   onTap: () {
                     Navigator.of(context).pop();
-                    launchWhatsApp('Hello, I would like to request an institutional valuation consultation with Pro Valuer.');
+                    CommercialIntakeModal.show(context);
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 16),
@@ -2393,7 +2720,7 @@ class MobileMenuDrawer extends StatelessWidget {
                     ),
                     child: Center(
                       child: Text(
-                        'Request Consultation',
+                        'Request Valuation Report',
                         style: GoogleFonts.montserrat(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
