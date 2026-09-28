@@ -106,12 +106,15 @@ public class SecurityConfig {
             "https://www.provaluer.in",
             "https://provaluer.in",
             "https://admin.provaluer.in",
+            "https://visadocs.online",
             "http://localhost:3000",
             "http://localhost:8080",
+            "http://localhost:8091",
             "http://localhost:5000",
             "http://localhost:5173",
             "http://127.0.0.1:3000",
-            "http://127.0.0.1:8080"
+            "http://127.0.0.1:8080",
+            "http://127.0.0.1:8091"
         ));
         configuration.setAllowCredentials(true);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

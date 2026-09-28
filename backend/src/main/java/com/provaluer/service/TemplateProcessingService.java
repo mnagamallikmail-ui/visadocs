@@ -16,6 +16,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import org.docx4j.TraversalUtil;
+import org.docx4j.XmlUtils;
+import org.docx4j.TextUtils;
+import org.docx4j.openpackaging.packages.WordprocessingMLPackage;
+import org.docx4j.openpackaging.parts.Part;
+import org.docx4j.openpackaging.parts.WordprocessingML.HeaderPart;
+import org.docx4j.openpackaging.parts.WordprocessingML.FooterPart;
+import org.docx4j.wml.P;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -109,32 +118,7 @@ public class TemplateProcessingService {
             return;
         }
 
-        Set<String> normalizedPlaceholders = new HashSet<>();
-        try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(rawBytes))) {
-            ZipEntry entry;
-            Pattern pattern = Pattern.compile("(?:&lt;&lt;|<<)([^>&]+)(?:&gt;&gt;|>>)");
-            while ((entry = zis.getNextEntry()) != null) {
-                String name = entry.getName();
-                if (name != null && name.startsWith("word/") && name.endsWith(".xml")) {
-                    ByteArrayOutputStream entryBaos = new ByteArrayOutputStream();
-                    byte[] buffer = new byte[8192];
-                    int len;
-                    while ((len = zis.read(buffer)) != -1) {
-                        entryBaos.write(buffer, 0, len);
-                    }
-                    String partXml = entryBaos.toString(StandardCharsets.UTF_8);
-                    Matcher matcher = pattern.matcher(partXml);
-                    while (matcher.find()) {
-                        String raw = matcher.group(1).trim();
-                        String norm = raw.replaceAll("[\\s_]+", "").toUpperCase();
-                        normalizedPlaceholders.add(norm);
-                    }
-                }
-                zis.closeEntry();
-            }
-        } catch (IOException e) {
-            throw new IllegalArgumentException("Failed to scan template placeholders for governance validation: " + e.getMessage(), e);
-        }
+        Set<String> normalizedPlaceholders = extractVisiblePlaceholders(rawBytes);
 
         boolean hasComposite = normalizedPlaceholders.stream().anyMatch(p ->
                 p.equals("COMPOSITEPROPERTYTABLE") || p.equals("DYNAMICCOMPOSITEPROPERTYTABLE") || p.equals("COMPOSITETABLE")
@@ -194,6 +178,99 @@ public class TemplateProcessingService {
             throw new IllegalArgumentException("Template upload governance violation (Rule 4 & 5): " +
                     "Template methodology is ambiguous or invalid. Must resolve to exactly one valid methodology (LAND_ONLY, LAND_AND_BUILDING, or FLAT_APARTMENT).");
         }
+    }
+
+    /**
+     * Extracts normalized placeholders by traversing the DOCX DOM with Docx4j.
+     * Stitches together visible text across fragmented <w:r> runs in paragraphs,
+     * ensuring placeholders split across runs by Microsoft Word are robustly detected.
+     */
+    public Set<String> extractVisiblePlaceholders(byte[] rawBytes) {
+        Set<String> normalizedPlaceholders = new HashSet<>();
+        Pattern pattern = Pattern.compile("(?:&lt;&lt;|<<|\\{\\{)([^>\\}]+)(?:&gt;&gt;|>>|\\}\\})");
+
+        try {
+            WordprocessingMLPackage wordMLPackage = WordprocessingMLPackage.load(new ByteArrayInputStream(rawBytes));
+
+            java.util.function.Consumer<List<Object>> scanContent = (contentList) -> {
+                if (contentList == null) return;
+                new TraversalUtil(contentList, new TraversalUtil.CallbackImpl() {
+                    @Override
+                    public List<Object> apply(Object o) {
+                        Object unwrapped = XmlUtils.unwrap(o);
+                        if (unwrapped instanceof P p) {
+                            String visibleText = TextUtils.getText(p);
+                            if (visibleText != null && (visibleText.contains("<<") || visibleText.contains("{{") || visibleText.contains("&lt;&lt;"))) {
+                                Matcher matcher = pattern.matcher(visibleText);
+                                while (matcher.find()) {
+                                    String raw = matcher.group(1).replace("&gt;&gt;", "").replace("&gt;", "").trim();
+                                    String norm = raw.replaceAll("[\\s_]+", "").toUpperCase();
+                                    if (!norm.isEmpty()) {
+                                        normalizedPlaceholders.add(norm);
+                                    }
+                                }
+                            }
+                        }
+                        return null;
+                    }
+                });
+            };
+
+            // 1. Scan Main Document Part (paragraphs, tables, cells)
+            if (wordMLPackage.getMainDocumentPart() != null) {
+                scanContent.accept(wordMLPackage.getMainDocumentPart().getContent());
+            }
+
+            // 2. Scan Headers and Footers
+            if (wordMLPackage.getParts() != null && wordMLPackage.getParts().getParts() != null) {
+                for (Part part : wordMLPackage.getParts().getParts().values()) {
+                    if (part instanceof HeaderPart hp) {
+                        scanContent.accept(hp.getContent());
+                    } else if (part instanceof FooterPart fp) {
+                        scanContent.accept(fp.getContent());
+                    }
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Docx4j visual placeholder extraction encountered an issue, falling back to stream regex scanner: {}", e.getMessage());
+            return extractPlaceholdersFallback(rawBytes);
+        }
+
+        // Additive safety net to catch any custom XML part tokens
+        normalizedPlaceholders.addAll(extractPlaceholdersFallback(rawBytes));
+
+        return normalizedPlaceholders;
+    }
+
+    private Set<String> extractPlaceholdersFallback(byte[] rawBytes) {
+        Set<String> normalizedPlaceholders = new HashSet<>();
+        try (ZipInputStream zis = new ZipInputStream(new ByteArrayInputStream(rawBytes))) {
+            ZipEntry entry;
+            Pattern pattern = Pattern.compile("(?:&lt;&lt;|<<|\\{\\{)([^>\\}&]+)(?:&gt;&gt;|>>|\\}\\})");
+            while ((entry = zis.getNextEntry()) != null) {
+                String name = entry.getName();
+                if (name != null && name.startsWith("word/") && name.endsWith(".xml")) {
+                    ByteArrayOutputStream entryBaos = new ByteArrayOutputStream();
+                    byte[] buffer = new byte[8192];
+                    int len;
+                    while ((len = zis.read(buffer)) != -1) {
+                        entryBaos.write(buffer, 0, len);
+                    }
+                    String partXml = entryBaos.toString(StandardCharsets.UTF_8);
+                    Matcher matcher = pattern.matcher(partXml);
+                    while (matcher.find()) {
+                        String raw = matcher.group(1).trim();
+                        String norm = raw.replaceAll("[\\s_]+", "").toUpperCase();
+                        if (!norm.isEmpty()) {
+                            normalizedPlaceholders.add(norm);
+                        }
+                    }
+                }
+                zis.closeEntry();
+            }
+        } catch (Exception ignored) {
+        }
+        return normalizedPlaceholders;
     }
 
     /**
