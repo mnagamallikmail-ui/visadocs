@@ -13,6 +13,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
@@ -82,7 +83,11 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .authorizeHttpRequests(auth -> 
                 auth.requestMatchers("/api/v1/auth/**").permitAll()
-                    .requestMatchers("/api/leads", "/api/leads/*/upload", "/api/leads/*").permitAll()
+                    // P0-1: Strictly allow ONLY POST requests for public commercial lead intake and document uploads
+                    .requestMatchers(HttpMethod.POST, "/api/leads").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/leads/*/upload").permitAll()
+                    // All other lead operations (listing, dossier inspection, quote generation, status transitions) require ADMIN
+                    .requestMatchers("/api/leads/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                     .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/error").permitAll()
                     .anyRequest().authenticated()
             );
@@ -96,9 +101,21 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("*")); // Adjust for production environments
+        // P1-5: Hardened CORS - remove wildcards, permit only verified production, admin, and dev origins
+        configuration.setAllowedOrigins(Arrays.asList(
+            "https://www.provaluer.in",
+            "https://provaluer.in",
+            "https://admin.provaluer.in",
+            "http://localhost:3000",
+            "http://localhost:8080",
+            "http://localhost:5000",
+            "http://localhost:5173",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:8080"
+        ));
+        configuration.setAllowCredentials(true);
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
-        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept"));
+        configuration.setAllowedHeaders(Arrays.asList("Authorization", "Content-Type", "Accept", "X-Requested-With"));
         configuration.setExposedHeaders(Arrays.asList("Authorization"));
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);

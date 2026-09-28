@@ -24,6 +24,8 @@ public class LeadResponseDto {
     private String intentLevel;
     private String status;
     private Long assignedValuerId;
+    private boolean consentGiven;
+    private LocalDateTime consentTimestamp;
     private LocalDateTime createdAt;
     private List<DocumentDto> documents;
     private List<QuotationDto> quotations;
@@ -71,6 +73,8 @@ public class LeadResponseDto {
         dto.setIntentLevel(lead.getIntentLevel());
         dto.setStatus(lead.getStatus());
         dto.setAssignedValuerId(lead.getAssignedValuerId());
+        dto.setConsentGiven(lead.isConsentGiven());
+        dto.setConsentTimestamp(lead.getConsentTimestamp());
         dto.setCreatedAt(lead.getCreatedAt());
 
         if (lead.getDocuments() != null) {
@@ -142,6 +146,10 @@ public class LeadResponseDto {
     public void setStatus(String status) { this.status = status; }
     public Long getAssignedValuerId() { return assignedValuerId; }
     public void setAssignedValuerId(Long assignedValuerId) { this.assignedValuerId = assignedValuerId; }
+    public boolean isConsentGiven() { return consentGiven; }
+    public void setConsentGiven(boolean consentGiven) { this.consentGiven = consentGiven; }
+    public LocalDateTime getConsentTimestamp() { return consentTimestamp; }
+    public void setConsentTimestamp(LocalDateTime consentTimestamp) { this.consentTimestamp = consentTimestamp; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public List<DocumentDto> getDocuments() { return documents; }

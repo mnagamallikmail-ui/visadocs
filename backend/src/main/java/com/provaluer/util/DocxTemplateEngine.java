@@ -1219,6 +1219,8 @@ public class DocxTemplateEngine {
                 boolean isPhotoSectionHeading = !isTocOrNav && hasNearbyPhotoElements(elements, i) && (
                         pText.equalsIgnoreCase("Property Photographs")
                         || pText.toUpperCase().contains("PROPERTY PHOTOGRAPHS")
+                        || pText.equalsIgnoreCase("Site Photographs")
+                        || pText.toUpperCase().contains("SITE PHOTOGRAPHS")
                         || (!pText.isEmpty() && pText.toUpperCase().endsWith("PHOTOGRAPHS") && !pText.toUpperCase().contains("ADDITIONAL"))
                 );
                 boolean isFirstPhotoParagraph = !photoGridInserted && !isTocOrNav && !isPhotoSectionHeading && (
@@ -1843,8 +1845,41 @@ public class DocxTemplateEngine {
         return createDocxTableWithMultipleMergedTotals("Value Of The Property", headers, colWidths, rows, totals, 20, alignments);
     }
 
+    private int getPhotoSlotIndex(String key) {
+        if (key == null) return -1;
+        String clean = key.replaceAll("[<>]", "").trim().toUpperCase();
+        if (clean.equals("IM_6")) return 6;
+        Matcher m = Pattern.compile("^(?:IMG_PIC|IMG_|IMAGE_|PIC)(\\d)$").matcher(clean);
+        if (m.matches()) {
+            int slot = Integer.parseInt(m.group(1));
+            if (slot >= 1 && slot <= 8) return slot;
+        }
+        return -1;
+    }
+
+    private boolean isPhotoSlotKey(String key) {
+        return getPhotoSlotIndex(key) >= 1;
+    }
+
+    private boolean textContainsAnyPhotoKey(String pText) {
+        if (pText == null || pText.isEmpty()) return false;
+        String upper = pText.toUpperCase();
+        if (upper.contains("<<IM_6>>") || upper.matches(".*\\bIM_6\\b.*")) return true;
+        for (int s = 1; s <= 8; s++) {
+            if (upper.contains("<<IMG_PIC" + s + ">>")
+                    || upper.contains("<<IMG_" + s + ">>")
+                    || upper.contains("<<IMAGE_" + s + ">>")
+                    || upper.contains("<<PIC" + s + ">>")) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean paragraphContainsImageKey(P p, String targetKey) {
         if (p == null || targetKey == null) return false;
+        int targetSlot = getPhotoSlotIndex(targetKey);
+
         ClassFinder drawingFinder = new ClassFinder(org.docx4j.wml.Drawing.class);
         new TraversalUtil(p, drawingFinder);
         for (Object dObj : drawingFinder.results) {
@@ -1855,12 +1890,25 @@ public class DocxTemplateEngine {
                 else if (aOrI instanceof Inline in) docPr = in.getDocPr();
                 if (docPr != null) {
                     String k = extractImageKey(docPr);
-                    if (targetKey.equalsIgnoreCase(k)) return true;
+                    if (k != null) {
+                        if (targetKey.equalsIgnoreCase(k)) return true;
+                        if (targetSlot >= 1 && getPhotoSlotIndex(k) == targetSlot) return true;
+                    }
                 }
             }
         }
         String pText = getParagraphText(p).toUpperCase();
-        return pText.contains("<<" + targetKey.toUpperCase() + ">>");
+        if (pText.contains("<<" + targetKey.toUpperCase() + ">>")) return true;
+        if (targetSlot >= 1) {
+            if (pText.contains("<<IMG_PIC" + targetSlot + ">>")
+                    || pText.contains("<<IMG_" + targetSlot + ">>")
+                    || pText.contains("<<IMAGE_" + targetSlot + ">>")
+                    || pText.contains("<<PIC" + targetSlot + ">>")
+                    || (targetSlot == 6 && (pText.contains("<<IM_6>>") || pText.contains("IM_6")))) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean paragraphContainsAnyPicKey(P p) {
@@ -1875,15 +1923,12 @@ public class DocxTemplateEngine {
                 else if (aOrI instanceof Inline in) docPr = in.getDocPr();
                 if (docPr != null) {
                     String k = extractImageKey(docPr);
-                    if (k != null && k.toUpperCase().matches("^IMG_PIC[1-8]$")) return true;
+                    if (k != null && isPhotoSlotKey(k)) return true;
                 }
             }
         }
-        String pText = getParagraphText(p).toUpperCase();
-        return pText.contains("<<IMG_PIC1>>") || pText.contains("<<IMG_PIC2>>")
-                || pText.contains("<<IMG_PIC3>>") || pText.contains("<<IMG_PIC4>>")
-                || pText.contains("<<IMG_PIC5>>") || pText.contains("<<IMG_PIC6>>")
-                || pText.contains("<<IMG_PIC7>>") || pText.contains("<<IMG_PIC8>>");
+        String pText = getParagraphText(p);
+        return textContainsAnyPhotoKey(pText);
     }
 
     private Tbl buildPhotoGridTable(WordprocessingMLPackage wordMLPackage, Map<String, String> inputs, Map<String, byte[]> images) throws Exception {
@@ -2602,12 +2647,12 @@ public class DocxTemplateEngine {
             Matcher m = Pattern.compile("<<([^>]+)>>").matcher(trimmed);
             if (m.find()) {
                 String token = m.group(1).trim().toUpperCase();
-                if (token.startsWith("IMG_") || token.startsWith("IMAGE_")) {
+                if (token.startsWith("IMG_") || token.startsWith("IMAGE_") || token.equals("IM_6") || isPhotoSlotKey(token)) {
                     return token;
                 }
             }
             String upper = trimmed.toUpperCase();
-            if (upper.startsWith("IMG_") || upper.startsWith("IMAGE_")) {
+            if (upper.startsWith("IMG_") || upper.startsWith("IMAGE_") || upper.equals("IM_6") || isPhotoSlotKey(upper)) {
                 return trimmed.replaceAll("[<>]", "").trim().toUpperCase();
             }
         }
@@ -2735,7 +2780,7 @@ public class DocxTemplateEngine {
                         String trimmedVal = val.trim();
                         if (trimmedVal.startsWith("<<") && trimmedVal.endsWith(">>")) {
                             String possibleKey = trimmedVal.substring(2, trimmedVal.length() - 2).trim().toUpperCase();
-                            if (possibleKey.startsWith("IMG_") || possibleKey.startsWith("IMAGE_")) {
+                            if (possibleKey.startsWith("IMG_") || possibleKey.startsWith("IMAGE_") || possibleKey.equals("IM_6") || isPhotoSlotKey(possibleKey)) {
                                 byte[] imgBytes = getUploadedOrPlaceholderImage(possibleKey, images, inputs);
                                 if (imgBytes != null) {
                                     long frameCx = 2743200L; // 3 inches default frame
@@ -2962,29 +3007,46 @@ public class DocxTemplateEngine {
             case "GOVT_COMPOSITE_RATE":
                 return List.of("COMPOSITE_GOVT_RATE", "COMPOSITE_GOVERNMENT_RATE", "composite_govt_rate", "composite_government_rate", "COMPOSITE_RATE");
             case "IMG_PIC1":
+            case "IMG_1":
+            case "IMAGE_1":
             case "PIC1":
-                return List.of("IMG_PIC1", "PIC1", "img_pic1", "pic1");
+                return List.of("IMG_PIC1", "IMG_1", "IMAGE_1", "PIC1", "img_pic1", "img_1", "image_1", "pic1");
             case "IMG_PIC2":
+            case "IMG_2":
+            case "IMAGE_2":
             case "PIC2":
-                return List.of("IMG_PIC2", "PIC2", "img_pic2", "pic2");
+                return List.of("IMG_PIC2", "IMG_2", "IMAGE_2", "PIC2", "img_pic2", "img_2", "image_2", "pic2");
             case "IMG_PIC3":
+            case "IMG_3":
+            case "IMAGE_3":
             case "PIC3":
-                return List.of("IMG_PIC3", "PIC3", "img_pic3", "pic3");
+                return List.of("IMG_PIC3", "IMG_3", "IMAGE_3", "PIC3", "img_pic3", "img_3", "image_3", "pic3");
             case "IMG_PIC4":
+            case "IMG_4":
+            case "IMAGE_4":
             case "PIC4":
-                return List.of("IMG_PIC4", "PIC4", "img_pic4", "pic4");
+                return List.of("IMG_PIC4", "IMG_4", "IMAGE_4", "PIC4", "img_pic4", "img_4", "image_4", "pic4");
             case "IMG_PIC5":
+            case "IMG_5":
+            case "IMAGE_5":
             case "PIC5":
-                return List.of("IMG_PIC5", "PIC5", "img_pic5", "pic5");
+                return List.of("IMG_PIC5", "IMG_5", "IMAGE_5", "PIC5", "img_pic5", "img_5", "image_5", "pic5");
             case "IMG_PIC6":
+            case "IMG_6":
+            case "IMAGE_6":
+            case "IM_6":
             case "PIC6":
-                return List.of("IMG_PIC6", "PIC6", "img_pic6", "pic6");
+                return List.of("IMG_PIC6", "IMG_6", "IMAGE_6", "IM_6", "PIC6", "img_pic6", "img_6", "image_6", "im_6", "pic6");
             case "IMG_PIC7":
+            case "IMG_7":
+            case "IMAGE_7":
             case "PIC7":
-                return List.of("IMG_PIC7", "PIC7", "img_pic7", "pic7");
+                return List.of("IMG_PIC7", "IMG_7", "IMAGE_7", "PIC7", "img_pic7", "img_7", "image_7", "pic7");
             case "IMG_PIC8":
+            case "IMG_8":
+            case "IMAGE_8":
             case "PIC8":
-                return List.of("IMG_PIC8", "PIC8", "img_pic8", "pic8");
+                return List.of("IMG_PIC8", "IMG_8", "IMAGE_8", "PIC8", "img_pic8", "img_8", "image_8", "pic8");
             default:
                 return Collections.emptyList();
         }

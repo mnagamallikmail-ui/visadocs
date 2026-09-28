@@ -7,6 +7,7 @@ import com.provaluer.service.QuotationService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -46,17 +47,20 @@ public class LeadController {
     }
 
     /**
-     * Get lead details by ID
+     * Get lead details by ID (ADMIN only)
      */
     @GetMapping("/{id}")
-    public ResponseEntity<LeadResponseDto> getLeadById(@PathVariable Long id) {
-        return ResponseEntity.ok(leadService.getLeadById(id));
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
+    public ResponseEntity<LeadResponseDto> getLeadById(@PathVariable Long id, Principal principal) {
+        String actor = principal != null ? principal.getName() : "ADMIN";
+        return ResponseEntity.ok(leadService.getLeadById(id, actor));
     }
 
     /**
-     * List all leads with optional filtering (status, service, intent)
+     * List all leads with optional filtering (status, service, intent) (ADMIN only)
      */
     @GetMapping
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<List<LeadResponseDto>> getLeads(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String service,
@@ -65,9 +69,10 @@ public class LeadController {
     }
 
     /**
-     * Generate formal valuation quotation for lead
+     * Generate formal valuation quotation for lead (ADMIN only)
      */
     @PostMapping("/{id}/quote")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<LeadQuotation> generateQuote(
             @PathVariable Long id,
             @RequestBody LeadQuoteRequestDto quoteDto,
@@ -78,9 +83,10 @@ public class LeadController {
     }
 
     /**
-     * Assign lead to a designated Valuer
+     * Assign lead to a designated Valuer (ADMIN only)
      */
     @PostMapping("/{id}/assign")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<LeadResponseDto> assignValuer(
             @PathVariable Long id,
             @RequestBody LeadAssignDto assignDto) {
@@ -88,14 +94,22 @@ public class LeadController {
     }
 
     /**
-     * Transition lead status (NEW, QUALIFIED, QUOTED, WON, LOST)
+     * Transition lead status (NEW, QUALIFIED, QUOTED, WON, LOST) (ADMIN only)
      */
     @PostMapping("/{id}/status")
+    @PreAuthorize("hasAnyRole('ADMIN', 'SUPER_ADMIN')")
     public ResponseEntity<LeadResponseDto> updateStatus(
             @PathVariable Long id,
             @RequestBody LeadStatusUpdateDto statusDto,
             Principal principal) {
         String actor = principal != null ? principal.getName() : "ADMIN";
         return ResponseEntity.ok(leadService.updateStatus(id, statusDto, actor));
+    }
+
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<java.util.Map<String, String>> handleIllegalArgumentException(IllegalArgumentException ex) {
+        java.util.Map<String, String> error = new java.util.HashMap<>();
+        error.put("error", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
     }
 }

@@ -64,6 +64,12 @@ public class ValuationLead {
     @Column(name = "assigned_valuer_id")
     private Long assignedValuerId;
 
+    @Column(name = "consent_given", nullable = false)
+    private boolean consentGiven = true;
+
+    @Column(name = "consent_timestamp", nullable = false)
+    private LocalDateTime consentTimestamp = LocalDateTime.now();
+
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
 
@@ -144,6 +150,12 @@ public class ValuationLead {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public boolean isConsentGiven() { return consentGiven; }
+    public void setConsentGiven(boolean consentGiven) { this.consentGiven = consentGiven; }
+
+    public LocalDateTime getConsentTimestamp() { return consentTimestamp; }
+    public void setConsentTimestamp(LocalDateTime consentTimestamp) { this.consentTimestamp = consentTimestamp; }
 
     public List<LeadDocument> getDocuments() { return documents; }
     public void setDocuments(List<LeadDocument> documents) { this.documents = documents; }

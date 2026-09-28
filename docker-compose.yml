@@ -60,6 +60,9 @@ services:
       SPRING_DATASOURCE_BACKUP_USERNAME: provaluer
       SPRING_DATASOURCE_BACKUP_PASSWORD: K1ngcobr@
       SPRING_FLYWAY_ENABLED: "true"
+      APP_JWT_SECRET: 9a62a9386c9135003f42b8e3ea954cfd3a1f9e9d6bc4bf38ea2f6bbd688bfa1f
+    volumes:
+      - lead_storage:/app/storage
     networks:
       - app-network
 
@@ -77,6 +80,7 @@ services:
 volumes:
   pgdata:
   backup_pgdata:
+  lead_storage:
 
 networks:
   app-network:

@@ -43,7 +43,7 @@ spring:
 app:
   jwt:
     # HMAC-SHA 256-bit signing key (hex encoded)
-    secret: 9a62a9386c9135003f42b8e3ea954cfd3a1f9e9d6bc4bf38ea2f6bbd688bfa1f
+    secret: ${APP_JWT_SECRET:9a62a9386c9135003f42b8e3ea954cfd3a1f9e9d6bc4bf38ea2f6bbd688bfa1f}
     expiration-ms: 86400000 # 24 hours
 
 ---

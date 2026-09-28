@@ -1787,9 +1787,27 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                   _load();
                 } catch (e) {
                   if (mounted) {
+                    String errorMsg = '';
+                    if (e is DioException && e.response?.data != null) {
+                      final dynamic resData = e.response!.data;
+                      if (resData is String && resData.trim().isNotEmpty) {
+                        errorMsg = resData.trim();
+                      } else if (resData is Map) {
+                        if (resData['message'] != null && resData['message'].toString().trim().isNotEmpty) {
+                          errorMsg = resData['message'].toString().trim();
+                        } else if (resData['error'] != null && resData['error'].toString().trim().isNotEmpty) {
+                          errorMsg = resData['error'].toString().trim();
+                        }
+                      }
+                    }
+                    if (errorMsg.isEmpty) {
+                      errorMsg = ApiService.getErrorMessage(e);
+                    }
+
                     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
                       backgroundColor: AppColors.brandRedDark,
-                      content: Text(ApiService.getErrorMessage(e)),
+                      duration: const Duration(seconds: 8),
+                      content: Text(errorMsg),
                     ));
                   }
                 } finally {

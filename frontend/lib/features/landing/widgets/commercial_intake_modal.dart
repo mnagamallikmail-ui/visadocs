@@ -53,6 +53,8 @@ class _CommercialIntakeModalState extends State<CommercialIntakeModal> {
   final _emailCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   String _preferredChannel = 'EMAIL';
+  bool _consentGiven = false;
+  DateTime? _consentTimestamp;
 
   // Step 6: Confirmation Result
   String? _referenceCode;
@@ -170,7 +172,7 @@ class _CommercialIntakeModalState extends State<CommercialIntakeModal> {
       final result = await FilePicker.platform.pickFiles(
         allowMultiple: true,
         type: FileType.custom,
-        allowedExtensions: ['pdf', 'docx', 'doc', 'xlsx', 'xls', 'zip', 'jpg', 'jpeg', 'png'],
+        allowedExtensions: ['pdf', 'docx', 'doc', 'xlsx', 'xls', 'jpg', 'jpeg', 'png'],
         withData: true,
       );
 
@@ -209,6 +211,8 @@ class _CommercialIntakeModalState extends State<CommercialIntakeModal> {
         'contactPhone': _phoneCtrl.text.trim(),
         'preferredChannel': _preferredChannel,
         'documentCount': _pickedFiles.length,
+        'consentGiven': _consentGiven,
+        'consentTimestamp': (_consentTimestamp ?? DateTime.now()).toIso8601String(),
       };
 
       final res = await dio.post('/api/leads', data: payload);
@@ -736,7 +740,7 @@ class _CommercialIntakeModalState extends State<CommercialIntakeModal> {
                 const Icon(Icons.cloud_upload_outlined, size: 36, color: Color(0xFF475569)),
                 const SizedBox(height: 10),
                 Text('Click to Browse or Attach Documents', style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A))),
-                Text('PDF, DOCX, XLSX, ZIP, JPG (Max 50MB)', style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B))),
+                Text('PDF, DOCX, XLSX, JPG, PNG (Max 50MB)', style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B))),
               ],
             ),
           ),
@@ -850,6 +854,44 @@ class _CommercialIntakeModalState extends State<CommercialIntakeModal> {
             _channelRadio('PHONE', 'Phone Call'),
             _channelRadio('WHATSAPP', 'WhatsApp Desk'),
           ],
+        ),
+        const SizedBox(height: 18),
+        // P1-4: Mandatory DPDP Act 2023 Consent Checkbox
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF1F5F9),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: _consentGiven ? const Color(0xFF10B981) : const Color(0xFFCBD5E1),
+              width: _consentGiven ? 1.5 : 1.0,
+            ),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Checkbox(
+                value: _consentGiven,
+                activeColor: const Color(0xFF0F172A),
+                onChanged: (val) {
+                  setState(() {
+                    _consentGiven = val ?? false;
+                    if (_consentGiven) {
+                      _consentTimestamp = DateTime.now();
+                      _errorMessage = null;
+                    }
+                  });
+                },
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  'I consent to the collection and processing of submitted information and documents for valuation and quotation purposes in accordance with the Digital Personal Data Protection Act (DPDP), 2023.',
+                  style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF334155), height: 1.4),
+                ),
+              ),
+            ],
+          ),
         ),
       ],
     );
@@ -1000,6 +1042,10 @@ class _CommercialIntakeModalState extends State<CommercialIntakeModal> {
                     if (_currentStep == 5) {
                       if (_nameCtrl.text.trim().isEmpty || _emailCtrl.text.trim().isEmpty || _phoneCtrl.text.trim().isEmpty) {
                         setState(() => _errorMessage = 'Please provide Name, Email, and Phone.');
+                        return;
+                      }
+                      if (!_consentGiven) {
+                        setState(() => _errorMessage = 'Please provide mandatory statutory data processing consent to proceed.');
                         return;
                       }
                       _submitLead();

@@ -14,6 +14,17 @@ public class GlobalExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    @ExceptionHandler(org.springframework.security.core.AuthenticationException.class)
+    public ResponseEntity<?> handleAuthenticationException(org.springframework.security.core.AuthenticationException ex) {
+        log.warn("Authentication failed: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+            Map.of(
+                "error", "Unauthorized",
+                "message", "Invalid username or password"
+            )
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handle(Exception ex) {
         log.error("Unhandled exception", ex);

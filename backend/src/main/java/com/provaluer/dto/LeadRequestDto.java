@@ -14,8 +14,12 @@ public class LeadRequestDto {
     private String contactPhone;
     private String preferredChannel = "EMAIL";
     private int documentCount = 0;
+    private boolean consentGiven = true;
 
     public LeadRequestDto() {}
+
+    public boolean isConsentGiven() { return consentGiven; }
+    public void setConsentGiven(boolean consentGiven) { this.consentGiven = consentGiven; }
 
     public String getServiceVertical() { return serviceVertical; }
     public void setServiceVertical(String serviceVertical) { this.serviceVertical = serviceVertical; }

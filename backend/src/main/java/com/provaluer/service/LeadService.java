@@ -74,6 +74,8 @@ public class LeadService {
         lead.setPreferredChannel(dto.getPreferredChannel() != null ? dto.getPreferredChannel() : "EMAIL");
         lead.setLeadScore(scoreResult.score);
         lead.setIntentLevel(scoreResult.intentLevel);
+        lead.setConsentGiven(dto.isConsentGiven());
+        lead.setConsentTimestamp(LocalDateTime.now());
         lead.setStatus("NEW");
 
         ValuationLead saved = valuationLeadRepository.save(lead);
@@ -125,10 +127,23 @@ public class LeadService {
         return LeadResponseDto.fromEntity(lead);
     }
 
-    public LeadResponseDto getLeadById(Long id) {
+    @Transactional
+    public LeadResponseDto getLeadById(Long id, String actorName) {
         ValuationLead lead = valuationLeadRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Lead not found: " + id));
+
+        leadActivityLogRepository.save(new LeadActivityLog(
+                lead,
+                "LEAD_VIEWED",
+                "Lead dossier inspected by " + (actorName != null ? actorName : "SYSTEM"),
+                actorName != null ? actorName : "SYSTEM"
+        ));
+
         return LeadResponseDto.fromEntity(lead);
+    }
+
+    public LeadResponseDto getLeadById(Long id) {
+        return getLeadById(id, "ADMIN");
     }
 
     public List<LeadResponseDto> getLeads(String status, String service, String intent) {

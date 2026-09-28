@@ -106,4 +106,101 @@ public class PhotoGridAnchorRemovalTest {
 
         System.out.println("-> SUCCESS: Legacy IMG_PIC wp:anchor count = 0, photo grid table successfully generated and isolated.");
     }
+
+    @Test
+    @DisplayName("Verify legacy placeholders IMG_1..IMG_5, IM_6, IMG_7..IMG_8 activate photo grid and eliminate wp:anchor overlap")
+    void testProductionTemplateWithLegacyPlaceholdersAndIm6() throws Exception {
+        File tplFile = new File("official_production_valuation_report.docx");
+        if (!tplFile.exists()) {
+            tplFile = new File("D:\\naga\\Valuation Report.docx");
+        }
+        assertTrue(tplFile.exists(), "Production template must exist");
+        byte[] tplBytes = Files.readAllBytes(tplFile.toPath());
+
+        // Count anchors before generation
+        WordprocessingMLPackage initialPkg = WordprocessingMLPackage.load(new ByteArrayInputStream(tplBytes));
+        ClassFinder initialAnchorFinder = new ClassFinder(Anchor.class);
+        new org.docx4j.TraversalUtil(initialPkg.getMainDocumentPart().getContent(), initialAnchorFinder);
+        int initialPhotoAnchorCount = 0;
+        for (Object o : initialAnchorFinder.results) {
+            Anchor anchor = (Anchor) o;
+            if (anchor.getDocPr() != null) {
+                String descr = anchor.getDocPr().getDescr() != null ? anchor.getDocPr().getDescr() : "";
+                String name = anchor.getDocPr().getName() != null ? anchor.getDocPr().getName() : "";
+                String combined = (descr + " " + name).toUpperCase();
+                if (combined.contains("IMG_") || combined.contains("IM_6") || combined.contains("PIC")) {
+                    if (!combined.contains("FRONT_PAGE") && !combined.contains("COVER")) {
+                        initialPhotoAnchorCount++;
+                    }
+                }
+            }
+        }
+        System.out.println("-> Before: Initial site photo wp:anchor drawings count = " + initialPhotoAnchorCount);
+
+        Map<String, String> inputs = new HashMap<>();
+        inputs.put("PROPERTY_ADDRESS", "123 Commercial Boulevard, Industrial Park");
+        inputs.put("NAME_OF_THE_OWNER", "Legacy Test Holdings Ltd");
+        inputs.put("BORROWER_NAME", "Legacy Test Holdings Ltd");
+        inputs.put("VALUATION_DATE", "2026-09-28");
+        inputs.put("REPORT_REF_NO", "VAL/2026/LEGACY/001");
+
+        // Supply photos using BOTH legacy and standard keys
+        Map<String, byte[]> images = new HashMap<>();
+        images.put("IMG_FRONT_PAGE", createTestImage(800, 600, Color.DARK_GRAY, "COVER_PAGE"));
+        images.put("IMG_1", createTestImage(800, 600, Color.RED, "PHOTO 1"));
+        images.put("IMG_2", createTestImage(800, 600, Color.GREEN, "PHOTO 2"));
+        images.put("IMG_3", createTestImage(800, 600, Color.BLUE, "PHOTO 3"));
+        images.put("IMG_4", createTestImage(800, 600, Color.ORANGE, "PHOTO 4"));
+        images.put("IMG_5", createTestImage(800, 600, Color.MAGENTA, "PHOTO 5"));
+        images.put("IM_6", createTestImage(800, 600, Color.CYAN, "PHOTO 6 (IM_6)"));
+        images.put("IMG_7", createTestImage(800, 600, Color.YELLOW, "PHOTO 7"));
+        images.put("IMG_8", createTestImage(800, 600, Color.PINK, "PHOTO 8"));
+
+        byte[] generatedDocx = templateEngine.generateReport(tplBytes, inputs, images);
+        assertNotNull(generatedDocx);
+
+        WordprocessingMLPackage pkg = WordprocessingMLPackage.load(new ByteArrayInputStream(generatedDocx));
+
+        // 1. Verify ZERO site photograph wp:anchor drawings remain
+        ClassFinder finalAnchorFinder = new ClassFinder(Anchor.class);
+        new org.docx4j.TraversalUtil(pkg.getMainDocumentPart().getContent(), finalAnchorFinder);
+        int finalPhotoAnchorCount = 0;
+        for (Object o : finalAnchorFinder.results) {
+            Anchor anchor = (Anchor) o;
+            if (anchor.getDocPr() != null) {
+                String descr = anchor.getDocPr().getDescr() != null ? anchor.getDocPr().getDescr().trim() : "";
+                String name = anchor.getDocPr().getName() != null ? anchor.getDocPr().getName().trim() : "";
+                String combined = (descr + " " + name).toUpperCase();
+                System.out.println("Remaining anchor: name='" + name + "', descr='" + descr + "', id=" + anchor.getDocPr().getId());
+                // Identify site photograph placeholders: IMG_1..8, IM_6, IMG_PIC1..8
+                if (combined.matches(".*\\b(IMG_PIC[1-8]|IMG_[1-8]|IM_6|PIC[1-8])\\b.*") ||
+                    descr.matches(".*(IMG_PIC[1-8]|IMG_[1-8]|IM_6).*") ||
+                    name.matches(".*(IMG_PIC[1-8]|IMG_[1-8]|IM_6).*")) {
+                    finalPhotoAnchorCount++;
+                }
+            }
+        }
+        System.out.println("-> After: Final site photo wp:anchor drawings count = " + finalPhotoAnchorCount);
+        assertEquals(0, finalPhotoAnchorCount, "All legacy site photo wp:anchor drawings must be removed");
+
+        // 2. Verify exactly one photo grid table exists and contains wp:inline images
+        ClassFinder tableFinder = new ClassFinder(Tbl.class);
+        new org.docx4j.TraversalUtil(pkg.getMainDocumentPart().getContent(), tableFinder);
+        int photoGridTableCount = 0;
+        int inlineImageCountInGrid = 0;
+        for (Object o : tableFinder.results) {
+            Tbl tbl = (Tbl) o;
+            ClassFinder inlineFinder = new ClassFinder(Inline.class);
+            new org.docx4j.TraversalUtil(tbl, inlineFinder);
+            if (inlineFinder.results.size() >= 8) {
+                photoGridTableCount++;
+                inlineImageCountInGrid = inlineFinder.results.size();
+            }
+        }
+        assertEquals(1, photoGridTableCount, "Exactly one photo grid table must exist");
+        assertEquals(8, inlineImageCountInGrid, "Photo grid table must contain 8 wp:inline images");
+
+        System.out.println("-> SUCCESS: Photo grid table count = " + photoGridTableCount + ", wp:inline count = " + inlineImageCountInGrid);
+        System.out.println("-> SUCCESS: Zero wp:anchor drawings for site photos. Overlap eliminated.");
+    }
 }

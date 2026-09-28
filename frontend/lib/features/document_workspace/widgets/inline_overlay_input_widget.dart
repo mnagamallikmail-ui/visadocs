@@ -520,9 +520,7 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
   Future<void> _handleDatePicker(String currentValue, DocumentWorkspaceProvider provider) async {
     if (widget.readOnly) return;
 
-    final title = widget.placeholder.questionText?.isNotEmpty == true
-        ? widget.placeholder.questionText!
-        : widget.placeholder.key;
+    final title = widget.placeholder.key;
     final picked = await DatePickerHelper.showAppDatePicker(
       context: context,
       title: title,
