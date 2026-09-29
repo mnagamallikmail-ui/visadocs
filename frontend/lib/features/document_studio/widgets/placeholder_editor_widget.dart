@@ -275,15 +275,15 @@ class _PlaceholderEditorWidgetState extends State<PlaceholderEditorWidget> {
         ),
         const SizedBox(height: 8),
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
           decoration: BoxDecoration(
-            color: AppColors.tealLight,
+            color: AppColors.placeholderBadgeBg,
             borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.2)),
+            border: Border.all(color: AppColors.placeholderBadgeBorder),
           ),
           child: Row(
             children: [
-              const Icon(Icons.code_rounded, size: 14, color: AppColors.deepTeal),
+              const Icon(Icons.code_rounded, size: 14, color: AppColors.placeholderBadgeText),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
@@ -291,13 +291,14 @@ class _PlaceholderEditorWidgetState extends State<PlaceholderEditorWidget> {
                   style: const TextStyle(
                     fontFamily: 'monospace',
                     fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.deepTeal,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.placeholderBadgeText,
+                    letterSpacing: 0.2,
                   ),
                 ),
               ),
               IconButton(
-                icon: const Icon(Icons.copy_rounded, size: 14, color: AppColors.deepTeal),
+                icon: const Icon(Icons.copy_rounded, size: 14, color: AppColors.placeholderBadgeText),
                 tooltip: 'Copy Key',
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(),

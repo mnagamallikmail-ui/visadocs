@@ -57,6 +57,16 @@ class AppColors {
   static const Color workspaceCorporateNavyHover = Color(0xFF1E293B);
   static const Color workspaceFocusGlow        = Color(0x1F2563EB); // 3px rgba(37, 99, 235, 0.12)
 
+  // ── Template Placeholder Visual Styling (Refinement Directive) ───────────
+  /// Primary placeholder label color — #0F766E
+  static const Color placeholderText          = Color(0xFF0F766E);
+  /// Placeholder chip/badge background — #ECFDF5
+  static const Color placeholderBadgeBg       = Color(0xFFECFDF5);
+  /// Placeholder chip/badge border — #A7F3D0
+  static const Color placeholderBadgeBorder   = Color(0xFFA7F3D0);
+  /// Placeholder chip/badge text — #065F46
+  static const Color placeholderBadgeText     = Color(0xFF065F46);
+
   // ── Brand Accents — Professional Appraisal Workstation ───────────────────
   /// Dominant Primary Action Blue — #2563EB (Tailwind Blue-600)
   static const Color primaryBlue       = Color(0xFF2563EB);
