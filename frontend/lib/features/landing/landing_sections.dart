@@ -9,6 +9,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'landing_theme.dart';
 import 'widgets/hero_video_widget.dart';
 import 'widgets/commercial_intake_modal.dart';
+import '../../services/analytics_service.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // APPLE VISION PRO / ARCHITECTURAL MONOCHROMATIC GLASS UTILITIES
@@ -1067,6 +1068,11 @@ class _HeroPhonePillState extends State<_HeroPhonePill> {
       onExit: (_) => setState(() => _isHovered = false),
       child: GestureDetector(
         onTap: () async {
+          AnalyticsService.logPhoneClicked(
+            phoneNumber: '+918500019091',
+            serviceType: 'LANDING_HERO',
+            pageUrl: Uri.base.toString(),
+          );
           final uri = Uri.parse('tel:+918500019091');
           if (await canLaunchUrl(uri)) {
             await launchUrl(uri);

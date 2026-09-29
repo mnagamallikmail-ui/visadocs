@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../services/api_service.dart';
+import '../../services/analytics_service.dart';
 
 class AdminLeadsCrmSection extends StatefulWidget {
   const AdminLeadsCrmSection({super.key});
@@ -108,6 +109,13 @@ class _AdminLeadsCrmSectionState extends State<AdminLeadsCrmSection> {
                   'scopeOfWork': scopeCtrl.text,
                   'termsConditions': termsCtrl.text,
                 });
+                AnalyticsService.logQuoteGenerated(
+                  serviceType: lead['serviceVertical']?.toString() ?? 'COMMERCIAL_VALUATION',
+                  pageUrl: '/admin/leads',
+                  quoteNumber: 'Q-${lead['referenceCode'] ?? lead['id']}',
+                  totalFee: fee,
+                  slaDays: days,
+                );
                 Navigator.pop(ctx);
                 _loadLeads();
                 ScaffoldMessenger.of(context).showSnackBar(
@@ -167,6 +175,12 @@ class _AdminLeadsCrmSectionState extends State<AdminLeadsCrmSection> {
                     'status': selectedStatus,
                     'note': noteCtrl.text.trim(),
                   });
+                  AnalyticsService.logStatusChanged(
+                    serviceType: lead['serviceVertical']?.toString() ?? 'COMMERCIAL_VALUATION',
+                    pageUrl: '/admin/leads',
+                    newStatus: selectedStatus,
+                    referenceCode: lead['referenceCode']?.toString(),
+                  );
                   Navigator.pop(ctx);
                   _loadLeads();
                 } catch (e) {

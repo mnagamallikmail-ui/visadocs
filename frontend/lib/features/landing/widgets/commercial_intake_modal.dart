@@ -5,6 +5,7 @@ import 'package:dio/dio.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../landing_theme.dart';
 import '../../../services/api_service.dart';
+import '../../../services/analytics_service.dart';
 
 /// Universal 6-Step Commercial Valuation Intake Modal
 /// Designed for CFOs, CAs, Insolvency Professionals, Corporate Borrowers & HNIs.
@@ -180,6 +181,12 @@ class _CommercialIntakeModalState extends State<CommercialIntakeModal> {
         setState(() {
           _pickedFiles.addAll(result.files);
         });
+        AnalyticsService.logDocumentUploaded(
+          serviceType: _selectedService,
+          pageUrl: '/commercial-intake',
+          count: result.files.length,
+          fileName: result.files.map((f) => f.name).join(', '),
+        );
       }
     } catch (e) {
       setState(() {
@@ -236,6 +243,19 @@ class _CommercialIntakeModalState extends State<CommercialIntakeModal> {
           debugPrint('Document upload warning: $uploadErr');
         }
       }
+
+      AnalyticsService.logContactFormSubmitted(
+        serviceType: _selectedService,
+        pageUrl: '/commercial-intake',
+        channel: _preferredChannel,
+      );
+      AnalyticsService.logLeadCreated(
+        serviceType: _selectedService,
+        pageUrl: '/commercial-intake',
+        referenceCode: refCode,
+        urgencySla: _selectedUrgencySla,
+        documentCount: _pickedFiles.length,
+      );
 
       setState(() {
         _referenceCode = refCode;
@@ -977,6 +997,11 @@ class _CommercialIntakeModalState extends State<CommercialIntakeModal> {
             const SizedBox(width: 12),
             OutlinedButton.icon(
               onPressed: () async {
+                AnalyticsService.logWhatsAppClicked(
+                  serviceType: _selectedService,
+                  pageUrl: '/commercial-intake',
+                  whatsappTarget: 'https://wa.me/918500019091',
+                );
                 final url = Uri.parse('https://wa.me/918500019091?text=${Uri.encodeComponent("Hello, I submitted mandate ${_referenceCode}. Requesting immediate confirmation.")}');
                 if (await canLaunchUrl(url)) await launchUrl(url);
               },

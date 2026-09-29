@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../features/landing/landing_theme.dart';
 import '../../features/landing/widgets/commercial_intake_modal.dart';
+import '../../services/analytics_service.dart';
 
 /// Bank Collateral Valuation Services — Cornerstone Institutional Landing Page
 /// Canonical URL: https://www.provaluer.in/services/bank-collateral-valuation
@@ -27,6 +28,11 @@ class _BankCollateralValuationScreenState extends State<BankCollateralValuationS
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logServicePageView(
+      serviceTitle: 'Bank Collateral Valuation',
+      serviceType: 'BANK_COLLATERAL',
+      pageUrl: Uri.base.toString(),
+    );
     _scrollController.addListener(_onScroll);
   }
 
@@ -44,13 +50,24 @@ class _BankCollateralValuationScreenState extends State<BankCollateralValuationS
   }
 
   Future<void> _launchWhatsApp(String message) async {
-    final url = Uri.parse('$_waUrl?text=${Uri.encodeComponent(message)}');
+    final target = '$_waUrl?text=${Uri.encodeComponent(message)}';
+    AnalyticsService.logWhatsAppClicked(
+      whatsappTarget: target,
+      serviceType: 'BANK_COLLATERAL',
+      pageUrl: Uri.base.toString(),
+    );
+    final url = Uri.parse(target);
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
   }
 
   Future<void> _makePhoneCall() async {
+    AnalyticsService.logPhoneClicked(
+      phoneNumber: _primaryPhone,
+      serviceType: 'BANK_COLLATERAL',
+      pageUrl: Uri.base.toString(),
+    );
     final url = Uri.parse('tel:$_primaryPhone');
     if (await canLaunchUrl(url)) {
       await launchUrl(url);
@@ -1213,6 +1230,15 @@ class _BankCollateralValuationScreenState extends State<BankCollateralValuationS
         border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: ExpansionTile(
+        onExpansionChanged: (expanded) {
+          if (expanded) {
+            AnalyticsService.logKnowledgeArticleView(
+              articleTitle: question,
+              serviceType: 'BANK_COLLATERAL',
+              pageUrl: Uri.base.toString(),
+            );
+          }
+        },
         title: Text(
           question,
           style: GoogleFonts.montserrat(

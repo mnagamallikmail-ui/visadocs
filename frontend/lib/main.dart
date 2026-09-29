@@ -19,6 +19,7 @@ import 'screens/services/probate_inheritance_valuation_screen.dart';
 import 'screens/services/share_valuation_screen.dart';
 import 'screens/services/plant_machinery_valuation_screen.dart';
 import 'theme/app_theme.dart';
+import 'services/analytics_service.dart';
 
 void main() {
   runApp(
@@ -32,6 +33,26 @@ void main() {
   );
 }
 
+class Ga4RouteObserver extends NavigatorObserver {
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) {
+    super.didPush(route, previousRoute);
+    final routeName = route.settings.name;
+    if (routeName != null && routeName.isNotEmpty) {
+      AnalyticsService.trackPageView(routeName);
+    }
+  }
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) {
+    super.didReplace(newRoute: newRoute, oldRoute: oldRoute);
+    final routeName = newRoute?.settings.name;
+    if (routeName != null && routeName.isNotEmpty) {
+      AnalyticsService.trackPageView(routeName);
+    }
+  }
+}
+
 class ProValuerApp extends StatelessWidget {
   const ProValuerApp({super.key});
 
@@ -41,6 +62,7 @@ class ProValuerApp extends StatelessWidget {
 
     final GoRouter router = GoRouter(
       initialLocation: '/',
+      observers: [Ga4RouteObserver()],
       routes: [
         GoRoute(
           path: '/',
@@ -112,15 +134,29 @@ class ProValuerApp extends StatelessWidget {
             loc == '/government-approved-valuers';
 
         if (!loggedIn && !isPublic) {
+          AnalyticsService.trackPageView('/login', 'Account Sign In | ProValuer');
           return '/login';
         }
         if (loggedIn && loc == '/login') {
           final role = auth.role;
-          if (role == 'CLIENT') return '/client';
-          if (role == 'PA') return '/pa';
-          if (role == 'SPA') return '/spa';
-          if (role == 'SUPER_ADMIN' || role == 'ADMIN') return '/admin';
+          if (role == 'CLIENT') {
+            AnalyticsService.trackPageView('/client', 'Client Mandate Dashboard | ProValuer');
+            return '/client';
+          }
+          if (role == 'PA') {
+            AnalyticsService.trackPageView('/pa', 'Partner Appraiser Dashboard | ProValuer');
+            return '/pa';
+          }
+          if (role == 'SPA') {
+            AnalyticsService.trackPageView('/spa', 'Senior Partner Review Dashboard | ProValuer');
+            return '/spa';
+          }
+          if (role == 'SUPER_ADMIN' || role == 'ADMIN') {
+            AnalyticsService.trackPageView('/admin', 'Super Admin Governance Console | ProValuer');
+            return '/admin';
+          }
         }
+        AnalyticsService.trackPageView(loc);
         return null;
       },
     );

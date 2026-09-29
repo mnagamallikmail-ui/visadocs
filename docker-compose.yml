@@ -61,6 +61,7 @@ services:
       SPRING_DATASOURCE_BACKUP_PASSWORD: K1ngcobr@
       SPRING_FLYWAY_ENABLED: "true"
       APP_JWT_SECRET: 9a62a9386c9135003f42b8e3ea954cfd3a1f9e9d6bc4bf38ea2f6bbd688bfa1f
+      GA4_MEASUREMENT_ID: G-94DDGM6XDW
     volumes:
       - lead_storage:/app/storage
     networks:

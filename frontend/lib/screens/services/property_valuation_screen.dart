@@ -6,6 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import 'package:go_router/go_router.dart';
 import '../../features/landing/landing_theme.dart';
 import '../../features/landing/widgets/commercial_intake_modal.dart';
+import '../../services/analytics_service.dart';
 
 /// Professional Service Page: Certified Property Valuation Services
 /// Canonical URL: https://www.provaluer.in/services/property-valuation
@@ -36,6 +37,11 @@ class _PropertyValuationScreenState extends State<PropertyValuationScreen> {
   @override
   void initState() {
     super.initState();
+    AnalyticsService.logServicePageView(
+      serviceTitle: 'Property Valuation Services',
+      serviceType: 'PROPERTY_VALUATION',
+      pageUrl: Uri.base.toString(),
+    );
     _scrollController.addListener(_onScroll);
   }
 
@@ -53,13 +59,24 @@ class _PropertyValuationScreenState extends State<PropertyValuationScreen> {
   }
 
   Future<void> _launchWhatsApp(String message) async {
-    final url = Uri.parse('$_waUrl?text=${Uri.encodeComponent(message)}');
+    final target = '$_waUrl?text=${Uri.encodeComponent(message)}';
+    AnalyticsService.logWhatsAppClicked(
+      whatsappTarget: target,
+      serviceType: 'PROPERTY_VALUATION',
+      pageUrl: Uri.base.toString(),
+    );
+    final url = Uri.parse(target);
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
   }
 
   Future<void> _makePhoneCall() async {
+    AnalyticsService.logPhoneClicked(
+      phoneNumber: _primaryPhone,
+      serviceType: 'PROPERTY_VALUATION',
+      pageUrl: Uri.base.toString(),
+    );
     final url = Uri.parse('tel:$_primaryPhone');
     if (await canLaunchUrl(url)) {
       await launchUrl(url);

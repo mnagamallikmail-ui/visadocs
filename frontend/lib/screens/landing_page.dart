@@ -3,6 +3,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../features/landing/landing_theme.dart';
 import '../features/landing/landing_sections.dart';
+import '../services/analytics_service.dart';
 
 /// LandingPage — Apple Vision Pro Luxury Modern Redesign
 /// Pure white background, liquid crystal glassmorphism, 50/50 hero layout,
@@ -33,7 +34,13 @@ class _LandingPageState extends State<LandingPage> {
   }
 
   Future<void> _launchWhatsApp(String message) async {
-    final url = Uri.parse("$_waUrl?text=${Uri.encodeComponent(message)}");
+    final target = "$_waUrl?text=${Uri.encodeComponent(message)}";
+    AnalyticsService.logWhatsAppClicked(
+      whatsappTarget: target,
+      serviceType: 'LANDING_PAGE',
+      pageUrl: Uri.base.toString(),
+    );
+    final url = Uri.parse(target);
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }
@@ -114,6 +121,11 @@ class _LandingPageState extends State<LandingPage> {
               cursor: SystemMouseCursors.click,
               child: GestureDetector(
                 onTap: () async {
+                  AnalyticsService.logWhatsAppClicked(
+                    whatsappTarget: 'https://wa.me/918500019091',
+                    serviceType: 'STICKY_FAB',
+                    pageUrl: Uri.base.toString(),
+                  );
                   final uri = Uri.parse('https://wa.me/918500019091');
                   if (await canLaunchUrl(uri)) {
                     await launchUrl(uri, mode: LaunchMode.externalApplication);

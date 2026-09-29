@@ -1,6 +1,43 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-94DDGM6XDW"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-94DDGM6XDW');
+
+    // Production Telemetry Identification Hook
+    window.__PROVALUER_GA4_ID__ = 'G-94DDGM6XDW';
+
+    // Global Bridge for Flutter Web Telemetry
+    window.proValuerTrackEvent = function(eventName, params) {
+      if (typeof gtag === 'function') {
+        params = params || {};
+        params.timestamp = params.timestamp || new Date().toISOString();
+        params.page_url = params.page_url || window.location.href;
+        gtag('event', eventName, params);
+        console.log('[GA4 Production Event Tracked]', eventName, params);
+      }
+    };
+
+    window.proValuerTrackPageView = function(pagePath, pageTitle) {
+      if (typeof gtag === 'function') {
+        var params = {
+          page_path: pagePath,
+          page_title: pageTitle || document.title,
+          page_location: window.location.href,
+          timestamp: new Date().toISOString()
+        };
+        gtag('event', 'page_view', params);
+        console.log('[GA4 Production PageView Tracked]', params);
+      }
+    };
+  </script>
+
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
@@ -52,21 +89,8 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&family=Noto+Color+Emoji&family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Sans+Symbols+2&family=Noto+Sans+Symbols:wght@400;700&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 
-  <!-- Google Analytics 4 (GA4) & Microsoft Clarity Integration Hooks -->
+  <!-- Microsoft Clarity Integration Hook -->
   <script>
-    // Google Analytics 4 (GA4)
-    window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
-    window.__PROVALUER_GA4_ID__ = window.__PROVALUER_GA4_ID__ || '';
-    if (window.__PROVALUER_GA4_ID__) {
-      var gaScript = document.createElement('script');
-      gaScript.async = true;
-      gaScript.src = 'https://www.googletagmanager.com/gtag/js?id=' + window.__PROVALUER_GA4_ID__;
-      document.head.appendChild(gaScript);
-      gtag('js', new Date());
-      gtag('config', window.__PROVALUER_GA4_ID__);
-    }
-
     // Microsoft Clarity
     window.__PROVALUER_CLARITY_ID__ = window.__PROVALUER_CLARITY_ID__ || '';
     if (window.__PROVALUER_CLARITY_ID__) {
