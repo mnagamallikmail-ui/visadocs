@@ -11,24 +11,35 @@ Allow: /icons/
 Allow: /assets/
 Allow: /llms.txt
 
-# Disallow Private Internal Dashboards and API Endpoints
-Disallow: /client/
-Disallow: /pa/
-Disallow: /spa/
-Disallow: /admin/
-Disallow: /api/
+# Disallow Authentication, Private Internal Dashboards and API Endpoints
+Disallow: /login*
+Disallow: /client*
+Disallow: /pa*
+Disallow: /spa*
+Disallow: /admin*
+Disallow: /api*
+Disallow: /valuation*
+Disallow: /template*
+Disallow: /report*
 
 # Dedicated Directives for AI Search Engines & LLM Scrapers
 User-agent: Google-Extended
 Allow: /
+Disallow: /login*
+Disallow: /admin*
+Disallow: /api*
 
 User-agent: GPTBot
 Allow: /
-Disallow: /client/
-Disallow: /pa/
-Disallow: /spa/
-Disallow: /admin/
-Disallow: /api/
+Disallow: /login*
+Disallow: /client*
+Disallow: /pa*
+Disallow: /spa*
+Disallow: /admin*
+Disallow: /api*
+Disallow: /valuation*
+Disallow: /template*
+Disallow: /report*
 
 User-agent: OAI-SearchBot
 Allow: /

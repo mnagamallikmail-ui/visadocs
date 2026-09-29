@@ -102,15 +102,35 @@
     }
   </script>
 
-  <!-- Structured Data: Organization, FinancialService, FAQPage (JSON-LD) -->
+  <!-- Structured Data: WebSite, Organization, FinancialService, FAQPage (JSON-LD) -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
     "@graph": [
       {
+        "@type": "WebSite",
+        "@id": "https://www.provaluer.in/#website",
+        "url": "https://www.provaluer.in/",
+        "name": "Pro Valuer",
+        "alternateName": [
+          "ProValuer",
+          "ProValuer Commercial",
+          "provaluer.in"
+        ],
+        "publisher": {
+          "@id": "https://www.provaluer.in/#organization"
+        },
+        "description": "Pro Valuer (ProValuer Commercial) provides institutional valuation, banking collateral appraisal, IBC NCLT resolution, plant & machinery technical certification, and corporate share valuation across India."
+      },
+      {
         "@type": "Organization",
         "@id": "https://www.provaluer.in/#organization",
         "name": "ProValuer Commercial",
+        "alternateName": [
+          "Pro Valuer",
+          "ProValuer",
+          "provaluer.in"
+        ],
         "legalName": "ProValuer Commercial Valuation & Advisory Services",
         "url": "https://www.provaluer.in/",
         "logo": "https://www.provaluer.in/icons/Icon-512.png",
@@ -127,7 +147,10 @@
           "NCLT & IBC Resolution Valuation",
           "Plant & Machinery Valuation",
           "Share Valuation & Net Worth Certification",
-          "Lenders' Independent Engineer (LIE) Services"
+          "Lenders' Independent Engineer (LIE) Services",
+          "Government Approved Valuer Practice",
+          "Wealth Tax Act Section 34AB",
+          "Companies Act Section 247"
         ]
       },
       {
@@ -259,36 +282,205 @@
   <!-- Semantic SEO Pre-Render Shell for Search Engines, AI Crawlers & Fallbacks -->
   <div id="seo-prerender-shell">
     <header>
-      <h1>ProValuer Commercial — Independent Valuation & Asset Intelligence</h1>
-      <p>Government Approved Registered Valuers (IBBI) providing institutional valuation, banking collateral appraisal, and technical asset intelligence across India.</p>
+      <h1>Pro Valuer — Institutional Valuation &amp; Asset Intelligence (ProValuer Commercial)</h1>
+      <p><strong>Pro Valuer</strong> (officially operating as <strong>ProValuer Commercial</strong>, accessible online via <strong>provaluer.in</strong>) is India's preeminent multidisciplinary asset valuation and technical intelligence practice. Founded on rigorous statutory compliance and forensic appraisal standards, ProValuer deploys Government Approved Valuers under Section 34AB of the Wealth Tax Act and Insolvency and Bankruptcy Board of India (IBBI) Registered Valuers across all primary asset classes: Land &amp; Building, Plant &amp; Machinery, and Securities &amp; Financial Assets. With over ₹15,000+ Crores in assets evaluated for sovereign institutions, scheduled commercial banks, resolution professionals, and multinational enterprises across 28 Indian states and union territories, Pro Valuer sets the national benchmark for dispute-tested, regulatory-grade valuation reports.</p>
     </header>
 
     <main>
+      <!-- Authority Section 1: Banking Valuation & Credit Collateral -->
       <section>
-        <h2>Institutional Practice Areas</h2>
+        <h2>1. Banking Valuation &amp; Credit Collateral Advisory</h2>
+        <p>In the institutional banking sector, asset valuation serves as the foundational safeguard against non-performing assets (NPAs) and regulatory capital impairment. Pro Valuer delivers institutional-grade collateral appraisal services to Public Sector Undertaking (PSU) banks, private commercial banks, non-banking financial companies (NBFCs), and housing finance corporations (HFCs) under strict adherence to Reserve Bank of India (RBI) Master Directions and SARFAESI Act statutory frameworks.</p>
+        
+        <h3>Prudential Collateral Appraisals &amp; Credit Exposure</h3>
+        <p>Every commercial credit facility, corporate consortium loan, or structured debt underwriting requires meticulous verification of the underlying primary and collateral security. ProValuer Commercial conducts exhaustive title-to-ground physical verifications, municipal sanction map verifications, and market absorption analyses. Our bank valuation reports establish three critical values for credit committee consideration:</p>
         <ul>
-          <li><strong>Government Approved Practice:</strong> <a href="/government-approved-valuers">Government Approved Valuers in India</a> — Wealth Tax Act Section 34AB appraisals, Income Tax Section 50C/55A capital gains defense, and court-admissible property valuations.</li>
-          <li><strong>Real Estate Practice:</strong> <a href="/services/property-valuation">Certified Property Valuation Services</a> — Residential, commercial, industrial, and agricultural appraisals for capital gains tax, bank mortgages, and family settlements.</li>
-          <li><strong>Visa & Consular Practice:</strong> <a href="/services/visa-and-immigration-valuations">Visa & Immigration Valuation Services</a> — Official consular property appraisals and certified net worth certificates for US, UK, Canada, Australia, and European Schengen embassies.</li>
-          <li><strong>Banking Practice:</strong> <a href="/services/bank-collateral-valuation">Bank Collateral & Security Valuation</a> for PSU, Private, and Foreign Commercial Banks. Credit exposure assessment, loan security, and Lenders' Independent Engineer (LIE) services.</li>
-          <li><strong>Corporate Practice:</strong> <a href="/services/share-valuation">Share Valuation & Equity Intelligence</a> — Section 247 Registered Valuer reports, Income Tax Rule 11UA DCF Angel Tax defense, and FEMA Non-Debt Instruments cross-border pricing for startups, corporates, and venture capital funds.</li>
-          <li><strong>Regulatory Practice:</strong> <a href="/services/nclt-ibc-valuation">NCLT & IBC Valuation Support</a> for Resolution Professionals (CIRP Liquidation & Fair Value determinations).</li>
-          <li><strong>Matrimonial & Family Law Practice:</strong> <a href="/services/divorce-matrimonial-valuation">Property Valuation for Divorce & Matrimonial Settlements</a> — Court-admissible forensic asset division, Rajnesh v. Neha compliance, net equity formulations, and spousal buyout valuations under Family Courts Act 1984.</li>
-          <li><strong>Testamentary & Succession Practice:</strong> <a href="/services/probate-inheritance-valuation">Property & Estate Valuation for Probate, Succession & Family Partition</a> — Court-admissible schedule of assets, ad valorem court fee benchmarking, and owelty equalization under Indian Succession Act 1925.</li>
-          <li><strong>Technical Practice:</strong> Plant & Machinery Technical Certification, industrial asset inspection, remaining useful life assessment, and Ind AS 36 impairment support.</li>
+          <li><strong>Fair Market Value (FMV):</strong> The estimated price at which an asset would exchange between a willing buyer and a willing seller in an arm's-length transaction, after proper marketing wherein the parties had each acted knowledgeably, prudently, and without compulsion.</li>
+          <li><strong>Realizable Value:</strong> The realistic price anticipated under standard market marketing timelines (typically 90 to 180 days), taking into account prevailing liquidity constraints, micro-market absorption velocity, and transaction encumbrances.</li>
+          <li><strong>Distressed / Forced Sale Value (FSV):</strong> The discounted recovery value achievable under immediate liquidation or restricted marketing conditions, essential for determining haircut margins and SARFAESI reserve prices.</li>
+        </ul>
+
+        <h3>Consortium Lending &amp; Multiple Banking Mandates</h3>
+        <p>For mega-infrastructure initiatives, manufacturing conglomerates, and commercial real estate syndications involving multiple scheduled commercial lenders, Pro Valuer acts as the neutral, empanelled consortium valuer. We reconcile conflicting branch estimates, verify title deeds, assess shared charges with the Registrar of Companies (ROC) on the CERSAI portal, and formulate unified techno-economic valuation memoranda accepted unanimously by Joint Lenders' Forums (JLF).</p>
+
+        <h3>Lenders' Independent Engineer (LIE) &amp; Project Monitoring</h3>
+        <p>Beyond static point-in-time valuation, ProValuer Commercial provides comprehensive Lenders' Independent Engineer (LIE) services for greenfield and brownfield infrastructure developments. Our engineering teams review technical feasibility, project cost estimates, regulatory approvals, contractor milestones, bill of quantities (BOQ), and physical construction velocity prior to recommending credit tranche disbursements.</p>
+        <p>For detailed statutory banking frameworks, review our dedicated practice page: <a href="/services/bank-collateral-valuation">Bank Collateral &amp; Security Valuation Practice</a>.</p>
+      </section>
+
+      <!-- Authority Section 2: Corporate Valuation & Transaction Advisory -->
+      <section>
+        <h2>2. Corporate Valuation &amp; Equity Intelligence</h2>
+        <p>Corporate transactions, regulatory capital reorganizations, and cross-border cross-holdings demand flawless financial modeling backed by statutory certifications. Pro Valuer is a recognized institutional authority in enterprise valuation, business equity appraisals, and intangible asset accounting under the Companies Act 2013, the Income Tax Act 1961, and Foreign Exchange Management Act (FEMA) regulations.</p>
+
+        <h3>Section 247 Companies Act Registered Valuer Mandates</h3>
+        <p>Under Section 247 of the Companies Act 2013 read with the Companies (Registered Valuers and Valuation) Rules, 2017, all valuations in respect of any property, stocks, shares, debentures, securities, goodwill, or net worth of a company must be conducted by an IBBI Registered Valuer. ProValuer Commercial executes statutory Section 247 reports for:</p>
+        <ul>
+          <li><strong>Mergers, Amalgamations &amp; Demergers:</strong> Determination of fair share exchange ratios and swap ratios under Section 230-232 schemes presented before the National Company Law Tribunal (NCLT).</li>
+          <li><strong>Preferential Allotment &amp; Rights Issues:</strong> Valuation of equity shares, Compulsorily Convertible Debentures (CCDs), and Compulsorily Convertible Preference Shares (CCPS) under Section 42 and Section 62(1)(c).</li>
+          <li><strong>Minority Squeeze-Outs &amp; Buybacks:</strong> Independent fair pricing under Section 68 and Section 236 to ensure equitable treatment for minority shareholder blocks.</li>
+          <li><strong>Capital Reduction &amp; Corporate Reorganization:</strong> Balance sheet restructuring valuations under Section 66.</li>
+        </ul>
+
+        <h3>Rule 11UA Income Tax Valuation &amp; Angel Tax Defense</h3>
+        <p>The determination of Fair Market Value (FMV) under Rule 11UA of the Income Tax Rules, 1962 is vital for defending transactions against Section 56(2)(viib) additions (commonly known as the Angel Tax) and Section 56(2)(x) deemed income provisions. Pro Valuer applies rigorous, defensible methodologies:</p>
+        <ul>
+          <li><strong>Discounted Cash Flow (DCF) Method:</strong> Establishing robust Weighted Average Cost of Capital (WACC), Capital Asset Pricing Model (CAPM) cost of equity, Terminal Growth Rates (TGR), and free cash flow to firm (FCFF) projections backed by empirical macroeconomic research.</li>
+          <li><strong>Net Asset Value (NAV) Book Method:</strong> Reconciling audited balance sheets, substituting book values with statutory fair market values for underlying immovable assets, quoted shares, and unquoted securities under Rule 11UA(2).</li>
+        </ul>
+
+        <h3>FEMA Cross-Border FDI / ODI Pricing Compliance</h3>
+        <p>In cross-border inbound foreign direct investment (FDI) and outbound direct investment (ODI) transactions under the Foreign Exchange Management (Non-debt Instruments) Rules, 2019, non-resident share subscriptions and transfers must comply with strict pricing guidelines. ProValuer provides internationally compliant DCF valuations ensuring that shares issued to non-residents are priced above fair market value, and shares transferred from non-residents to domestic residents are priced below fair market value.</p>
+        <p>Review comprehensive corporate frameworks on: <a href="/services/share-valuation">Corporate Share Valuation &amp; Equity Practice</a> and our specialized <a href="/knowledge/rule-11ua-complete-guide">Rule 11UA Statutory Valuation Guide</a>.</p>
+      </section>
+
+      <!-- Authority Section 3: Insolvency & Bankruptcy Code (IBC) Valuation -->
+      <section>
+        <h2>3. Insolvency &amp; Bankruptcy Code (IBC) Resolution Valuation</h2>
+        <p>Under the Insolvency and Bankruptcy Code, 2016 (IBC), precision in asset valuation forms the bedrock of the corporate insolvency resolution process (CIRP) and subsequent liquidation proceedings. Pro Valuer is a trusted partner to Insolvency Professionals (IPs), Resolution Professionals (RPs), Liquidators, and Committees of Creditors (CoC) across NCLT benches nationwide.</p>
+
+        <h3>Regulation 35 Statutory Determinations: Fair Value &amp; Liquidation Value</h3>
+        <p>In terms of Regulation 35 of the IBBI (Insolvency Resolution Process for Corporate Persons) Regulations, 2016, two independent Registered Valuers must be appointed to determine both the Fair Value and the Liquidation Value of the Corporate Debtor. ProValuer Commercial conducts comprehensive, simultaneous multi-class appraisals across all asset classes:</p>
+        <ul>
+          <li><strong>Fair Value in IBC:</strong> The estimated realizable value of the assets of the corporate debtor, if they were to be exchanged on the insolvency commencement date between a willing buyer and a willing seller in an arm's length transaction, after proper marketing and where the parties had each acted knowledgeably, prudently, and without compulsion.</li>
+          <li><strong>Liquidation Value in IBC:</strong> The estimated realizable value of the assets of the corporate debtor if the corporate debtor were to be liquidated on the insolvency commencement date under auction and distressed distress constraints. Liquidation value governs the minimum payout statutory entitlement of dissenting financial creditors and operational creditors under Section 30(2) of the Code.</li>
+        </ul>
+
+        <h3>Resolution Plan Evaluation &amp; Section 29A Scrutiny</h3>
+        <p>When Resolution Applicants submit competitive resolution plans, the Committee of Creditors relies upon Pro Valuer's independent benchmark valuations to assess commercial viability, enterprise enterprise value, and liquidation recovery floors. If estimates of the two appointed valuers differ significantly, Pro Valuer is frequently appointed as the third valuer under Regulation 35(1)(b) to establish definitive consensus.</p>
+        <p>Access our specialized practice portal: <a href="/services/nclt-ibc-valuation">NCLT &amp; IBC Valuation Practice</a>.</p>
+      </section>
+
+      <!-- Authority Section 4: Plant & Machinery Technical Certification -->
+      <section>
+        <h2>4. Plant &amp; Machinery Technical Certification &amp; Industrial Appraisal</h2>
+        <p>Industrial assets, production lines, specialized processing equipment, and heavy machinery require engineering expertise combined with financial valuation discipline. Pro Valuer's Plant &amp; Machinery division is staffed by veteran chartered engineers and IBBI Registered Valuers specializing in industrial technical appraisal.</p>
+
+        <h3>Technical Inspection, Asset Tagging &amp; Verification</h3>
+        <p>Paper-based depreciation schedules fail to reflect real equipment worth. ProValuer Commercial conducts physical on-site audits, serial number matching, nameplate logging, and physical condition diagnostics across manufacturing plants, thermal and solar power stations, pharmaceutical units, steel rolling mills, textile factories, and chemical refineries.</p>
+
+        <h3>Engineering Valuation Methodologies</h3>
+        <p>Our industrial engineering valuation practice applies globally recognized standards from the International Valuation Standards Council (IVSC):</p>
+        <ul>
+          <li><strong>Depreciated Replacement Cost (DRC) / Modern Equivalent Asset (MEA):</strong> Estimating the gross replacement cost of installing modern equivalent machinery with identical utility, followed by systematic deductions for physical wear and tear, functional obsolescence, and economic or external obsolescence.</li>
+          <li><strong>Remaining Useful Life (RUL) Certification:</strong> Quantitative engineering assessments determining the remaining operational lifespan of capital assets for leasing contracts, export-import customs clearance, and chartering.</li>
+          <li><strong>Ind AS 36 Asset Impairment Testing:</strong> Calculating the Value in Use (VIU) and Fair Value Less Costs of Disposal (FVLCOD) for Cash Generating Units (CGUs) to support corporate statutory auditors during annual financial closings.</li>
+        </ul>
+        <p>Explore engineering capabilities on our <a href="/services/plant-and-machinery-valuation">Plant &amp; Machinery Valuation Practice</a> and read our industry reference: <a href="/knowledge/plant-and-machinery-valuation-complete-guide">Plant &amp; Machinery Valuation Guide</a>.</p>
+      </section>
+
+      <!-- Authority Section 5: Government Approved Valuers Practice (Statutory & Judicial) -->
+      <section>
+        <h2>5. Government Approved Valuers Practice (Statutory &amp; Judicial)</h2>
+        <p>Statutory authorities, revenue boards, and judicial courts require valuation certificates issued by Government Approved Valuers possessing specific statutory registration under the Wealth Tax Act, 1957. Pro Valuer maintains active registration under Section 34AB with the Principal Chief Commissioner of Income Tax (Pr. CCIT) and provides legally inviolable documentation for high-stakes compliance.</p>
+
+        <h3>Direct Tax &amp; Capital Gains Defense (Section 50C &amp; Section 55A)</h3>
+        <p>Property transactions in India are heavily scrutinized by the Income Tax Department. ProValuer Commercial prepares statutory valuation reports to defend assessees against unreasonable stamp duty circle rate assessments:</p>
+        <ul>
+          <li><strong>Section 50C Stamp Duty Value Objections:</strong> Where the circle rate or ready reckoner rate exceeds fair market value due to locational disadvantages, legal disputes, shape irregularities, or physical encumbrances, Pro Valuer prepares evidence-backed reports for reference to the Departmental Valuation Officer (DVO).</li>
+          <li><strong>Section 55A Fair Market Value as of 1st April 2001:</strong> For ancestral properties acquired prior to April 1, 2001, calculating the indexed cost of acquisition is critical. Our historical market archives and municipal indices provide certified 2001 FMV reports that withstand scrutiny during scrutiny assessments and appeals before CIT(A) and the Income Tax Appellate Tribunal (ITAT).</li>
+        </ul>
+
+        <h3>Judicial Dispute Resolution, Family Partition &amp; Matrimonial Litigation</h3>
+        <p>Valuation reports prepared by Pro Valuer are regular fixtures in judicial proceedings before District Courts, High Courts, and the Supreme Court of India. Our expert testimony and forensic property audits support:</p>
+        <ul>
+          <li><strong>Family Partition &amp; Probate Administration:</strong> Certified asset schedules under the Indian Succession Act 1925, court fee benchmarking, and owelty formulations for equitable asset distribution. Read more on <a href="/services/probate-inheritance-valuation">Probate &amp; Inheritance Valuation</a>.</li>
+          <li><strong>Matrimonial Settlements &amp; Spousal Buyouts:</strong> Forensic real estate asset division under the Family Courts Act 1984 compliant with Rajnesh v. Neha guidelines. Read more on <a href="/services/divorce-matrimonial-valuation">Matrimonial Settlement Valuation</a>.</li>
+          <li><strong>Compulsory Land Acquisition:</strong> Fair compensation claims under the Right to Fair Compensation and Transparency in Land Acquisition, Rehabilitation and Resettlement Act, 2013 (RFCTLARR Act).</li>
+        </ul>
+        <p>Review comprehensive tax and statutory guidelines on our cornerstone pillar page: <a href="/government-approved-valuers">Government Approved Valuers in India</a>.</p>
+      </section>
+
+      <!-- Authority Section 6: Institutional Engagements & Governance Standards -->
+      <section>
+        <h2>6. Institutional Engagements, Multi-Class Coverage &amp; Governance</h2>
+        <p>Pro Valuer operates with an unwavering commitment to corporate governance, transparency, and independence. Our institutional delivery model eliminates conflicts of interest, mitigates litigation risks, and provides rapid turnaround times through our proprietary Asset Intelligence framework.</p>
+
+        <h3>Comprehensive Asset Class Coverage</h3>
+        <table style="width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; text-align: left;">
+          <thead>
+            <tr style="background: #F1F5F9; border-bottom: 2px solid #E2E8F0;">
+              <th style="padding: 10px; color: #0F172A;">Practice Category</th>
+              <th style="padding: 10px; color: #0F172A;">Statutory Framework</th>
+              <th style="padding: 10px; color: #0F172A;">Primary Deliverables</th>
+              <th style="padding: 10px; color: #0F172A;">Governing Authority</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom: 1px solid #E2E8F0;">
+              <td style="padding: 10px; font-weight: 600;">Banking &amp; Collateral</td>
+              <td style="padding: 10px;">SARFAESI Act 2002, RBI Master Directions</td>
+              <td style="padding: 10px;">FMV, Realizable Value, Forced Sale Value, LIE Audits</td>
+              <td style="padding: 10px;">Reserve Bank of India (RBI) / IBA</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #E2E8F0;">
+              <td style="padding: 10px; font-weight: 600;">Corporate &amp; Securities</td>
+              <td style="padding: 10px;">Companies Act Sec 247, Rule 11UA, FEMA NDI</td>
+              <td style="padding: 10px;">DCF Share Valuation, Swap Ratios, Net Worth Certificates</td>
+              <td style="padding: 10px;">IBBI / Ministry of Corporate Affairs / CBDT</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #E2E8F0;">
+              <td style="padding: 10px; font-weight: 600;">Insolvency &amp; NCLT</td>
+              <td style="padding: 10px;">Insolvency &amp; Bankruptcy Code 2016 (Reg 35)</td>
+              <td style="padding: 10px;">Fair Value &amp; Liquidation Value for CIRP &amp; Liquidation</td>
+              <td style="padding: 10px;">Insolvency &amp; Bankruptcy Board of India (IBBI)</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #E2E8F0;">
+              <td style="padding: 10px; font-weight: 600;">Plant &amp; Machinery</td>
+              <td style="padding: 10px;">IVS 105, Ind AS 36, Chartered Engineers Act</td>
+              <td style="padding: 10px;">DRC Appraisals, RUL Certification, Impairment Testing</td>
+              <td style="padding: 10px;">Institution of Engineers (India) / IBBI</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #E2E8F0;">
+              <td style="padding: 10px; font-weight: 600;">Direct Tax &amp; Wealth Tax</td>
+              <td style="padding: 10px;">Wealth Tax Act Sec 34AB, IT Act Sec 50C/55A</td>
+              <td style="padding: 10px;">Capital Gains Defense, 2001 FMV Benchmarks, DVO Appeals</td>
+              <td style="padding: 10px;">Central Board of Direct Taxes (CBDT)</td>
+            </tr>
+            <tr style="border-bottom: 1px solid #E2E8F0;">
+              <td style="padding: 10px; font-weight: 600;">Visa &amp; Immigration</td>
+              <td style="padding: 10px;">Consular Financial Evidence Guidelines</td>
+              <td style="padding: 10px;">Embassies Certified Property &amp; Net Worth Valuation</td>
+              <td style="padding: 10px;">USCIS / IRCC / UK Home Office / DOHA</td>
+            </tr>
+          </tbody>
+        </table>
+
+        <h3>International Valuation Standards (IVS) Compliance</h3>
+        <p>All appraisal methodologies deployed across Pro Valuer strictly observe the guidelines published by the International Valuation Standards Council (IVSC). Our valuation teams implement three fundamental valuation approaches recognized globally: the Market Approach (Comparable Sales), the Income Approach (Discounted Cash Flow / Capitalization), and the Cost Approach (Depreciated Replacement Cost). By cross-validating asset values across multiple approaches, our reports provide unparalleled resilience during judicial challenges and regulatory examinations.</p>
+
+        <h3>Institutional Engagements &amp; Inquiries</h3>
+        <p>To initiate a statutory valuation mandate, submit an institutional appraisal brief, or request valuer credentials for banking empanelment, engage directly with our senior practice directors:</p>
+        <ul>
+          <li><strong>Direct Advisory Line:</strong> <a href="tel:+918500019091">+91 85000 19091</a></li>
+          <li><strong>WhatsApp Business Desk:</strong> <a href="https://wa.me/918500880333">+91 85008 80333</a></li>
+          <li><strong>Official Institutional Communications:</strong> <a href="mailto:contact@provaluer.in">contact@provaluer.in</a></li>
+          <li><strong>Primary Digital Gateway:</strong> <a href="https://www.provaluer.in/">https://www.provaluer.in/</a></li>
+          <li><strong>National Practice Headquarters:</strong> ProValuer Commercial Advisory Services, India.</li>
         </ul>
       </section>
 
+      <!-- Authority Section 7: Comprehensive Knowledge & Regulatory Guides -->
       <section>
-        <h2>Statutory Licensure & Accreditation</h2>
-        <p>Registered Valuers (Govt. Approved) under IBBI (Insolvency and Bankruptcy Board of India), Income Tax Act, and Wealth Tax Act. Empanelled across leading nationalized and private banking institutions.</p>
-      </section>
-
-      <section>
-        <h2>Institutional Advisory & Contact Details</h2>
-        <p>Telephone Direct: <a href="tel:+918500019091">+91 85000 19091</a></p>
-        <p>WhatsApp Advisory: <a href="https://wa.me/918500880333">+91 85008 80333</a></p>
-        <p>Client Portal: <a href="/login">Secure Authentication Gateway</a></p>
+        <h2>Regulatory Valuation Knowledge Repository</h2>
+        <p>Explore authoritative compendiums, statutory case law, and valuation frameworks authored by our senior valuation specialists:</p>
+        <ul>
+          <li><a href="/government-approved-valuers">Government Approved Valuers in India — Statutory Licensure, Section 34AB &amp; Legal Precedents</a></li>
+          <li><a href="/services/bank-collateral-valuation">Bank Collateral &amp; Security Valuation for Scheduled Commercial Banks</a></li>
+          <li><a href="/services/share-valuation">Share Valuation &amp; Equity Intelligence under Companies Act &amp; FEMA</a></li>
+          <li><a href="/services/nclt-ibc-valuation">NCLT &amp; IBC Valuation Practice for Insolvency Resolution Professionals</a></li>
+          <li><a href="/services/plant-and-machinery-valuation">Plant &amp; Machinery Valuation &amp; Technical Asset Certification</a></li>
+          <li><a href="/services/property-valuation">Certified Property Valuation for Real Estate Assets</a></li>
+          <li><a href="/services/visa-and-immigration-valuations">Visa &amp; Immigration Property &amp; Net Worth Valuation</a></li>
+          <li><a href="/services/divorce-matrimonial-valuation">Property Valuation for Divorce &amp; Matrimonial Asset Division</a></li>
+          <li><a href="/services/probate-inheritance-valuation">Estate Valuation for Probate, Succession &amp; Family Partition</a></li>
+          <li><a href="/knowledge/rule-11ua-complete-guide">Rule 11UA Valuation Complete Guide: DCF vs NAV Methods</a></li>
+          <li><a href="/knowledge/property-valuation-methods-complete-guide">Property Valuation Methods in India: Comparative, Cost &amp; Investment Approaches</a></li>
+          <li><a href="/knowledge/plant-and-machinery-valuation-complete-guide">Plant &amp; Machinery Valuation Complete Guide: Engineering &amp; Depreciation</a></li>
+          <li><a href="/knowledge/government-approved-valuers-complete-guide">Government Approved Valuers Complete Guide: Registration &amp; Jurisdiction</a></li>
+          <li><a href="/knowledge/angel-tax-complete-guide">Angel Tax &amp; Section 56(2)(viib) Defense Guide</a></li>
+          <li><a href="/knowledge/visa-and-immigration-valuation-complete-guide">Visa &amp; Immigration Valuation Complete Guide</a></li>
+        </ul>
       </section>
     </main>
   </div>
