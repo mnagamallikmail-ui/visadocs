@@ -153,7 +153,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               color: AppColors.brandRed,
                               borderRadius: AppRadius.brMd,
                               border: Border.all(
-                                  color: AppColors.brandRedDark.withOpacity(0.3)),
+                                  color: AppColors.brandRedDark.withValues(alpha: 0.3)),
                             ),
                             child: Row(
                               children: [
@@ -220,18 +220,28 @@ class _LoginScreenState extends State<LoginScreen> {
                           height: 50,
                           child: ElevatedButton(
                             onPressed: _isLoading ? null : _handleSubmit,
-                            style: AppComponents.primaryButtonStyle(),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF143D3D),
+                              foregroundColor: Colors.white,
+                              disabledBackgroundColor: AppColors.hairlineStrong,
+                              disabledForegroundColor: AppColors.slate,
+                              elevation: 0,
+                              shadowColor: Colors.transparent,
+                              padding: AppSpacing.buttonPadding,
+                              shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
+                              textStyle: AppTypography.buttonMd(color: Colors.white),
+                            ),
                             child: _isLoading
                                 ? const SizedBox(
                                     width: 18,
                                     height: 18,
                                     child: CircularProgressIndicator(
-                                        color: AppColors.onDark, strokeWidth: 2),
+                                        color: Colors.white, strokeWidth: 2),
                                   )
                                 : Text(
                                     _isLogin ? 'Sign In' : 'Create Account',
                                     style: AppTypography.buttonMd(
-                                        color: AppColors.onDark),
+                                        color: Colors.white),
                                   ),
                           ),
                         ),
@@ -251,7 +261,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ? "Don't have an account?  Sign Up"
                                     : 'Already have an account?  Sign In',
                                 style: AppTypography.bodySmMedium(
-                                    color: AppColors.deepTeal),
+                                    color: const Color(0xFF143D3D)),
                               ),
                             ),
                           ),
@@ -324,13 +334,13 @@ class _LeftPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: AppColors.deepTeal,
+      color: const Color(0xFF143D3D), // Primary brand deep teal
       padding: const EdgeInsets.all(72),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Logo with escape hatch back to homepage
+          // Logo with escape hatch back to homepage (dark mode variant for high contrast on #143D3D)
           MouseRegion(
             cursor: SystemMouseCursors.click,
             child: GestureDetector(
@@ -353,18 +363,18 @@ class _LeftPanel extends StatelessWidget {
                 padding:
                     const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
                 decoration: BoxDecoration(
-                  color: AppColors.onDark.withOpacity(0.1),
+                  color: Colors.white.withValues(alpha: 0.12),
                   borderRadius: AppRadius.brFull,
-                  border: Border.all(color: AppColors.onDark.withOpacity(0.15)),
+                  border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
                 ),
                 child: Text('ENTERPRISE PLATFORM',
                     style: AppTypography.microUppercase(
-                        color: AppColors.onDarkMuted)),
+                        color: Colors.white)),
               ),
               const SizedBox(height: AppSpacing.xxl),
               Text(
                 'Enterprise\nValuation &\nProperty\nIntelligence',
-                style: AppTypography.displayHeroMd(color: AppColors.onDark)
+                style: AppTypography.displayHeroMd(color: Colors.white)
                     .copyWith(height: 1.05),
               ).animate().fadeIn(duration: 600.ms).slideY(begin: 0.1, end: 0),
               const SizedBox(height: AppSpacing.xxl),
@@ -372,12 +382,12 @@ class _LeftPanel extends StatelessWidget {
                 'Automated SLA monitoring, value-based balance gates, '
                 'DOCX template token normalization, and Class 3 HSM digital '
                 'signatures for regulatory compliance.',
-                style: AppTypography.bodyMd(color: AppColors.onDarkMuted),
+                style: AppTypography.bodyMd(color: Colors.white.withValues(alpha: 0.85)),
               ).animate(delay: 200.ms).fadeIn(duration: 600.ms),
 
               const SizedBox(height: AppSpacing.xxxl),
 
-              // Feature highlights
+              // Feature highlights with crisp contrast
               ...[
                 'IBBI Registered Valuers',
                 'Empanelled Banks',
@@ -390,15 +400,15 @@ class _LeftPanel extends StatelessWidget {
                         Container(
                           width: 6,
                           height: 6,
-                          decoration: BoxDecoration(
-                            color: AppColors.featureOchre,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
                             shape: BoxShape.circle,
                           ),
                         ),
                         const SizedBox(width: 10),
                         Text(item,
                             style: AppTypography.bodySmMedium(
-                                color: AppColors.onDarkMuted)),
+                                color: Colors.white.withValues(alpha: 0.95))),
                       ],
                     ),
                   )),
@@ -408,7 +418,7 @@ class _LeftPanel extends StatelessWidget {
           // Bottom tagline
           Text(
             'Accurate Valuations.\nProfessional Insights.\nTrusted Decisions.',
-            style: AppTypography.micro(color: AppColors.onDark.withOpacity(0.4)),
+            style: AppTypography.micro(color: Colors.white.withValues(alpha: 0.6)),
           ),
         ],
       ),
@@ -446,7 +456,7 @@ class _RoleHintTabsState extends State<_RoleHintTabs> {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
-                  color: _selected == i ? AppColors.deepTeal : Colors.transparent,
+                  color: _selected == i ? const Color(0xFF143D3D) : Colors.transparent,
                   borderRadius: AppRadius.brFull,
                 ),
                 alignment: Alignment.center,
@@ -454,7 +464,7 @@ class _RoleHintTabsState extends State<_RoleHintTabs> {
                   _roles[i],
                   style: AppTypography.buttonMd(
                     color: _selected == i
-                        ? AppColors.onDark
+                        ? Colors.white
                         : AppColors.textMuted,
                   ).copyWith(fontSize: 13),
                 ),
