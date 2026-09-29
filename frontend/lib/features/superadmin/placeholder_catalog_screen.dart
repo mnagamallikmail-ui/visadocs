@@ -237,17 +237,9 @@ class _PlaceholderCatalogScreenState extends State<PlaceholderCatalogScreen> {
                                     children: [
                                       Row(
                                         children: [
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              color: AppColors.placeholderBadgeBg,
-                                              borderRadius: BorderRadius.circular(6),
-                                              border: Border.all(color: AppColors.placeholderBadgeBorder),
-                                            ),
-                                            child: SelectableText(
-                                              placeholder,
-                                              style: GoogleFonts.firaCode(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.placeholderBadgeText, letterSpacing: 0.2),
-                                            ),
+                                          SelectableText(
+                                            placeholder,
+                                            style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold, color: AppColors.primary),
                                           ),
                                           const SizedBox(width: 8),
                                           Container(

@@ -385,15 +385,13 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
               ))
         : (isEmpty
             ? baseStyle.copyWith(
-                color: AppColors.placeholderText,
+                color: AppColors.workspaceSecondaryText.withValues(alpha: 0.5),
                 fontStyle: FontStyle.italic,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.2,
+                fontWeight: FontWeight.w400,
               )
             : baseStyle.copyWith(
-                color: AppColors.placeholderBadgeText,
-                fontWeight: FontWeight.w600,
-                letterSpacing: 0.2,
+                color: AppColors.workspaceCorporateNavy,
+                fontWeight: FontWeight.w700,
               ));
 
     return MouseRegion(
@@ -412,20 +410,22 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 120),
           margin: const EdgeInsets.symmetric(horizontal: 2.5, vertical: 1.0),
-          padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
+          padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 1.5),
           decoration: BoxDecoration(
             color: isFormulaCalc
                 ? const Color(0xFFF3F6FC)
                 : (_isHovered && !widget.readOnly
-                    ? const Color(0xFFD1FAE5)
-                    : (isEmpty ? AppColors.placeholderBadgeBg : AppColors.placeholderBadgeBg.withValues(alpha: 0.85))),
-            borderRadius: BorderRadius.circular(6),
+                    ? AppColors.workspaceCorporateNavy.withValues(alpha: 0.08)
+                    : (isEmpty ? AppColors.workspaceCanvas : AppColors.workspaceCorporateNavy.withValues(alpha: 0.035))),
+            borderRadius: BorderRadius.circular(4),
             border: Border.all(
               color: isFormulaCalc
                   ? const Color(0xFFD0DCF0)
                   : (_isHovered && !widget.readOnly
-                      ? AppColors.placeholderText
-                      : AppColors.placeholderBadgeBorder),
+                      ? AppColors.primaryBlue
+                      : (isEmpty
+                          ? AppColors.workspaceBorder
+                          : AppColors.workspaceCorporateNavy.withValues(alpha: 0.25))),
               width: 1.0,
             ),
           ),

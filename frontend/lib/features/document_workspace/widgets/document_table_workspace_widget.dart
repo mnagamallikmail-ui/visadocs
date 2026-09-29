@@ -3286,8 +3286,9 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                   textAlign: TextAlign.left,
                   style: GoogleFonts.montserrat(
                     fontSize: 12.5,
-                    fontWeight: isRequired ? FontWeight.w600 : FontWeight.w500,
-                    color: AppColors.workspacePrimaryText,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF0F766E),
+                    letterSpacing: 0.2,
                     height: 1.25,
                   ),
                 ),
@@ -3304,13 +3305,6 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             ],
           ),
         ),
-        if (isImportant) ...[
-          const SizedBox(width: 4),
-          const Tooltip(
-            message: 'Key appraisal parameter',
-            child: Icon(Icons.info_outline_rounded, size: 13, color: AppColors.workspaceSecondaryText),
-          ),
-        ],
       ],
     );
   }

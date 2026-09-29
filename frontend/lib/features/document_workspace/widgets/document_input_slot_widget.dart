@@ -480,7 +480,12 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                       children: [
                         Text(
                           widget.fieldVm.questionText,
-                          style: AppTypography.workspaceSectionTitle().copyWith(fontSize: 13),
+                          style: AppTypography.workspaceSectionTitle().copyWith(
+                            fontSize: 13,
+                            color: const Color(0xFF0F766E),
+                            fontWeight: FontWeight.w600,
+                            letterSpacing: 0.2,
+                          ),
                         ),
                         if (hasValue)
                           Container(
