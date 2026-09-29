@@ -3286,9 +3286,8 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                   textAlign: TextAlign.left,
                   style: GoogleFonts.montserrat(
                     fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.placeholderText,
-                    letterSpacing: 0.2,
+                    fontWeight: isRequired ? FontWeight.w600 : FontWeight.w500,
+                    color: AppColors.workspacePrimaryText,
                     height: 1.25,
                   ),
                 ),

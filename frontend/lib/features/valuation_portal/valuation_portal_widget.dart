@@ -3807,10 +3807,10 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                   child: Text(
                     label,
                     style: DesignSystem.body(
-                      color: const Color(0xFF0F766E),
+                      color: DesignSystem.textPrimary,
                       fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ).copyWith(letterSpacing: 0.2),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),
