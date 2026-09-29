@@ -84,10 +84,10 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> 
                 auth.requestMatchers("/api/v1/auth/**").permitAll()
                     // P0-1: Strictly allow ONLY POST requests for public commercial lead intake and document uploads
-                    .requestMatchers(HttpMethod.POST, "/api/leads").permitAll()
-                    .requestMatchers(HttpMethod.POST, "/api/leads/*/upload").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/leads", "/api/v1/leads").permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/leads/*/upload", "/api/v1/leads/*/upload").permitAll()
                     // All other lead operations (listing, dossier inspection, quote generation, status transitions) require ADMIN
-                    .requestMatchers("/api/leads/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+                    .requestMatchers("/api/leads", "/api/leads/**", "/api/v1/leads", "/api/v1/leads/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                     .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/error").permitAll()
                     .anyRequest().authenticated()
             );

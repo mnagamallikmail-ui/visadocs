@@ -54,7 +54,10 @@ public class LeadService {
 
     @Transactional
     public LeadResponseDto createLead(LeadRequestDto dto) {
-        String refCode = "REQ-" + Year.now().getValue() + "-" + String.format("%04d", (int)(Math.random() * 9000) + 1000);
+        String refCode;
+        do {
+            refCode = "REQ-" + Year.now().getValue() + "-" + String.format("%04d", (int)(Math.random() * 9000) + 1000);
+        } while (valuationLeadRepository.existsByReferenceCode(refCode));
 
         LeadScoringService.ScoreResult scoreResult = leadScoringService.calculateScore(dto);
 

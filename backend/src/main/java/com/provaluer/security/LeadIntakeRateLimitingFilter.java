@@ -72,8 +72,9 @@ public class LeadIntakeRateLimitingFilter implements Filter {
 
     private boolean isLeadIntakeUri(String path) {
         if (path == null) return false;
-        // Matches /api/leads or /api/leads/ or /api/leads/{id}/upload
-        return path.equals("/api/leads") || path.equals("/api/leads/") || path.matches("^/api/leads/\\d+/upload/?$");
+        // Matches /api/leads or /api/v1/leads and their /upload endpoints
+        return path.equals("/api/leads") || path.equals("/api/leads/") || path.matches("^/api/leads/\\d+/upload/?$")
+                || path.equals("/api/v1/leads") || path.equals("/api/v1/leads/") || path.matches("^/api/v1/leads/\\d+/upload/?$");
     }
 
     private String extractClientIp(HttpServletRequest request) {

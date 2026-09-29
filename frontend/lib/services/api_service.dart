@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
+import 'token_storage.dart';
 
 class ApiService {
   static String _determineBaseUrl() {
@@ -32,15 +33,26 @@ class ApiService {
 
   factory ApiService() => _instance;
 
-  String? token;
+  String? _inMemoryToken;
+  String? get token => _inMemoryToken ?? TokenStorage.getToken();
+  set token(String? val) {
+    _inMemoryToken = val;
+    if (val != null) {
+      TokenStorage.saveToken(val);
+    } else {
+      TokenStorage.clearToken();
+    }
+  }
+
   Function(String)? onTcRequired;
 
   ApiService._internal() {
     dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          if (token != null) {
-            options.headers['Authorization'] = 'Bearer $token';
+          final currentToken = token;
+          if (currentToken != null) {
+            options.headers['Authorization'] = 'Bearer $currentToken';
           }
           return handler.next(options);
         },

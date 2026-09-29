@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../services/token_storage.dart';
 
 class AuthProvider extends ChangeNotifier {
   final ApiService _apiService = ApiService();
@@ -35,6 +36,21 @@ class AuthProvider extends ChangeNotifier {
       _activeTcVersion = version;
       notifyListeners();
     };
+
+    // Restore persistent session from storage
+    final session = TokenStorage.loadSession();
+    final savedToken = session['token'] as String?;
+    if (savedToken != null && savedToken.isNotEmpty) {
+      _token = savedToken;
+      _username = session['username'];
+      _email = session['email'];
+      _role = session['role'];
+      _fullName = session['fullName'];
+      _mobile = session['mobile'];
+      _userId = session['userId'];
+      _apiService.token = _token;
+      _isAuthenticated = true;
+    }
   }
 
   void forceTcRequired(String version) {
@@ -63,6 +79,18 @@ class AuthProvider extends ChangeNotifier {
         _apiService.token = _token;
         _isAuthenticated = true;
         _tcRequired = false;
+
+        if (_token != null) {
+          TokenStorage.saveSession(
+            token: _token!,
+            username: _username,
+            email: _email,
+            role: _role,
+            fullName: _fullName,
+            mobile: _mobile,
+            userId: _userId,
+          );
+        }
 
         notifyListeners();
         return true;
@@ -116,6 +144,7 @@ class AuthProvider extends ChangeNotifier {
     _apiService.token = null;
     _isAuthenticated = false;
     _tcRequired = false;
+    TokenStorage.clearSession();
     notifyListeners();
   }
 }

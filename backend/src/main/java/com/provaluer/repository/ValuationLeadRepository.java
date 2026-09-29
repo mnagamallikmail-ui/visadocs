@@ -12,6 +12,7 @@ import java.util.Optional;
 @Repository
 public interface ValuationLeadRepository extends JpaRepository<ValuationLead, Long> {
     Optional<ValuationLead> findByReferenceCode(String referenceCode);
+    boolean existsByReferenceCode(String referenceCode);
 
     List<ValuationLead> findByStatusOrderByCreatedAtDesc(String status);
 

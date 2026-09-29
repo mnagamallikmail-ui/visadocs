@@ -283,6 +283,7 @@ public class LeadSecurityIntegrationTest {
         dto.setContactName("Test User");
         dto.setContactEmail("test@testcorp.com");
         dto.setContactPhone("+91 99000 11000");
+        dto.setConsentGiven(true);
 
         String content = objectMapper.writeValueAsString(dto);
 
