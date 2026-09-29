@@ -13,25 +13,32 @@ Allow: /llms.txt
 
 # Disallow Authentication, Private Internal Dashboards and API Endpoints
 Disallow: /login*
+Disallow: /register*
+Disallow: /admin*
 Disallow: /client*
 Disallow: /pa*
 Disallow: /spa*
-Disallow: /admin*
 Disallow: /api*
 Disallow: /valuation*
 Disallow: /template*
+Disallow: /template-management*
 Disallow: /report*
+Disallow: /report-generation*
 
 # Dedicated Directives for AI Search Engines & LLM Scrapers
 User-agent: Google-Extended
 Allow: /
 Disallow: /login*
+Disallow: /register*
 Disallow: /admin*
 Disallow: /api*
+Disallow: /template-management*
+Disallow: /report-generation*
 
 User-agent: GPTBot
 Allow: /
 Disallow: /login*
+Disallow: /register*
 Disallow: /client*
 Disallow: /pa*
 Disallow: /spa*
@@ -39,7 +46,9 @@ Disallow: /admin*
 Disallow: /api*
 Disallow: /valuation*
 Disallow: /template*
+Disallow: /template-management*
 Disallow: /report*
+Disallow: /report-generation*
 
 User-agent: OAI-SearchBot
 Allow: /
