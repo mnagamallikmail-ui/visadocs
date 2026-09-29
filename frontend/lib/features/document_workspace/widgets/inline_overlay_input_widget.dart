@@ -296,15 +296,19 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
       decoration: InputDecoration(
         isDense: true,
         filled: true,
-        fillColor: AppColors.workspaceSegmentBg,
+        fillColor: Colors.white,
         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.workspaceBorder),
+          borderSide: const BorderSide(color: Color(0xFFA7F3D0), width: 1.5),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(8),
+          borderSide: const BorderSide(color: Color(0xFFA7F3D0), width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.0),
+          borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5),
         ),
         // No hintText — <<TEXT>> must render a completely blank text input area.
       ),
@@ -362,18 +366,18 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
                     ? Colors.transparent
                     : (isFocused
                         ? Colors.white
-                        : (isHovered ? AppColors.workspaceSegmentBg : AppColors.workspaceCanvas)),
+                        : (isHovered ? const Color(0xFFF6FFF9) : const Color(0xFFF0FDF4))),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isFocused
-                      ? AppColors.primaryBlue
-                      : (isHovered ? AppColors.workspaceBorder : AppColors.workspaceBorder),
-                  width: 1.0,
+                      ? const Color(0xFF10B981)
+                      : (isHovered ? const Color(0xFF34D399) : const Color(0xFFA7F3D0)),
+                  width: 1.5,
                 ),
                 boxShadow: isFocused
                     ? const [
                         BoxShadow(
-                          color: AppColors.workspaceFocusGlow,
+                          color: Color(0x1F10B981), // 3px rgba(16,185,129,0.12)
                           blurRadius: 3,
                           spreadRadius: 2,
                         ),

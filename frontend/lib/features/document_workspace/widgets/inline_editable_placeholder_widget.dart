@@ -415,18 +415,16 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
             color: isFormulaCalc
                 ? const Color(0xFFF3F6FC)
                 : (_isHovered && !widget.readOnly
-                    ? AppColors.workspaceCorporateNavy.withValues(alpha: 0.08)
-                    : (isEmpty ? AppColors.workspaceCanvas : AppColors.workspaceCorporateNavy.withValues(alpha: 0.035))),
+                    ? const Color(0xFFF6FFF9)
+                    : (isEmpty ? const Color(0xFFF0FDF4) : const Color(0xFFF0FDF4))),
             borderRadius: BorderRadius.circular(4),
             border: Border.all(
               color: isFormulaCalc
                   ? const Color(0xFFD0DCF0)
                   : (_isHovered && !widget.readOnly
-                      ? AppColors.primaryBlue
-                      : (isEmpty
-                          ? AppColors.workspaceBorder
-                          : AppColors.workspaceCorporateNavy.withValues(alpha: 0.25))),
-              width: 1.0,
+                      ? const Color(0xFF34D399)
+                      : const Color(0xFFA7F3D0)),
+              width: (isFormulaCalc || widget.readOnly) ? 1.0 : 1.5,
             ),
           ),
           child: Wrap(

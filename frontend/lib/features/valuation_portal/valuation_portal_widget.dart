@@ -3763,9 +3763,23 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
               controller: controller,
               readOnly: true,
               style: DesignSystem.body(fontSize: 13),
-              decoration: const InputDecoration(
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                suffixIcon: Icon(Icons.calendar_today_outlined, size: 16, color: DesignSystem.primary),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: const Color(0xFFF0FDF4),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                suffixIcon: const Icon(Icons.calendar_today_outlined, size: 16, color: DesignSystem.primary),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFA7F3D0), width: 1.5),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFA7F3D0), width: 1.5),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5),
+                ),
               ),
               onTap: () async {
                 final picked = await DatePickerHelper.showAppDatePicker(
@@ -3788,8 +3802,22 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
               keyboardType: TextInputType.multiline,
               minLines: 1,
               maxLines: null,
-              decoration: const InputDecoration(
-                contentPadding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: InputDecoration(
+                filled: true,
+                fillColor: const Color(0xFFF0FDF4),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFA7F3D0), width: 1.5),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFFA7F3D0), width: 1.5),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5),
+                ),
               ),
               onChanged: (val) {
                 _entryValues[key] = val;
@@ -3807,10 +3835,10 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                   child: Text(
                     label,
                     style: DesignSystem.body(
-                      color: const Color(0xFF0F766E),
+                      color: DesignSystem.textPrimary,
                       fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                    ).copyWith(letterSpacing: 0.2),
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 16),

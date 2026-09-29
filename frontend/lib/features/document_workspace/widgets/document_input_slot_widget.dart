@@ -31,6 +31,7 @@ class DocumentInputSlotWidget extends StatefulWidget {
 class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
   late final TextEditingController _controller;
   late final FocusNode _focusNode;
+  bool _isHovered = false;
 
   String _normalizeValue(String val) {
     if (widget.fieldVm.isDate && val.isNotEmpty) {
@@ -305,121 +306,146 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
           crossAxisAlignment: isMultiline ? CrossAxisAlignment.start : CrossAxisAlignment.center,
           children: [
             Expanded(
-              child: GestureDetector(
-                behavior: HitTestBehavior.opaque,
-                onTap: isDate && !widget.readOnly ? () => _pickDate(context, provider) : null,
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 140),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(8),
-                  boxShadow: _focusNode.hasFocus
-                      ? const [
-                          BoxShadow(
-                            color: AppColors.workspaceFocusGlow, // 3px rgba(37, 99, 235, 0.12)
-                            blurRadius: 3,
-                            spreadRadius: 2,
-                          ),
-                        ]
-                      : null,
-                ),
-                child: TextFormField(
-                  controller: _controller,
-                  focusNode: _focusNode,
-                  readOnly: widget.readOnly || isDate || isFormulaCalc,
-                  onTap: isDate ? () => _pickDate(context, provider) : null,
-                  textAlign: widget.fieldVm.effectiveTextAlign,
-                  keyboardType: (isNumber || isNumericN)
-                      ? const TextInputType.numberWithOptions(decimal: true)
-                      : TextInputType.multiline,
-                  inputFormatters: isNumericN
-                      ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.-]'))]
-                      : null,
-                  minLines: isMultiline ? 3 : 1,
-                  maxLines: (isNumber || isNumericN || isFormulaCalc) ? 1 : null, // Dynamic auto-growing height following content lines
-                  scrollPhysics: const NeverScrollableScrollPhysics(), // No internal scrollbars
-                  onFieldSubmitted: (_) => provider.placeholderRegistry.next(widget.fieldVm.key),
-                  style: isFormulaCalc
-                      ? (latestVal.startsWith('[Error:')
-                          ? GoogleFonts.montserrat(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.red.shade700,
-                            )
-                          : GoogleFonts.montserrat(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.workspaceCorporateNavy,
-                            ))
-                      : AppTypography.workspaceInput(
-                          color: widget.readOnly ? AppColors.workspaceSecondaryText : AppColors.workspacePrimaryText,
-                        ),
-                  decoration: InputDecoration(
-                    // GOVERNANCE: TEXT placeholders must render a completely blank field.
-                    // No hints, no labels, no question-text-derived descriptions.
-                    // Only DATE fields may show a format hint as it is operational, not a label.
-                    hintText: isDate ? 'dd-MMM-yyyy' : null,
-                    hintStyle: isDate ? AppTypography.workspaceHint() : null,
-                    filled: true,
-                    fillColor: _focusNode.hasFocus
-                        ? Colors.white
-                        : (isFormulaCalc
-                            ? const Color(0xFFF3F6FC)
-                            : (widget.readOnly ? AppColors.workspaceSegmentBg : AppColors.workspaceCanvas)),
-                    isDense: true,
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 11,
-                      vertical: isMultiline ? 9 : 8,
+              child: MouseRegion(
+                onEnter: (_) => setState(() => _isHovered = true),
+                onExit: (_) => setState(() => _isHovered = false),
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: isDate && !widget.readOnly ? () => _pickDate(context, provider) : null,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 140),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(8),
+                      boxShadow: _focusNode.hasFocus
+                          ? const [
+                              BoxShadow(
+                                color: Color(0x1F10B981), // 3px rgba(16, 185, 129, 0.12)
+                                blurRadius: 3,
+                                spreadRadius: 2,
+                              ),
+                            ]
+                          : null,
                     ),
-                    prefixText: (isCurrency && !isDate && !isMultiline && !isFormulaCalc) ? '₹ ' : null,
-                    suffixIcon: isDate
-                        ? InkWell(
-                            onTap: () => _pickDate(context, provider),
-                            child: const Padding(
-                              padding: EdgeInsets.all(8.0),
-                              child: Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.workspaceCorporateNavy),
+                    child: TextFormField(
+                      controller: _controller,
+                      focusNode: _focusNode,
+                      readOnly: widget.readOnly || isDate || isFormulaCalc,
+                      onTap: isDate ? () => _pickDate(context, provider) : null,
+                      textAlign: widget.fieldVm.effectiveTextAlign,
+                      keyboardType: (isNumber || isNumericN)
+                          ? const TextInputType.numberWithOptions(decimal: true)
+                          : TextInputType.multiline,
+                      inputFormatters: isNumericN
+                          ? [FilteringTextInputFormatter.allow(RegExp(r'[0-9.-]'))]
+                          : null,
+                      minLines: isMultiline ? 3 : 1,
+                      maxLines: (isNumber || isNumericN || isFormulaCalc) ? 1 : null, // Dynamic auto-growing height following content lines
+                      scrollPhysics: const NeverScrollableScrollPhysics(), // No internal scrollbars
+                      onFieldSubmitted: (_) => provider.placeholderRegistry.next(widget.fieldVm.key),
+                      style: isFormulaCalc
+                          ? (latestVal.startsWith('[Error:')
+                              ? GoogleFonts.montserrat(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.red.shade700,
+                                )
+                              : GoogleFonts.montserrat(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: AppColors.workspaceCorporateNavy,
+                                ))
+                          : AppTypography.workspaceInput(
+                              color: widget.readOnly ? AppColors.workspaceSecondaryText : AppColors.workspacePrimaryText,
                             ),
-                          )
-                        : (isFormulaCalc
-                            ? Tooltip(
-                                message: 'Calculated: ${widget.fieldVm.key}',
+                      decoration: InputDecoration(
+                        // GOVERNANCE: TEXT placeholders must render a completely blank field.
+                        // No hints, no labels, no question-text-derived descriptions.
+                        // Only DATE fields may show a format hint as it is operational, not a label.
+                        hintText: isDate ? 'dd-MMM-yyyy' : null,
+                        hintStyle: isDate ? AppTypography.workspaceHint() : null,
+                        filled: true,
+                        fillColor: _focusNode.hasFocus
+                            ? Colors.white
+                            : (isFormulaCalc
+                                ? const Color(0xFFF3F6FC)
+                                : (widget.readOnly
+                                    ? AppColors.workspaceSegmentBg
+                                    : (_isHovered ? const Color(0xFFF6FFF9) : const Color(0xFFF0FDF4)))),
+                        isDense: true,
+                        contentPadding: EdgeInsets.symmetric(
+                          horizontal: 11,
+                          vertical: isMultiline ? 9 : 8,
+                        ),
+                        prefixText: (isCurrency && !isDate && !isMultiline && !isFormulaCalc) ? '₹ ' : null,
+                        suffixIcon: isDate
+                            ? InkWell(
+                                onTap: () => _pickDate(context, provider),
                                 child: const Padding(
-                                  padding: EdgeInsets.only(right: 8),
-                                  child: Icon(Icons.calculate_outlined, size: 16, color: AppColors.workspaceCorporateNavy),
+                                  padding: EdgeInsets.all(8.0),
+                                  child: Icon(Icons.calendar_today_rounded, size: 16, color: AppColors.workspaceCorporateNavy),
                                 ),
                               )
-                            : (isRepeated
+                            : (isFormulaCalc
                                 ? Tooltip(
-                                    message: 'Synchronized across ${widget.fieldVm.occurrences} locations in document',
+                                    message: 'Calculated: ${widget.fieldVm.key}',
                                     child: const Padding(
                                       padding: EdgeInsets.only(right: 8),
-                                      child: Icon(Icons.sync_rounded, size: 14, color: AppColors.workspaceSecondaryText),
+                                      child: Icon(Icons.calculate_outlined, size: 16, color: AppColors.workspaceCorporateNavy),
                                     ),
                                   )
-                                : null)),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.workspaceBorder, width: 1.0),
-                    ),
-                    enabledBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.workspaceBorder, width: 1.0),
-                    ),
-                    focusedBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.0),
-                    ),
-                    errorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.workspaceErrorText, width: 1.0),
-                    ),
-                    focusedErrorBorder: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: AppColors.workspaceErrorText, width: 1.5),
+                                : (isRepeated
+                                    ? Tooltip(
+                                        message: 'Synchronized across ${widget.fieldVm.occurrences} locations in document',
+                                        child: const Padding(
+                                          padding: EdgeInsets.only(right: 8),
+                                          child: Icon(Icons.sync_rounded, size: 14, color: AppColors.workspaceSecondaryText),
+                                        ),
+                                      )
+                                    : null)),
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: isFormulaCalc
+                                ? const Color(0xFFD0DCF0)
+                                : (widget.readOnly
+                                    ? AppColors.workspaceBorder
+                                    : const Color(0xFFA7F3D0)),
+                            width: (isFormulaCalc || widget.readOnly) ? 1.0 : 1.5,
+                          ),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: isFormulaCalc
+                                ? const Color(0xFFD0DCF0)
+                                : (widget.readOnly
+                                    ? AppColors.workspaceBorder
+                                    : (_isHovered ? const Color(0xFF34D399) : const Color(0xFFA7F3D0))),
+                            width: (isFormulaCalc || widget.readOnly) ? 1.0 : 1.5,
+                          ),
+                        ),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: BorderSide(
+                            color: isFormulaCalc
+                                ? AppColors.primaryBlue
+                                : const Color(0xFF10B981),
+                            width: 1.5,
+                          ),
+                        ),
+                        errorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: AppColors.workspaceErrorText, width: 1.0),
+                        ),
+                        focusedErrorBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(8),
+                          borderSide: const BorderSide(color: AppColors.workspaceErrorText, width: 1.5),
+                        ),
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
             ),
           ],
         ),
@@ -435,11 +461,11 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: hasValue ? AppColors.workspaceSegmentBg : Colors.white,
+        color: hasValue ? AppColors.workspaceSegmentBg : const Color(0xFFF0FDF4),
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: hasValue ? AppColors.workspaceCorporateNavy.withValues(alpha: 0.4) : AppColors.workspaceBorder,
-          width: 1.0,
+          color: hasValue ? AppColors.workspaceCorporateNavy.withValues(alpha: 0.4) : const Color(0xFFA7F3D0),
+          width: hasValue ? 1.0 : 1.5,
         ),
         boxShadow: AppShadows.subtleElevated,
       ),
@@ -480,12 +506,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                       children: [
                         Text(
                           widget.fieldVm.questionText,
-                          style: AppTypography.workspaceSectionTitle().copyWith(
-                            fontSize: 13,
-                            color: const Color(0xFF0F766E),
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 0.2,
-                          ),
+                          style: AppTypography.workspaceSectionTitle().copyWith(fontSize: 13),
                         ),
                         if (hasValue)
                           Container(
