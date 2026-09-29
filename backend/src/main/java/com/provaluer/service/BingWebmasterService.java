@@ -2,17 +2,14 @@ package com.provaluer.service;
 
 import com.provaluer.model.SeoCrawlError;
 import com.provaluer.model.SeoCredential;
-import com.provaluer.model.SeoPage;
 import com.provaluer.repository.SeoCrawlErrorRepository;
 import com.provaluer.repository.SeoCredentialRepository;
-import com.provaluer.repository.SeoPageRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -23,9 +20,6 @@ public class BingWebmasterService {
 
     @Autowired
     private SeoCredentialRepository credentialRepository;
-
-    @Autowired
-    private SeoPageRepository pageRepository;
 
     @Autowired
     private SeoCrawlErrorRepository crawlErrorRepository;
