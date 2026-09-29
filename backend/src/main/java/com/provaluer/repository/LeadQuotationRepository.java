@@ -11,4 +11,9 @@ import java.util.Optional;
 public interface LeadQuotationRepository extends JpaRepository<LeadQuotation, Long> {
     Optional<LeadQuotation> findByQuoteNumber(String quoteNumber);
     List<LeadQuotation> findByLeadIdOrderByCreatedAtDesc(Long leadId);
+
+    @org.springframework.data.jpa.repository.Query("SELECT COALESCE(SUM(q.totalFee), 0) FROM LeadQuotation q")
+    java.math.BigDecimal sumTotalFee();
+
+    long countByIsAcceptedTrue();
 }

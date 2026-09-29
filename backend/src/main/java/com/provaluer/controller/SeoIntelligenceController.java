@@ -39,6 +39,14 @@ public class SeoIntelligenceController {
     }
 
     /**
+     * Phase 4C: Verified Live Telemetry from PostgreSQL CRM & Third-party integrations
+     */
+    @GetMapping("/real-telemetry")
+    public ResponseEntity<com.provaluer.dto.CrmRealTelemetryDto> getRealTelemetry() {
+        return ResponseEntity.ok(seoIntelligenceService.getRealTelemetry());
+    }
+
+    /**
      * Trigger real-time synchronization
      */
     @PostMapping("/sync")

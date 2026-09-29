@@ -40,4 +40,11 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     long countByTemplateVersionId(Long templateVersionId);
 
     List<Order> findAllByTemplateId(Long templateId);
+
+    @Query("SELECT COALESCE(SUM(o.feeCharged), 0) FROM Order o WHERE o.isDeleted = false")
+    java.math.BigDecimal sumRealizedRevenue();
+
+    long countByIsDeletedFalse();
+
+    long countByIsDeletedFalseAndStatus(String status);
 }

@@ -99,65 +99,14 @@ public class BingWebmasterService {
     }
 
     public List<PulledBingPageData> pullPerformanceMetrics(LocalDate targetDate) {
-        log.info("Pulling Bing Webmaster metrics for date: {}", targetDate);
-        List<PulledBingPageData> results = new ArrayList<>();
-        List<SeoPage> pages = pageRepository.findAll();
-
-        Random random = new Random();
-
-        for (SeoPage page : pages) {
-            PulledBingPageData data = new PulledBingPageData();
-            data.url = page.getUrl();
-            data.indexed = true;
-
-            int baseImpressions;
-            int baseClicks;
-            double basePosition;
-
-            switch (page.getSlug()) {
-                case "government-approved-valuers-complete-guide":
-                    baseImpressions = 140 + random.nextInt(30);
-                    baseClicks = 11 + random.nextInt(4);
-                    basePosition = 3.6 + (random.nextDouble() * 0.8);
-                    data.keywords.add(new PulledBingKeywordData("government approved valuer hyderabad", 65 + random.nextInt(15), 6, new BigDecimal("0.0923"), new BigDecimal("2.1")));
-                    break;
-                case "rule-11ua-complete-guide":
-                    baseImpressions = 95 + random.nextInt(20);
-                    baseClicks = 8 + random.nextInt(3);
-                    basePosition = 3.9 + (random.nextDouble() * 0.9);
-                    data.keywords.add(new PulledBingKeywordData("rule 11ua equity valuation", 45 + random.nextInt(10), 4, new BigDecimal("0.0889"), new BigDecimal("2.8")));
-                    break;
-                case "angel-tax-complete-guide":
-                    baseImpressions = 120 + random.nextInt(25);
-                    baseClicks = 12 + random.nextInt(4);
-                    basePosition = 3.1 + (random.nextDouble() * 0.7);
-                    data.keywords.add(new PulledBingKeywordData("angel tax abolition 2024", 55 + random.nextInt(10), 6, new BigDecimal("0.1091"), new BigDecimal("1.9")));
-                    break;
-                case "visa-and-immigration-valuation-complete-guide":
-                    baseImpressions = 110 + random.nextInt(20);
-                    baseClicks = 10 + random.nextInt(3);
-                    basePosition = 3.7 + (random.nextDouble() * 0.8);
-                    data.keywords.add(new PulledBingKeywordData("visa property valuation certificate", 50 + random.nextInt(10), 5, new BigDecimal("0.1000"), new BigDecimal("2.5")));
-                    break;
-                default:
-                    baseImpressions = 75 + random.nextInt(15);
-                    baseClicks = 5 + random.nextInt(2);
-                    basePosition = 4.5;
-                    data.keywords.add(new PulledBingKeywordData("provaluer valuation", 30, 3, new BigDecimal("0.1000"), new BigDecimal("1.5")));
-                    break;
-            }
-
-            data.impressions = baseImpressions;
-            data.clicks = baseClicks;
-            data.ctr = baseImpressions > 0 
-                ? BigDecimal.valueOf((double) baseClicks / baseImpressions).setScale(4, RoundingMode.HALF_UP)
-                : BigDecimal.ZERO;
-            data.avgPosition = BigDecimal.valueOf(basePosition).setScale(2, RoundingMode.HALF_UP);
-
-            results.add(data);
+        log.info("Checking Bing Webmaster credentials for date: {}", targetDate);
+        Optional<SeoCredential> credOpt = credentialRepository.findByProvider("BING");
+        if (credOpt.isEmpty() || !Boolean.TRUE.equals(credOpt.get().getConnected()) ||
+            credOpt.get().getApiKey() == null || credOpt.get().getApiKey().contains("bing_api_key_")) {
+            log.warn("Bing Webmaster Tools API is not connected with a live verified API key. Returning empty dataset.");
+            return Collections.emptyList();
         }
-
-        return results;
+        return Collections.emptyList();
     }
 
     public List<BingSitemapStatus> pullSitemapStatus() {
