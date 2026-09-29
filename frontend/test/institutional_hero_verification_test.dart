@@ -30,25 +30,27 @@ void main() {
         findsOneWidget,
       );
 
-      // 2. Verify Top Trust Ribbon (All 4 proof points)
+      // 2. Verify Top Trust Ribbon (All 4 institutional proof points)
       expect(find.text('₹15,000+ Cr Valued'), findsOneWidget);
+      expect(find.text('PSU & Private Banks'), findsWidgets);
       expect(find.text('IBBI Registered Valuers'), findsOneWidget);
       expect(find.text('PAN India Coverage'), findsOneWidget);
 
       // 3. Verify Non-Duplicative Lower Regulatory Compliance Badges
-      expect(find.text('Companies Act Sec 247 & IBBI'), findsOneWidget);
+      expect(find.text('Government Approved Valuers'), findsOneWidget);
+      expect(find.text('IBBI Registered · Sec 247'), findsOneWidget);
       expect(find.text('Rule 11UA / Income Tax'), findsOneWidget);
-      expect(find.text('Empanelled with PSU & Private Banks'), findsOneWidget);
 
-      // 4. Verify Single-Line Valuation Expertise Header Tile
+      // 4. Verify Single-Line Valuation Expertise Header Tile & Executive Card
       expect(find.text('VALUATION EXPERTISE'), findsOneWidget);
+      expect(find.text('01 / 04'), findsOneWidget);
+      expect(find.text('BANKING'), findsOneWidget);
+      expect(find.text('Collateral & Security Valuation'), findsOneWidget);
+      expect(find.text('For PSU & Private Banks'), findsOneWidget);
 
-      // Pump forward to allow the cascading deck cards to drop and settle
-      await tester.pump(const Duration(milliseconds: 3000));
-
-      // 5. Verify Plant & Machinery Valuations & Lenders' Independent Engineer Services
-      expect(find.text('Plant & Machinery Valuations'), findsOneWidget);
-      expect(find.text("Lenders' Independent Engineer Services"), findsOneWidget);
+      // 5. Verify CTAs & Rotating Headline
+      expect(find.text('Request Valuation Report'), findsOneWidget);
+      expect(find.text('Banking Collaterals'), findsOneWidget);
     });
 
     final mobileWidths = [320.0, 360.0, 375.0, 390.0, 412.0, 430.0];
@@ -76,18 +78,17 @@ void main() {
 
         // Verify balanced 2-line ribbon items are rendered
         expect(find.text('₹15,000+ Cr Valued'), findsOneWidget);
+        expect(find.text('PSU & Private Banks'), findsWidgets);
         expect(find.text('IBBI Registered Valuers'), findsOneWidget);
         expect(find.text('PAN India Coverage'), findsOneWidget);
 
         // Verify Lower Regulatory Badges
-        expect(find.text('Companies Act Sec 247 & IBBI'), findsOneWidget);
+        expect(find.text('Government Approved Valuers'), findsOneWidget);
+        expect(find.text('IBBI Registered · Sec 247'), findsOneWidget);
         expect(find.text('Rule 11UA / Income Tax'), findsOneWidget);
-        // On mobile, compact PSU badge is rendered
-        expect(find.text('PSU & Private Banks'), findsNWidgets(2)); // Once in ribbon, once in lower badge
 
         // Verify CTAs are rendered
-        expect(find.text('Request Consultation'), findsOneWidget);
-        expect(find.text('+91 85000 19091'), findsOneWidget);
+        expect(find.text('Request Valuation Report'), findsOneWidget);
       });
     }
   });

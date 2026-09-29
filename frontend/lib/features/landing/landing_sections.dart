@@ -427,16 +427,15 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
     'assets/videos/hero_story/8.mp4',
   ];
 
-  // Trust-signal keyword pool — answers WHY TRUST PROVALUER, not what we value.
-  // Each keyword is independently comprehensible at T+0; breadth is shown by the right panel.
-  // 'Government Approved' leads (index 0) to front-load the most underemphasized credential.
+  // Institutional Mandate keywords — pairs dynamically with 'Independent Valuation'
+  // Answers WHAT high-stakes assets & proceedings ProValuer delivers across its practice areas.
   final List<String> _keywords = [
-    'Government Approved',
-    'IBBI Registered',
-    '₹15,000+ Cr Valued',
-    'Bank Empanelled',
-    'Court Compliant',
-    'PAN India Coverage',
+    'Banking Collaterals',
+    'Infrastructure Portfolios',
+    'Industrial Assets',
+    'Plant & Machinery',
+    'NCLT & IBC Matters',
+    'Distressed Assets',
   ];
 
   int _currentKeywordIndex = 0;
@@ -935,16 +934,18 @@ class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin
             color: LandingTheme.brandGreen,
           ),
           const SizedBox(width: 5),
-          Text(
-            'Government Approved Valuers',
-            style: GoogleFonts.montserrat(
-              fontSize: isCompact ? 11.0 : 12.5,
-              fontWeight: FontWeight.w700,
-              color: LandingTheme.brandGreen,
-              letterSpacing: -0.1,
+          Flexible(
+            child: Text(
+              'Government Approved Valuers',
+              style: GoogleFonts.montserrat(
+                fontSize: isCompact ? 11.0 : 12.5,
+                fontWeight: FontWeight.w700,
+                color: LandingTheme.brandGreen,
+                letterSpacing: -0.1,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
           ),
         ],
       ),
@@ -990,8 +991,8 @@ class _HeroTrustStrip extends StatelessWidget {
     );
 
     if (isNarrow) {
-      // Mobile trust strip — Tier 1 (volume) → Tier 2 (authority) → Tier 3 (credential) → Tier 4 (scope)
-      // PSU & Private Banks removed; it appears in the trust badge row below.
+      // Mobile trust strip — Tier 1 (Volume: ₹15k+ Cr) • Tier 2 (Banking: PSU & Private Banks)
+      // Tier 3 (Statutory: IBBI Registered Valuers) • Tier 4 (Reach: PAN India Coverage)
       return Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
@@ -1004,7 +1005,7 @@ class _HeroTrustStrip extends StatelessWidget {
               children: [
                 Text('₹15,000+ Cr Valued', style: strongStyle),
                 bullet,
-                Text('Govt. Approved', style: strongStyle),
+                Text('PSU & Private Banks', style: strongStyle),
               ],
             ),
           ),
@@ -1015,9 +1016,9 @@ class _HeroTrustStrip extends StatelessWidget {
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('IBBI Registered', style: itemStyle),
+                Text('IBBI Registered Valuers', style: itemStyle),
                 bullet,
-                Text('PAN India', style: itemStyle),
+                Text('PAN India Coverage', style: itemStyle),
               ],
             ),
           ),
@@ -1025,9 +1026,7 @@ class _HeroTrustStrip extends StatelessWidget {
       );
     }
 
-    // Desktop trust strip — Tier 1 → Tier 2 → Tier 3 → Tier 4.
-    // 'PSU & Private Banks' removed from strip; it was duplicated 3× across the hero.
-    // 'Govt. Approved Valuers' elevated to Tier 2, rendered in strongStyle (bold, dark).
+    // Desktop trust strip — Tier 1 (Volume) • Tier 2 (Banking) • Tier 3 (Statutory) • Tier 4 (Reach)
     return FittedBox(
       fit: BoxFit.scaleDown,
       alignment: Alignment.centerLeft,
@@ -1036,11 +1035,11 @@ class _HeroTrustStrip extends StatelessWidget {
         children: [
           Text('₹15,000+ Cr Valued', style: strongStyle),
           bullet,
-          Text('Govt. Approved Valuers', style: strongStyle),
+          Text('PSU & Private Banks', style: strongStyle),
           bullet,
-          Text('IBBI Registered', style: itemStyle),
+          Text('IBBI Registered Valuers', style: itemStyle),
           bullet,
-          Text('PAN India', style: itemStyle),
+          Text('PAN India Coverage', style: itemStyle),
         ],
       ),
     );
@@ -1310,7 +1309,7 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
             width: double.infinity,
             padding: EdgeInsets.symmetric(
               horizontal: isCompact ? 18 : 22,
-              vertical: isCompact ? 15 : 18,
+              vertical: isCompact ? 14 : 16.5,
             ),
             decoration: BoxDecoration(
               color: const Color(0xFFF8FAFC),
@@ -1396,7 +1395,7 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
                           ),
                         ),
 
-                        SizedBox(height: isCompact ? 10 : 12),
+                        SizedBox(height: isCompact ? 9 : 11),
 
                         // Tier 1: Practice Area (Large, Strong, Dominant)
                         Row(
@@ -1435,12 +1434,12 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
                         Container(
                           height: 1,
                           color: const Color(0xFFE2E8F0),
-                          margin: EdgeInsets.symmetric(vertical: isCompact ? 8 : 10),
+                          margin: EdgeInsets.symmetric(vertical: isCompact ? 7.5 : 8.5),
                         ),
 
-                        // Tier 2: Core Capability Statement (+15%-20% visual prominence)
+                        // Tier 2: Core Capability Statement (+10% prominence: 23.5px / 20.0px)
                         SizedBox(
-                          height: isCompact ? 48 : 54,
+                          height: isCompact ? 52 : 58,
                           child: Align(
                             alignment: Alignment.centerLeft,
                             child: FittedBox(
@@ -1449,10 +1448,10 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
                               child: Text(
                                 card.capability,
                                 style: GoogleFonts.montserrat(
-                                  fontSize: isCompact ? 18.5 : 21.5,
+                                  fontSize: isCompact ? 20.0 : 23.5,
                                   fontWeight: FontWeight.w800,
                                   color: const Color(0xFF0F172A),
-                                  letterSpacing: -0.3,
+                                  letterSpacing: -0.4,
                                   height: 1.25,
                                 ),
                                 maxLines: 2,
@@ -1462,7 +1461,7 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
                           ),
                         ),
 
-                        SizedBox(height: isCompact ? 8 : 10),
+                        SizedBox(height: isCompact ? 7.5 : 8.5),
 
                         // Tier 3: Client Type Supporting Line
                         Row(
@@ -1494,7 +1493,7 @@ class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
                   ),
                 ),
 
-                SizedBox(height: isCompact ? 12 : 14),
+                SizedBox(height: isCompact ? 11 : 12.5),
 
                 // ── PROGRESS RAIL (SUBTLE SECONDARY CUE, 2.0PX HEIGHT) ─────────────────
                 Row(
