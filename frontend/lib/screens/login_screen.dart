@@ -111,7 +111,19 @@ class _LoginScreenState extends State<LoginScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         if (!isDesktop) ...[
-                          AppComponents.logo(fontSize: 18),
+                          MouseRegion(
+                            cursor: SystemMouseCursors.click,
+                            child: GestureDetector(
+                              onTap: () {
+                                if (context.canPop()) {
+                                  context.pop();
+                                } else {
+                                  context.go('/');
+                                }
+                              },
+                              child: AppComponents.logo(fontSize: 18),
+                            ),
+                          ),
                           const SizedBox(height: AppSpacing.xxxl),
                         ],
 
@@ -318,8 +330,20 @@ class _LeftPanel extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Logo
-          AppComponents.logo(fontSize: 18, darkMode: true),
+          // Logo with escape hatch back to homepage
+          MouseRegion(
+            cursor: SystemMouseCursors.click,
+            child: GestureDetector(
+              onTap: () {
+                if (context.canPop()) {
+                  context.pop();
+                } else {
+                  context.go('/');
+                }
+              },
+              child: AppComponents.logo(fontSize: 18, darkMode: true),
+            ),
+          ),
 
           // Central editorial content
           Column(
