@@ -300,15 +300,15 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
         contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFA7F3D0), width: 1.5),
+          borderSide: const BorderSide(color: AppColors.placeholderBorder, width: 1.5),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFFA7F3D0), width: 1.5),
+          borderSide: const BorderSide(color: AppColors.placeholderBorder, width: 1.5),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(8),
-          borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5),
+          borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
         ),
         // No hintText — <<TEXT>> must render a completely blank text input area.
       ),
@@ -366,18 +366,18 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
                     ? Colors.transparent
                     : (isFocused
                         ? Colors.white
-                        : (isHovered ? const Color(0xFFF6FFF9) : const Color(0xFFF0FDF4))),
+                        : (isHovered ? AppColors.surfaceSoft : Colors.white)),
                 borderRadius: BorderRadius.circular(8),
                 border: Border.all(
                   color: isFocused
-                      ? const Color(0xFF10B981)
-                      : (isHovered ? const Color(0xFF34D399) : const Color(0xFFA7F3D0)),
+                      ? AppColors.primaryBlue
+                      : (isHovered ? AppColors.slate : AppColors.placeholderBorder),
                   width: 1.5,
                 ),
                 boxShadow: isFocused
                     ? const [
                         BoxShadow(
-                          color: Color(0x1F10B981), // 3px rgba(16,185,129,0.12)
+                          color: AppColors.focusHalo,
                           blurRadius: 3,
                           spreadRadius: 2,
                         ),
@@ -399,7 +399,7 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
         child: Row(
           children: [
-            const Icon(Icons.apartment_rounded, size: 14, color: Color(0xFF3494BA)),
+            const Icon(Icons.apartment_rounded, size: 14, color: AppColors.primaryBlue),
             const SizedBox(width: 6),
             Expanded(
               child: Text(
@@ -407,7 +407,7 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
                 style: GoogleFonts.inter(
                   fontSize: 10,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF3494BA),
+                  color: AppColors.primaryBlue,
                 ),
                 overflow: TextOverflow.ellipsis,
               ),
@@ -416,12 +416,12 @@ class _InlineOverlayInputWidgetState extends State<InlineOverlayInputWidget> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF3494BA).withValues(alpha: 0.1),
+                  color: AppColors.primaryBlueLight,
                   borderRadius: BorderRadius.circular(3),
                 ),
                 child: const Text(
                   'Open',
-                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF3494BA)),
+                  style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.primaryBlue),
                 ),
               ),
           ],

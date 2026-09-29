@@ -222,14 +222,14 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                     decoration: BoxDecoration(
-                      color: _isLocked ? AppColors.brandRedDark.withValues(alpha: 0.1) : AppColors.tealLight,
+                      color: _isLocked ? AppColors.brandRed : AppColors.surfaceSoft,
                       borderRadius: BorderRadius.circular(6),
                     ),
                     child: Row(
                       children: [
-                        Icon(_isLocked ? Icons.lock_rounded : Icons.lock_open_rounded, size: 14, color: _isLocked ? AppColors.brandRedDark : AppColors.deepTeal),
+                        Icon(_isLocked ? Icons.lock_rounded : Icons.lock_open_rounded, size: 14, color: _isLocked ? AppColors.brandRedDark : AppColors.ink),
                         const SizedBox(width: 6),
-                        Text(_isLocked ? 'STATUS: LOCKED' : 'STATUS: ${_data?.valuationStatus ?? 'DRAFT'} (v${_data?.currentVersion ?? 1})', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _isLocked ? AppColors.brandRedDark : AppColors.deepTeal)),
+                        Text(_isLocked ? 'STATUS: LOCKED' : 'STATUS: ${_data?.valuationStatus ?? 'DRAFT'} (v${_data?.currentVersion ?? 1})', style: TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: _isLocked ? AppColors.brandRedDark : AppColors.ink)),
                       ],
                     ),
                   ),
@@ -823,7 +823,7 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: const BoxDecoration(
-                      color: Color(0xFF3494BA),
+                      color: AppColors.brandNavy,
                       borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
                     ),
                     child: Row(
@@ -908,7 +908,7 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: const BoxDecoration(
-                      color: Color(0xFF3494BA),
+                      color: AppColors.brandNavy,
                       borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
                     ),
                     child: Row(
@@ -1035,7 +1035,7 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: const BoxDecoration(
-                      color: Color(0xFF3494BA),
+                      color: AppColors.brandNavy,
                       borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
                     ),
                     child: Row(
@@ -1139,7 +1139,7 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
   Widget _buildSummaryTableRow(String param, String land, String bldg, String total, {bool isHighlight = false}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      color: isHighlight ? AppColors.tealLight.withValues(alpha: 0.3) : Colors.transparent,
+      color: isHighlight ? AppColors.surfaceSoft : Colors.transparent,
       child: Row(
         children: [
           Expanded(flex: 3, child: Text(param, style: TextStyle(fontWeight: isHighlight ? FontWeight.bold : FontWeight.w500, fontSize: 12, color: isHighlight ? AppColors.primary : AppColors.ink))),
@@ -1154,7 +1154,7 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
   Widget _buildSummaryTableRow2Col(String param, String amount, {bool isHighlight = false}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      color: isHighlight ? AppColors.tealLight.withValues(alpha: 0.3) : Colors.transparent,
+      color: isHighlight ? AppColors.surfaceSoft : Colors.transparent,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

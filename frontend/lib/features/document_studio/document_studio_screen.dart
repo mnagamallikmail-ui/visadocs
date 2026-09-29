@@ -190,14 +190,14 @@ class _DocumentStudioScreenState extends State<DocumentStudioScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.tealLight,
+              color: AppColors.surfaceSoft,
               borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.2)),
+              border: Border.all(color: AppColors.hairline),
             ),
             child: Row(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const Icon(Icons.auto_stories_outlined, color: AppColors.deepTeal, size: 16),
+                const Icon(Icons.auto_stories_outlined, color: AppColors.brandNavy, size: 16),
                 const SizedBox(width: 6),
                 Text(
                   'Document Studio',
@@ -481,15 +481,15 @@ class _DocumentStudioScreenState extends State<DocumentStudioScreen> {
                     label: Text(filter),
                     selected: isSel,
                     onSelected: (_) => setState(() => _activeTypeFilter = filter),
-                    selectedColor: AppColors.tealLight,
-                    checkmarkColor: AppColors.deepTeal,
+                    selectedColor: AppColors.primaryBlueLight,
+                    checkmarkColor: AppColors.primaryBlue,
                     labelStyle: TextStyle(
                       fontSize: 11,
                       fontWeight: isSel ? FontWeight.w700 : FontWeight.w500,
-                      color: isSel ? AppColors.deepTeal : AppColors.slate,
+                      color: isSel ? AppColors.primaryBlue : AppColors.slate,
                     ),
                     side: BorderSide(
-                      color: isSel ? AppColors.deepTeal : AppColors.hairline,
+                      color: isSel ? AppColors.primaryBlue : AppColors.hairline,
                     ),
                   ),
                 );
@@ -527,10 +527,10 @@ class _DocumentStudioScreenState extends State<DocumentStudioScreen> {
                           duration: const Duration(milliseconds: 150),
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: isSelected ? AppColors.tealLight : AppColors.surfaceSoft,
+                            color: isSelected ? AppColors.primaryBlueLight : AppColors.surfaceSoft,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: isSelected ? AppColors.deepTeal : AppColors.hairlineSoft,
+                              color: isSelected ? AppColors.primaryBlue : AppColors.hairlineSoft,
                               width: isSelected ? 1.5 : 1.0,
                             ),
                           ),
@@ -554,13 +554,13 @@ class _DocumentStudioScreenState extends State<DocumentStudioScreen> {
                                     Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
                                       decoration: BoxDecoration(
-                                        color: AppColors.tealLight,
+                                        color: AppColors.primaryBlueLight,
                                         borderRadius: BorderRadius.circular(4),
-                                        border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.3)),
+                                        border: Border.all(color: AppColors.hairline),
                                       ),
                                       child: Text(
                                         'Custom',
-                                        style: AppTypography.caption(color: AppColors.deepTeal).copyWith(
+                                        style: AppTypography.caption(color: AppColors.primaryBlue).copyWith(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w700,
                                         ),

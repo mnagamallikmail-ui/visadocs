@@ -363,7 +363,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Icon(Icons.warning_amber_rounded, color: Colors.orange, size: 32),
+                            const Icon(Icons.warning_amber_rounded, color: AppColors.warning, size: 32),
                             const SizedBox(height: 8),
                             Text(
                               "No active templates available.",
@@ -1147,10 +1147,10 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                                 decoration: BoxDecoration(
-                                  color: revNum == 0 ? Colors.blue.shade50 : AppColors.deepTeal.withOpacity(0.12),
+                                  color: revNum == 0 ? AppColors.primaryBlueLight : AppColors.surfaceSoft,
                                   borderRadius: BorderRadius.circular(6),
                                   border: Border.all(
-                                    color: revNum == 0 ? Colors.blue.shade300 : AppColors.deepTeal.withOpacity(0.4),
+                                    color: revNum == 0 ? AppColors.hairline : AppColors.hairlineSoft,
                                   ),
                                 ),
                                 child: Text(
@@ -1158,7 +1158,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                                   style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 11,
-                                    color: revNum == 0 ? Colors.blue.shade800 : AppColors.deepTeal,
+                                    color: revNum == 0 ? AppColors.primaryBlue : AppColors.brandNavy,
                                   ),
                                 ),
                               ),
@@ -1373,15 +1373,15 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                       width: 36,
                       height: 36,
                       decoration: BoxDecoration(
-                        color: AppColors.tealLight,
+                        color: AppColors.surfaceSoft,
                         borderRadius: AppRadius.brMd,
-                        border: Border.all(color: AppColors.deepTeal.withOpacity(0.2)),
+                        border: Border.all(color: AppColors.hairline),
                       ),
                       child: Center(
                         child: Text(
                           widget.fullName.isEmpty ? '?' : widget.fullName[0].toUpperCase(),
                           style: AppTypography.bodyMdMedium(
-                            color: AppColors.deepTeal,
+                            color: AppColors.brandNavy,
                           ),
                         ),
                       ),
@@ -2548,7 +2548,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                   Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: isUploaded ? const Color(0xFFDCFCE7) : DesignSystem.backgroundSecondary,
+                      color: isUploaded ? AppColors.successBg : DesignSystem.backgroundSecondary,
                       shape: BoxShape.circle,
                     ),
                     child: Icon(
@@ -2594,7 +2594,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                         : () => _pickFile(category),
                     style: TextButton.styleFrom(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      backgroundColor: isUploaded ? const Color(0xFFFEE2E2) : DesignSystem.backgroundSecondary,
+                      backgroundColor: isUploaded ? AppColors.brandRed : DesignSystem.backgroundSecondary,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                     ),
                     child: Text(
@@ -3017,14 +3017,14 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                                         child: Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                           decoration: BoxDecoration(
-                                            color: AppColors.tealLight,
+                                            color: AppColors.surfaceSoft,
                                             borderRadius: BorderRadius.circular(4),
-                                            border: Border.all(color: AppColors.deepTeal.withOpacity(0.3)),
+                                            border: Border.all(color: AppColors.hairline),
                                           ),
                                           child: Row(
                                             mainAxisSize: MainAxisSize.min,
                                             children: [
-                                              const Icon(Icons.open_in_new_rounded, size: 12, color: AppColors.deepTeal),
+                                              const Icon(Icons.open_in_new_rounded, size: 12, color: AppColors.brandNavy),
                                               const SizedBox(width: 4),
                                               Text(
                                                 'Open',
@@ -3529,7 +3529,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
             const SizedBox(height: 10),
             Text(
               "REOPEN / OVERRIDE CONTROLS",
-              style: GoogleFonts.montserrat(color: Colors.orange.shade700, fontSize: 10, fontWeight: FontWeight.bold),
+              style: GoogleFonts.montserrat(color: AppColors.warning, fontSize: 10, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
             SizedBox(
@@ -3543,14 +3543,14 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                     _refreshData();
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(
-                        backgroundColor: Colors.orange,
+                        backgroundColor: AppColors.warning,
                         content: Text("Report reverted to SPA Review Queue."),
                       ),
                     );
                   }
                 },
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.orange.shade700,
+                  backgroundColor: AppColors.warning,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
                 ),
                 label: const Text(
@@ -3765,20 +3765,20 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
               style: DesignSystem.body(fontSize: 13),
               decoration: InputDecoration(
                 filled: true,
-                fillColor: const Color(0xFFF0FDF4),
+                fillColor: Colors.white,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 suffixIcon: const Icon(Icons.calendar_today_outlined, size: 16, color: DesignSystem.primary),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFFA7F3D0), width: 1.5),
+                  borderSide: const BorderSide(color: AppColors.placeholderBorder, width: 1.5),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFFA7F3D0), width: 1.5),
+                  borderSide: const BorderSide(color: AppColors.placeholderBorder, width: 1.5),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5),
+                  borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
                 ),
               ),
               onTap: () async {
@@ -3804,19 +3804,19 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
               maxLines: null,
               decoration: InputDecoration(
                 filled: true,
-                fillColor: const Color(0xFFF0FDF4),
+                fillColor: Colors.white,
                 contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFFA7F3D0), width: 1.5),
+                  borderSide: const BorderSide(color: AppColors.placeholderBorder, width: 1.5),
                 ),
                 enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFFA7F3D0), width: 1.5),
+                  borderSide: const BorderSide(color: AppColors.placeholderBorder, width: 1.5),
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(8),
-                  borderSide: const BorderSide(color: Color(0xFF10B981), width: 1.5),
+                  borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5),
                 ),
               ),
               onChanged: (val) {
@@ -4088,36 +4088,36 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
   Color _getStatusBgColor(String status) {
     switch (status) {
       case "FINAL_DELIVERY":
-        return DesignSystem.successBg;
+        return AppColors.successBg;
       case "ASSIGNED":
-        return DesignSystem.warningBg;
+        return AppColors.warningBg;
       case "SPA_GATE":
-        return const Color(0xFFF3E8FF); // light purple
+        return AppColors.primaryBlueLight;
       case "SPA_CONFIRMED":
-        return const Color(0xFFDBEAFE); // light blue
+        return AppColors.primaryBlueLight;
       case "PAID_INTAKE":
-        return const Color(0xFFFFEDD5); // light orange
+        return AppColors.surfaceSoft;
       case "DRAFT":
       default:
-        return DesignSystem.structural;
+        return AppColors.surfaceSoft;
     }
   }
 
   Color _getStatusTextColor(String status) {
     switch (status) {
       case "FINAL_DELIVERY":
-        return DesignSystem.success;
+        return AppColors.successAccent;
       case "ASSIGNED":
-        return DesignSystem.warning;
+        return AppColors.warning;
       case "SPA_GATE":
-        return const Color(0xFF7E3AF2); // purple
+        return AppColors.primaryBlue;
       case "SPA_CONFIRMED":
-        return const Color(0xFF2563EB); // blue
+        return AppColors.primaryBlue;
       case "PAID_INTAKE":
-        return const Color(0xFFEA580C); // orange
+        return AppColors.slate;
       case "DRAFT":
       default:
-        return DesignSystem.textSecondary;
+        return AppColors.slate;
     }
   }
 } // End of _ValuationPortalWidgetState

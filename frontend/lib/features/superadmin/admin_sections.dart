@@ -243,12 +243,12 @@ class _AdminOverviewSectionState extends State<AdminOverviewSection> {
                             if (activeJobs > 0)
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(color: AppColors.tealLight, borderRadius: BorderRadius.circular(12)),
+                                decoration: BoxDecoration(color: AppColors.surfaceSoft, borderRadius: BorderRadius.circular(12)),
                                 child: Row(
                                   children: [
                                     const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 2)),
                                     const SizedBox(width: 6),
-                                    Text('$activeJobs DOCX processing job${activeJobs > 1 ? "s" : ""} active', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.deepTeal)),
+                                    Text('$activeJobs DOCX processing job${activeJobs > 1 ? "s" : ""} active', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.ink)),
                                   ],
                                 ),
                               )
@@ -1411,14 +1411,14 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                         Container(
                           padding: const EdgeInsets.all(10),
                           decoration: BoxDecoration(
-                            color: AppColors.tealLight.withValues(alpha: 0.5),
+                            color: AppColors.surfaceSoft,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.3)),
+                            border: Border.all(color: AppColors.hairline),
                           ),
                           child: Row(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              const Icon(Icons.verified_user_outlined, size: 18, color: AppColors.deepTeal),
+                              const Icon(Icons.verified_user_outlined, size: 18, color: AppColors.brandNavy),
                               const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
@@ -1539,9 +1539,9 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
-                    color: isSafe ? AppColors.tealLight.withValues(alpha: 0.5) : AppColors.errorBg,
+                    color: isSafe ? AppColors.successBg : AppColors.brandRed,
                     borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: isSafe ? AppColors.deepTeal.withValues(alpha: 0.3) : AppColors.brandRedDark.withValues(alpha: 0.3)),
+                    border: Border.all(color: isSafe ? AppColors.successBorder : AppColors.errorBorder),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1549,10 +1549,10 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                       Row(
                         children: [
                           Icon(isSafe ? Icons.check_circle_outline : Icons.warning_amber_rounded,
-                              size: 18, color: isSafe ? AppColors.deepTeal : AppColors.brandRedDark),
+                              size: 18, color: isSafe ? AppColors.successAccent : AppColors.brandRedDark),
                           const SizedBox(width: 6),
                           Text(isSafe ? 'Publish Safe – No Breaking Removals' : 'Caution: Breaking Changes Detected',
-                              style: AppTypography.bodySm().copyWith(fontWeight: FontWeight.bold, color: isSafe ? AppColors.deepTeal : AppColors.brandRedDark)),
+                              style: AppTypography.bodySm().copyWith(fontWeight: FontWeight.bold, color: isSafe ? AppColors.successAccent : AppColors.brandRedDark)),
                         ],
                       ),
                       if (warning != null && warning.isNotEmpty) ...[
@@ -1780,7 +1780,7 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                       _lastUploadedTemplateId = newTemplateId;
                     }
                     ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
-                      backgroundColor: AppColors.tealDark,
+                      backgroundColor: AppColors.brandNavy,
                       content: Text('DOCX uploaded! Parsing document structure and DOM in background...'),
                     ));
                   }
@@ -2567,10 +2567,10 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                               leading: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: isCurrent ? AppColors.tealLight : AppColors.surfaceSoft,
+                                  color: isCurrent ? AppColors.surfaceSoft : AppColors.canvas,
                                   borderRadius: BorderRadius.circular(6),
                                 ),
-                                child: Text('v${v['version']}', style: TextStyle(fontWeight: FontWeight.bold, color: isCurrent ? AppColors.deepTeal : AppColors.slate)),
+                                child: Text('v${v['version']}', style: TextStyle(fontWeight: FontWeight.bold, color: isCurrent ? AppColors.brandNavy : AppColors.slate)),
                               ),
                               title: Text(v['changeSummary'] ?? 'Version Snapshot', style: AppTypography.bodySm().copyWith(fontWeight: FontWeight.w600)),
                               subtitle: Text('Created: ${v['createdAt'] ?? '—'}', style: AppTypography.caption(color: AppColors.slate)),
@@ -2622,13 +2622,13 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
     if (status == 'PENDING' || status == 'PARSING') {
       return Container(
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-        decoration: BoxDecoration(color: AppColors.tealLight, borderRadius: BorderRadius.circular(12)),
+        decoration: BoxDecoration(color: AppColors.surfaceSoft, borderRadius: BorderRadius.circular(12)),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             const SizedBox(width: 10, height: 10, child: CircularProgressIndicator(strokeWidth: 2)),
             const SizedBox(width: 6),
-            Text(status == 'PARSING' ? 'PARSING DOM...' : 'PENDING...', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.deepTeal)),
+            Text(status == 'PARSING' ? 'PARSING DOM...' : 'PENDING...', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.brandNavy)),
           ],
         ),
       );
@@ -2817,10 +2817,10 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                     decoration: BoxDecoration(
-                                      color: AppColors.tealLight.withValues(alpha: 0.6),
+                                      color: AppColors.surfaceSoft,
                                       borderRadius: BorderRadius.circular(4),
                                     ),
-                                    child: Text('${t['code']}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.deepTeal)),
+                                    child: Text('${t['code']}', style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.brandNavy)),
                                   ),
                                 ],
                               ],
@@ -2866,10 +2866,10 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
                                 );
                               },
                               style: ElevatedButton.styleFrom(
-                                backgroundColor: AppColors.tealLight,
-                                foregroundColor: AppColors.deepTeal,
+                                backgroundColor: AppColors.primaryBlueLight,
+                                foregroundColor: AppColors.primaryBlue,
                                 elevation: 0,
-                                side: BorderSide(color: AppColors.deepTeal.withValues(alpha: 0.3)),
+                                side: const BorderSide(color: AppColors.hairline),
                               ),
                             ),
                           const SizedBox(width: 8),
@@ -3704,10 +3704,10 @@ class _AdminBuildingTypesSectionState extends State<AdminBuildingTypesSection> {
                           Container(
                             padding: const EdgeInsets.all(10),
                             decoration: BoxDecoration(
-                              color: AppColors.tealLight,
+                              color: AppColors.surfaceSoft,
                               borderRadius: BorderRadius.circular(8),
                             ),
-                            child: const Icon(Icons.apartment_rounded, color: AppColors.deepTeal, size: 24),
+                            child: const Icon(Icons.apartment_rounded, color: AppColors.brandNavy, size: 24),
                           ),
                           const SizedBox(width: 16),
                           Expanded(
@@ -4455,7 +4455,7 @@ class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
               const SizedBox(width: 12),
               Expanded(
                 flex: 2,
-                child: _buildInspectionBadge('Deleted / Deprecated ($status)', Colors.amber.shade800),
+                child: _buildInspectionBadge('Deleted / Deprecated ($status)', AppColors.warning),
               ),
               const SizedBox(width: 12),
               const SizedBox(

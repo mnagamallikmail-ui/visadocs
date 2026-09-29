@@ -1239,7 +1239,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           Container(
             padding: const EdgeInsets.all(16),
             decoration: const BoxDecoration(
-              color: Color(0xFFF7FAFB),
+              color: AppColors.surfaceSoft,
               border: Border(bottom: BorderSide(color: AppColors.hairlineSoft)),
             ),
             child: Column(
@@ -1247,7 +1247,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
               children: [
                 Text(
                   'VALUATION CONTROLS & OVERRIDES',
-                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.deepTeal, letterSpacing: 0.5),
+                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.brandNavy, letterSpacing: 0.5),
                 ),
                 const SizedBox(height: 12),
                 Row(
@@ -1379,7 +1379,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                     decoration: const BoxDecoration(
-                      color: Color(0xFF3494BA),
+                      color: AppColors.brandNavy,
                       borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
                     ),
                     child: Row(
@@ -1571,7 +1571,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: const BoxDecoration(
-              color: Color(0xFF1A3B5C),
+              color: AppColors.brandNavy,
               borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
             ),
             child: Row(
@@ -1607,7 +1607,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
               return Container(
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 decoration: const BoxDecoration(
-                  color: Color(0xFFFBFDFF),
+                  color: Colors.white,
                   border: Border(bottom: BorderSide(color: AppColors.hairlineSoft)),
                 ),
                 child: Column(
@@ -1708,7 +1708,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                             provider.getValue('MAIN_UNIT_DEPRECIATION').isNotEmpty
                                 ? '₹ ${provider.getValue('MAIN_UNIT_DEPRECIATION')}'
                                 : '₹ ${IndianNumberFormatter.format(item.depreciationAmount)}',
-                            style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFFD46B08)),
+                            style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.slate),
                             textAlign: TextAlign.right,
                           ),
                         ),
@@ -1720,7 +1720,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                             provider.getValue('MAIN_UNIT_FAIR_VALUE').isNotEmpty
                                 ? '₹ ${provider.getValue('MAIN_UNIT_FAIR_VALUE')}'
                                 : '₹ ${IndianNumberFormatter.format(item.fairValue)}',
-                            style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF096DD9)),
+                            style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.ink),
                             textAlign: TextAlign.right,
                           ),
                         ),
@@ -1728,7 +1728,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                         const SizedBox(
                           width: 45,
                           child: Center(
-                            child: Icon(Icons.verified, size: 18, color: Color(0xFF3494BA)),
+                            child: Icon(Icons.verified, size: 18, color: AppColors.primaryBlue),
                           ),
                         ),
                       ],
@@ -1739,23 +1739,23 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                       margin: const EdgeInsets.only(top: 8, bottom: 4),
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF4F9FD),
+                        color: AppColors.surfaceSoft,
                         borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFF3494BA).withValues(alpha: 0.2)),
+                        border: Border.all(color: AppColors.hairline),
                       ),
                       child: Row(
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.calculate_outlined, size: 14, color: Color(0xFF3494BA)),
+                              const Icon(Icons.calculate_outlined, size: 14, color: AppColors.slate),
                               const SizedBox(width: 4),
                               Text(
                                 'Depreciation Drivers: ',
-                                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF3494BA)),
+                                style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.ink),
                               ),
                               Text(
                                 '<<SALEABLE_AREA>> × Cost × (Age/Life) × 90%',
-                                style: GoogleFonts.firaCode(fontSize: 10, color: Colors.grey[700]),
+                                style: GoogleFonts.firaCode(fontSize: 10, color: AppColors.slate),
                               ),
                             ],
                           ),
@@ -1948,7 +1948,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                       width: 45,
                       child: !isReadOnly
                           ? IconButton(
-                              icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                              icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.brandRedDark),
                               onPressed: () {
                                 final origIdx = provider.compositeItems.indexOf(item);
                                 if (origIdx > 0) {
@@ -2096,7 +2096,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                       width: 45,
                       child: !isReadOnly
                           ? IconButton(
-                              icon: const Icon(Icons.delete_outline, size: 18, color: Colors.red),
+                              icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.brandRedDark),
                               onPressed: () {
                                 final origIdx = provider.compositeItems.indexOf(item);
                                 if (origIdx > 0) {
@@ -2116,14 +2116,14 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           if (!isReadOnly)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              color: const Color(0xFFF9FBFC),
+              color: AppColors.canvas,
               child: Row(
                 children: [
                   ElevatedButton.icon(
                     icon: const Icon(Icons.add, size: 14),
                     label: const Text('+ Add Interior Row', style: TextStyle(fontSize: 12)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF3494BA),
+                      backgroundColor: AppColors.primaryBlue,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
@@ -2134,7 +2134,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                     icon: const Icon(Icons.directions_car_outlined, size: 14),
                     label: const Text('+ Add Parking Row', style: TextStyle(fontSize: 12)),
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF1A3B5C),
+                      backgroundColor: AppColors.brandNavy,
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
@@ -2148,7 +2148,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: const BoxDecoration(
-              color: Color(0xFFF3F9FA),
+              color: AppColors.surfaceSoft,
               border: Border(top: BorderSide(color: AppColors.hairlineSoft, width: 1.5)),
             ),
             child: Row(
@@ -2158,7 +2158,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                   flex: 3,
                   child: Text(
                     'TOTAL VALUATION',
-                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A3B5C)),
+                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.brandNavy),
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -2185,7 +2185,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                     provider.getValue('TOTAL_DEPRECIATION').isNotEmpty
                         ? '₹ ${provider.getValue('TOTAL_DEPRECIATION')}'
                         : '₹ ${IndianNumberFormatter.format(data.totalDepreciation)}',
-                    style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFFD46B08)),
+                    style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.slate),
                     textAlign: TextAlign.right,
                   ),
                 ),
@@ -2196,7 +2196,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                     provider.getValue('TOTAL_FAIR_VALUE').isNotEmpty
                         ? '₹ ${provider.getValue('TOTAL_FAIR_VALUE')}'
                         : '₹ ${IndianNumberFormatter.format(data.totalFairValue)}',
-                    style: GoogleFonts.firaCode(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF3494BA)),
+                    style: GoogleFonts.firaCode(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.ink),
                     textAlign: TextAlign.right,
                   ),
                 ),
@@ -2229,11 +2229,11 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE6F7FF),
+                            color: AppColors.surfaceSoft,
                             borderRadius: BorderRadius.circular(4),
-                            border: Border.all(color: const Color(0xFF91D5FF)),
+                            border: Border.all(color: AppColors.hairline),
                           ),
-                          child: const Text('<<SAY_VALUE>>', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF096DD9))),
+                          child: const Text('<<SAY_VALUE>>', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.primaryBlue)),
                         ),
                       ],
                     ),
@@ -2267,9 +2267,9 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9FBFC),
+        color: AppColors.canvas,
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF3494BA).withValues(alpha: 0.3)),
+        border: Border.all(color: AppColors.hairline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -2278,7 +2278,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: BoxDecoration(
-              color: const Color(0xFF3494BA).withValues(alpha: 0.1),
+              color: AppColors.surfaceSoft,
               borderRadius: const BorderRadius.vertical(top: Radius.circular(7)),
             ),
             child: Wrap(
@@ -2292,19 +2292,19 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                   spacing: 8,
                   runSpacing: 4,
                   children: [
-                    const Icon(Icons.verified_rounded, color: Color(0xFF3494BA), size: 20),
+                    const Icon(Icons.verified_rounded, color: AppColors.primaryBlue, size: 20),
                     Text(
                       'VALUATION PARAMETERS SUMMARY',
-                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFF3494BA), letterSpacing: 0.5),
+                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.brandNavy, letterSpacing: 0.5),
                     ),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: const Color(0xFF3494BA).withValues(alpha: 0.3)),
+                        border: Border.all(color: AppColors.hairline),
                       ),
-                      child: Text('<<VALUATION_SUMMARY_TABLE>>', style: GoogleFonts.montserrat(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF3494BA))),
+                      child: Text('<<VALUATION_SUMMARY_TABLE>>', style: GoogleFonts.montserrat(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.primaryBlue)),
                     ),
                   ],
                 ),
@@ -2313,9 +2313,9 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(4),
-                    border: Border.all(color: const Color(0xFF3494BA).withValues(alpha: 0.3)),
+                    border: Border.all(color: AppColors.hairline),
                   ),
-                  child: const Text('Consumes Say Value as Fair Value', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: Color(0xFF3494BA))),
+                  child: const Text('Consumes Say Value as Fair Value', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w600, color: AppColors.brandNavy)),
                 ),
               ],
             ),
@@ -2403,7 +2403,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     decoration: const BoxDecoration(
-                      color: Color(0xFF3494BA),
+                      color: AppColors.brandNavy,
                       borderRadius: BorderRadius.vertical(top: Radius.circular(5)),
                     ),
                     child: Row(
@@ -2446,7 +2446,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 const SizedBox(height: 2),
                 Text(
                   IndianCurrencyToWords.convertToWords(sayFairVal),
-                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF3494BA)),
+                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.ink),
                 ),
               ],
             ),
@@ -2459,7 +2459,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
   Widget _buildCompositeSummaryRow(String label, String amount, {bool isHighlight = false}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      color: isHighlight ? const Color(0xFFF3F9FA) : Colors.white,
+      color: isHighlight ? AppColors.surfaceSoft : Colors.white,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -2469,7 +2469,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
               style: TextStyle(
                 fontWeight: isHighlight ? FontWeight.bold : FontWeight.w500,
                 fontSize: 12,
-                color: isHighlight ? const Color(0xFF3494BA) : AppColors.ink,
+                color: isHighlight ? AppColors.brandNavy : AppColors.ink,
               ),
             ),
           ),
@@ -2479,7 +2479,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             style: GoogleFonts.firaCode(
               fontSize: 13,
               fontWeight: FontWeight.bold,
-              color: isHighlight ? const Color(0xFF3494BA) : AppColors.ink,
+              color: isHighlight ? AppColors.brandNavy : AppColors.ink,
             ),
           ),
         ],
@@ -2490,7 +2490,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
   Widget _buildInlineSummaryTableRow(String label, String land, String bldg, String total, {bool isHighlight = false}) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      color: isHighlight ? const Color(0xFFF3F9FA) : Colors.white,
+      color: isHighlight ? AppColors.surfaceSoft : Colors.white,
       child: Row(
         children: [
           Expanded(

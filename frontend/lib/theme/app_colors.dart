@@ -6,119 +6,94 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  // ── Primary Backgrounds ──────────────────────────────────────────────────
-  /// Main page canvas — neutral cool slate #F8FAFC
-  static const Color canvas       = Color(0xFFF8FAFC);
-  /// Soft alt background — cool slate-100 #F1F5F9
-  static const Color surfaceSoft  = Color(0xFFF1F5F9);
-  /// Card background — pure white #FFFFFF
-  static const Color cardBg       = Color(0xFFFFFFFF);
-  /// Pure white surface (dialogs, dropdowns)
-  static const Color surface      = Color(0xFFFFFFFF);
+  // ── Enterprise Primary Brand & Shell (#0F172A) ────────────────────────────
+  /// Primary Brand Navy — top navigation, headings, structural anchors #0F172A
+  static const Color brandNavy        = Color(0xFF0F172A);
+  static const Color brandNavyLight   = Color(0xFF1E293B);
 
-  // ── Borders ──────────────────────────────────────────────────────────────
-  /// Default borders — clean neutral slate-200 #E2E8F0
-  static const Color hairline       = Color(0xFFE2E8F0);
-  /// Soft inner dividers — #F1F5F9
-  static const Color hairlineSoft   = Color(0xFFF1F5F9);
-  /// Stronger borders for inputs — defined slate-300 #CBD5E1
-  static const Color hairlineStrong = Color(0xFFCBD5E1);
-
-  // ── Text ─────────────────────────────────────────────────────────────────
-  /// Primary — high contrast near black / slate-900 #0F172A
-  static const Color ink            = Color(0xFF0F172A);
-  /// Secondary — readable slate #64748B
-  static const Color textSecondary  = Color(0xFF64748B);
-  /// Muted — medium gray #6B7280
-  static const Color textMuted      = Color(0xFF64748B);
-  /// Slate — medium grey for captions/labels
-  static const Color slate          = Color(0xFF64748B);
-  /// Steel — lighter muted text #94A3B8
-  static const Color steel          = Color(0xFF94A3B8);
-  /// Stone — disabled / hint text #94A3B8
-  static const Color stone          = Color(0xFF94A3B8);
-  /// On dark — white for dark backgrounds
-  static const Color onDark         = Color(0xFFFFFFFF);
-  /// Muted on dark
-  static const Color onDarkMuted    = Color(0xFF94A3B8);
-
-  // ── Document Workspace Design System (Approved Modernization Directive) ──
-  static const Color workspaceCanvas           = Color(0xFFF8FAFC);
-  static const Color workspacePanel            = Color(0xFFFFFFFF);
-  static const Color workspacePrimaryText      = Color(0xFF0F172A);
-  static const Color workspaceSecondaryText    = Color(0xFF64748B);
-  static const Color workspaceBorder           = Color(0xFFE2E8F0);
-  static const Color workspaceSegmentBg        = Color(0xFFF1F5F9);
-  static const Color workspaceSuccess          = Color(0xFF16A34A);
-  static const Color workspaceWarning          = Color(0xFFF59E0B);
-  static const Color workspaceErrorSurface     = Color(0xFFFEF2F2);
-  static const Color workspaceErrorText        = Color(0xFF9F1239);
-  static const Color workspaceCorporateNavy    = Color(0xFF0F172A);
-  static const Color workspaceCorporateNavyHover = Color(0xFF1E293B);
-  static const Color workspaceFocusGlow        = Color(0x1F2563EB); // 3px rgba(37, 99, 235, 0.12)
-
-  // ── Template Placeholder Visual Styling (Refinement Directive) ───────────
-  /// Primary placeholder label color — #0F766E
-  static const Color placeholderText          = Color(0xFF0F766E);
-  /// Placeholder chip/badge background — #ECFDF5
-  static const Color placeholderBadgeBg       = Color(0xFFECFDF5);
-  /// Placeholder chip/badge border — #A7F3D0
-  static const Color placeholderBadgeBorder   = Color(0xFFA7F3D0);
-  /// Placeholder chip/badge text — #065F46
-  static const Color placeholderBadgeText     = Color(0xFF065F46);
-
-  // ── Brand Accents — Professional Appraisal Workstation ───────────────────
-  /// Dominant Primary Action Blue — #2563EB (Tailwind Blue-600)
+  // ── Enterprise Primary Action (#2563EB) ──────────────────────────────────
+  /// The ONLY interactive action accent color
   static const Color primaryBlue       = Color(0xFF2563EB);
   static const Color primaryBluePressed = Color(0xFF1D4ED8);
   static const Color primaryBlueLight  = Color(0xFFEFF6FF);
-  /// Focus ring halo (3px rgba(37, 99, 235, 0.16))
-  static const Color focusHalo         = Color(0x292563EB);
+  static const Color focusHalo         = Color(0x292563EB); // 3px rgba(37, 99, 235, 0.16)
 
-  /// Domain Brand Teal — deep professional engineering teal #0F4C5C
-  static const Color deepTeal          = Color(0xFF0F4C5C);
-  static const Color deepTealPressed   = Color(0xFF0A333E);
-  static const Color tealLight         = Color(0xFFE6F4F7);
-  static const Color brandTeal         = deepTeal;
+  // ── Enterprise Monochromatic Neutral Scale ───────────────────────────────
+  /// Main application base canvas — #F8FAFC
+  static const Color canvas           = Color(0xFFF8FAFC);
+  /// Pure white surfaces (cards, sheets, dropdowns, dialogs) — #FFFFFF
+  static const Color surface          = Color(0xFFFFFFFF);
+  static const Color cardBg           = Color(0xFFFFFFFF);
+  /// Subtle surface (table header bands, disabled fills, segment chips) — #F1F5F9
+  static const Color surfaceSoft      = Color(0xFFF1F5F9);
+  /// Standard 1px borders & dividers — #E2E8F0
+  static const Color hairline         = Color(0xFFE2E8F0);
+  static const Color hairlineSoft     = Color(0xFFE2E8F0);
+  /// Defined borders for inputs / active elements — #CBD5E1
+  static const Color hairlineStrong   = Color(0xFFCBD5E1);
 
-  // ── Feature Card Colors (Clay palette preserved) ─────────────────────────
-  /// Pink — #FF4D8B
-  static const Color featurePink       = Color(0xFFFF4D8B);
-  static const Color featurePinkLight  = Color(0xFFFFF0F5);
-  /// Lavender — #B8A4ED
-  static const Color featureLavender   = Color(0xFFB8A4ED);
-  static const Color featureLavenderLight = Color(0xFFF4F1FD);
-  /// Peach — #FFB084
-  static const Color featurePeach      = Color(0xFFFFB084);
-  static const Color featurePeachLight = Color(0xFFFFF5EE);
-  /// Ochre — #E8B94A
-  static const Color featureOchre      = Color(0xFFE8B94A);
-  static const Color featureOchreLight = Color(0xFFFFF8E8);
-  /// Deep Teal feature card
-  static const Color featureTeal       = deepTeal;
-  static const Color featureTealLight  = tealLight;
+  // ── Enterprise Typography Colors ─────────────────────────────────────────
+  /// High-contrast primary text & major headings — #0F172A
+  static const Color ink              = Color(0xFF0F172A);
+  /// Secondary muted text, metadata, labels — #475569
+  static const Color slate            = Color(0xFF475569);
+  static const Color textSecondary    = Color(0xFF475569);
+  static const Color textMuted        = Color(0xFF475569);
+  /// Placeholder hints & inactive states — #94A3B8
+  static const Color steel            = Color(0xFF94A3B8);
+  static const Color stone            = Color(0xFF94A3B8);
+  static const Color onDark           = Color(0xFFFFFFFF);
+  static const Color onDarkMuted      = Color(0xFF94A3B8);
 
-  // ── Semantic ─────────────────────────────────────────────────────────────
-  static const Color successAccent = Color(0xFF16A34A); // emerald-600
-  static const Color successBg     = Color(0xFFDCFCE7);
-  static const Color warning       = Color(0xFFD97706); // amber-600
-  static const Color warningBg     = Color(0xFFFEF3C7);
-  static const Color brandRedDark  = Color(0xFFDC2626); // red-600
-  static const Color brandRed      = Color(0xFFFEE2E2);
+  // ── Enterprise Semantic States ───────────────────────────────────────────
+  /// Success — verified, approved, completed #047857
+  static const Color successAccent    = Color(0xFF047857);
+  static const Color successBg        = Color(0xFFECFDF5);
+  static const Color successBorder    = Color(0xFFA7F3D0);
 
-  // ── Footer ───────────────────────────────────────────────────────────────
-  static const Color footerBg      = Color(0xFF111827);
+  /// Error — failures, validation alerts, destructive states #B91C1C
+  static const Color brandRedDark     = Color(0xFFB91C1C);
+  static const Color brandRed         = Color(0xFFFEF2F2);
+  static const Color errorBorder      = Color(0xFFFECACA);
 
-  // ── Sidebar ──────────────────────────────────────────────────────────────
-  static const Color sidebarBg       = Color(0xFFFFFFFF);
-  static const Color sidebarSelected = Color(0xFFF0FDF4); // subtle success/progress tint
-  static const Color sidebarText     = Color(0xFF111827);
-  static const Color sidebarMuted    = Color(0xFF6B7280);
-  static const Color sidebarAccent   = Color(0xFF2563EB); // primary blue
-  static const Color sidebarHover    = Color(0xFFF1F5F9); // slate-100
+  /// Warning — genuine alerts only #B45309
+  static const Color warning          = Color(0xFFB45309);
+  static const Color warningBg        = Color(0xFFFFFBEB);
+  static const Color warningBorder    = Color(0xFFFDE68A);
 
-  // ── Legacy Backward-Compat Aliases ───────────────────────────────────────
-  // These preserve all existing widget references without any breakage.
+  // ── Enterprise Template Placeholder Tokens (Border-Only Architecture) ───
+  /// Template placeholder-backed inputs: 1.5px solid #94A3B8 on white background
+  static const Color placeholderBorder       = Color(0xFF94A3B8);
+  static const Color placeholderSurface      = Color(0xFFFFFFFF);
+  static const Color placeholderText         = Color(0xFF0F172A);
+  static const Color placeholderBadgeBg      = Color(0xFFF1F5F9);
+  static const Color placeholderBadgeBorder  = Color(0xFFE2E8F0);
+  static const Color placeholderBadgeText    = Color(0xFF475569);
+
+  // ── Document Workspace Aliases (Unified with Enterprise Scale) ───────────
+  static const Color workspaceCanvas            = canvas;
+  static const Color workspacePanel             = surface;
+  static const Color workspacePrimaryText       = ink;
+  static const Color workspaceSecondaryText     = slate;
+  static const Color workspaceBorder            = hairline;
+  static const Color workspaceSegmentBg         = surfaceSoft;
+  static const Color workspaceSuccess           = successAccent;
+  static const Color workspaceWarning           = warning;
+  static const Color workspaceErrorSurface      = brandRed;
+  static const Color workspaceErrorText         = brandRedDark;
+  static const Color workspaceCorporateNavy     = brandNavy;
+  static const Color workspaceCorporateNavyHover= brandNavyLight;
+  static const Color workspaceFocusGlow         = focusHalo;
+  static const Color workspaceTeal              = brandNavy;
+
+  // ── Deprecated/Retired Brand Accents (Safely Mapped to Enterprise Tokens) ──
+  /// Legacy deepTeal retired — mapped cleanly to Brand Navy / Primary Blue
+  static const Color deepTeal           = brandNavy;
+  static const Color deepTealPressed    = brandNavyLight;
+  static const Color tealLight          = surfaceSoft;
+  static const Color brandTeal          = brandNavy;
+
+  // ── Legacy Aliases Preserved for Downstream Safety ─────────────────────────
   static const Color brandBlue          = primaryBlue;
   static const Color bluePressed        = primaryBluePressed;
   static const Color primary            = primaryBlue;
@@ -127,47 +102,48 @@ class AppColors {
   static const Color primaryDisabled    = hairlineStrong;
   static const Color surfacePricingFeatured = primaryBlueLight;
 
-  // Legacy yellow → ochre
-  static const Color brandYellow        = featureOchre;
-  static const Color brandYellowDeep    = Color(0xFFD4A030);
-  static const Color yellowLight        = featureOchreLight;
-  static const Color yellowDark         = Color(0xFF7A5A10);
+  static const Color featurePink        = surfaceSoft;
+  static const Color featurePinkLight   = surfaceSoft;
+  static const Color featureLavender    = surfaceSoft;
+  static const Color featureLavenderLight= surfaceSoft;
+  static const Color featurePeach       = surfaceSoft;
+  static const Color featurePeachLight  = surfaceSoft;
+  static const Color featureOchre       = surfaceSoft;
+  static const Color featureOchreLight  = surfaceSoft;
+  static const Color featureTeal        = brandNavy;
+  static const Color featureTealLight   = surfaceSoft;
 
-  // Legacy coral → peach
-  static const Color brandCoral         = featurePeach;
-  static const Color coralLight         = featurePeachLight;
-  static const Color coralDark          = Color(0xFF8A4010);
+  static const Color brandYellow        = warning;
+  static const Color brandYellowDeep    = warning;
+  static const Color yellowLight        = warningBg;
+  static const Color yellowDark         = warning;
 
-  // Legacy teal aliases
-  static const Color tealDark           = deepTealPressed;
-  static const Color mossDark           = Color(0xFF0A2020);
+  static const Color brandCoral         = warning;
+  static const Color coralLight         = warningBg;
+  static const Color coralDark          = warning;
 
-  // Legacy rose → pink
-  static const Color brandRose          = featurePink;
-  static const Color roseLight          = featurePinkLight;
-  static const Color brandPink          = featurePinkLight;
+  static const Color tealDark           = brandNavyLight;
+  static const Color mossDark           = brandNavy;
 
-  // Legacy orange
-  static const Color brandOrangeLight   = featurePeachLight;
+  static const Color brandRose          = brandRedDark;
+  static const Color roseLight          = brandRed;
+  static const Color brandPink          = brandRed;
+  static const Color brandOrangeLight   = warningBg;
 
-  // Text aliases
   static const Color inkDeep            = ink;
   static const Color charcoal           = ink;
-  static const Color muted              = stone;
+  static const Color muted              = steel;
   static const Color textPrimary        = ink;
 
-  // Background aliases
   static const Color background         = canvas;
   static const Color backgroundAlt      = surfaceSoft;
-  static const Color backgroundSecondary = surfaceSoft;
+  static const Color backgroundSecondary= surfaceSoft;
   static const Color structural         = canvas;
   static const Color white              = surface;
 
-  // Border aliases
   static const Color border             = hairline;
   static const Color borderDark         = hairlineStrong;
 
-  // Semantic aliases
   static const Color success            = successAccent;
   static const Color brandGreen         = successAccent;
   static const Color brandGreenSoft     = successBg;
@@ -176,5 +152,13 @@ class AppColors {
   static const Color errorBg            = brandRed;
   static const Color info               = primaryBlue;
   static const Color infoBg             = primaryBlueLight;
+
+  static const Color footerBg           = brandNavy;
+  static const Color sidebarBg          = surface;
+  static const Color sidebarSelected    = primaryBlueLight;
+  static const Color sidebarText        = ink;
+  static const Color sidebarMuted       = slate;
+  static const Color sidebarAccent      = primaryBlue;
+  static const Color sidebarHover       = surfaceSoft;
 }
 

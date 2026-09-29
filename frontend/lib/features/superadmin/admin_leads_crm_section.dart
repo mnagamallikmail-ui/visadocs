@@ -115,7 +115,7 @@ class _AdminLeadsCrmSectionState extends State<AdminLeadsCrmSection> {
                 );
               } catch (e) {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Failed to generate quote: $e'), backgroundColor: Colors.red),
+                  SnackBar(content: Text('Failed to generate quote: $e'), backgroundColor: AppColors.brandRedDark),
                 );
               }
             },
@@ -222,7 +222,7 @@ class _AdminLeadsCrmSectionState extends State<AdminLeadsCrmSection> {
                         padding: const EdgeInsets.symmetric(vertical: 4),
                         child: Row(
                           children: [
-                            const Icon(Icons.attachment_rounded, size: 16, color: Colors.blueGrey),
+                            const Icon(Icons.attachment_rounded, size: 16, color: AppColors.slate),
                             const SizedBox(width: 8),
                             Expanded(child: Text(d['fileName'] ?? 'Document', style: const TextStyle(fontSize: 12))),
                             Text('${((d['fileSizeBytes'] ?? 0) / 1024).toStringAsFixed(0)} KB', style: const TextStyle(fontSize: 11, color: Colors.grey)),
@@ -238,7 +238,7 @@ class _AdminLeadsCrmSectionState extends State<AdminLeadsCrmSection> {
                   ...quotes.map((q) => Container(
                         margin: const EdgeInsets.only(bottom: 6),
                         padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(6)),
+                        decoration: BoxDecoration(color: AppColors.canvas, borderRadius: BorderRadius.circular(6)),
                         child: Text(
                           'Quote ${q['quoteNumber']} — Total: Rs ${q['totalFee']} (${q['turnaroundDays']} days SLA)',
                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w600),
@@ -268,8 +268,8 @@ class _AdminLeadsCrmSectionState extends State<AdminLeadsCrmSection> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(width: 130, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5, color: Color(0xFF475569)))),
-          Expanded(child: Text(value, style: const TextStyle(fontSize: 12.5, color: Color(0xFF0F172A)))),
+          SizedBox(width: 130, child: Text(label, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 12.5, color: AppColors.slate))),
+          Expanded(child: Text(value, style: const TextStyle(fontSize: 12.5, color: AppColors.ink))),
         ],
       ),
     );
@@ -280,26 +280,30 @@ class _AdminLeadsCrmSectionState extends State<AdminLeadsCrmSection> {
     Color fg;
     switch (intent.toUpperCase()) {
       case 'CRITICAL':
-        bg = const Color(0xFFFEE2E2);
-        fg = const Color(0xFF991B1B);
+        bg = AppColors.brandRed;
+        fg = AppColors.brandRedDark;
         break;
       case 'HIGH':
-        bg = const Color(0xFFFFEDD5);
-        fg = const Color(0xFFC2410C);
+        bg = AppColors.warningBg;
+        fg = AppColors.warning;
         break;
       case 'MEDIUM':
-        bg = const Color(0xFFFEF3C7);
-        fg = const Color(0xFF92400E);
+        bg = AppColors.surfaceSoft;
+        fg = AppColors.ink;
         break;
       default:
-        bg = const Color(0xFFF1F5F9);
-        fg = const Color(0xFF475569);
+        bg = AppColors.surfaceSoft;
+        fg = AppColors.slate;
         break;
     }
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(6)),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: AppColors.hairline),
+      ),
       child: Text(
         '$intent ($score pts)',
         style: GoogleFonts.montserrat(fontSize: 11, fontWeight: FontWeight.w700, color: fg),
@@ -336,12 +340,12 @@ class _AdminLeadsCrmSectionState extends State<AdminLeadsCrmSection> {
             Container(
               margin: const EdgeInsets.only(bottom: 16),
               padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(color: Colors.red.shade50, borderRadius: BorderRadius.circular(8), border: Border.all(color: Colors.red.shade200)),
+              decoration: BoxDecoration(color: AppColors.brandRed, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.errorBorder)),
               child: Row(
                 children: [
-                  const Icon(Icons.error_outline, color: Colors.red, size: 18),
+                  const Icon(Icons.error_outline, color: AppColors.brandRedDark, size: 18),
                   const SizedBox(width: 8),
-                  Expanded(child: Text(_errorMessage!, style: const TextStyle(color: Colors.red, fontSize: 13))),
+                  Expanded(child: Text(_errorMessage!, style: const TextStyle(color: AppColors.brandRedDark, fontSize: 13))),
                 ],
               ),
             ),
@@ -402,7 +406,7 @@ class _AdminLeadsCrmSectionState extends State<AdminLeadsCrmSection> {
                       )
                     : Card(
                         elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: const BorderSide(color: Color(0xFFE2E8F0))),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: const BorderSide(color: AppColors.hairline)),
                         child: ListView.separated(
                           itemCount: _leads.length,
                           separatorBuilder: (_, __) => const Divider(height: 1),
@@ -427,7 +431,7 @@ class _AdminLeadsCrmSectionState extends State<AdminLeadsCrmSection> {
                                   const Spacer(),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(color: const Color(0xFF0F172A), borderRadius: BorderRadius.circular(4)),
+                                    decoration: BoxDecoration(color: AppColors.brandNavy, borderRadius: BorderRadius.circular(4)),
                                     child: Text(
                                       lead['status'] ?? 'NEW',
                                       style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
@@ -439,7 +443,7 @@ class _AdminLeadsCrmSectionState extends State<AdminLeadsCrmSection> {
                                 padding: const EdgeInsets.only(top: 4),
                                 child: Text(
                                   '${lead['serviceVertical']} • ${lead['mandatePurpose']} • ${lead['valueBracket']} • SLA: ${lead['urgencySla']} • ${docs.length} Doc(s)',
-                                  style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
+                                  style: GoogleFonts.inter(fontSize: 12, color: AppColors.slate),
                                 ),
                               ),
                               trailing: Row(

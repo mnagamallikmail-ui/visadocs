@@ -113,10 +113,10 @@ class _TableCalculationEditorWidgetState extends State<TableCalculationEditorWid
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: AppColors.tealLight,
+                    color: AppColors.surfaceSoft,
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: const Icon(Icons.table_chart_rounded, size: 20, color: AppColors.deepTeal),
+                  child: const Icon(Icons.table_chart_rounded, size: 20, color: AppColors.brandNavy),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -138,16 +138,16 @@ class _TableCalculationEditorWidgetState extends State<TableCalculationEditorWid
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: activeRules.isNotEmpty ? AppColors.tealLight : AppColors.surface,
+                    color: activeRules.isNotEmpty ? AppColors.primaryBlueLight : AppColors.surfaceSoft,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: activeRules.isNotEmpty ? AppColors.deepTeal.withValues(alpha: 0.3) : AppColors.hairline,
+                      color: activeRules.isNotEmpty ? AppColors.primaryBlue : AppColors.hairline,
                     ),
                   ),
                   child: Text(
                     '${activeRules.length} Rules',
                     style: AppTypography.caption(
-                      color: activeRules.isNotEmpty ? AppColors.deepTeal : AppColors.slate,
+                      color: activeRules.isNotEmpty ? AppColors.primaryBlue : AppColors.slate,
                     ).copyWith(fontWeight: FontWeight.w700, fontSize: 11),
                   ),
                 ),
@@ -315,12 +315,12 @@ class _TableCalculationEditorWidgetState extends State<TableCalculationEditorWid
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: AppColors.tealLight,
+                  color: AppColors.primaryBlueLight,
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text(
                   'Rule #${index + 1}',
-                  style: AppTypography.caption(color: AppColors.deepTeal).copyWith(fontWeight: FontWeight.w700),
+                  style: AppTypography.caption(color: AppColors.primaryBlue).copyWith(fontWeight: FontWeight.w700),
                 ),
               ),
               IconButton(
@@ -367,7 +367,7 @@ class _TableCalculationEditorWidgetState extends State<TableCalculationEditorWid
               hintText: 'e.g. {col_0} * {col_1}',
               contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.hairline)),
-              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.deepTeal, width: 1.5)),
+              focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: AppColors.primaryBlue, width: 1.5)),
             ),
             onChanged: (val) {
               _updateRule(index, rule.copyWith(formula: val));
@@ -383,8 +383,8 @@ class _TableCalculationEditorWidgetState extends State<TableCalculationEditorWid
                 for (int c = 0; c < widget.totalColumns; c++) ...[
                   ActionChip(
                     label: Text('{col_$c}'),
-                    labelStyle: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: AppColors.deepTeal),
-                    backgroundColor: AppColors.tealLight,
+                    labelStyle: const TextStyle(fontFamily: 'monospace', fontSize: 10, color: AppColors.primaryBlue),
+                    backgroundColor: AppColors.primaryBlueLight,
                     side: BorderSide.none,
                     onPressed: () {
                       final newFormula = '${rule.formula} {col_$c}'.trim();

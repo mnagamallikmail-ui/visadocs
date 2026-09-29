@@ -271,21 +271,21 @@ class _StudioPageCanvasWidgetState extends State<StudioPageCanvasWidget> {
               duration: const Duration(milliseconds: 150),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? AppColors.deepTeal.withValues(alpha: 0.28)
-                    : (isHovered ? AppColors.tealLight.withValues(alpha: 0.35) : AppColors.tealLight.withValues(alpha: 0.12)),
+                    ? AppColors.primaryBlueLight
+                    : (isHovered ? AppColors.surfaceSoft : Colors.transparent),
                 borderRadius: BorderRadius.circular(3),
                 border: Border.all(
                   color: isSelected
-                      ? AppColors.deepTeal
-                      : (isHovered ? AppColors.deepTeal : AppColors.deepTeal.withValues(alpha: 0.4)),
+                      ? AppColors.primaryBlue
+                      : (isHovered ? AppColors.primaryBlue : AppColors.placeholderBorder),
                   width: isSelected ? 2.0 : (isHovered ? 1.5 : 1.0),
                 ),
                 boxShadow: isSelected
-                    ? [
+                    ? const [
                         BoxShadow(
-                          color: AppColors.deepTeal.withValues(alpha: 0.35),
+                          color: AppColors.focusHalo,
                           blurRadius: 8,
-                          offset: const Offset(0, 2),
+                          offset: Offset(0, 2),
                         ),
                       ]
                     : null,

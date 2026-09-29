@@ -221,8 +221,8 @@ class _PlaceholderEditorWidgetState extends State<PlaceholderEditorWidget> {
                 ),
                 Switch(
                   value: _isRequired,
-                  activeTrackColor: AppColors.tealLight,
-                  activeThumbColor: AppColors.deepTeal,
+                  activeTrackColor: AppColors.primaryBlueLight,
+                  activeThumbColor: AppColors.primaryBlue,
                   onChanged: (val) {
                     setState(() => _isRequired = val);
                     _notifyChanged();
@@ -265,7 +265,7 @@ class _PlaceholderEditorWidgetState extends State<PlaceholderEditorWidget> {
       children: [
         Row(
           children: [
-            const Icon(Icons.edit_note_rounded, size: 20, color: AppColors.deepTeal),
+            const Icon(Icons.edit_note_rounded, size: 20, color: AppColors.brandNavy),
             const SizedBox(width: 8),
             Text(
               'Field Configuration',
@@ -277,13 +277,13 @@ class _PlaceholderEditorWidgetState extends State<PlaceholderEditorWidget> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           decoration: BoxDecoration(
-            color: AppColors.tealLight,
+            color: AppColors.primaryBlueLight,
             borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: AppColors.deepTeal.withValues(alpha: 0.2)),
+            border: Border.all(color: AppColors.hairline),
           ),
           child: Row(
             children: [
-              const Icon(Icons.code_rounded, size: 14, color: AppColors.deepTeal),
+              const Icon(Icons.code_rounded, size: 14, color: AppColors.primaryBlue),
               const SizedBox(width: 6),
               Expanded(
                 child: Text(

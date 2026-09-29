@@ -268,15 +268,15 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
                 padding: const EdgeInsets.all(12),
                 margin: const EdgeInsets.only(bottom: 16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFFEF2F2),
+                  color: AppColors.brandRed,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFFCA5A5)),
+                  border: Border.all(color: AppColors.errorBorder),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.error_outline, color: Color(0xFFDC2626), size: 18),
+                    const Icon(Icons.error_outline, color: AppColors.brandRedDark, size: 18),
                     const SizedBox(width: 8),
-                    Expanded(child: Text(_errorMessage!, style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF991B1B)))),
+                    Expanded(child: Text(_errorMessage!, style: GoogleFonts.inter(fontSize: 13, color: AppColors.brandRedDark))),
                   ],
                 ),
               ),
@@ -323,7 +323,7 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
           Container(
             padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
-              gradient: const LinearGradient(colors: [Color(0xFF0F172A), Color(0xFF1E293B)]),
+              gradient: const LinearGradient(colors: [AppColors.brandNavy, AppColors.brandNavyLight]),
               borderRadius: BorderRadius.circular(12),
             ),
             child: const Icon(Icons.verified_user_rounded, color: Colors.white, size: 28),
@@ -342,9 +342,9 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
-                        color: _crmConnected ? const Color(0xFFDCFCE7) : const Color(0xFFFEF2F2),
+                        color: _crmConnected ? AppColors.successBg : AppColors.brandRed,
                         borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: _crmConnected ? const Color(0xFF86EFAC) : const Color(0xFFFCA5A5)),
+                        border: Border.all(color: _crmConnected ? AppColors.successBorder : AppColors.errorBorder),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -353,7 +353,7 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
                           const SizedBox(width: 6),
                           Text(
                             _crmConnected ? 'PostgreSQL CRM: VERIFIED LIVE' : 'PostgreSQL CRM: DISCONNECTED',
-                            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: _crmConnected ? const Color(0xFF166534) : const Color(0xFF991B1B)),
+                            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: _crmConnected ? AppColors.successAccent : AppColors.brandRedDark),
                           ),
                         ],
                       ),
@@ -403,7 +403,7 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
       width: double.infinity,
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F172A),
+        color: AppColors.brandNavy,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -411,14 +411,14 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
         children: [
           Row(
             children: [
-              const Icon(Icons.shield_rounded, color: Color(0xFF38BDF8), size: 22),
+              const Icon(Icons.shield_rounded, color: AppColors.primaryBlue, size: 22),
               const SizedBox(width: 10),
               Text(
                 'Data Source Verification Matrix',
                 style: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w700, color: Colors.white),
               ),
               const Spacer(),
-              _buildAuditBadge('Audit Standard: Phase 4C Non-Mock', const Color(0xFF38BDF8)),
+              _buildAuditBadge('Audit Standard: Phase 4C Non-Mock', AppColors.primaryBlueLight),
             ],
           ),
           const SizedBox(height: 18),
@@ -450,7 +450,7 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
                   children: [
                     Text('Executive Summary (Verified Data Only)', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
                     const Spacer(),
-                    Text('Source: PostgreSQL (valuation_leads, orders) | Verified: ${_crmConnected ? "LIVE" : "NO"}', style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF94A3B8))),
+                    Text('Source: PostgreSQL (valuation_leads, orders) | Verified: ${_crmConnected ? "LIVE" : "NO"}', style: GoogleFonts.inter(fontSize: 11, color: AppColors.steel)),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -459,7 +459,7 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
                   '• Verified Formal Quotations: ${_totalQuotes ?? 0} quotes generated (Total Value: ₹${(_totalQuotedAmount ?? 0.0).toStringAsFixed(2)}).\n'
                   '• Verified Order Revenue: ₹${(_realizedRevenue ?? 0.0).toStringAsFixed(2)} across ${_totalOrders ?? 0} orders recorded in PostgreSQL.\n'
                   '• External Web Telemetry: Google Analytics 4, Microsoft Clarity, and Google Search Console are currently Not Connected. All web visitor, keyword, and heatmap metrics display "Data Source Not Connected" in accordance with Phase 4C.',
-                  style: GoogleFonts.inter(fontSize: 13.5, height: 1.5, color: const Color(0xFFF1F5F9)),
+                  style: GoogleFonts.inter(fontSize: 13.5, height: 1.5, color: AppColors.surfaceSoft),
                 ),
               ],
             ),
@@ -478,13 +478,13 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
   }
 
   Widget _buildIntegrationStatusTile(String name, String status, bool isLive, IconData icon) {
-    final statusColor = isLive ? const Color(0xFF34D399) : const Color(0xFFF87171);
+    final statusColor = isLive ? AppColors.successAccent : AppColors.brandRedDark;
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: isLive ? const Color(0xFF059669) : Colors.white.withValues(alpha: 0.1)),
+        border: Border.all(color: isLive ? AppColors.successAccent : Colors.white.withValues(alpha: 0.1)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -499,7 +499,7 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
           const SizedBox(height: 6),
           Text(status, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.bold, color: statusColor)),
           const SizedBox(height: 2),
-          Text(isLive ? 'Active Telemetry' : 'Data Source Not Connected', style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF94A3B8))),
+          Text(isLive ? 'Active Telemetry' : 'Data Source Not Connected', style: GoogleFonts.inter(fontSize: 10, color: AppColors.steel)),
         ],
       ),
     );
@@ -547,7 +547,7 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
                     prefixIcon: const Icon(Icons.search_rounded, color: AppColors.primaryBlue),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     filled: true,
-                    fillColor: const Color(0xFFF8FAFC),
+                    fillColor: AppColors.canvas,
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.hairline)),
                     enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: AppColors.hairline)),
                   ),
@@ -583,7 +583,7 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
             runSpacing: 8,
             children: promptSuggestions.map((prompt) {
               return ActionChip(
-                backgroundColor: const Color(0xFFF1F5F9),
+                backgroundColor: AppColors.surfaceSoft,
                 avatar: const Icon(Icons.bolt, size: 14, color: AppColors.primaryBlue),
                 label: Text(prompt, style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: AppColors.ink)),
                 onPressed: () => _handlePrompt(prompt),
@@ -600,9 +600,9 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: const Color(0xFFEFF6FF),
+        color: AppColors.primaryBlueLight,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFBFDBFE)),
+        border: Border.all(color: AppColors.hairline),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -612,13 +612,13 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
               const Icon(Icons.verified, color: AppColors.primaryBlue, size: 20),
               const SizedBox(width: 8),
               Expanded(
-                child: Text('Verified Response: "${_activeAiPromptQuestion ?? ''}"', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF1E3A8A))),
+                child: Text('Verified Response: "${_activeAiPromptQuestion ?? ''}"', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: AppColors.ink)),
               ),
               IconButton(icon: const Icon(Icons.close, size: 18), onPressed: () => setState(() => _activeAiPromptAnswer = null)),
             ],
           ),
           const SizedBox(height: 6),
-          Text(_activeAiPromptAnswer ?? '', style: GoogleFonts.inter(fontSize: 14, height: 1.5, color: const Color(0xFF1E293B))),
+          Text(_activeAiPromptAnswer ?? '', style: GoogleFonts.inter(fontSize: 14, height: 1.5, color: AppColors.ink)),
           if (_activeAiPromptTargetReport != null) ...[
             const SizedBox(height: 10),
             TextButton.icon(
@@ -730,8 +730,8 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
   }
 
   Widget _buildLargeNavigationCard(int index, _AuditButtonMeta meta) {
-    final statusColor = meta.connected ? const Color(0xFF059669) : const Color(0xFFDC2626);
-    final statusBg = meta.connected ? const Color(0xFFECFDF5) : const Color(0xFFFEF2F2);
+    final statusColor = meta.connected ? AppColors.successAccent : AppColors.brandRedDark;
+    final statusBg = meta.connected ? AppColors.successBg : AppColors.brandRed;
     final statusText = meta.connected ? 'VERIFIED LIVE' : 'Data Source Not Connected';
 
     return InkWell(
@@ -743,7 +743,7 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(color: AppColors.hairline),
-          boxShadow: const [BoxShadow(color: Color(0x06000000), blurRadius: 10, offset: Offset(0, 3))],
+          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 3))],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -907,7 +907,7 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: const Color(0xFFFEF2F2), shape: BoxShape.circle, border: Border.all(color: const Color(0xFFFCA5A5))),
+            decoration: BoxDecoration(color: AppColors.brandRed, shape: BoxShape.circle, border: Border.all(color: AppColors.errorBorder)),
             child: const Icon(Icons.link_off_rounded, size: 36, color: AppColors.brandRedDark),
           ),
           const SizedBox(height: 16),
@@ -991,10 +991,10 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
           title: 'AI Summary (Verified Real Data)',
           content: Text(
             'Your database contains ${_totalLeads ?? 0} verified client inquiries. Locations currently recorded in PostgreSQL: ${_leadsByLocation.keys.join(", ")}. Web visitor traffic mapping will populate once Google Analytics 4 is connected.',
-            style: GoogleFonts.inter(fontSize: 14.5, height: 1.5, color: const Color(0xFF1E3A8A)),
+            style: GoogleFonts.inter(fontSize: 14.5, height: 1.5, color: AppColors.ink),
           ),
-          color: const Color(0xFF2563EB),
-          bgColor: const Color(0xFFEFF6FF),
+          color: AppColors.primaryBlue,
+          bgColor: AppColors.primaryBlueLight,
         ),
         const SizedBox(height: 20),
         _buildSectionFrame(
@@ -1002,10 +1002,10 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
           title: 'Strategic Insights',
           content: Text(
             'Mandates submitted through the portal show direct commercial intent in the regions listed above. Connecting GA4 will unlock top-of-funnel city traffic before inquiries are submitted.',
-            style: GoogleFonts.inter(fontSize: 14.5, height: 1.5, color: const Color(0xFF4C1D95)),
+            style: GoogleFonts.inter(fontSize: 14.5, height: 1.5, color: AppColors.ink),
           ),
-          color: const Color(0xFF7C3AED),
-          bgColor: const Color(0xFFF5F3FF),
+          color: AppColors.brandNavy,
+          bgColor: AppColors.surfaceSoft,
         ),
         const SizedBox(height: 20),
         _buildSectionFrame(
@@ -1019,8 +1019,8 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
               Text('• Review the ${_totalLeads ?? 0} verified client records in Commercial Leads CRM to assign valuers by location.', style: GoogleFonts.inter(fontSize: 14)),
             ],
           ),
-          color: const Color(0xFF059669),
-          bgColor: const Color(0xFFECFDF5),
+          color: AppColors.primaryBlue,
+          bgColor: AppColors.surfaceSoft,
         ),
       ],
     );
@@ -1067,10 +1067,10 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
           title: 'AI Summary (Verified Real Data)',
           content: Text(
             'Based on live database records, ${_totalLeads ?? 0} total inquiries have been registered. The service vertical breakdown reflects verified client submissions.',
-            style: GoogleFonts.inter(fontSize: 14.5, height: 1.5, color: const Color(0xFF1E3A8A)),
+            style: GoogleFonts.inter(fontSize: 14.5, height: 1.5, color: AppColors.ink),
           ),
-          color: const Color(0xFF2563EB),
-          bgColor: const Color(0xFFEFF6FF),
+          color: AppColors.primaryBlue,
+          bgColor: AppColors.primaryBlueLight,
         ),
         const SizedBox(height: 20),
         _buildSectionFrame(
@@ -1078,10 +1078,10 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
           title: 'Strategic Insights',
           content: Text(
             'Practice areas with verified client submissions indicate existing market demand. Connecting GA4 will reveal which pages receive traffic but have low form completion.',
-            style: GoogleFonts.inter(fontSize: 14.5, height: 1.5, color: const Color(0xFF4C1D95)),
+            style: GoogleFonts.inter(fontSize: 14.5, height: 1.5, color: AppColors.ink),
           ),
-          color: const Color(0xFF7C3AED),
-          bgColor: const Color(0xFFF5F3FF),
+          color: AppColors.brandNavy,
+          bgColor: AppColors.surfaceSoft,
         ),
         const SizedBox(height: 20),
         _buildSectionFrame(
@@ -1095,8 +1095,8 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
               Text('• Connect GA4 to measure how many visitors view service pages without submitting an inquiry.', style: GoogleFonts.inter(fontSize: 14)),
             ],
           ),
-          color: const Color(0xFF059669),
-          bgColor: const Color(0xFFECFDF5),
+          color: AppColors.primaryBlue,
+          bgColor: AppColors.surfaceSoft,
         ),
       ],
     );
@@ -1133,10 +1133,10 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
           title: 'AI Summary (Verified Real Data)',
           content: Text(
             'All ${_totalLeads ?? 0} client inquiries are verified from PostgreSQL CRM tables. External campaign referral tracking (Google Search vs LinkedIn vs Direct) is currently Not Connected.',
-            style: GoogleFonts.inter(fontSize: 14.5, height: 1.5, color: const Color(0xFF1E3A8A)),
+            style: GoogleFonts.inter(fontSize: 14.5, height: 1.5, color: AppColors.ink),
           ),
-          color: const Color(0xFF2563EB),
-          bgColor: const Color(0xFFEFF6FF),
+          color: AppColors.primaryBlue,
+          bgColor: AppColors.primaryBlueLight,
         ),
         const SizedBox(height: 20),
         _buildSectionFrame(
@@ -1144,10 +1144,10 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
           title: 'Strategic Insights',
           content: Text(
             'To understand which marketing channels produce the highest value mandates, GA4 UTM parameters must be linked to your lead submission form.',
-            style: GoogleFonts.inter(fontSize: 14.5, height: 1.5, color: const Color(0xFF4C1D95)),
+            style: GoogleFonts.inter(fontSize: 14.5, height: 1.5, color: AppColors.ink),
           ),
-          color: const Color(0xFF7C3AED),
-          bgColor: const Color(0xFFF5F3FF),
+          color: AppColors.brandNavy,
+          bgColor: AppColors.surfaceSoft,
         ),
         const SizedBox(height: 20),
         _buildSectionFrame(
@@ -1161,8 +1161,8 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
               Text('• Add UTM tracking fields to the lead intake endpoint.', style: GoogleFonts.inter(fontSize: 14)),
             ],
           ),
-          color: const Color(0xFF059669),
-          bgColor: const Color(0xFFECFDF5),
+          color: AppColors.primaryBlue,
+          bgColor: AppColors.surfaceSoft,
         ),
       ],
     );
@@ -1192,7 +1192,7 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.hairline)),
+                decoration: BoxDecoration(color: AppColors.canvas, borderRadius: BorderRadius.circular(10), border: Border.all(color: AppColors.hairline)),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -1201,7 +1201,7 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
                     Text('• Valuation Leads Recorded: ${_totalLeads ?? 0} (New: ${_newLeads ?? 0}, Qualified: ${_qualifiedLeads ?? 0})', style: GoogleFonts.inter(fontSize: 13)),
                     Text('• Formal Quotes in System: ${_totalQuotes ?? 0} (Accepted: ${_acceptedQuotes ?? 0})', style: GoogleFonts.inter(fontSize: 13)),
                     Text('• Orders in System: ${_totalOrders ?? 0} (Completed: ${_completedOrders ?? 0})', style: GoogleFonts.inter(fontSize: 13)),
-                    Text('• Realized Order Billings: ₹${(_realizedRevenue ?? 0.0).toStringAsFixed(2)}', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF059669))),
+                    Text('• Realized Order Billings: ₹${(_realizedRevenue ?? 0.0).toStringAsFixed(2)}', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.successAccent)),
                   ],
                 ),
               ),
@@ -1214,10 +1214,10 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
           title: 'AI Summary (Verified Real Data)',
           content: Text(
             'Verified PostgreSQL revenue data: ₹${(_realizedRevenue ?? 0.0).toStringAsFixed(2)} realized across ${_totalOrders ?? 0} orders. ${_totalQuotes ?? 0} formal quotes are on record totaling ₹${(_totalQuotedAmount ?? 0.0).toStringAsFixed(2)}. Every figure is calculated live from database tables.',
-            style: GoogleFonts.inter(fontSize: 14.5, height: 1.5, color: const Color(0xFF1E3A8A)),
+            style: GoogleFonts.inter(fontSize: 14.5, height: 1.5, color: AppColors.ink),
           ),
-          color: const Color(0xFF2563EB),
-          bgColor: const Color(0xFFEFF6FF),
+          color: AppColors.primaryBlue,
+          bgColor: AppColors.primaryBlueLight,
         ),
         const SizedBox(height: 20),
         _buildSectionFrame(
@@ -1225,10 +1225,10 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
           title: 'Strategic Insights',
           content: Text(
             'Your business metrics represent real recorded transactions and formal quotes. Once Google Analytics 4 is connected, visitor-to-quote conversion rate can be calculated accurately.',
-            style: GoogleFonts.inter(fontSize: 14.5, height: 1.5, color: const Color(0xFF4C1D95)),
+            style: GoogleFonts.inter(fontSize: 14.5, height: 1.5, color: AppColors.ink),
           ),
-          color: const Color(0xFF7C3AED),
-          bgColor: const Color(0xFFF5F3FF),
+          color: AppColors.brandNavy,
+          bgColor: AppColors.surfaceSoft,
         ),
         const SizedBox(height: 20),
         _buildSectionFrame(
@@ -1242,8 +1242,8 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
               Text('• Link Google Analytics 4 to calculate true cost per acquired mandate.', style: GoogleFonts.inter(fontSize: 14)),
             ],
           ),
-          color: const Color(0xFF059669),
-          bgColor: const Color(0xFFECFDF5),
+          color: AppColors.successAccent,
+          bgColor: AppColors.successBg,
         ),
       ],
     );
@@ -1284,12 +1284,12 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
   Widget _buildInlineNotConnectedNotice(String explanation) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: const Color(0xFFFEF2F2), borderRadius: BorderRadius.circular(8), border: Border.all(color: const Color(0xFFFCA5A5))),
+      decoration: BoxDecoration(color: AppColors.brandRed, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.errorBorder)),
       child: Row(
         children: [
           const Icon(Icons.info_outline, size: 18, color: AppColors.brandRedDark),
           const SizedBox(width: 8),
-          Expanded(child: Text(explanation, style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF991B1B)))),
+          Expanded(child: Text(explanation, style: GoogleFonts.inter(fontSize: 12, color: AppColors.brandRedDark))),
         ],
       ),
     );
@@ -1298,7 +1298,7 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
   Widget _buildMetricBlock(String label, String value, String source) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.hairline)),
+      decoration: BoxDecoration(color: AppColors.canvas, borderRadius: BorderRadius.circular(8), border: Border.all(color: AppColors.hairline)),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

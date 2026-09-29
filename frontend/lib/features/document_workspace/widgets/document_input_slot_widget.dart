@@ -319,7 +319,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                       boxShadow: _focusNode.hasFocus
                           ? const [
                               BoxShadow(
-                                color: Color(0x1F10B981), // 3px rgba(16, 185, 129, 0.12)
+                                color: AppColors.focusHalo,
                                 blurRadius: 3,
                                 spreadRadius: 2,
                               ),
@@ -347,7 +347,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                               ? GoogleFonts.montserrat(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
-                                  color: Colors.red.shade700,
+                                  color: AppColors.brandRedDark,
                                 )
                               : GoogleFonts.montserrat(
                                   fontSize: 13,
@@ -367,10 +367,10 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                         fillColor: _focusNode.hasFocus
                             ? Colors.white
                             : (isFormulaCalc
-                                ? const Color(0xFFF3F6FC)
+                                ? AppColors.surfaceSoft
                                 : (widget.readOnly
                                     ? AppColors.workspaceSegmentBg
-                                    : (_isHovered ? const Color(0xFFF6FFF9) : const Color(0xFFF0FDF4)))),
+                                    : (_isHovered ? AppColors.surfaceSoft : Colors.white))),
                         isDense: true,
                         contentPadding: EdgeInsets.symmetric(
                           horizontal: 11,
@@ -406,10 +406,10 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide(
                             color: isFormulaCalc
-                                ? const Color(0xFFD0DCF0)
+                                ? AppColors.hairline
                                 : (widget.readOnly
                                     ? AppColors.workspaceBorder
-                                    : const Color(0xFFA7F3D0)),
+                                    : AppColors.placeholderBorder),
                             width: (isFormulaCalc || widget.readOnly) ? 1.0 : 1.5,
                           ),
                         ),
@@ -417,19 +417,17 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                           borderRadius: BorderRadius.circular(8),
                           borderSide: BorderSide(
                             color: isFormulaCalc
-                                ? const Color(0xFFD0DCF0)
+                                ? AppColors.hairline
                                 : (widget.readOnly
                                     ? AppColors.workspaceBorder
-                                    : (_isHovered ? const Color(0xFF34D399) : const Color(0xFFA7F3D0))),
+                                    : (_isHovered ? AppColors.slate : AppColors.placeholderBorder)),
                             width: (isFormulaCalc || widget.readOnly) ? 1.0 : 1.5,
                           ),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(8),
-                          borderSide: BorderSide(
-                            color: isFormulaCalc
-                                ? AppColors.primaryBlue
-                                : const Color(0xFF10B981),
+                          borderSide: const BorderSide(
+                            color: AppColors.primaryBlue,
                             width: 1.5,
                           ),
                         ),
@@ -461,10 +459,10 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: hasValue ? AppColors.workspaceSegmentBg : const Color(0xFFF0FDF4),
+        color: hasValue ? AppColors.workspaceSegmentBg : Colors.white,
         borderRadius: BorderRadius.circular(8),
         border: Border.all(
-          color: hasValue ? AppColors.workspaceCorporateNavy.withValues(alpha: 0.4) : const Color(0xFFA7F3D0),
+          color: hasValue ? AppColors.workspaceCorporateNavy.withValues(alpha: 0.4) : AppColors.placeholderBorder,
           width: hasValue ? 1.0 : 1.5,
         ),
         boxShadow: AppShadows.subtleElevated,
@@ -512,7 +510,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFE0F2FE),
+                              color: AppColors.primaryBlueLight,
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(

@@ -751,15 +751,15 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                       width: 32,
                       height: 32,
                       decoration: BoxDecoration(
-                        color: AppColors.tealLight,
+                        color: AppColors.surfaceSoft,
                         borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: AppColors.deepTeal.withOpacity(0.2)),
+                        border: Border.all(color: AppColors.hairline),
                       ),
                       child: Center(
                         child: Text(
                           widget.fullName.isNotEmpty ? widget.fullName[0].toUpperCase() : 'A',
                           style: AppTypography.bodySm().copyWith(
-                            color: AppColors.deepTeal,
+                            color: AppColors.brandNavy,
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
                           ),

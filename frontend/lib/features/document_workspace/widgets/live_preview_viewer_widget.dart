@@ -226,12 +226,12 @@ class _LivePreviewViewerWidgetState extends State<LivePreviewViewerWidget> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: AppColors.tealLight,
+              color: AppColors.surfaceSoft,
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
               '${model.totalPages} Pages (True Final)',
-              style: AppTypography.caption(color: AppColors.deepTeal).copyWith(fontWeight: FontWeight.w700),
+              style: AppTypography.caption(color: AppColors.brandNavy).copyWith(fontWeight: FontWeight.w700),
             ),
           ),
           const SizedBox(width: 12),

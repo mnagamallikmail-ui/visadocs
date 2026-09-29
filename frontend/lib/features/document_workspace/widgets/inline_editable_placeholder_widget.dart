@@ -376,7 +376,7 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
             ? GoogleFonts.montserrat(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
-                color: Colors.red.shade700,
+                color: AppColors.brandRedDark,
               )
             : GoogleFonts.montserrat(
                 fontSize: 13,
@@ -413,17 +413,17 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
           padding: const EdgeInsets.symmetric(horizontal: 6.0, vertical: 1.5),
           decoration: BoxDecoration(
             color: isFormulaCalc
-                ? const Color(0xFFF3F6FC)
+                ? AppColors.surfaceSoft
                 : (_isHovered && !widget.readOnly
-                    ? const Color(0xFFF6FFF9)
-                    : (isEmpty ? const Color(0xFFF0FDF4) : const Color(0xFFF0FDF4))),
+                    ? AppColors.surfaceSoft
+                    : Colors.white),
             borderRadius: BorderRadius.circular(4),
             border: Border.all(
               color: isFormulaCalc
-                  ? const Color(0xFFD0DCF0)
+                  ? AppColors.hairline
                   : (_isHovered && !widget.readOnly
-                      ? const Color(0xFF34D399)
-                      : const Color(0xFFA7F3D0)),
+                      ? AppColors.slate
+                      : AppColors.placeholderBorder),
               width: (isFormulaCalc || widget.readOnly) ? 1.0 : 1.5,
             ),
           ),
@@ -498,7 +498,7 @@ class _InlineEditablePlaceholderWidgetState extends State<InlineEditablePlacehol
         borderRadius: BorderRadius.circular(4),
         boxShadow: const [
           BoxShadow(
-            color: Color(0x332563EB), // Subtle blue focus glow
+            color: AppColors.focusHalo,
             blurRadius: 6,
             spreadRadius: 1,
           ),
