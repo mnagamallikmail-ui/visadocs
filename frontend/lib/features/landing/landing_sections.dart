@@ -3,8 +3,13 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import 'landing_theme.dart';
+import 'widgets/hero_video_widget.dart';
 import 'widgets/commercial_intake_modal.dart';
+import '../../services/analytics_service.dart';
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // APPLE VISION PRO / ARCHITECTURAL MONOCHROMATIC GLASS UTILITIES
@@ -411,7 +416,132 @@ class HeroSection extends StatefulWidget {
   State<HeroSection> createState() => _HeroSectionState();
 }
 
-class _HeroSectionState extends State<HeroSection> {
+class _HeroSectionState extends State<HeroSection> with TickerProviderStateMixin {
+  // Ordered sequence of 7 institutional story videos (Video 6 excluded)
+  static const List<String> _heroStoryVideos = [
+    'assets/videos/hero_story/1.mp4',
+    'assets/videos/hero_story/2.mp4',
+    'assets/videos/hero_story/3.mp4',
+    'assets/videos/hero_story/4.mp4',
+    'assets/videos/hero_story/5.mp4',
+    'assets/videos/hero_story/7.mp4',
+    'assets/videos/hero_story/8.mp4',
+  ];
+
+  // Institutional Mandate keywords — pairs dynamically with 'Independent Valuation'
+  // Answers WHAT high-stakes assets & proceedings ProValuer delivers across its practice areas.
+  final List<String> _keywords = [
+    'Banking Collaterals',
+    'Infrastructure Portfolios',
+    'Industrial Assets',
+    'Plant & Machinery',
+    'NCLT & IBC Matters',
+    'Distressed Assets',
+  ];
+
+  int _currentKeywordIndex = 0;
+
+  // Keyword slide & fade animation
+  late AnimationController _keywordAnimController;
+  late Animation<double> _keywordSlideAnimation;
+  late Animation<double> _keywordOpacityAnimation;
+  Timer? _keywordTimer;
+
+  // Video story cycle state
+  int _currentVideoIndex = 0;
+  bool _isVideoPlaying = false;
+  bool _storyCompleted = false;
+
+  int? _pendingNextVideoIndex = 0;
+  Timer? _readingCountdownTimer;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // 1. Morphing keyword animator
+    _keywordAnimController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 700),
+    );
+    _keywordSlideAnimation = Tween<double>(begin: 18.0, end: 0.0).animate(
+      CurvedAnimation(parent: _keywordAnimController, curve: Curves.easeOutCubic),
+    );
+    _keywordOpacityAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
+      CurvedAnimation(parent: _keywordAnimController, curve: Curves.easeOut),
+    );
+    _keywordAnimController.forward();
+
+    _keywordTimer = Timer.periodic(const Duration(milliseconds: 3500), (timer) {
+      if (!mounted) return;
+      _keywordAnimController.reverse().then((_) {
+        if (!mounted) return;
+        setState(() {
+          _currentKeywordIndex = (_currentKeywordIndex + 1) % _keywords.length;
+        });
+        _keywordAnimController.forward();
+      });
+    });
+
+    // 2. Initial page load: Page starts in Reading Mode with Valuation Expertise deck building.
+    // Reading timer begins ONLY after Card 8 has fully settled (_onDeckSettled callback).
+  }
+
+  void _onDeckSettled() {
+    if (!mounted || _storyCompleted || _isVideoPlaying) return;
+    if (_pendingNextVideoIndex == null) return;
+
+    // Requirement 5: Reading timer begins ONLY AFTER Card 8 has fully settled
+    _readingCountdownTimer?.cancel();
+    _readingCountdownTimer = Timer(const Duration(seconds: 10), () {
+      if (!mounted || _storyCompleted || _isVideoPlaying) return;
+      final nextIndex = _pendingNextVideoIndex;
+      _pendingNextVideoIndex = null;
+      if (nextIndex != null && nextIndex < _heroStoryVideos.length) {
+        _startVideo(nextIndex);
+      }
+    });
+  }
+
+  void _startVideo(int index) {
+    if (!mounted || _storyCompleted) return;
+    _readingCountdownTimer?.cancel();
+    setState(() {
+      _currentVideoIndex = index;
+      _isVideoPlaying = true;
+    });
+  }
+
+  void _onVideoCompleted(int completedIndex) {
+    if (!mounted) return;
+
+    _readingCountdownTimer?.cancel();
+
+    // Immediately stop video playback
+    setState(() {
+      _isVideoPlaying = false;
+    });
+
+    // If final video in story has finished:
+    if (completedIndex >= _heroStoryVideos.length - 1) {
+      setState(() {
+        _storyCompleted = true;
+        _pendingNextVideoIndex = null;
+      });
+      return;
+    }
+
+    // Next video will be queued; reading timer triggers once the deck settles
+    _pendingNextVideoIndex = completedIndex + 1;
+  }
+
+  @override
+  void dispose() {
+    _readingCountdownTimer?.cancel();
+    _keywordTimer?.cancel();
+    _keywordAnimController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -419,41 +549,50 @@ class _HeroSectionState extends State<HeroSection> {
     final double screenW = MediaQuery.of(context).size.width;
     final bool isDesktop = screenW >= 1024;
     final bool isTablet = screenW >= 768 && screenW < 1024;
+
+    // Viewport-aware sizing: Fit inside browser viewport without scrolling
+    final double heroHeight = isDesktop
+        ? (screenH - 16).clamp(420.0, 820.0)
+        : isTablet
+            ? (screenH - 16).clamp(480.0, 750.0)
+            : (screenH * 0.82).clamp(480.0, 700.0);
+
     final bool isCompactLaptop = isDesktop && (screenH < 850 || screenW < 1440);
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          width: double.infinity,
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            gradient: RadialGradient(
-              center: Alignment(0.6, -0.4),
-              radius: 1.2,
-              colors: [
-                Color(0xFFF8FAFC),
-                Color(0xFFFFFFFF),
-              ],
-            ),
+    return ClipRect(
+      child: Container(
+        width: double.infinity,
+        height: isDesktop ? heroHeight : null,
+        constraints: isDesktop ? BoxConstraints(minHeight: heroHeight) : null,
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          gradient: RadialGradient(
+            center: Alignment(0.6, -0.4),
+            radius: 1.2,
+            colors: [
+              Color(0xFFF8FAFC),
+              Color(0xFFFFFFFF),
+            ],
           ),
+        ),
+        child: Padding(
           padding: EdgeInsets.only(
             left: isDesktop ? 60 : (screenW < 360 ? 14 : (screenW < 400 ? 18 : 24)),
             right: isDesktop ? 60 : (screenW < 360 ? 14 : (screenW < 400 ? 18 : 24)),
-            top: isDesktop ? (isCompactLaptop ? 10 : 16) : 10,
-            bottom: isDesktop ? (isCompactLaptop ? 18 : 26) : 18,
+            top: isDesktop ? (isCompactLaptop ? 6 : 8) : 12,
+            bottom: isDesktop ? (isCompactLaptop ? 12 : 16) : 18,
           ),
           child: Center(
             child: ConstrainedBox(
               constraints: const BoxConstraints(maxWidth: 1320),
-              child: _buildForegroundContent(screenW, screenH, isDesktop, isTablet),
+              child: SizedBox(
+                width: double.infinity,
+                child: _buildForegroundContent(screenW, screenH, isDesktop, isTablet),
+              ),
             ),
           ),
         ),
-
-        // Consolidated "Certified By" Trust Band directly beneath the hero
-        _CertifiedByTrustBand(isDesktop: isDesktop),
-      ],
+      ),
     );
   }
 
@@ -465,602 +604,938 @@ class _HeroSectionState extends State<HeroSection> {
         ? Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Left Column: Headline, Stat Block & Consolidated CTA
+              // Left Column: Hero Content, Headline, Trust, CTAs (Permanently visible on white background)
               Expanded(
                 flex: isCompactLaptop ? 13 : 14,
                 child: _buildLeftHeroContent(screenW, screenH, isDesktop, isTablet, isCompactLaptop),
               ),
               SizedBox(width: isCompactLaptop ? 28 : 40),
-              // Right Column: Interactive Vertical Accordion
-              const Expanded(
-                flex: 10,
-                child: _InteractiveHeroAccordion(),
+              // Right Column: Dynamic area (Video Mode OR Valuation Expertise Mode)
+              Expanded(
+                flex: isCompactLaptop ? 9 : 10,
+                child: _buildRightDynamicContent(isCompactLaptop),
               ),
             ],
           )
         : Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.center,
             mainAxisSize: MainAxisSize.min,
             children: [
               _buildLeftHeroContent(screenW, screenH, isDesktop, isTablet, isNarrow),
-              const SizedBox(height: 24),
-              const _InteractiveHeroAccordion(),
+              const SizedBox(height: 28),
+              _buildRightDynamicContent(isNarrow),
             ],
           );
   }
 
-  Widget _buildLeftHeroContent(double screenW, double screenH, bool isDesktop, bool isTablet, bool isNarrow) {
-    final double headlineSize = isDesktop
-        ? (screenW < 1200 ? 44.0 : 50.0)
-        : (isTablet ? 34.0 : (screenW < 360 ? 23.0 : 26.0));
+  Widget _buildRightDynamicContent(bool isCompact) {
+    if (_isVideoPlaying) {
+      // VIDEO MODE:
+      // Video occupies ONLY the right side.
+      // Valuation Expertise heading, service deck, and service tile animation are completely hidden.
+      // Remove ALL visual framing around the video:
+      // No borders, no rounded frame, no card appearance, no drop shadows, no outlines, no floating container.
+      return ClipRect(
+        child: HeroVideoWidget(
+          videoAssets: _heroStoryVideos,
+          activeVideoIndex: _currentVideoIndex,
+          isPlaying: _isVideoPlaying,
+          onVideoCompleted: _onVideoCompleted,
+        ),
+      );
+    } else {
+      // VALUATION EXPERTISE MODE:
+      // Institutional Practice Area Spotlight under fixed #0F172A header tile
+      return _PracticeAreaSpotlight(
+        isCompact: isCompact,
+        isVideoPlaying: _isVideoPlaying,
+        isCompleted: _storyCompleted,
+        onDeckSettled: _onDeckSettled,
+      );
+    }
+  }
 
-    final double bodySize = isDesktop ? 16.0 : (isTablet ? 14.5 : 13.5);
+  Widget _buildLeftHeroContent(double screenW, double screenH, bool isDesktop, bool isTablet, bool isCompactLaptop) {
+    final double headlineSize = isCompactLaptop
+        ? 44.0
+        : (isDesktop ? 56.0 : (isTablet ? 38.0 : 32.0));
+
+    final double keywordSize = isCompactLaptop
+        ? 38.0
+        : (isDesktop ? 48.0 : (isTablet ? 32.0 : 28.0));
+
+    final double bodySize = isCompactLaptop
+        ? 15.0
+        : (isDesktop ? 17.5 : 14.5);
+
+    final double keywordGap = isCompactLaptop ? 4.0 : 6.0;
+    final double descGap = isCompactLaptop ? 12.0 : 18.0;
+    final double trustGap = isCompactLaptop ? 14.0 : 20.0;
+    final double ctaGap = isCompactLaptop ? 18.0 : 26.0;
+    final bool isNarrow = !isDesktop || isCompactLaptop;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.center,
       mainAxisSize: MainAxisSize.min,
       children: [
-        // 1. High-Impact Value Proposition Headline (Explicitly Montserrat)
-        Text(
-          'Defensible Asset Valuations For Leading Lenders & Corporates',
-          style: GoogleFonts.montserrat(
-            fontSize: headlineSize,
-            fontWeight: FontWeight.w800,
-            color: const Color(0xFF0F172A),
-            letterSpacing: isNarrow ? -0.6 : -1.4,
-            height: 1.12,
-          ),
-        ),
-
-        SizedBox(height: isNarrow ? 10.0 : 14.0),
-
-        // 2. Clear Institutional Description (Explicitly Montserrat)
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 620),
-          child: Text(
-            'Statutory valuation and asset intelligence for commercial banks, NBFCs, private equity funds, insolvency professionals, and corporate boards — across India.',
-            style: GoogleFonts.montserrat(
-              fontSize: bodySize,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF475569),
-              letterSpacing: -0.2,
-              height: 1.5,
-            ),
-          ),
-        ),
-
-        SizedBox(height: isNarrow ? 14.0 : 18.0),
-
-        // 3. Prominent Bold Stat Block (Explicitly Montserrat & #143D3D)
+        // Eyebrow Badge (Pearl White Glass Pill)
         Container(
-          width: isNarrow ? double.infinity : null,
           padding: EdgeInsets.symmetric(
-            horizontal: isNarrow ? 14 : 18,
-            vertical: isNarrow ? 10 : 12,
+            horizontal: isCompactLaptop ? 14 : 16,
+            vertical: isCompactLaptop ? 6 : 8,
           ),
           decoration: BoxDecoration(
-            color: const Color(0xFFF8FAFC),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(color: const Color(0xFFE2E8F0)),
+            color: LandingTheme.pearlWhite,
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(color: const Color(0xE2E8F0CC), width: 1.0),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x0A0F172A),
+                blurRadius: 10,
+                offset: Offset(0, 2),
+              ),
+            ],
           ),
           child: Row(
-            mainAxisSize: isNarrow ? MainAxisSize.max : MainAxisSize.min,
+            mainAxisSize: MainAxisSize.min,
             children: [
-              Container(
-                width: 4,
-                height: isNarrow ? 34 : 40,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF143D3D), // Strict #143D3D override
-                  borderRadius: BorderRadius.circular(2),
-                ),
-              ),
-              const SizedBox(width: 14),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '₹15,000+ Cr Valued',
-                      style: GoogleFonts.montserrat(
-                        fontSize: isNarrow ? 20.0 : 23.0,
-                        fontWeight: FontWeight.w900,
-                        color: const Color(0xFF143D3D), // Strict #143D3D override
-                        letterSpacing: -0.4,
-                      ),
+              const Icon(Icons.verified_rounded, size: 14, color: LandingTheme.primaryAccent),
+              const SizedBox(width: 8),
+              Flexible(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'REGISTERED VALUERS (GOVT APPROVED) • IBBI • INCOME TAX • ASSET INTELLIGENCE',
+                    style: GoogleFonts.montserrat(
+                      fontSize: isCompactLaptop ? 9.5 : 10.5,
+                      fontWeight: FontWeight.w700,
+                      color: LandingTheme.textPrimary,
+                      letterSpacing: isCompactLaptop ? 0.8 : 1.0,
                     ),
-                    const SizedBox(height: 2),
-                    Text(
-                      '1,200+ Institutional & Banking Mandates Across India',
-                      style: GoogleFonts.montserrat(
-                        fontSize: isNarrow ? 11.0 : 12.5,
-                        fontWeight: FontWeight.w600,
-                        color: const Color(0xFF64748B),
-                        letterSpacing: -0.1,
-                      ),
-                    ),
-                  ],
+                    maxLines: 1,
+                    softWrap: false,
+                  ),
                 ),
               ),
             ],
           ),
         ),
 
-        SizedBox(height: isNarrow ? 16.0 : 22.0),
+        SizedBox(height: isNarrow ? 6.0 : (isCompactLaptop ? 7.0 : 8.0)),
 
-        // 4. Consolidated Primary CTA (100% width block on mobile, min height 52px)
-        SizedBox(
-          width: isNarrow ? double.infinity : null,
-          height: 52,
-          child: ElevatedButton(
-            onPressed: () => CommercialIntakeModal.show(context),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF143D3D), // Strict #143D3D override
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: EdgeInsets.symmetric(
-                horizontal: isNarrow ? 20 : 28,
-                vertical: 14,
-              ),
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(8),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              mainAxisSize: isNarrow ? MainAxisSize.max : MainAxisSize.min,
-              children: [
-                Text(
-                  'Consult a Valuation Expert',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 14.5,
-                    fontWeight: FontWeight.w700,
-                    letterSpacing: -0.2,
-                  ),
-                ),
-                const SizedBox(width: 10),
-                const Icon(Icons.arrow_forward_rounded, size: 16),
-              ],
+        // High-Trust Ribbon (Subtle single row on desktop, balanced 2-line on mobile)
+        _HeroTrustStrip(
+          isNarrow: isNarrow,
+          isCompact: isCompactLaptop,
+        ),
+
+        SizedBox(height: isNarrow ? 10.0 : (isCompactLaptop ? 11.0 : 13.0)),
+
+        // Hero Headline Line 1: "Independent Valuation" (Guaranteed 1 line)
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: Text(
+            'Independent Valuation',
+            maxLines: 1,
+            softWrap: false,
+            style: GoogleFonts.montserrat(
+              fontSize: headlineSize,
+              fontWeight: FontWeight.w800,
+              color: LandingTheme.textPrimary,
+              letterSpacing: -1.8,
+              height: 1.08,
             ),
           ),
+        ),
+
+        SizedBox(height: keywordGap),
+
+        // Hero Headline Line 2: Rotating trust credential (Guaranteed 1 line).
+        // No 'For ' prefix — each trust signal stands alone as a declarative credential.
+        // Rotation answers WHY TRUST PROVALUER at any single animation frame.
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerLeft,
+          child: AnimatedBuilder(
+            animation: _keywordAnimController,
+            builder: (context, child) {
+              return Transform.translate(
+                offset: Offset(0, _keywordSlideAnimation.value),
+                child: Opacity(
+                  opacity: _keywordOpacityAnimation.value,
+                  child: Text(
+                    _keywords[_currentKeywordIndex],
+                    style: GoogleFonts.montserrat(
+                      fontSize: keywordSize,
+                      fontWeight: FontWeight.w800,
+                      color: LandingTheme.brandGreen,
+                      letterSpacing: -1.8,
+                      height: 1.08,
+                    ),
+                    maxLines: 1,
+                    softWrap: false,
+                  ),
+                ),
+              );
+            },
+          ),
+        ),
+
+        SizedBox(height: descGap),
+
+        // Description — includes institutional AND individual clients for full-spectrum coverage.
+        // 'property owners' provides retail/NRI/visa client recognition without diluting institutional tone.
+        ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: isCompactLaptop ? 560 : 620),
+          child: Text(
+            'Statutory valuation and asset intelligence for banks, NBFCs, private equity funds, insolvency professionals, and property owners — across India.',
+            style: GoogleFonts.montserrat(
+              fontSize: bodySize,
+              fontWeight: FontWeight.w500,
+              color: LandingTheme.textSecondary,
+              letterSpacing: -0.2,
+              height: 1.55,
+            ),
+          ),
+        ),
+
+        SizedBox(height: trustGap),
+
+        // Trust Indicators — Tier 2 authority (Govt Approved, elevated) + Tier 3 regulatory mandates.
+        // Government Approved Valuers receives a dedicated green-tinted badge: higher visual weight
+        // than the standard charcoal pills to signal primary institutional authority.
+        Wrap(
+          spacing: 10,
+          runSpacing: 8,
+          children: [
+            _buildGovtApprovedBadge(isCompactLaptop),
+            _buildTrustBadge(Icons.verified_user_outlined, 'IBBI Registered · Sec 247', isCompactLaptop),
+            _buildTrustBadge(Icons.gavel_outlined, 'Rule 11UA / Income Tax', isCompactLaptop),
+          ],
+        ),
+
+        SizedBox(height: ctaGap),
+
+        // CTA Buttons (Always Visible during Reading Mode & Immediately Clickable)
+        Wrap(
+          spacing: 12,
+          runSpacing: 10,
+          children: [
+            // Primary CTA: Request Valuation Report (Solid Deep Teal)
+            GestureDetector(
+              onTap: () => CommercialIntakeModal.show(context),
+              child: Container(
+                padding: EdgeInsets.symmetric(
+                  horizontal: isCompactLaptop ? 18 : 28,
+                  vertical: isCompactLaptop ? 12 : 16,
+                ),
+                decoration: BoxDecoration(
+                  color: LandingTheme.brandGreen, // Reusing brand green token
+                  borderRadius: BorderRadius.circular(100),
+                  boxShadow: [
+                    BoxShadow(
+                      color: LandingTheme.brandGreen.withValues(alpha: 0.18),
+                      blurRadius: 20,
+                      offset: const Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        'Request Valuation Report',
+                        style: GoogleFonts.montserrat(
+                          fontSize: isCompactLaptop ? 13.5 : 14.5,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Icon(Icons.arrow_forward_rounded, size: 15, color: Colors.white),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // Secondary Contact: Direct Phone Call (Matching Height & Smooth Hover Transition)
+            _HeroPhonePill(isCompactLaptop: isCompactLaptop),
+          ],
         ),
       ],
     );
   }
 
+  Widget _buildTrustBadge(IconData icon, String text, bool isCompact) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 10 : 14,
+        vertical: isCompact ? 5 : 7,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: isCompact ? 13 : 14, color: LandingTheme.primaryAccent),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              text,
+              style: GoogleFonts.montserrat(
+                fontSize: isCompact ? 11.0 : 12.5,
+                fontWeight: FontWeight.w600,
+                color: LandingTheme.textPrimary,
+                letterSpacing: -0.1,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Dedicated Government Approved Valuers badge — Tier 2 authority signal.
+  /// Green-tinted background, green border, and green text give it higher visual
+  /// weight than the standard charcoal trust badges, making it immediately
+  /// distinguishable as the primary statutory credential for retail and
+  /// institutional visitors alike.
+  Widget _buildGovtApprovedBadge(bool isCompact) {
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 10 : 14,
+        vertical: isCompact ? 5 : 7,
+      ),
+      decoration: BoxDecoration(
+        color: LandingTheme.brandGreen.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(
+          color: LandingTheme.brandGreen.withValues(alpha: 0.35),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.verified_rounded,
+            size: isCompact ? 13 : 14,
+            color: LandingTheme.brandGreen,
+          ),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              'Government Approved Valuers',
+              style: GoogleFonts.montserrat(
+                fontSize: isCompact ? 11.0 : 12.5,
+                fontWeight: FontWeight.w700,
+                color: LandingTheme.brandGreen,
+                letterSpacing: -0.1,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
-/// Consolidated "Certified By" Trust Band placed directly beneath the hero section.
-/// Wraps into a horizontal swipeable scroll view on mobile to eliminate page overflow.
-class _CertifiedByTrustBand extends StatelessWidget {
-  final bool isDesktop;
+/// Subtle Institutional Trust Strip (Executive Masthead Ribbon)
+class _HeroTrustStrip extends StatelessWidget {
+  final bool isNarrow;
+  final bool isCompact;
 
-  const _CertifiedByTrustBand({
-    required this.isDesktop,
+  const _HeroTrustStrip({
+    required this.isNarrow,
+    required this.isCompact,
   });
 
   @override
   Widget build(BuildContext context) {
-    final List<Map<String, String>> credentials = [
-      {'title': 'IBBI Registered Valuers', 'subtitle': 'Insolvency & Bankruptcy Board of India'},
-      {'title': 'Government Approved Valuers', 'subtitle': 'Wealth Tax & Capital Gains Mandates'},
-      {'title': 'Section 247 Compliant', 'subtitle': 'Companies Act Statutory Valuation'},
-      {'title': 'PSU & Private Bank Panels', 'subtitle': 'SBI, PNB, BoB, Canara & Leading NBFCs'},
-    ];
-
-    final Widget content = Row(
-      mainAxisSize: isDesktop ? MainAxisSize.max : MainAxisSize.min,
-      mainAxisAlignment: isDesktop ? MainAxisAlignment.spaceEvenly : MainAxisAlignment.start,
-      children: [
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-          decoration: BoxDecoration(
-            color: const Color(0xFF143D3D).withValues(alpha: 0.08),
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(color: const Color(0xFF143D3D).withValues(alpha: 0.2)),
-          ),
-          child: Text(
-            'CERTIFIED BY',
-            style: GoogleFonts.montserrat(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w800,
-              letterSpacing: 0.8,
-              color: const Color(0xFF143D3D), // Strict #143D3D override
-            ),
-          ),
+    final double fontSize = isNarrow ? 10.5 : (isCompact ? 11.5 : 12.5);
+    final TextStyle itemStyle = GoogleFonts.montserrat(
+      fontSize: fontSize,
+      fontWeight: FontWeight.w600,
+      color: const Color(0xFF334155), // Slate-700 executive tone
+      letterSpacing: -0.1,
+    );
+    final TextStyle strongStyle = GoogleFonts.montserrat(
+      fontSize: fontSize,
+      fontWeight: FontWeight.w700,
+      color: LandingTheme.textPrimary,
+      letterSpacing: -0.1,
+    );
+    const Widget bullet = Padding(
+      padding: EdgeInsets.symmetric(horizontal: 7),
+      child: Text(
+        '•',
+        style: TextStyle(
+          fontSize: 12,
+          color: Color(0xFF94A3B8), // Slate-400 subtle bullet
+          fontWeight: FontWeight.w800,
         ),
-        const SizedBox(width: 14),
-        ...credentials.asMap().entries.map((entry) {
-          final int idx = entry.key;
-          final Map<String, String> cred = entry.value;
-          return Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (idx > 0)
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 12),
-                  width: 1,
-                  height: 18,
-                  color: const Color(0xFFCBD5E1),
-                ),
-              const Icon(
-                Icons.verified_rounded,
-                size: 15,
-                color: Color(0xFF143D3D), // Strict #143D3D override
-              ),
-              const SizedBox(width: 6),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    cred['title']!,
-                    style: GoogleFonts.montserrat(
-                      fontSize: 12.0,
-                      fontWeight: FontWeight.w700,
-                      color: const Color(0xFF1E293B),
-                      letterSpacing: -0.1,
-                    ),
-                  ),
-                  Text(
-                    cred['subtitle']!,
-                    style: GoogleFonts.montserrat(
-                      fontSize: 10.0,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF64748B),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          );
-        }),
-      ],
+      ),
     );
 
-    return Container(
-      width: double.infinity,
-      decoration: const BoxDecoration(
-        color: Color(0xFFF8FAFC),
-        border: Border(
-          top: BorderSide(color: Color(0xFFE2E8F0)),
-          bottom: BorderSide(color: Color(0xFFE2E8F0)),
-        ),
-      ),
-      padding: EdgeInsets.symmetric(
-        horizontal: isDesktop ? 40 : 16,
-        vertical: 12,
-      ),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1320),
-          child: isDesktop
-              ? content
-              : SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  child: content,
-                ),
-        ),
+    if (isNarrow) {
+      // Mobile trust strip — Tier 1 (Volume: ₹15k+ Cr) • Tier 2 (Banking: PSU & Private Banks)
+      // Tier 3 (Statutory: IBBI Registered Valuers) • Tier 4 (Reach: PAN India Coverage)
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('₹15,000+ Cr Valued', style: strongStyle),
+                bullet,
+                Text('PSU & Private Banks', style: strongStyle),
+              ],
+            ),
+          ),
+          const SizedBox(height: 3.5),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text('IBBI Registered Valuers', style: itemStyle),
+                bullet,
+                Text('PAN India Coverage', style: itemStyle),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
+    // Desktop trust strip — Tier 1 (Volume) • Tier 2 (Banking) • Tier 3 (Statutory) • Tier 4 (Reach)
+    return FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text('₹15,000+ Cr Valued', style: strongStyle),
+          bullet,
+          Text('PSU & Private Banks', style: strongStyle),
+          bullet,
+          Text('IBBI Registered Valuers', style: itemStyle),
+          bullet,
+          Text('PAN India Coverage', style: itemStyle),
+        ],
       ),
     );
   }
 }
 
+/// Symmetrical Hero Phone Pill with Smooth Hover Transition
+class _HeroPhonePill extends StatefulWidget {
+  final bool isCompactLaptop;
 
-/// Interactive Vertical Accordion / Stacked Expandable List
-/// Replaces the old auto-rotating carousel with user-driven exploration of 4 core practice areas.
-/// Features a min 52px tap target and smooth 300ms easeInOut AnimatedSize transition.
-class _InteractiveHeroAccordion extends StatefulWidget {
-  const _InteractiveHeroAccordion();
+  const _HeroPhonePill({required this.isCompactLaptop});
 
   @override
-  State<_InteractiveHeroAccordion> createState() => _InteractiveHeroAccordionState();
+  State<_HeroPhonePill> createState() => _HeroPhonePillState();
 }
 
-class _InteractiveHeroAccordionState extends State<_InteractiveHeroAccordion> {
-  int _expandedIndex = 0;
-
-  static const List<_AccordionItemData> _items = [
-    _AccordionItemData(
-      number: '01',
-      title: 'Banking & Secured Lending',
-      subtitle: 'SARFAESI & Consortium Appraisals',
-      description:
-          'Lender-compliant valuation for SARFAESI, mortgage underwriting, consortium lending, and stressed asset resolution across 40+ scheduled commercial banks and leading NBFCs.',
-      statLabel: 'Mandates Completed',
-      statValue: '850+ Banking Reports',
-      icon: Icons.account_balance_rounded,
-    ),
-    _AccordionItemData(
-      number: '02',
-      title: 'Corporate & M&A Valuation',
-      subtitle: 'Ind AS / IFRS & Tax Statutory Reports',
-      description:
-          'Fair value determinations, purchase price allocation, business enterprise appraisal, ESOPs, and regulatory filings under FEMA, Income Tax, and Companies Act.',
-      statLabel: 'Corporate Portfolio',
-      statValue: '₹8,200+ Cr Enterprise Value',
-      icon: Icons.business_center_rounded,
-    ),
-    _AccordionItemData(
-      number: '03',
-      title: 'IBC & NCLT Insolvency',
-      subtitle: 'Section 247 & CIRP Determinations',
-      description:
-          'Statutory liquidation and fair value determination under Insolvency and Bankruptcy Code (IBC 2016) regulations for Resolution Professionals and Committee of Creditors.',
-      statLabel: 'IBC Mandates',
-      statValue: '120+ CIRP Valuations',
-      icon: Icons.gavel_rounded,
-    ),
-    _AccordionItemData(
-      number: '04',
-      title: 'Plant, Machinery & Infrastructure',
-      subtitle: 'Technical & Residual Life Audits',
-      description:
-          'Technical physical inspections, residual life analysis, replacement cost calculations, and specialized industrial equipment appraisals across India.',
-      statLabel: 'Industrial Assets',
-      statValue: '₹4,500+ Cr Industrial Plant',
-      icon: Icons.precision_manufacturing_rounded,
-    ),
-  ];
+class _HeroPhonePillState extends State<_HeroPhonePill> {
+  bool _isHovered = false;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE2E8F0)),
-        boxShadow: const [
-          BoxShadow(
-            color: Color(0x0A0F172A),
-            blurRadius: 16,
-            offset: Offset(0, 4),
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: () async {
+          AnalyticsService.logPhoneClicked(
+            phoneNumber: '+918500019091',
+            serviceType: 'LANDING_HERO',
+            pageUrl: Uri.base.toString(),
+          );
+          final uri = Uri.parse('tel:+918500019091');
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri);
+          }
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: EdgeInsets.symmetric(
+            horizontal: widget.isCompactLaptop ? 20 : 24,
+            vertical: widget.isCompactLaptop ? 13 : 16,
           ),
-        ],
-      ),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Header banner
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            decoration: const BoxDecoration(
-              color: Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.vertical(top: Radius.circular(11)),
-              border: Border(
-                bottom: BorderSide(color: Color(0xFFE2E8F0)),
-              ),
+          decoration: BoxDecoration(
+            border: Border.all(
+              color: LandingTheme.brandGreen.withValues(alpha: 0.3),
+              width: 1,
             ),
+            borderRadius: BorderRadius.circular(100),
+            color: _isHovered
+                ? LandingTheme.brandGreen.withValues(alpha: 0.05)
+                : Colors.transparent,
+          ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
             child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Container(
-                  width: 8,
-                  height: 8,
-                  decoration: const BoxDecoration(
-                    color: Color(0xFF143D3D), // Strict #143D3D override
-                    shape: BoxShape.circle,
-                  ),
+                const FaIcon(
+                  FontAwesomeIcons.phone,
+                  color: LandingTheme.brandGreen,
+                  size: 15,
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'VALUATION PRACTICE AREAS',
+                  '+91 85000 19091',
                   style: GoogleFonts.montserrat(
-                    fontSize: 11.0,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF64748B),
-                    letterSpacing: 0.8,
-                  ),
-                ),
-                const Spacer(),
-                Text(
-                  'Select practice to explore',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 10.5,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF94A3B8),
+                    fontSize: widget.isCompactLaptop ? 13.5 : 14.5,
+                    fontWeight: FontWeight.w600,
+                    color: LandingTheme.brandGreen,
+                    letterSpacing: -0.2,
                   ),
                 ),
               ],
             ),
           ),
-          // Accordion items
-          ListView.separated(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            padding: EdgeInsets.zero,
-            itemCount: _items.length,
-            separatorBuilder: (_, __) => const Divider(
-              height: 1,
-              thickness: 1,
-              color: Color(0xFFF1F5F9),
-            ),
-            itemBuilder: (context, index) {
-              final item = _items[index];
-              final bool isExpanded = _expandedIndex == index;
-
-              return _buildAccordionTile(item, index, isExpanded);
-            },
-          ),
-        ],
+        ),
       ),
     );
   }
+}
 
-  Widget _buildAccordionTile(_AccordionItemData item, int index, bool isExpanded) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Clickable Header with guaranteed >= 48px tap target
-        Material(
-          color: isExpanded ? const Color(0xFFF8FAFC) : Colors.white,
-          child: InkWell(
-            onTap: () {
-              setState(() {
-                _expandedIndex = isExpanded ? -1 : index;
-              });
-            },
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(minHeight: 52), // Strict tap target requirement
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                child: Row(
-                  children: [
-                    // Item index number with #143D3D active indicator
-                    Container(
-                      width: 26,
-                      height: 26,
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: isExpanded
-                            ? const Color(0xFF143D3D) // Strict #143D3D override
-                            : const Color(0xFFF1F5F9),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        item.number,
-                        style: GoogleFonts.montserrat(
-                          fontSize: 11.5,
-                          fontWeight: FontWeight.w700,
-                          color: isExpanded ? Colors.white : const Color(0xFF64748B),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            item.title,
-                            style: GoogleFonts.montserrat(
-                              fontSize: 13.5,
-                              fontWeight: isExpanded ? FontWeight.w700 : FontWeight.w600,
-                              color: isExpanded
-                                  ? const Color(0xFF143D3D) // Strict #143D3D override
-                                  : const Color(0xFF1E293B),
-                              letterSpacing: -0.2,
-                            ),
-                          ),
-                          if (!isExpanded)
-                            Text(
-                              item.subtitle,
-                              style: GoogleFonts.montserrat(
-                                fontSize: 11.0,
-                                fontWeight: FontWeight.w400,
-                                color: const Color(0xFF64748B),
-                              ),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                        ],
-                      ),
-                    ),
-                    AnimatedRotation(
-                      turns: isExpanded ? 0.5 : 0.0,
-                      duration: const Duration(milliseconds: 300),
-                      curve: Curves.easeInOut,
-                      child: Icon(
-                        Icons.keyboard_arrow_down_rounded,
-                        color: isExpanded
-                            ? const Color(0xFF143D3D) // Strict #143D3D override
-                            : const Color(0xFF94A3B8),
-                        size: 20,
-                      ),
-                    ),
-                  ],
-                ),
+// ═══════════════════════════════════════════════════════════════════════════════
+// VALUATION EXPERTISE — EXECUTIVE CAPABILITY CARD SYSTEM
+// ═══════════════════════════════════════════════════════════════════════════════
+
+class _ExecutiveCapabilityCardData {
+  final String id;
+  final String practiceArea;
+  final String capability;
+  final String clientType;
+
+  const _ExecutiveCapabilityCardData({
+    required this.id,
+    required this.practiceArea,
+    required this.capability,
+    required this.clientType,
+  });
+}
+
+const List<_ExecutiveCapabilityCardData> _capabilityCards = [
+  _ExecutiveCapabilityCardData(
+    id: '01',
+    practiceArea: 'BANKING',
+    capability: 'Collateral & Security Valuation',
+    clientType: 'For PSU & Private Banks',
+  ),
+  _ExecutiveCapabilityCardData(
+    id: '02',
+    practiceArea: 'CORPORATE',
+    capability: 'Share Valuation &\nNet Worth Certification',
+    clientType: 'For Corporates & Investors',
+  ),
+  _ExecutiveCapabilityCardData(
+    id: '03',
+    practiceArea: 'REGULATORY',
+    capability: 'NCLT & IBC\nValuation Support',
+    clientType: 'For Resolution Professionals',
+  ),
+  _ExecutiveCapabilityCardData(
+    id: '04',
+    practiceArea: 'TECHNICAL',
+    capability: 'Plant & Machinery\nTechnical Certification',
+    clientType: 'For Industry & Engineering Assets',
+  ),
+];
+
+class _PracticeAreaSpotlight extends StatefulWidget {
+  final bool isCompact;
+  final bool isVideoPlaying;
+  final bool isCompleted;
+  final VoidCallback? onDeckSettled;
+
+  const _PracticeAreaSpotlight({
+    required this.isCompact,
+    required this.isVideoPlaying,
+    required this.isCompleted,
+    this.onDeckSettled,
+  });
+
+  @override
+  State<_PracticeAreaSpotlight> createState() => _PracticeAreaSpotlightState();
+}
+
+class _PracticeAreaSpotlightState extends State<_PracticeAreaSpotlight> {
+  int _currentIndex = 0;
+  Timer? _rotationTimer;
+  bool _hasTriggeredSettled = false;
+  bool _isHovered = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!widget.isVideoPlaying) {
+      _startRotation();
+    }
+  }
+
+  void _startRotation() {
+    _rotationTimer?.cancel();
+    _rotationTimer = Timer.periodic(const Duration(milliseconds: 3500), (timer) {
+      if (!mounted) return;
+      if (_isHovered) return;
+
+      setState(() {
+        final nextIndex = (_currentIndex + 1) % _capabilityCards.length;
+        if (nextIndex == 0) {
+          // Completed full cycle of 4 capability cards (01 -> 02 -> 03 -> 04)
+          if (!_hasTriggeredSettled) {
+            _hasTriggeredSettled = true;
+            widget.onDeckSettled?.call();
+          }
+        }
+        _currentIndex = nextIndex;
+      });
+    });
+  }
+
+  void _stopRotation() {
+    _rotationTimer?.cancel();
+    _rotationTimer = null;
+  }
+
+  void _resetTimer() {
+    _stopRotation();
+    _startRotation();
+  }
+
+  @override
+  void didUpdateWidget(covariant _PracticeAreaSpotlight oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.isVideoPlaying && !widget.isVideoPlaying) {
+      // Returning to Reading Mode from Video Mode:
+      _hasTriggeredSettled = false;
+      _currentIndex = 0;
+      _startRotation();
+    } else if (!oldWidget.isVideoPlaying && widget.isVideoPlaying) {
+      // Entering Video Mode:
+      _stopRotation();
+    }
+  }
+
+  @override
+  void dispose() {
+    _stopRotation();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final card = _capabilityCards[_currentIndex];
+    final bool isCompact = widget.isCompact;
+
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // ── TOP PERMANENT FIXED HEADER TILE (#0F172A, #FFFFFF text, brand green dot, SINGLE LINE) ────
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+              horizontal: isCompact ? 16 : 20,
+              vertical: isCompact ? 10.5 : 12.5,
+            ),
+            decoration: const BoxDecoration(
+              color: Color(0xFF0F172A),
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(6),
+                topRight: Radius.circular(6),
               ),
             ),
+            child: Row(
+              children: [
+                Container(
+                  width: 7,
+                  height: 7,
+                  decoration: const BoxDecoration(
+                    color: LandingTheme.brandGreen, // Exact unified brand green token
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 9),
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      'VALUATION EXPERTISE',
+                      style: GoogleFonts.montserrat(
+                        fontSize: isCompact ? 11.5 : 12.5,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFFFFFFFF),
+                        letterSpacing: 1.4,
+                      ),
+                      maxLines: 1,
+                      softWrap: false,
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
-        ),
-        // Animated Size for smooth expansion
-        AnimatedSize(
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeInOut,
-          child: isExpanded
-              ? Container(
-                  width: double.infinity,
-                  color: const Color(0xFFF8FAFC),
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.description,
-                        style: GoogleFonts.montserrat(
-                          fontSize: 12.0,
-                          fontWeight: FontWeight.w400,
-                          color: const Color(0xFF475569),
-                          height: 1.5,
+
+          const SizedBox(height: 1.5), // Hairline spacing between header and card
+
+          // ── ROTATING EXECUTIVE CAPABILITY CARD ────────────────────────────────────
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(
+              horizontal: isCompact ? 18 : 22,
+              vertical: isCompact ? 14 : 16.5,
+            ),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              border: Border.all(
+                color: const Color(0xFFE2E8F0),
+                width: 1.0,
+              ),
+              borderRadius: const BorderRadius.only(
+                bottomLeft: Radius.circular(6),
+                bottomRight: Radius.circular(6),
+              ),
+              boxShadow: const [
+                BoxShadow(
+                  color: Color(0x0A0F172A),
+                  blurRadius: 14,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Animated Switcher: card fades out and slides upward, new card enters and settles
+                // Wrapped in an opaque surface to eliminate ALL ghosted background text
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 380),
+                  switchInCurve: Curves.easeOutCubic,
+                  switchOutCurve: Curves.easeInCubic,
+                  layoutBuilder: (currentChild, previousChildren) {
+                    return Stack(
+                      alignment: Alignment.topLeft,
+                      children: <Widget>[
+                        ...previousChildren,
+                        if (currentChild != null) currentChild,
+                      ],
+                    );
+                  },
+                  transitionBuilder: (child, animation) {
+                    final bool isIncoming = child.key == ValueKey<int>(_currentIndex);
+                    return FadeTransition(
+                      opacity: animation,
+                      child: SlideTransition(
+                        position: isIncoming
+                            ? Tween<Offset>(
+                                begin: const Offset(0.0, 0.08),
+                                end: Offset.zero,
+                              ).animate(CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeOutCubic,
+                              ))
+                            : Tween<Offset>(
+                                begin: const Offset(0.0, -0.08),
+                                end: Offset.zero,
+                              ).animate(CurvedAnimation(
+                                parent: animation,
+                                curve: Curves.easeInCubic,
+                              )),
+                        child: Container(
+                          color: const Color(0xFFF8FAFC), // Opaque background eliminates ghosting
+                          child: child,
                         ),
                       ),
-                      const SizedBox(height: 10),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.verified_rounded,
-                              size: 13,
-                              color: Color(0xFF143D3D), // Strict #143D3D override
+                    );
+                  },
+                  child: KeyedSubtree(
+                    key: ValueKey<int>(_currentIndex),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        // Standalone Primary Counter Row (Sole Progression Indicator)
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            '${card.id} / 04',
+                            style: GoogleFonts.montserrat(
+                              fontSize: isCompact ? 13.0 : 14.5,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFF0F172A),
+                              letterSpacing: 0.8,
                             ),
-                            const SizedBox(width: 6),
-                            Text(
-                              '${item.statLabel}: ',
-                              style: GoogleFonts.montserrat(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w600,
-                                color: const Color(0xFF64748B),
+                          ),
+                        ),
+
+                        SizedBox(height: isCompact ? 9 : 11),
+
+                        // Tier 1: Practice Area (Large, Strong, Dominant)
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Container(
+                              width: 4,
+                              height: isCompact ? 22 : 26,
+                              decoration: BoxDecoration(
+                                color: LandingTheme.brandGreen,
+                                borderRadius: BorderRadius.circular(2),
                               ),
                             ),
-                            Text(
-                              item.statValue,
-                              style: GoogleFonts.montserrat(
-                                fontSize: 10.5,
-                                fontWeight: FontWeight.w700,
-                                color: const Color(0xFF143D3D), // Strict #143D3D override
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                alignment: Alignment.centerLeft,
+                                child: Text(
+                                  card.practiceArea,
+                                  style: GoogleFonts.montserrat(
+                                    fontSize: isCompact ? 22.0 : 26.0,
+                                    fontWeight: FontWeight.w900,
+                                    color: const Color(0xFF0F172A),
+                                    letterSpacing: 0.8,
+                                  ),
+                                  maxLines: 1,
+                                  softWrap: false,
+                                ),
                               ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
+
+                        // Hairline Divider
+                        Container(
+                          height: 1,
+                          color: const Color(0xFFE2E8F0),
+                          margin: EdgeInsets.symmetric(vertical: isCompact ? 7.5 : 8.5),
+                        ),
+
+                        // Tier 2: Core Capability Statement (+10% prominence: 23.5px / 20.0px)
+                        SizedBox(
+                          height: isCompact ? 52 : 58,
+                          child: Align(
+                            alignment: Alignment.centerLeft,
+                            child: FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                card.capability,
+                                style: GoogleFonts.montserrat(
+                                  fontSize: isCompact ? 20.0 : 23.5,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF0F172A),
+                                  letterSpacing: -0.4,
+                                  height: 1.25,
+                                ),
+                                maxLines: 2,
+                                softWrap: true,
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        SizedBox(height: isCompact ? 7.5 : 8.5),
+
+                        // Tier 3: Client Type Supporting Line
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.arrow_forward_rounded,
+                              size: 13,
+                              color: LandingTheme.brandGreen,
+                            ),
+                            const SizedBox(width: 7),
+                            Expanded(
+                              child: Text(
+                                card.clientType,
+                                style: GoogleFonts.montserrat(
+                                  fontSize: isCompact ? 12.0 : 13.0,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF64748B),
+                                  letterSpacing: -0.2,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                )
-              : const SizedBox.shrink(),
-        ),
-      ],
+                ),
+
+                SizedBox(height: isCompact ? 11 : 12.5),
+
+                // ── PROGRESS RAIL (SUBTLE SECONDARY CUE, 2.0PX HEIGHT) ─────────────────
+                Row(
+                  children: List.generate(_capabilityCards.length, (index) {
+                    final bool isActive = index == _currentIndex;
+                    return Expanded(
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          setState(() {
+                            _currentIndex = index;
+                          });
+                          _resetTimer();
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 2.0, vertical: 3.0),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 250),
+                            height: 2.0,
+                            decoration: BoxDecoration(
+                              color: isActive ? LandingTheme.brandGreen : const Color(0xFFE2E8F0),
+                              borderRadius: BorderRadius.circular(1.0),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
-}
-
-class _AccordionItemData {
-  final String number;
-  final String title;
-  final String subtitle;
-  final String description;
-  final String statLabel;
-  final String statValue;
-  final IconData icon;
-
-  const _AccordionItemData({
-    required this.number,
-    required this.title,
-    required this.subtitle,
-    required this.description,
-    required this.statLabel,
-    required this.statValue,
-    required this.icon,
-  });
 }
 
 
