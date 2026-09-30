@@ -8,6 +8,39 @@ import 'package:google_fonts/google_fonts.dart';
 class LandingTheme {
   LandingTheme._();
 
+  // ── Unified Responsive Tokens & Grid ───────────────────────────────────────
+  static const double tabletBreakpoint = 768.0;
+  static const double compactDesktopBreakpoint = 1050.0; // desktopBreakpoint - 50px
+  static const double desktopBreakpoint = 1100.0;
+  static const double wideDesktopBreakpoint = 1600.0;
+  static const double maxContentWidth = 1280.0;
+
+  /// DPI-aware desktop detection:
+  /// Evaluates true for screens >= 1100px OR compact desktop viewports (1050px - 1099px)
+  /// such as 1366x768 Windows laptop displays running at 125% DPI scaling (~1093 logical px)
+  /// while preserving proper tablet layout for true tablet devices (e.g. 2.0x Retina iPads).
+  static bool isDesktop(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final double width = mediaQuery.size.width;
+    if (width >= desktopBreakpoint) return true;
+
+    if (width >= compactDesktopBreakpoint) {
+      // Scaled Windows laptops report dpr in 1.15..1.50 range. Actual tablets (e.g. Retina iPads)
+      // report dpr >= 2.0.
+      if (mediaQuery.devicePixelRatio < 1.85) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /// Determines whether the screen qualifies as a tablet (768px up to desktop).
+  static bool isTablet(BuildContext context) {
+    if (isDesktop(context)) return false;
+    final double width = MediaQuery.of(context).size.width;
+    return width >= tabletBreakpoint;
+  }
+
   // ── Pure White & Monochromatic Pearl Foundation ────────────────────────────
   static const Color primaryBg = Color(0xFFFFFFFF); // Pure White Base
   static const Color secondaryBg = Color(0xFFF8FAFC); // Pearl Slate Ambient

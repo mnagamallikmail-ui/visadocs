@@ -18,7 +18,7 @@ class LandingPage extends StatefulWidget {
 class _LandingPageState extends State<LandingPage> {
   final _scrollController = ScrollController();
   final _scaffoldKey = GlobalKey<ScaffoldState>();
-  bool _isScrolled = false;
+  final ValueNotifier<bool> _isScrolledNotifier = ValueNotifier<bool>(false);
 
   static const String _waUrl = "https://wa.me/918500880333";
 
@@ -30,7 +30,9 @@ class _LandingPageState extends State<LandingPage> {
 
   void _onScroll() {
     final scrolled = _scrollController.offset > 40;
-    if (scrolled != _isScrolled) setState(() => _isScrolled = scrolled);
+    if (scrolled != _isScrolledNotifier.value) {
+      _isScrolledNotifier.value = scrolled;
+    }
   }
 
   Future<void> _launchWhatsApp(String message) async {
@@ -49,14 +51,14 @@ class _LandingPageState extends State<LandingPage> {
   @override
   void dispose() {
     _scrollController.dispose();
+    _isScrolledNotifier.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final w = MediaQuery.of(context).size.width;
-    final isDesktop = w >= 1100;
-    final isTablet = w >= 700 && w < 1100;
+    final isDesktop = LandingTheme.isDesktop(context);
+    final isTablet = LandingTheme.isTablet(context);
 
     return Scaffold(
       key: _scaffoldKey,
@@ -70,7 +72,7 @@ class _LandingPageState extends State<LandingPage> {
             child: Column(
               children: [
                 const SizedBox(height: 16), // Minimized clearance for floating header (elevating Hero higher above fold)
-                // 1. Hero Section (50% Left / 50% Right Apple Vision Pro Layout)
+                // 1. Hero Section (Balanced Layout with Fluid Viewport Sizing)
                 HeroSection(
                   isDesktop: isDesktop,
                   launchWhatsApp: _launchWhatsApp,
@@ -106,11 +108,16 @@ class _LandingPageState extends State<LandingPage> {
             top: 0,
             left: 0,
             right: 0,
-            child: LandingHeader(
-              isDesktop: isDesktop,
-              isScrolled: _isScrolled,
-              launchWhatsApp: _launchWhatsApp,
-              onMenuTap: () => _scaffoldKey.currentState?.openEndDrawer(),
+            child: ValueListenableBuilder<bool>(
+              valueListenable: _isScrolledNotifier,
+              builder: (context, isScrolled, _) {
+                return LandingHeader(
+                  isDesktop: isDesktop,
+                  isScrolled: isScrolled,
+                  launchWhatsApp: _launchWhatsApp,
+                  onMenuTap: () => _scaffoldKey.currentState?.openEndDrawer(),
+                );
+              },
             ),
           ),
           // ── Persistent Sticky Floating Action Button ──────────────────────

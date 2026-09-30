@@ -59,20 +59,27 @@
 
   <!-- Open Graph / Facebook / LinkedIn / WhatsApp -->
   <meta property="og:type" content="website">
+  <meta property="og:locale" content="en_IN">
   <meta property="og:url" content="https://www.provaluer.in/">
   <meta property="og:title" content="Pro Valuer | ProValuer Commercial — IBBI Registered Valuers & Asset Intelligence">
   <meta property="og:description" content="Govt. Approved & IBBI Registered Valuers providing bank collateral, corporate equity, NCLT/IBC resolution, and plant & machinery technical valuation reports across India.">
   <meta property="og:image" content="https://www.provaluer.in/icons/Icon-512.png">
+  <meta property="og:image:secure_url" content="https://www.provaluer.in/icons/Icon-512.png">
+  <meta property="og:image:type" content="image/png">
   <meta property="og:image:width" content="512">
   <meta property="og:image:height" content="512">
+  <meta property="og:image:alt" content="ProValuer Commercial — IBBI Registered Valuers & Asset Intelligence">
   <meta property="og:site_name" content="Pro Valuer Commercial">
 
   <!-- Twitter Card Tags -->
   <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@provaluer">
+  <meta name="twitter:creator" content="@provaluer">
   <meta name="twitter:url" content="https://www.provaluer.in/">
   <meta name="twitter:title" content="Pro Valuer | ProValuer Commercial — IBBI Registered Valuers & Asset Intelligence">
   <meta name="twitter:description" content="Govt. Approved & IBBI Registered Valuers providing bank collateral, corporate equity, NCLT/IBC resolution, and plant & machinery technical valuation reports across India.">
   <meta name="twitter:image" content="https://www.provaluer.in/icons/Icon-512.png">
+  <meta name="twitter:image:alt" content="ProValuer Commercial — IBBI Registered Valuers & Asset Intelligence">
 
   <!-- iOS & PWA Settings -->
   <meta name="mobile-web-app-capable" content="yes">
@@ -84,10 +91,15 @@
   <link rel="icon" type="image/png" href="favicon.png"/>
   <link rel="manifest" href="manifest.json">
 
-  <!-- Preconnect External Fonts -->
+  <!-- Performance Optimization: DNS Prefetch & Font Preconnect -->
+  <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+  <link rel="dns-prefetch" href="https://fonts.gstatic.com">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&family=Noto+Color+Emoji&family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Sans+Symbols+2&family=Noto+Sans+Symbols:wght@400;700&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+
+  <!-- Core Web Vitals (LCP) Optimization: High Priority Preload for Initial Hero Visual -->
+  <link rel="preload" as="image" type="image/webp" href="assets/assets/images/hero/land_valuation.webp" fetchpriority="high">
 
   <!-- Microsoft Clarity Integration Hook -->
   <script>
@@ -102,7 +114,7 @@
     }
   </script>
 
-  <!-- Structured Data: WebSite, Organization, FinancialService, FAQPage (JSON-LD) -->
+  <!-- Structured Data: WebSite, Organization, LocalBusiness, FinancialService, FAQPage (JSON-LD) -->
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -133,13 +145,26 @@
         ],
         "legalName": "ProValuer Commercial Valuation & Advisory Services",
         "url": "https://www.provaluer.in/",
-        "logo": "https://www.provaluer.in/icons/Icon-512.png",
+        "logo": {
+          "@type": "ImageObject",
+          "url": "https://www.provaluer.in/icons/Icon-512.png",
+          "width": 512,
+          "height": 512
+        },
         "description": "Government Approved & IBBI Registered Valuers providing institutional valuation, banking collateral appraisal, and technical asset intelligence across India.",
         "telephone": "+918500019091",
         "email": "contact@provaluer.in",
         "address": {
           "@type": "PostalAddress",
           "addressCountry": "IN"
+        },
+        "contactPoint": {
+          "@type": "ContactPoint",
+          "telephone": "+918500019091",
+          "contactType": "customer service",
+          "email": "contact@provaluer.in",
+          "areaServed": "IN",
+          "availableLanguage": ["English", "Hindi"]
         },
         "knowsAbout": [
           "IBBI Registered Valuation",
@@ -154,15 +179,43 @@
         ]
       },
       {
-        "@type": "FinancialService",
-        "@id": "https://www.provaluer.in/#financialService",
-        "name": "ProValuer Commercial Asset Intelligence",
+        "@type": ["LocalBusiness", "FinancialService"],
+        "@id": "https://www.provaluer.in/#localBusiness",
+        "name": "ProValuer Commercial — IBBI Registered Valuers",
+        "image": "https://www.provaluer.in/icons/Icon-512.png",
         "parentOrganization": {
           "@id": "https://www.provaluer.in/#organization"
         },
         "url": "https://www.provaluer.in/",
+        "telephone": "+918500019091",
+        "email": "contact@provaluer.in",
+        "priceRange": "₹₹₹",
+        "currenciesAccepted": "INR",
+        "paymentAccepted": "Bank Transfer, NEFT/RTGS, Cheque",
+        "address": {
+          "@type": "PostalAddress",
+          "addressCountry": "IN",
+          "addressRegion": "India",
+          "addressLocality": "Hyderabad / Pan-India Practice"
+        },
+        "geo": {
+          "@type": "GeoCoordinates",
+          "latitude": 17.3850,
+          "longitude": 78.4867
+        },
+        "openingHoursSpecification": [
+          {
+            "@type": "OpeningHoursSpecification",
+            "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"],
+            "opens": "09:00",
+            "closes": "19:00"
+          }
+        ],
         "serviceType": "Independent Asset Valuation & Advisory",
-        "areaServed": "India",
+        "areaServed": {
+          "@type": "Country",
+          "name": "India"
+        },
         "hasOfferCatalog": {
           "@type": "OfferCatalog",
           "name": "Institutional Valuation Services",
@@ -224,10 +277,34 @@
           },
           {
             "@type": "Question",
+            "name": "Why is an IBBI Registered Valuer mandatory for corporate transactions in India?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Under Section 247 of the Companies Act, 2013, any valuation required under the Act—including mergers, acquisitions, preferential share allotments, buybacks, or insolvency proceedings—must be conducted solely by a Registered Valuer registered with the Insolvency and Bankruptcy Board of India (IBBI)."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How does ProValuer defend valuations against Section 56(2)(viib) Angel Tax additions?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "ProValuer Commercial prepares comprehensive Fair Market Value reports under Rule 11UA of the Income Tax Rules using the Discounted Cash Flow (DCF) method, providing defensible financial modeling that withstands income tax scrutiny."
+            }
+          },
+          {
+            "@type": "Question",
             "name": "What is the typical turnaround time for an institutional valuation report?",
             "acceptedAnswer": {
               "@type": "Answer",
-              "text": "Turnaround times range between 3 to 7 business days depending on asset complexity, statutory site inspection requirements, and documentation completeness."
+              "text": "Turnaround times range between 3 to 7 business days depending on asset complexity, statutory site inspection requirements, and documentation completeness. Urgent mandates can be expedited."
+            }
+          },
+          {
+            "@type": "Question",
+            "name": "How can an institution engage Pro Valuer for valuation mandates?",
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": "Institutions can connect directly via https://www.provaluer.in/, telephone at +91 85000 19091, or email at contact@provaluer.in."
             }
           }
         ]

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:visibility_detector/visibility_detector.dart';
 
 import 'landing_theme.dart';
 import 'widgets/commercial_intake_modal.dart';
@@ -150,7 +151,9 @@ class LandingHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double horizontalPadding = isDesktop ? 60 : 20;
+    final double screenW = MediaQuery.of(context).size.width;
+    final double horizontalPadding = isDesktop ? (screenW < 1440 ? 40 : 60) : 20;
+    final double linkSpacing = screenW >= LandingTheme.wideDesktopBreakpoint ? 30.0 : 22.0;
 
     return Padding(
       padding: EdgeInsets.symmetric(
@@ -159,7 +162,7 @@ class LandingHeader extends StatelessWidget {
       ),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1240),
+          constraints: const BoxConstraints(maxWidth: LandingTheme.maxContentWidth),
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(100),
@@ -249,13 +252,13 @@ class LandingHeader extends StatelessWidget {
                       // Desktop Navigation Items
                       if (isDesktop) ...[
                         _HeaderLink(label: 'Services', onTap: () => _scrollTo('services')),
-                        const SizedBox(width: 28),
+                        SizedBox(width: linkSpacing),
                         _HeaderLink(label: 'Why Pro Valuer', onTap: () => _scrollTo('why-pro-valuer')),
-                        const SizedBox(width: 28),
+                        SizedBox(width: linkSpacing),
                         _HeaderLink(label: 'Process', onTap: () => _scrollTo('process')),
-                        const SizedBox(width: 28),
+                        SizedBox(width: linkSpacing),
                         _HeaderLink(label: 'Credentials', onTap: () => _scrollTo('credentials')),
-                        const SizedBox(width: 24),
+                        SizedBox(width: linkSpacing),
 
                         // Compact Client Login Icon Button (Secondary Action)
                         const _HeaderClientLoginButton(),
@@ -430,18 +433,18 @@ class _HeroSectionState extends State<HeroSection> {
   Widget build(BuildContext context) {
     final double screenH = MediaQuery.of(context).size.height;
     final double screenW = MediaQuery.of(context).size.width;
-    final bool isDesktop = screenW >= 1024;
-    final bool isTablet = screenW >= 768 && screenW < 1024;
-    final bool isCompactLaptop = isDesktop && (screenH < 850 || screenW < 1440);
+    final bool isDesktop = widget.isDesktop;
+    final bool isTablet = LandingTheme.isTablet(context);
+    final bool isCompactDesktop = isDesktop && (screenH < 900 || screenW < 1440);
 
-    // Target 95vh-100vh hero height for an expansive, spacious editorial feel
-    final double targetMinH = isDesktop
-        ? (screenH * 0.96).clamp(760.0, 1150.0)
-        : (screenH * 0.90).clamp(580.0, 850.0);
+    // Fluid hero sizing without rigid minimum clamps that force scrolling
+    final double? targetMinH = isDesktop
+        ? (screenH >= 900 ? screenH * 0.88 : screenH * 0.82)
+        : null;
 
     return Container(
       width: double.infinity,
-      constraints: isDesktop ? BoxConstraints(minHeight: targetMinH) : null,
+      constraints: targetMinH != null ? BoxConstraints(minHeight: targetMinH) : null,
       alignment: Alignment.center,
       decoration: const BoxDecoration(
         color: Colors.white,
@@ -456,14 +459,14 @@ class _HeroSectionState extends State<HeroSection> {
       ),
       child: Padding(
         padding: EdgeInsets.only(
-          left: isDesktop ? 60 : (screenW < 360 ? 14 : (screenW < 400 ? 18 : 24)),
-          right: isDesktop ? 60 : (screenW < 360 ? 14 : (screenW < 400 ? 18 : 24)),
-          top: isDesktop ? (isCompactLaptop ? 84 : 96) : 76,
-          bottom: isDesktop ? (isCompactLaptop ? 36 : 48) : 32,
+          left: isDesktop ? (isCompactDesktop ? 40 : 60) : (screenW < 360 ? 14 : (screenW < 400 ? 18 : 24)),
+          right: isDesktop ? (isCompactDesktop ? 40 : 60) : (screenW < 360 ? 14 : (screenW < 400 ? 18 : 24)),
+          top: isDesktop ? (isCompactDesktop ? 76 : 96) : 76,
+          bottom: isDesktop ? (isCompactDesktop ? 28 : 44) : 32,
         ),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1320),
+            constraints: const BoxConstraints(maxWidth: LandingTheme.maxContentWidth),
             child: SizedBox(
               width: double.infinity,
               child: _buildForegroundContent(screenW, screenH, isDesktop, isTablet),
@@ -475,8 +478,12 @@ class _HeroSectionState extends State<HeroSection> {
   }
 
   Widget _buildForegroundContent(double screenW, double screenH, bool isDesktop, bool isTablet) {
-    final bool isCompactLaptop = isDesktop && (screenH < 850 || screenW < 1440);
-    final bool isNarrow = !isDesktop || isCompactLaptop;
+    final bool isCompactDesktop = isDesktop && (screenH < 900 || screenW < 1440);
+    final bool isNarrow = !isDesktop || isCompactDesktop;
+    final bool isLargeDesktop = screenW >= 1440;
+    // Hero Layout Balance: 58/42 on desktop below 1440px; 54/46 on desktop above 1440px
+    final int leftFlex = isLargeDesktop ? 54 : 58;
+    final int rightFlex = isLargeDesktop ? 46 : 42;
 
     return isDesktop
         ? Row(
@@ -484,14 +491,14 @@ class _HeroSectionState extends State<HeroSection> {
             children: [
               // Left Column: Hero Content, Headline, Trust, CTAs
               Expanded(
-                flex: isCompactLaptop ? 13 : 13,
-                child: _buildLeftHeroContent(screenW, screenH, isDesktop, isTablet, isCompactLaptop),
+                flex: leftFlex,
+                child: _buildLeftHeroContent(screenW, screenH, isDesktop, isTablet, isCompactDesktop),
               ),
-              SizedBox(width: isCompactLaptop ? 32 : 48),
+              SizedBox(width: isCompactDesktop ? 32 : 44),
               // Right Column: Accordion-Style Visual Showcase
               Expanded(
-                flex: isCompactLaptop ? 11 : 11,
-                child: _HeroAccordionVisual(isCompact: isCompactLaptop),
+                flex: rightFlex,
+                child: _HeroAccordionVisual(isCompact: isCompactDesktop),
               ),
             ],
           )
@@ -507,30 +514,26 @@ class _HeroSectionState extends State<HeroSection> {
           );
   }
 
-  Widget _buildLeftHeroContent(double screenW, double screenH, bool isDesktop, bool isTablet, bool isCompactLaptop) {
-    final double headlineSize = isCompactLaptop
-        ? 44.0
-        : (isDesktop ? 54.0 : (isTablet ? 38.0 : 30.0));
+  Widget _buildLeftHeroContent(double screenW, double screenH, bool isDesktop, bool isTablet, bool isCompactDesktop) {
+    // Fluid responsive typography scaling with sensible clamps to prevent compression
+    final double headlineSize = isDesktop
+        ? (isCompactDesktop ? (screenW * 0.034).clamp(38.0, 46.0) : (screenW * 0.036).clamp(42.0, 50.0))
+        : (isTablet ? 36.0 : 28.0);
 
-    final double keywordSize = isCompactLaptop
-        ? 38.0
-        : (isDesktop ? 46.0 : (isTablet ? 32.0 : 26.0));
+    final double keywordSize = isDesktop
+        ? (isCompactDesktop ? (screenW * 0.028).clamp(30.0, 38.0) : (screenW * 0.032).clamp(36.0, 46.0))
+        : (isTablet ? 30.0 : 24.0);
 
-    final double bodySize = isCompactLaptop
-        ? 15.0
-        : (isDesktop ? 16.5 : 14.5);
+    final double bodySize = isCompactDesktop
+        ? 14.5
+        : (isDesktop ? 16.0 : 14.0);
 
-    // Exact vertical rhythm requested:
-    // [40-48px] between Eyebrow & Headline
-    final double gapEyebrowToHeadline = isCompactLaptop ? 32.0 : 44.0;
-    // [20-24px] between Headline & 'For'
-    final double gapHeadlineToFor = isCompactLaptop ? 18.0 : 22.0;
-    // [24-32px] between 'For' & Animated Keyword
-    final double gapForToKeyword = isCompactLaptop ? 22.0 : 28.0;
-    // [40-48px] between Animated Keyword & Supporting Paragraph
-    final double gapKeywordToDesc = isCompactLaptop ? 32.0 : 44.0;
-    // [40-48px] between Supporting Paragraph & CTA Buttons
-    final double gapDescToCta = isCompactLaptop ? 32.0 : 44.0;
+    // Responsive Vertical Rhythm (Target Ranges: 24-36px, 14-18px, 16-22px, 24-32px, 24-36px)
+    final double gapEyebrowToHeadline = isCompactDesktop ? 26.0 : 34.0;
+    final double gapHeadlineToFor = isCompactDesktop ? 14.0 : 18.0;
+    final double gapForToKeyword = isCompactDesktop ? 16.0 : 20.0;
+    final double gapKeywordToDesc = isCompactDesktop ? 24.0 : 32.0;
+    final double gapDescToCta = isCompactDesktop ? 26.0 : 34.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -540,8 +543,8 @@ class _HeroSectionState extends State<HeroSection> {
         // 1. IBBI REGISTERED VALUERS (Eyebrow Badge)
         Container(
           padding: EdgeInsets.symmetric(
-            horizontal: isCompactLaptop ? 14 : 16,
-            vertical: isCompactLaptop ? 6 : 8,
+            horizontal: isCompactDesktop ? 14 : 16,
+            vertical: isCompactDesktop ? 6 : 8,
           ),
           decoration: BoxDecoration(
             color: LandingTheme.pearlWhite,
@@ -567,10 +570,10 @@ class _HeroSectionState extends State<HeroSection> {
                   child: Text(
                     'REGISTERED VALUERS (GOVT APPROVED) • IBBI • INCOME TAX • ASSET INTELLIGENCE',
                     style: GoogleFonts.montserrat(
-                      fontSize: isCompactLaptop ? 9.5 : 10.5,
+                      fontSize: isCompactDesktop ? 9.5 : 10.5,
                       fontWeight: FontWeight.w700,
                       color: LandingTheme.textPrimary,
-                      letterSpacing: isCompactLaptop ? 0.8 : 1.0,
+                      letterSpacing: isCompactDesktop ? 0.8 : 1.0,
                     ),
                     maxLines: 1,
                     softWrap: false,
@@ -581,42 +584,38 @@ class _HeroSectionState extends State<HeroSection> {
           ),
         ),
 
-        // [40-48px spacing]
+        // [24-36px spacing]
         SizedBox(height: gapEyebrowToHeadline),
 
-        // 2. Independent Valuation (Line 1)
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: Text(
-            'Independent Valuation',
-            maxLines: 1,
-            softWrap: false,
-            style: GoogleFonts.montserrat(
-              fontSize: headlineSize,
-              fontWeight: FontWeight.w800,
-              color: LandingTheme.textPrimary,
-              letterSpacing: -1.8,
-              height: 1.08,
-            ),
+        // 2. Independent Valuation (Single-line headline stability across all desktop resolutions)
+        Text(
+          'Independent Valuation',
+          maxLines: 1,
+          softWrap: false,
+          style: GoogleFonts.montserrat(
+            fontSize: headlineSize,
+            fontWeight: FontWeight.w800,
+            color: LandingTheme.textPrimary,
+            letterSpacing: -1.8,
+            height: 1.08,
           ),
         ),
 
-        // [20-24px spacing]
+        // [14-18px spacing]
         SizedBox(height: gapHeadlineToFor),
 
         // 3. For
         Text(
           'For',
           style: GoogleFonts.montserrat(
-            fontSize: isCompactLaptop ? 22.0 : 26.0,
+            fontSize: isCompactDesktop ? 20.0 : 24.0,
             fontWeight: FontWeight.w500,
             color: const Color(0xFF64748B),
             letterSpacing: -0.5,
           ),
         ),
 
-        // [24-32px spacing]
+        // [16-22px spacing]
         SizedBox(height: gapForToKeyword),
 
         // 4. Animated Service Keyword (Apple-quality blur, rise, sharpen & sweep)
@@ -625,12 +624,12 @@ class _HeroSectionState extends State<HeroSection> {
           fontSize: keywordSize,
         ),
 
-        // [40-48px spacing]
+        // [24-32px spacing]
         SizedBox(height: gapKeywordToDesc),
 
         // 5. Supporting Paragraph
         ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: isCompactLaptop ? 560 : 620),
+          constraints: BoxConstraints(maxWidth: isCompactDesktop ? 540 : 620),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -650,16 +649,16 @@ class _HeroSectionState extends State<HeroSection> {
                 spacing: 10,
                 runSpacing: 8,
                 children: [
-                  _buildGovtApprovedBadge(isCompactLaptop),
-                  _buildTrustBadge(Icons.verified_user_outlined, 'IBBI Registered · Sec 247', isCompactLaptop),
-                  _buildTrustBadge(Icons.gavel_outlined, 'Rule 11UA / Income Tax', isCompactLaptop),
+                  _buildGovtApprovedBadge(isCompactDesktop),
+                  _buildTrustBadge(Icons.verified_user_outlined, 'IBBI Registered · Sec 247', isCompactDesktop),
+                  _buildTrustBadge(Icons.gavel_outlined, 'Rule 11UA / Income Tax', isCompactDesktop),
                 ],
               ),
             ],
           ),
         ),
 
-        // [40-48px spacing]
+        // [24-36px spacing]
         SizedBox(height: gapDescToCta),
 
         // 6. CTA Buttons
@@ -673,8 +672,8 @@ class _HeroSectionState extends State<HeroSection> {
               onTap: () => CommercialIntakeModal.show(context),
               child: Container(
                 padding: EdgeInsets.symmetric(
-                  horizontal: isCompactLaptop ? 22 : 28,
-                  vertical: isCompactLaptop ? 13 : 16,
+                  horizontal: isCompactDesktop ? 22 : 28,
+                  vertical: isCompactDesktop ? 13 : 16,
                 ),
                 decoration: BoxDecoration(
                   color: LandingTheme.brandGreen,
@@ -695,7 +694,7 @@ class _HeroSectionState extends State<HeroSection> {
                       Text(
                         'Request Valuation Report',
                         style: GoogleFonts.montserrat(
-                          fontSize: isCompactLaptop ? 13.5 : 14.5,
+                          fontSize: isCompactDesktop ? 13.5 : 14.5,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
                           letterSpacing: -0.2,
@@ -710,7 +709,7 @@ class _HeroSectionState extends State<HeroSection> {
             ),
 
             // Secondary Contact: Direct Phone Call (Matching Height & Smooth Hover Transition)
-            _HeroPhonePill(isCompactLaptop: isCompactLaptop),
+            _HeroPhonePill(isCompact: isCompactDesktop),
           ],
         ),
       ],
@@ -800,9 +799,9 @@ class _HeroSectionState extends State<HeroSection> {
 
 /// Symmetrical Hero Phone Pill with Smooth Hover Transition
 class _HeroPhonePill extends StatefulWidget {
-  final bool isCompactLaptop;
+  final bool isCompact;
 
-  const _HeroPhonePill({required this.isCompactLaptop});
+  const _HeroPhonePill({required this.isCompact});
 
   @override
   State<_HeroPhonePill> createState() => _HeroPhonePillState();
@@ -832,8 +831,8 @@ class _HeroPhonePillState extends State<_HeroPhonePill> {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
           padding: EdgeInsets.symmetric(
-            horizontal: widget.isCompactLaptop ? 20 : 24,
-            vertical: widget.isCompactLaptop ? 13 : 16,
+            horizontal: widget.isCompact ? 20 : 24,
+            vertical: widget.isCompact ? 13 : 16,
           ),
           decoration: BoxDecoration(
             border: Border.all(
@@ -859,7 +858,7 @@ class _HeroPhonePillState extends State<_HeroPhonePill> {
                 Text(
                   '+91 85000 19091',
                   style: GoogleFonts.montserrat(
-                    fontSize: widget.isCompactLaptop ? 13.5 : 14.5,
+                    fontSize: widget.isCompact ? 13.5 : 14.5,
                     fontWeight: FontWeight.w600,
                     color: LandingTheme.brandGreen,
                     letterSpacing: -0.2,
@@ -1063,7 +1062,7 @@ class _AccordionPanelData {
   final String title;
   final String category;
   final String description;
-  final String imageUrl;
+  final String imageAsset;
   final IconData icon;
   final Color baseColor;
 
@@ -1072,7 +1071,7 @@ class _AccordionPanelData {
     required this.title,
     required this.category,
     required this.description,
-    required this.imageUrl,
+    required this.imageAsset,
     required this.icon,
     required this.baseColor,
   });
@@ -1092,7 +1091,9 @@ class _HeroAccordionVisual extends StatefulWidget {
 class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
   int _activeIndex = 0;
   Timer? _autoTimer;
+  Timer? _hoverDebounceTimer;
   bool _isHovered = false;
+  bool _isVisible = true;
 
   static const List<_AccordionPanelData> _panels = [
     _AccordionPanelData(
@@ -1100,7 +1101,7 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
       title: 'Land Valuation',
       category: 'LAND & CORRIDORS',
       description: 'Agricultural, Commercial, Industrial & Institutional Land',
-      imageUrl: 'https://images.unsplash.com/photo-1500382017468-9049fed747ef?auto=format&fit=crop&w=1200&q=80',
+      imageAsset: 'assets/images/hero/land_valuation.webp',
       icon: Icons.landscape_rounded,
       baseColor: Color(0xFF1E293B),
     ),
@@ -1109,7 +1110,7 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
       title: 'Building Valuation',
       category: 'BUILT ASSETS',
       description: 'Residential, Commercial, Industrial & Mixed-Use Assets',
-      imageUrl: 'https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?auto=format&fit=crop&w=1200&q=80',
+      imageAsset: 'assets/images/hero/building_valuation.webp',
       icon: Icons.apartment_rounded,
       baseColor: Color(0xFF0F172A),
     ),
@@ -1118,7 +1119,7 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
       title: 'Plant & Machinery Valuation',
       category: 'PLANT & MACHINERY',
       description: 'Industrial Equipment, Manufacturing Facilities & Technical Assets',
-      imageUrl: 'https://images.unsplash.com/photo-1581091226825-a6a2a5aee158?auto=format&fit=crop&w=1200&q=80',
+      imageAsset: 'assets/images/hero/plant_machinery_valuation.webp',
       icon: Icons.precision_manufacturing_rounded,
       baseColor: Color(0xFF1E293B),
     ),
@@ -1127,7 +1128,7 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
       title: 'Financial Assets Valuation',
       category: 'FINANCIAL ASSETS',
       description: 'Shares, Securities, Business & Enterprise Value',
-      imageUrl: 'https://images.unsplash.com/photo-1590283603385-17ffb3a7f29f?auto=format&fit=crop&w=1200&q=80',
+      imageAsset: 'assets/images/hero/financial_assets_valuation.webp',
       icon: Icons.query_stats_rounded,
       baseColor: Color(0xFF0F172A),
     ),
@@ -1136,7 +1137,7 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
       title: 'Net Worth Certificates',
       category: 'NET WORTH & SOLVENCY',
       description: 'Individual, Corporate & Regulatory Certification',
-      imageUrl: 'https://images.unsplash.com/photo-1450133064473-71024230f91b?auto=format&fit=crop&w=1200&q=80',
+      imageAsset: 'assets/images/hero/net_worth_valuation.webp',
       icon: Icons.verified_user_rounded,
       baseColor: Color(0xFF1E293B),
     ),
@@ -1145,7 +1146,7 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
       title: 'Technical Due Diligence',
       category: 'TECHNICAL AUDIT',
       description: 'Engineering Review, Condition Assessment & Risk Analysis',
-      imageUrl: 'https://images.unsplash.com/photo-1504307651254-35680f356dfd?auto=format&fit=crop&w=1200&q=80',
+      imageAsset: 'assets/images/hero/technical_due_diligence.webp',
       icon: Icons.engineering_rounded,
       baseColor: Color(0xFF0F172A),
     ),
@@ -1159,22 +1160,42 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
 
   void _startAutoRotation() {
     _autoTimer?.cancel();
+    if (!_isVisible) return;
     _autoTimer = Timer.periodic(const Duration(milliseconds: 3800), (_) {
-      if (!mounted || _isHovered) return;
+      if (!mounted || _isHovered || !_isVisible) return;
       setState(() {
         _activeIndex = (_activeIndex + 1) % _panels.length;
       });
     });
   }
 
-  void _handleHover(bool hovering, int? index) {
-    setState(() {
-      _isHovered = hovering;
-      if (index != null && hovering) {
-        _activeIndex = index;
+  void _handleVisibilityChanged(VisibilityInfo info) {
+    final bool visible = info.visibleFraction > 0.05;
+    if (_isVisible != visible) {
+      _isVisible = visible;
+      if (!_isVisible) {
+        _autoTimer?.cancel();
+      } else if (!_isHovered) {
+        _startAutoRotation();
       }
-    });
-    if (!hovering) {
+    }
+  }
+
+  void _handleHover(bool hovering, int? index) {
+    _hoverDebounceTimer?.cancel();
+    if (hovering && index != null) {
+      // 60ms lightweight debounce to prevent rapid mouse sweep thrashing
+      _hoverDebounceTimer = Timer(const Duration(milliseconds: 60), () {
+        if (!mounted) return;
+        setState(() {
+          _isHovered = true;
+          _activeIndex = index;
+        });
+      });
+    } else {
+      setState(() {
+        _isHovered = false;
+      });
       _startAutoRotation();
     }
   }
@@ -1182,94 +1203,106 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
   @override
   void dispose() {
     _autoTimer?.cancel();
+    _hoverDebounceTimer?.cancel();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final bool isHorizontal = constraints.maxWidth >= 540;
-        final double containerHeight = widget.isCompact ? 470.0 : 540.0;
+    final double screenH = MediaQuery.of(context).size.height;
 
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // ── Accordion Showcase Deck ─────────────────────────────────────
-            Container(
-              height: isHorizontal ? containerHeight : 520.0,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(24),
-                boxShadow: const [
-                  BoxShadow(
-                    color: Color(0x140F172A),
-                    blurRadius: 36,
-                    offset: Offset(0, 14),
-                  ),
-                  BoxShadow(
-                    color: Color(0x080F172A),
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
-                  ),
-                ],
+    return VisibilityDetector(
+      key: const Key('hero-accordion-visibility-detector'),
+      onVisibilityChanged: _handleVisibilityChanged,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          // Lower threshold to 390 to keep horizontal accordion on scaled 1366x768 laptops (412px column)
+          final bool isHorizontal = constraints.maxWidth >= 390;
+          final double containerHeight = isHorizontal
+              ? (widget.isCompact
+                  ? (screenH * 0.50).clamp(380.0, 460.0)
+                  : (screenH * 0.54).clamp(420.0, 520.0))
+              : 500.0;
+
+          return Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // ── Accordion Showcase Deck ─────────────────────────────────────
+              Container(
+                height: isHorizontal ? containerHeight : 500.0,
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x140F172A),
+                      blurRadius: 36,
+                      offset: Offset(0, 14),
+                    ),
+                    BoxShadow(
+                      color: Color(0x080F172A),
+                      blurRadius: 10,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: isHorizontal
+                    ? _buildHorizontalAccordion(constraints.maxWidth, containerHeight)
+                    : _buildVerticalAccordion(),
               ),
-              clipBehavior: Clip.antiAlias,
-              child: isHorizontal
-                  ? _buildHorizontalAccordion(constraints.maxWidth, containerHeight)
-                  : _buildVerticalAccordion(),
-            ),
 
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
 
-            // ── Subdued Minimal Progress Rail ──────────────────────────────
-            Row(
-              children: List.generate(_panels.length, (index) {
-                final bool isActive = index == _activeIndex;
-                return Expanded(
-                  child: MouseRegion(
-                    cursor: SystemMouseCursors.click,
-                    onEnter: (_) => _handleHover(true, index),
-                    onExit: (_) => _handleHover(false, null),
-                    child: GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        setState(() {
-                          _activeIndex = index;
-                        });
-                        _startAutoRotation();
-                      },
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 3.0, vertical: 4.0),
-                        child: AnimatedContainer(
-                          duration: const Duration(milliseconds: 350),
-                          curve: Curves.easeOutCubic,
-                          height: 3.0,
-                          decoration: BoxDecoration(
-                            color: isActive
-                                ? LandingTheme.brandGreen
-                                : const Color(0xFFE2E8F0),
-                            borderRadius: BorderRadius.circular(2.0),
-                            boxShadow: isActive
-                                ? [
-                                    BoxShadow(
-                                      color: LandingTheme.brandGreen.withValues(alpha: 0.4),
-                                      blurRadius: 6,
-                                      offset: const Offset(0, 1),
-                                    ),
-                                  ]
-                                : null,
+              // ── Subdued Minimal Progress Rail ──────────────────────────────
+              Row(
+                children: List.generate(_panels.length, (index) {
+                  final bool isActive = index == _activeIndex;
+                  return Expanded(
+                    child: MouseRegion(
+                      cursor: SystemMouseCursors.click,
+                      onEnter: (_) => _handleHover(true, index),
+                      onExit: (_) => _handleHover(false, null),
+                      child: GestureDetector(
+                        behavior: HitTestBehavior.opaque,
+                        onTap: () {
+                          setState(() {
+                            _activeIndex = index;
+                          });
+                          _startAutoRotation();
+                        },
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 3.0, vertical: 4.0),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 350),
+                            curve: Curves.easeOutCubic,
+                            height: 3.0,
+                            decoration: BoxDecoration(
+                              color: isActive
+                                  ? LandingTheme.brandGreen
+                                  : const Color(0xFFE2E8F0),
+                              borderRadius: BorderRadius.circular(2.0),
+                              boxShadow: isActive
+                                  ? [
+                                      BoxShadow(
+                                        color: LandingTheme.brandGreen.withValues(alpha: 0.4),
+                                        blurRadius: 6,
+                                        offset: const Offset(0, 1),
+                                      ),
+                                    ]
+                                  : null,
+                            ),
                           ),
                         ),
                       ),
                     ),
-                  ),
-                );
-              }),
-            ),
-          ],
-        );
-      },
+                  );
+                }),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
@@ -1277,9 +1310,9 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
     const double spacing = 6.0;
     final double totalSpacing = spacing * (_panels.length - 1);
     final double availWidth = totalWidth - totalSpacing;
-    // Active panel expands to ~46% of total width for rich editorial showcase
-    final double activeWidth = (availWidth * 0.46).clamp(240.0, 360.0);
-    final double inactiveWidth = ((availWidth - activeWidth) / (_panels.length - 1)).clamp(40.0, 80.0);
+    // Exact proportional width calculations: active panel ~44%, inactive evenly split remaining space
+    final double activeWidth = availWidth * 0.44;
+    final double inactiveWidth = (availWidth - activeWidth) / (_panels.length - 1);
 
     return Row(
       children: List.generate(_panels.length, (index) {
@@ -1287,44 +1320,46 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
         final bool isActive = index == _activeIndex;
         final double width = isActive ? activeWidth : inactiveWidth;
 
-        return Padding(
-          padding: EdgeInsets.only(right: index == _panels.length - 1 ? 0 : spacing),
-          child: MouseRegion(
-            cursor: SystemMouseCursors.click,
-            onEnter: (_) => _handleHover(true, index),
-            onExit: (_) => _handleHover(false, null),
-            child: GestureDetector(
-              onTap: () {
-                setState(() => _activeIndex = index);
-                _startAutoRotation();
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 450),
-                curve: Curves.easeOutCubic,
-                width: width,
-                height: height,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(18),
-                  color: panel.baseColor,
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // Background Image
-                    Image.network(
-                      panel.imageUrl,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) => Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [panel.baseColor, const Color(0xFF0F172A)],
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
+        return RepaintBoundary(
+          child: Padding(
+            padding: EdgeInsets.only(right: index == _panels.length - 1 ? 0 : spacing),
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              onEnter: (_) => _handleHover(true, index),
+              onExit: (_) => _handleHover(false, null),
+              child: GestureDetector(
+                onTap: () {
+                  setState(() => _activeIndex = index);
+                  _startAutoRotation();
+                },
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 520),
+                  curve: const Cubic(0.16, 1.0, 0.3, 1.0),
+                  width: width,
+                  height: height,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(18),
+                    color: panel.baseColor,
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      // Background Image with local WebP & GPU decode constraint
+                      Image.asset(
+                        panel.imageAsset,
+                        cacheWidth: 800,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [panel.baseColor, const Color(0xFF0F172A)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
                           ),
                         ),
                       ),
-                    ),
 
                     // Multi-stop Luxurious Scrim Gradient
                     DecoratedBox(
@@ -1476,7 +1511,8 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
               ),
             ),
           ),
-        );
+        ),
+      );
       }),
     );
   }
@@ -1495,8 +1531,8 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
               _startAutoRotation();
             },
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 400),
-              curve: Curves.easeOutCubic,
+              duration: const Duration(milliseconds: 520),
+              curve: const Cubic(0.16, 1.0, 0.3, 1.0),
               margin: const EdgeInsets.only(bottom: 4),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(14),
@@ -1506,8 +1542,9 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
               child: Stack(
                 fit: StackFit.expand,
                 children: [
-                  Image.network(
-                    panel.imageUrl,
+                  Image.asset(
+                    panel.imageAsset,
+                    cacheWidth: 800,
                     fit: BoxFit.cover,
                     errorBuilder: (context, error, stackTrace) => Container(
                       color: panel.baseColor,
@@ -1656,7 +1693,7 @@ class AuthorityMetricsSection extends StatelessWidget {
       ),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1240),
+          constraints: const BoxConstraints(maxWidth: LandingTheme.maxContentWidth),
           child: Column(
             children: [
               // ── Section Eyebrow ────────────────────────────────────────────
@@ -1937,7 +1974,7 @@ class ServicesSection extends StatelessWidget {
       ),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1240),
+          constraints: const BoxConstraints(maxWidth: LandingTheme.maxContentWidth),
           child: Column(
             children: [
               const GlassEyebrowBadge(label: 'Services', icon: Icons.auto_awesome_rounded),
@@ -2089,7 +2126,7 @@ class WhyProValuerSection extends StatelessWidget {
       ),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1240),
+          constraints: const BoxConstraints(maxWidth: LandingTheme.maxContentWidth),
           child: Column(
             children: [
               const GlassEyebrowBadge(label: 'Why Pro Valuer', icon: Icons.shield_rounded),
@@ -2233,7 +2270,7 @@ class ProcessSection extends StatelessWidget {
       ),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1240),
+          constraints: const BoxConstraints(maxWidth: LandingTheme.maxContentWidth),
           child: Column(
             children: [
               const GlassEyebrowBadge(label: 'Process', icon: Icons.sync_rounded),
@@ -2362,7 +2399,7 @@ class CredentialsSection extends StatelessWidget {
       ),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1240),
+          constraints: const BoxConstraints(maxWidth: LandingTheme.maxContentWidth),
           child: Column(
             children: [
               const GlassEyebrowBadge(label: 'Credentials', icon: Icons.verified_user_rounded),
@@ -2472,7 +2509,7 @@ class CtaBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final double screenW = MediaQuery.of(context).size.width;
-    final bool isDesktop = screenW >= 1024;
+    final bool isDesktop = LandingTheme.isDesktop(context);
 
     return Container(
       width: double.infinity,
@@ -2483,7 +2520,7 @@ class CtaBanner extends StatelessWidget {
       ),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1240),
+          constraints: const BoxConstraints(maxWidth: LandingTheme.maxContentWidth),
           child: VisionProGlassPanel(
             borderRadius: 32,
             padding: EdgeInsets.symmetric(
@@ -2620,7 +2657,7 @@ class LandingFooter extends StatelessWidget {
       ),
       child: Center(
         child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 1240),
+          constraints: const BoxConstraints(maxWidth: LandingTheme.maxContentWidth),
           child: Column(
             children: [
               const Divider(height: 1, color: Color(0x29CBD5E1)),
