@@ -87,7 +87,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final isDesktop = MediaQuery.of(context).size.width > 900;
 
     return Scaffold(
-      backgroundColor: AppColors.canvas,
+      backgroundColor: const Color(0xFFF8FAFC),
       body: Row(
         children: [
           // ── Left editorial panel (desktop only) ───────────────────────
@@ -101,7 +101,7 @@ class _LoginScreenState extends State<LoginScreen> {
           Expanded(
             flex: 10,
             child: Container(
-              color: AppColors.canvas,
+              color: const Color(0xFFF8FAFC),
               child: Center(
                 child: SingleChildScrollView(
                   padding: const EdgeInsets.symmetric(horizontal: 48, vertical: 40),
@@ -118,14 +118,14 @@ class _LoginScreenState extends State<LoginScreen> {
                         // Heading
                         Text(
                           _isLogin ? 'Welcome Back' : 'Create Account',
-                          style: AppTypography.sectionHeading(color: AppColors.ink),
+                          style: AppTypography.sectionHeading(color: const Color(0xFF0F172A)),
                         ).animate().fadeIn(duration: 400.ms).slideY(begin: 0.1, end: 0),
                         const SizedBox(height: AppSpacing.xs),
                         Text(
                           _isLogin
                               ? 'Enter your username and password to sign in.'
                               : 'Register for valuation services.',
-                          style: AppTypography.bodyMd(color: AppColors.textMuted),
+                          style: AppTypography.bodyMd(color: const Color(0xFF64748B)),
                         ).animate(delay: 100.ms).fadeIn(duration: 400.ms),
 
                         const SizedBox(height: AppSpacing.xxl),
@@ -209,7 +209,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           child: ElevatedButton(
                             onPressed: _isLoading ? null : _handleSubmit,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF143D3D),
+                              backgroundColor: const Color(0xFF14B8A6), // Primary brand teal
                               foregroundColor: Colors.white,
                               disabledBackgroundColor: AppColors.hairlineStrong,
                               disabledForegroundColor: AppColors.slate,
@@ -249,7 +249,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                     ? "Don't have an account?  Sign Up"
                                     : 'Already have an account?  Sign In',
                                 style: AppTypography.bodySmMedium(
-                                    color: const Color(0xFF143D3D)),
+                                    color: const Color(0xFF0F766E)), // Secondary brand teal
                               ),
                             ),
                           ),
@@ -275,11 +275,14 @@ class _LoginScreenState extends State<LoginScreen> {
             _handleSubmit();
           }
         },
-        style: AppTypography.bodyMd(color: AppColors.ink),
-        decoration: AppComponents.textInput(
-          label: 'Password',
+        style: AppTypography.bodyMd(color: const Color(0xFF0F172A)),
+        decoration: InputDecoration(
+          labelText: 'Password',
+          labelStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 14),
+          filled: true,
+          fillColor: Colors.white,
           prefixIcon: const Icon(Icons.lock_outline_rounded,
-              size: 16, color: AppColors.stone),
+              size: 16, color: Color(0xFF0F766E)),
           suffixIcon: GestureDetector(
             onTap: () => setState(() => _obscurePassword = !_obscurePassword),
             child: Icon(
@@ -287,9 +290,22 @@ class _LoginScreenState extends State<LoginScreen> {
                   ? Icons.visibility_off_outlined
                   : Icons.visibility_outlined,
               size: 16,
-              color: AppColors.stone,
+              color: const Color(0xFF64748B),
             ),
           ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF14B8A6), width: 1.5),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       );
 
@@ -308,10 +324,26 @@ class _LoginScreenState extends State<LoginScreen> {
         keyboardType: keyboardType,
         textInputAction: textInputAction,
         onSubmitted: onSubmitted,
-        style: AppTypography.bodyMd(color: AppColors.ink),
-        decoration: AppComponents.textInput(
-          label: label,
-          prefixIcon: Icon(icon, size: 16, color: AppColors.stone),
+        style: AppTypography.bodyMd(color: const Color(0xFF0F172A)),
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: const TextStyle(color: Color(0xFF64748B), fontSize: 14),
+          filled: true,
+          fillColor: Colors.white,
+          prefixIcon: Icon(icon, size: 16, color: const Color(0xFF0F766E)),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          ),
+          enabledBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFFE2E8F0)),
+          ),
+          focusedBorder: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(8),
+            borderSide: const BorderSide(color: Color(0xFF14B8A6), width: 1.5),
+          ),
+          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         ),
       );
 }
@@ -322,7 +354,17 @@ class _LeftPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      color: const Color(0xFF143D3D), // Primary brand deep teal
+      decoration: const BoxDecoration(
+        color: Color(0xFF0F766E), // Secondary brand teal
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFF0F766E), // #0F766E
+            Color(0xFF115E59), // Deep rich teal
+          ],
+        ),
+      ),
       padding: const EdgeInsets.all(72),
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -341,7 +383,7 @@ class _LeftPanel extends StatelessWidget {
                 decoration: BoxDecoration(
                   color: Colors.white.withValues(alpha: 0.12),
                   borderRadius: AppRadius.brFull,
-                  border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+                  border: Border.all(color: const Color(0xFF14B8A6).withValues(alpha: 0.5)),
                 ),
                 child: Text('ENTERPRISE PLATFORM',
                     style: AppTypography.microUppercase(
@@ -358,7 +400,7 @@ class _LeftPanel extends StatelessWidget {
                 'Automated SLA monitoring, value-based balance gates, '
                 'DOCX template token normalization, and Class 3 HSM digital '
                 'signatures for regulatory compliance.',
-                style: AppTypography.bodyMd(color: Colors.white.withValues(alpha: 0.85)),
+                style: AppTypography.bodyMd(color: Colors.white.withValues(alpha: 0.88)),
               ).animate(delay: 200.ms).fadeIn(duration: 600.ms),
 
               const SizedBox(height: AppSpacing.xxxl),
@@ -377,7 +419,7 @@ class _LeftPanel extends StatelessWidget {
                           width: 6,
                           height: 6,
                           decoration: const BoxDecoration(
-                            color: Colors.white,
+                            color: Color(0xFF14B8A6), // Primary teal accent
                             shape: BoxShape.circle,
                           ),
                         ),
@@ -394,7 +436,7 @@ class _LeftPanel extends StatelessWidget {
           // Bottom tagline
           Text(
             'Accurate Valuations.\nProfessional Insights.\nTrusted Decisions.',
-            style: AppTypography.micro(color: Colors.white.withValues(alpha: 0.6)),
+            style: AppTypography.micro(color: Colors.white.withValues(alpha: 0.65)),
           ),
         ],
       ),
@@ -418,9 +460,9 @@ class _RoleHintTabsState extends State<_RoleHintTabs> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: AppColors.cardBg,
+        color: Colors.white,
         borderRadius: AppRadius.brFull,
-        border: Border.all(color: AppColors.hairline),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
       ),
       child: Row(
         children: List.generate(
@@ -432,7 +474,7 @@ class _RoleHintTabsState extends State<_RoleHintTabs> {
                 duration: const Duration(milliseconds: 200),
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 decoration: BoxDecoration(
-                  color: _selected == i ? const Color(0xFF143D3D) : Colors.transparent,
+                  color: _selected == i ? const Color(0xFF0F766E) : Colors.transparent,
                   borderRadius: AppRadius.brFull,
                 ),
                 alignment: Alignment.center,
@@ -441,7 +483,7 @@ class _RoleHintTabsState extends State<_RoleHintTabs> {
                   style: AppTypography.buttonMd(
                     color: _selected == i
                         ? Colors.white
-                        : AppColors.textMuted,
+                        : const Color(0xFF64748B),
                   ).copyWith(fontSize: 13),
                 ),
               ),
