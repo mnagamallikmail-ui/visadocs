@@ -1143,6 +1143,24 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
     ),
     _AccordionPanelData(
       id: '06',
+      title: 'Lenders Independent Engineer',
+      category: 'PROJECT MONITORING',
+      description: 'Project Progress, Fund Utilization & Techno-Economic Viability',
+      imageAsset: 'assets/images/hero/lenders_independent_engineer.webp',
+      icon: Icons.account_balance_rounded,
+      baseColor: Color(0xFF0F172A),
+    ),
+    _AccordionPanelData(
+      id: '07',
+      title: 'Chartered Engineer Certificates',
+      category: 'STATUTORY CE AUDIT',
+      description: 'Customs Clearance, EPCG Scheme, Plant Life & Industrial Certification',
+      imageAsset: 'assets/images/hero/chartered_engineer_certificates.webp',
+      icon: Icons.workspace_premium_rounded,
+      baseColor: Color(0xFF1E293B),
+    ),
+    _AccordionPanelData(
+      id: '08',
       title: 'Technical Due Diligence',
       category: 'TECHNICAL AUDIT',
       description: 'Engineering Review, Condition Assessment & Risk Analysis',
@@ -1307,7 +1325,7 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
   }
 
   Widget _buildHorizontalAccordion(double totalWidth, double height) {
-    const double spacing = 6.0;
+    const double spacing = 4.5;
     final double totalSpacing = spacing * (_panels.length - 1);
     final double availWidth = totalWidth - totalSpacing;
     // Exact proportional width calculations: active panel ~44%, inactive evenly split remaining space
@@ -1386,33 +1404,33 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
                       ),
                     ),
 
-                    // Top Glass Pill: Category Indicator
-                    Positioned(
-                      top: 14,
-                      left: 14,
-                      right: 14,
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: Colors.black.withValues(alpha: 0.35),
-                              borderRadius: BorderRadius.circular(100),
-                              border: Border.all(
-                                color: Colors.white.withValues(alpha: 0.15),
-                                width: 0.8,
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Icon(
-                                  panel.icon,
-                                  size: 13,
-                                  color: isActive ? const Color(0xFF5EEAD4) : Colors.white70,
+                    // Top Indicator: Active Rich Glass Pill vs Inactive Option D Centered Micro-ID
+                    if (isActive)
+                      Positioned(
+                        top: 14,
+                        left: 14,
+                        right: 14,
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: Colors.black.withValues(alpha: 0.35),
+                                borderRadius: BorderRadius.circular(100),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.15),
+                                  width: 0.8,
                                 ),
-                                if (isActive) ...[
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(
+                                    panel.icon,
+                                    size: 13,
+                                    color: const Color(0xFF5EEAD4),
+                                  ),
                                   const SizedBox(width: 6),
                                   Text(
                                     panel.category,
@@ -1424,21 +1442,38 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
                                     ),
                                   ),
                                 ],
-                              ],
+                              ),
                             ),
-                          ),
-                          Text(
+                            Text(
+                              panel.id,
+                              style: GoogleFonts.montserrat(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      // Inactive Option D: Centered Micro-ID (Zero Horizontal Margin Collision)
+                      Positioned(
+                        top: 16,
+                        left: 0,
+                        right: 0,
+                        child: Center(
+                          child: Text(
                             panel.id,
                             style: GoogleFonts.montserrat(
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
-                              color: isActive ? Colors.white : Colors.white38,
+                              color: Colors.white38,
                               letterSpacing: 0.5,
                             ),
                           ),
-                        ],
+                        ),
                       ),
-                    ),
 
                     // Active Detailed Content (Calm, Editorial, Maximum Clarity)
                     if (isActive)
@@ -1565,8 +1600,8 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
                   Positioned(
                     left: 14,
                     right: 14,
-                    top: 10,
-                    bottom: 10,
+                    top: isActive ? 10 : 6,
+                    bottom: isActive ? 10 : 6,
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
