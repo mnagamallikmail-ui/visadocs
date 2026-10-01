@@ -55,6 +55,37 @@ class _LandingPageState extends State<LandingPage> {
     super.dispose();
   }
 
+  final _servicesKey = GlobalKey();
+  final _whyProValuerKey = GlobalKey();
+  final _processKey = GlobalKey();
+  final _credentialsKey = GlobalKey();
+
+  void _scrollToSection(String sectionId) {
+    GlobalKey? targetKey;
+    switch (sectionId) {
+      case 'services':
+        targetKey = _servicesKey;
+        break;
+      case 'why-pro-valuer':
+        targetKey = _whyProValuerKey;
+        break;
+      case 'process':
+        targetKey = _processKey;
+        break;
+      case 'credentials':
+        targetKey = _credentialsKey;
+        break;
+    }
+    if (targetKey != null && targetKey.currentContext != null) {
+      Scrollable.ensureVisible(
+        targetKey.currentContext!,
+        duration: const Duration(milliseconds: 650),
+        curve: Curves.easeInOutCubic,
+        alignment: 0.06,
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isDesktop = LandingTheme.isDesktop(context);
@@ -63,7 +94,12 @@ class _LandingPageState extends State<LandingPage> {
     return Scaffold(
       key: _scaffoldKey,
       backgroundColor: LandingTheme.primaryBg,
-      endDrawer: isDesktop ? null : MobileMenuDrawer(launchWhatsApp: _launchWhatsApp),
+      endDrawer: isDesktop
+          ? null
+          : MobileMenuDrawer(
+              launchWhatsApp: _launchWhatsApp,
+              onNavigate: _scrollToSection,
+            ),
       body: Stack(
         children: [
           // ── Scrollable content ─────────────────────────────────────────
@@ -86,16 +122,26 @@ class _LandingPageState extends State<LandingPage> {
                 ),
                 // 3. Services Section (6 Luxury Glass Cards)
                 ServicesSection(
+                  key: _servicesKey,
                   isDesktop: isDesktop,
                   isTablet: isTablet,
                   launchWhatsApp: _launchWhatsApp,
                 ),
                 // 4. Why Pro Valuer (4 Spatial Glass Pillars)
-                WhyProValuerSection(isDesktop: isDesktop),
+                WhyProValuerSection(
+                  key: _whyProValuerKey,
+                  isDesktop: isDesktop,
+                ),
                 // 5. Process (4-Stage Crystal Flow)
-                ProcessSection(isDesktop: isDesktop),
+                ProcessSection(
+                  key: _processKey,
+                  isDesktop: isDesktop,
+                ),
                 // 6. Credentials (Licensure & Bank Recognition)
-                CredentialsSection(isDesktop: isDesktop),
+                CredentialsSection(
+                  key: _credentialsKey,
+                  isDesktop: isDesktop,
+                ),
                 // 7. Final Consultation Section (Luxury Glass CTA)
                 CtaBanner(launchWhatsApp: _launchWhatsApp),
                 // 8. Luxury Minimal Footer
@@ -116,6 +162,7 @@ class _LandingPageState extends State<LandingPage> {
                   isScrolled: isScrolled,
                   launchWhatsApp: _launchWhatsApp,
                   onMenuTap: () => _scaffoldKey.currentState?.openEndDrawer(),
+                  onNavigate: _scrollToSection,
                 );
               },
             ),

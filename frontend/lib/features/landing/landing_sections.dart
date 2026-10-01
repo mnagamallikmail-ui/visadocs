@@ -140,6 +140,7 @@ class LandingHeader extends StatelessWidget {
   final bool isScrolled;
   final Future<void> Function(String) launchWhatsApp;
   final VoidCallback? onMenuTap;
+  final void Function(String)? onNavigate;
 
   const LandingHeader({
     super.key,
@@ -147,6 +148,7 @@ class LandingHeader extends StatelessWidget {
     required this.isScrolled,
     required this.launchWhatsApp,
     this.onMenuTap,
+    this.onNavigate,
   });
 
   @override
@@ -251,13 +253,13 @@ class LandingHeader extends StatelessWidget {
 
                       // Desktop Navigation Items
                       if (isDesktop) ...[
-                        _HeaderLink(label: 'Services', onTap: () => _scrollTo('services')),
+                        _HeaderLink(label: 'Services', onTap: () => onNavigate?.call('services')),
                         SizedBox(width: linkSpacing),
-                        _HeaderLink(label: 'Why Pro Valuer', onTap: () => _scrollTo('why-pro-valuer')),
+                        _HeaderLink(label: 'Why Pro Valuer', onTap: () => onNavigate?.call('why-pro-valuer')),
                         SizedBox(width: linkSpacing),
-                        _HeaderLink(label: 'Process', onTap: () => _scrollTo('process')),
+                        _HeaderLink(label: 'Process', onTap: () => onNavigate?.call('process')),
                         SizedBox(width: linkSpacing),
-                        _HeaderLink(label: 'Credentials', onTap: () => _scrollTo('credentials')),
+                        _HeaderLink(label: 'Credentials', onTap: () => onNavigate?.call('credentials')),
                         SizedBox(width: linkSpacing),
 
                         // Compact Client Login Icon Button (Secondary Action)
@@ -299,9 +301,24 @@ class LandingHeader extends StatelessWidget {
                           ),
                         ),
                       ] else ...[
+                        // Option B: Compact Client Login Action Button (44x44 minimum touch target)
+                        IconButton(
+                          onPressed: () => context.go('/login'),
+                          constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                          padding: EdgeInsets.zero,
+                          tooltip: 'Client Login',
+                          icon: const Icon(
+                            Icons.lock_outline_rounded,
+                            color: LandingTheme.textPrimary,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
                         // Mobile Menu Icon
                         IconButton(
                           onPressed: onMenuTap,
+                          constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
+                          padding: EdgeInsets.zero,
                           icon: const Icon(Icons.menu_rounded, color: LandingTheme.textPrimary, size: 24),
                         ),
                       ],
@@ -314,10 +331,6 @@ class LandingHeader extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  void _scrollTo(String id) {
-    // Navigation anchor
   }
 }
 
@@ -2789,8 +2802,13 @@ class LandingFooter extends StatelessWidget {
 
 class MobileMenuDrawer extends StatelessWidget {
   final Future<void> Function(String) launchWhatsApp;
+  final void Function(String)? onNavigate;
 
-  const MobileMenuDrawer({super.key, required this.launchWhatsApp});
+  const MobileMenuDrawer({
+    super.key,
+    required this.launchWhatsApp,
+    this.onNavigate,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -2820,11 +2838,51 @@ class MobileMenuDrawer extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 32),
-              _mobileLink(context, 'Services'),
-              _mobileLink(context, 'Why Pro Valuer'),
-              _mobileLink(context, 'Process'),
-              _mobileLink(context, 'Credentials'),
+              _mobileLink(context, 'Services', 'services'),
+              _mobileLink(context, 'Why Pro Valuer', 'why-pro-valuer'),
+              _mobileLink(context, 'Process', 'process'),
+              _mobileLink(context, 'Credentials', 'credentials'),
               const Spacer(),
+              // Option A: Secondary Glass-Pill Button for Client Portal Login
+              GestureDetector(
+                onTap: () {
+                  Navigator.of(context).pop();
+                  context.go('/login');
+                },
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: const Color(0x0A0F172A),
+                    borderRadius: BorderRadius.circular(100),
+                    border: Border.all(
+                      color: const Color(0x33CBD5E1),
+                      width: 1.1,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.lock_outline_rounded,
+                        size: 16,
+                        color: LandingTheme.textPrimary,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Client Portal Login',
+                        style: GoogleFonts.montserrat(
+                          fontSize: 14.5,
+                          fontWeight: FontWeight.w600,
+                          color: LandingTheme.textPrimary,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
               SizedBox(
                 width: double.infinity,
                 child: GestureDetector(
@@ -2858,11 +2916,17 @@ class MobileMenuDrawer extends StatelessWidget {
     );
   }
 
-  Widget _mobileLink(BuildContext context, String title) {
+  Widget _mobileLink(BuildContext context, String title, String sectionId) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 14),
       child: GestureDetector(
-        onTap: () => Navigator.of(context).pop(),
+        behavior: HitTestBehavior.opaque,
+        onTap: () {
+          Navigator.of(context).pop();
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            onNavigate?.call(sectionId);
+          });
+        },
         child: Text(
           title,
           style: GoogleFonts.montserrat(
