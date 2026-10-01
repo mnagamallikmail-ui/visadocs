@@ -1137,7 +1137,7 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
       title: 'Net Worth Certificates',
       category: 'NET WORTH & SOLVENCY',
       description: 'Individual, Corporate & Regulatory Certification',
-      imageAsset: 'assets/images/hero/net_worth_valuation.webp',
+      imageAsset: 'assets/images/hero/net_worth_solvency_vault.webp',
       icon: Icons.verified_user_rounded,
       baseColor: Color(0xFF1E293B),
     ),
