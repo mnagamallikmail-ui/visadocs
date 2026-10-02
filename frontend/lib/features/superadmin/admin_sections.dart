@@ -17,6 +17,8 @@ import '../document_studio/document_studio_screen.dart';
 import '../../utils/report_list_helper.dart';
 import '../document_workspace/models/workspace_view_model.dart';
 import 'placeholder_catalog_screen.dart';
+import '../quotations/admin_request_review_modal.dart';
+import '../quotations/admin_payment_review_modal.dart';
 
 // ─── Shared helpers ───────────────────────────────────────────
 
@@ -692,10 +694,63 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                                 ),
                               ),
                               SizedBox(
-                                width: 220,
+                                width: 320,
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.end,
                                   children: [
+                                    _queueBtn(
+                                      o['status'] == 'QUOTE_PENDING' ? 'Quote' : 'Review',
+                                      Icons.rate_review_outlined,
+                                      o['status'] == 'QUOTE_PENDING' ? const Color(0xFFD97706) : const Color(0xFF2563EB),
+                                      () => AdminRequestReviewModal.show(
+                                        context: context,
+                                        order: o,
+                                        onRefresh: _load,
+                                      ),
+                                    ),
+                                    if (o['status'] == 'PAYMENT_SUBMITTED') ...[
+                                      const SizedBox(width: 6),
+                                      _queueBtn(
+                                        'Review Pay',
+                                        Icons.verified_outlined,
+                                        const Color(0xFFD97706),
+                                        () => AdminPaymentReviewModal.show(
+                                          context: context,
+                                          order: o,
+                                          onRefresh: _load,
+                                        ),
+                                      ),
+                                    ],
+                                    if (o['status'] == 'PAYMENT_VERIFIED') ...[
+                                      const SizedBox(width: 6),
+                                      _queueBtn(
+                                        'Pay Verified',
+                                        Icons.check_circle_outline_rounded,
+                                        const Color(0xFF047857),
+                                        () => AdminPaymentReviewModal.show(
+                                          context: context,
+                                          order: o,
+                                          onRefresh: _load,
+                                        ),
+                                      ),
+                                      const SizedBox(width: 6),
+                                      _queueBtn(
+                                        'Release',
+                                        Icons.rocket_launch_rounded,
+                                        const Color(0xFF1B5E20),
+                                        () {
+                                          // Navigate admin to the Intake Clearance section
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('Go to "Intake Clearance" in the sidebar to release this order.'),
+                                              behavior: SnackBarBehavior.floating,
+                                              duration: Duration(seconds: 4),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ],
+                                    const SizedBox(width: 6),
                                     _queueBtn('Release', Icons.send_outlined, AppColors.primary, () => _forceRelease(o)),
                                     const SizedBox(width: 6),
                                     _queueBtn('Waive', Icons.money_off_outlined, AppColors.success, () => _waivePayment(o)),

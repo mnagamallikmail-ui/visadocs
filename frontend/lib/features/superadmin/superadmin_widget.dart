@@ -8,6 +8,7 @@ import '../valuation_portal/valuation_portal_widget.dart';
 import 'admin_sections.dart';
 import 'admin_seo_intelligence_section.dart';
 import 'admin_leads_crm_section.dart';
+import '../quotations/admin_release_queue_section.dart';
 
 class SuperAdminWidget extends StatefulWidget {
   final String role;
@@ -644,6 +645,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
     {'key': 'valuation_portal', 'label': 'Valuation Portal', 'icon': Icons.swap_horiz_outlined},
     {'key': 'users', 'label': 'User Management', 'icon': Icons.manage_accounts_outlined},
     {'key': 'queue', 'label': 'Queue Management', 'icon': Icons.queue_play_next_outlined},
+    {'key': 'intake_clearance', 'label': 'Intake Clearance', 'icon': Icons.rocket_launch_rounded},
     {'key': 'sla', 'label': 'SLA Dashboard', 'icon': Icons.timer_outlined},
     {'key': 'pricing', 'label': 'Pricing Control', 'icon': Icons.price_change_outlined},
     {'key': 'tc', 'label': 'T&C Management', 'icon': Icons.gavel_outlined},
@@ -660,7 +662,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
     return _menuItems.where((m) {
       final key = m['key'] as String;
       if (isSuper) return true;
-      return key == 'overview' || key == 'templates' || key == 'signing' || key == 'valuation_portal' || key == 'seo_intelligence';
+      return key == 'overview' || key == 'templates' || key == 'signing' || key == 'valuation_portal' || key == 'seo_intelligence' || key == 'intake_clearance';
     }).toList();
   }
 
@@ -863,7 +865,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
   Widget _buildCanvas() {
     final isSuper = widget.role == 'SUPER_ADMIN';
     final menu = _selectedMenu;
-    if (!isSuper && menu != 'overview' && menu != 'leads_crm' && menu != 'templates' && menu != 'signing' && menu != 'seo_intelligence') {
+    if (!isSuper && menu != 'overview' && menu != 'leads_crm' && menu != 'templates' && menu != 'signing' && menu != 'seo_intelligence' && menu != 'intake_clearance') {
       return const AdminOverviewSection();
     }
     switch (menu) {
@@ -877,6 +879,8 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
         return _buildUserManagement();
       case 'queue':
         return const AdminQueueSection();
+      case 'intake_clearance':
+        return const AdminReleaseQueueSection();
       case 'sla':
         return const AdminSlaSection();
       case 'pricing':

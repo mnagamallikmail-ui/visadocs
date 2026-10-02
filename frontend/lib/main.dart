@@ -18,6 +18,7 @@ import 'screens/services/divorce_matrimonial_valuation_screen.dart';
 import 'screens/services/probate_inheritance_valuation_screen.dart';
 import 'screens/services/share_valuation_screen.dart';
 import 'screens/services/plant_machinery_valuation_screen.dart';
+import 'screens/request_intake_screen.dart';
 import 'theme/app_theme.dart';
 import 'services/analytics_service.dart';
 
@@ -105,6 +106,10 @@ class ProValuerApp extends StatelessWidget {
           builder: (context, state) => const PlantMachineryValuationScreen(),
         ),
         GoRoute(
+          path: '/request-valuation',
+          builder: (context, state) => const RequestIntakeScreen(),
+        ),
+        GoRoute(
           path: '/login',
           builder: (context, state) => const LoginScreen(),
         ),
@@ -130,6 +135,7 @@ class ProValuerApp extends StatelessWidget {
         final loc = state.matchedLocation;
         final isPublic = loc == '/' ||
             loc == '/login' ||
+            loc == '/request-valuation' ||
             loc.startsWith('/services/') ||
             loc == '/government-approved-valuers';
 

@@ -25,6 +25,38 @@ public class GlobalExceptionHandler {
         );
     }
 
+    @ExceptionHandler({
+        org.springframework.security.access.AccessDeniedException.class,
+        org.springframework.security.authorization.AuthorizationDeniedException.class
+    })
+    public ResponseEntity<?> handleAccessDeniedException(Exception ex) {
+        log.warn("Access denied: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(
+            Map.of(
+                "error", "Forbidden",
+                "message", ex.getMessage() != null ? ex.getMessage() : "Access denied"
+            )
+        );
+    }
+
+    @ExceptionHandler(org.springframework.web.server.ResponseStatusException.class)
+    public ResponseEntity<?> handleResponseStatusException(org.springframework.web.server.ResponseStatusException ex) {
+        log.warn("Response status exception: {} {}", ex.getStatusCode(), ex.getReason());
+        return ResponseEntity.status(ex.getStatusCode()).body(
+            Map.of(
+                "error", ex.getStatusCode().toString(),
+                "message", ex.getReason() != null ? ex.getReason() : ex.getMessage()
+            )
+        );
+    }
+
+    @ExceptionHandler(org.springframework.web.servlet.resource.NoResourceFoundException.class)
+    public ResponseEntity<?> handleNoResourceFound(org.springframework.web.servlet.resource.NoResourceFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(
+            Map.of("error", "Not Found", "message", ex.getMessage())
+        );
+    }
+
     @ExceptionHandler(Exception.class)
     public ResponseEntity<?> handle(Exception ex) {
         log.error("Unhandled exception", ex);

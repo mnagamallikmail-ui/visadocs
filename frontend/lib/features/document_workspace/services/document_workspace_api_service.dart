@@ -34,7 +34,52 @@ class DocumentWorkspaceApiService {
     return response.statusCode == 200;
   }
 
-  /// Advances order status from ASSIGNED to SPA_GATE.
+  /// SPRINT 6: Initialize Document Workspace from INSPECTION_COMPLETED
+  Future<DocumentWorkspaceModel> initializeWorkspace(int orderId) async {
+    final response = await _api.dio.post('/api/v1/orders/$orderId/initialize-workspace');
+    if (response.statusCode == 200 && response.data != null) {
+      final dynamic raw = response.data is String ? jsonDecode(response.data as String) : response.data;
+      return DocumentWorkspaceModel.fromJson(raw as Map<String, dynamic>);
+    }
+    throw DioException(
+      requestOptions: response.requestOptions,
+      response: response,
+      error: 'Failed to initialize workspace: HTTP ${response.statusCode}',
+    );
+  }
+
+  /// SPRINT 6: Bind Template permanently
+  Future<Map<String, dynamic>> bindTemplate(int orderId, int templateId, {bool forceSnapshotRebuild = false}) async {
+    final response = await _api.dio.post(
+      '/api/v1/orders/$orderId/bind-template',
+      data: {'templateId': templateId, 'forceSnapshotRebuild': forceSnapshotRebuild},
+    );
+    if (response.statusCode == 200 && response.data != null) {
+      final dynamic raw = response.data is String ? jsonDecode(response.data as String) : response.data;
+      return raw as Map<String, dynamic>;
+    }
+    throw DioException(
+      requestOptions: response.requestOptions,
+      response: response,
+      error: 'Failed to bind template: HTTP ${response.statusCode}',
+    );
+  }
+
+  /// SPRINT 6: Pre-submission Draft Validation Engine
+  Future<Map<String, dynamic>> validateDraft(int orderId) async {
+    final response = await _api.dio.get('/api/v1/orders/$orderId/validate-draft');
+    if (response.statusCode == 200 && response.data != null) {
+      final dynamic raw = response.data is String ? jsonDecode(response.data as String) : response.data;
+      return raw as Map<String, dynamic>;
+    }
+    throw DioException(
+      requestOptions: response.requestOptions,
+      response: response,
+      error: 'Failed to validate draft: HTTP ${response.statusCode}',
+    );
+  }
+
+  /// Advances order status to SPA_GATE.
   Future<bool> submitToSpa(int orderId) async {
     final response = await _api.dio.post('/api/v1/orders/$orderId/submit-to-spa');
     return response.statusCode == 200;

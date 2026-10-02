@@ -30,6 +30,10 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     long countByReportNumberStartingWith(String prefix);
 
     boolean existsByReportNumber(String reportNumber);
+    boolean existsByReferenceCode(String referenceCode);
+    java.util.Optional<Order> findByReferenceCode(String referenceCode);
+    boolean existsByQuoteNumber(String quoteNumber);
+    java.util.Optional<Order> findByQuoteNumber(String quoteNumber);
 
     long countByTemplateId(Long templateId);
 

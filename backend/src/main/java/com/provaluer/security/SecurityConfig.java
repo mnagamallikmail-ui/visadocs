@@ -88,7 +88,8 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.POST, "/api/leads/*/upload", "/api/v1/leads/*/upload").permitAll()
                     // All other lead operations (listing, dossier inspection, quote generation, status transitions) require ADMIN
                     .requestMatchers("/api/leads", "/api/leads/**", "/api/v1/leads", "/api/v1/leads/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                    .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/error").permitAll()
+                    .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/error",
+                            "/client/delivery/stream", "/api/v1/client/delivery/stream").permitAll()
                     .anyRequest().authenticated()
             );
 

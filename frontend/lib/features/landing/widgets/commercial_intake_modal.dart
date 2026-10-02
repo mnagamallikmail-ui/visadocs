@@ -6,21 +6,17 @@ import 'package:url_launcher/url_launcher.dart';
 import '../landing_theme.dart';
 import '../../../services/api_service.dart';
 import '../../../services/analytics_service.dart';
+import '../../request_intake/client_request_intake_modal.dart';
 
 /// Universal 6-Step Commercial Valuation Intake Modal
-/// Designed for CFOs, CAs, Insolvency Professionals, Corporate Borrowers & HNIs.
+/// Replaced by Sprint 1 ClientRequestIntakeModal
 class CommercialIntakeModal extends StatefulWidget {
   final String? initialService;
 
   const CommercialIntakeModal({super.key, this.initialService});
 
   static Future<void> show(BuildContext context, {String? initialService}) {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false,
-      barrierColor: Colors.black87,
-      builder: (ctx) => CommercialIntakeModal(initialService: initialService),
-    );
+    return ClientRequestIntakeModal.show(context);
   }
 
   @override

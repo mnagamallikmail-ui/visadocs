@@ -45,6 +45,16 @@ app:
     # HMAC-SHA 256-bit signing key (hex encoded)
     secret: ${APP_JWT_SECRET:9a62a9386c9135003f42b8e3ea954cfd3a1f9e9d6bc4bf38ea2f6bbd688bfa1f}
     expiration-ms: 86400000 # 24 hours
+  telegram:
+    enabled: ${TELEGRAM_NOTIFICATIONS_ENABLED:true}
+    bot-token: ${TELEGRAM_BOT_TOKEN:}
+    chat-id: ${TELEGRAM_CHAT_ID:}
+  payment:
+    beneficiary-name: ${PAYMENT_BENEFICIARY_NAME:ProValuer Valuation & Advisory Services Pvt Ltd}
+    bank-name: ${PAYMENT_BANK_NAME:HDFC Bank Ltd}
+    account-number: ${PAYMENT_ACCOUNT_NUMBER:50200088912345}
+    ifsc: ${PAYMENT_IFSC:HDFC0001234}
+    upi-id: ${PAYMENT_UPI_ID:provaluer.commercial@hdfcbank}
 
 ---
 # Test Configuration Profile

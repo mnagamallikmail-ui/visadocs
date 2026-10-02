@@ -1,6 +1,8 @@
 #
-#Thu Sep 24 09:45:28 IST 2026
+#Fri Oct 02 17:51:11 IST 2026
 eclipse.preferences.version=1
+org.eclipse.jdt.core.builder.cleanOutputFolder=clean
+org.eclipse.jdt.core.builder.duplicateResourceTask=warning
 org.eclipse.jdt.core.classpath.outputOverlappingAnotherSource=ignore
 org.eclipse.jdt.core.compiler.annotation.missingNonNullByDefaultAnnotation=ignore
 org.eclipse.jdt.core.compiler.annotation.nonnull=org.springframework.lang.NonNull

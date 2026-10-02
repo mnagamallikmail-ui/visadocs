@@ -50,3 +50,15 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
+
+eclipse {
+    classpath {
+        file {
+            whenMerged { cp ->
+                cp.entries.findAll { it.path == 'src/main/resources' }.each {
+                    it.excludes = ['**']
+                }
+            }
+        }
+    }
+}

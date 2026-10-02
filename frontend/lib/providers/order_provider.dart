@@ -129,15 +129,19 @@ class OrderProvider extends ChangeNotifier {
   }
 
 
-  Future<dynamic> saveDraft(String propertyCategory, String purpose, double estimatedValue, Map<String, String> inputs, {int? id}) async {
+  Future<dynamic> saveDraft(String propertyCategory, String purpose, double estimatedValue, Map<String, String> inputs, {int? id, String? serviceCategory}) async {
     try {
-      final response = await _apiService.dio.post('/api/v1/orders/draft', data: {
+      final payload = <String, dynamic>{
         'id': id,
         'propertyCategory': propertyCategory,
         'purpose': purpose,
         'estimatedValue': estimatedValue,
         'inputs': inputs,
-      });
+      };
+      if (serviceCategory != null && serviceCategory.isNotEmpty) {
+        payload['serviceCategory'] = serviceCategory;
+      }
+      final response = await _apiService.dio.post('/api/v1/orders/draft', data: payload);
       if (response.statusCode == 200) {
         await fetchClientOrders();
         return response.data;
@@ -159,6 +163,77 @@ class OrderProvider extends ChangeNotifier {
       // Error deleting draft
     }
     return false;
+  }
+
+  /// SPRINT 1: Submit client valuation request with document validation and Telegram alert
+  Future<Map<String, dynamic>?> submitRequest(int orderId) async {
+    try {
+      final response = await _apiService.dio.post('/api/v1/orders/$orderId/submit-request');
+      if (response.statusCode == 200 && response.data != null) {
+        await fetchClientOrders();
+        return Map<String, dynamic>.from(response.data);
+      }
+    } on DioException catch (e) {
+      if (e.response?.data != null && e.response!.data is Map) {
+        return Map<String, dynamic>.from(e.response!.data);
+      }
+      return {'error': e.message ?? 'Submission error'};
+    } catch (e) {
+      return {'error': e.toString()};
+    }
+    return null;
+  }
+
+  // ── SPRINT 2: Quotation Engine Methods ──
+
+  Future<Map<String, dynamic>?> provideQuote(int orderId, Map<String, dynamic> quoteData) async {
+    try {
+      final response = await _apiService.dio.post(
+        '/api/v1/orders/$orderId/provide-quote',
+        data: quoteData,
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        return Map<String, dynamic>.from(response.data);
+      }
+    } on DioException catch (e) {
+      if (e.response?.data != null && e.response!.data is Map) {
+        return Map<String, dynamic>.from(e.response!.data);
+      }
+      return {'error': e.message ?? 'Quotation submission failed'};
+    } catch (e) {
+      return {'error': e.toString()};
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> fetchOrderQuote(int orderId) async {
+    try {
+      final response = await _apiService.dio.get('/api/v1/orders/$orderId/quote');
+      if (response.statusCode == 200 && response.data != null) {
+        return Map<String, dynamic>.from(response.data);
+      }
+    } on DioException catch (e) {
+      if (e.response?.data != null && e.response!.data is Map) {
+        return Map<String, dynamic>.from(e.response!.data);
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  Future<Uint8List?> downloadQuotePdf(int orderId) async {
+    try {
+      final response = await _apiService.dio.get(
+        '/api/v1/orders/$orderId/quote-pdf',
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {'Accept': 'application/pdf'},
+        ),
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        return Uint8List.fromList(response.data);
+      }
+    } catch (_) {}
+    return null;
   }
 
   Future<bool> submitIntake(int orderId, double depositAmount) async {
@@ -238,14 +313,18 @@ class OrderProvider extends ChangeNotifier {
     _heartbeatTimer = null;
   }
 
-  Future<bool> pauseOrder(int orderId, String reason) async {
+  Future<bool> pauseOrder(int orderId, String reason, {String? description}) async {
     try {
-      final response = await _apiService.dio.post('/api/v1/orders/$orderId/pause', queryParameters: {
-        'reason': reason
-      });
+      final Map<String, dynamic> queryParams = {'reason': reason};
+      if (description != null && description.isNotEmpty) {
+        queryParams['description'] = description;
+      }
+      final response = await _apiService.dio.post('/api/v1/orders/$orderId/pause', queryParameters: queryParams);
       if (response.statusCode == 200) {
         stopHeartbeat();
+        await fetchPaOrders();
         await fetchUnassignedPool();
+        await fetchAllOrders();
         return true;
       }
     } catch (e) {
@@ -258,13 +337,229 @@ class OrderProvider extends ChangeNotifier {
     try {
       final response = await _apiService.dio.post('/api/v1/orders/$orderId/resume');
       if (response.statusCode == 200) {
+        await fetchPaOrders();
         await fetchClientOrders();
+        await fetchAllOrders();
+        startHeartbeat(orderId);
         return true;
       }
     } catch (e) {
       // Error resuming order
     }
     return false;
+  }
+
+  // =========================================================================
+  // SPRINT 5: Site Inspection Lifecycle Methods
+  // =========================================================================
+
+  Future<Map<String, dynamic>?> scheduleInspection(int orderId, {
+    required String inspectionDate,
+    required String inspectionTime,
+    required String siteContactName,
+    required String siteContactNumber,
+    String? altContactName,
+    String? altContactNumber,
+    String? propertyAccessNotes,
+  }) async {
+    _lastError = null;
+    try {
+      final response = await _apiService.dio.post(
+        '/api/v1/orders/$orderId/schedule-inspection',
+        data: {
+          'inspectionDate': inspectionDate,
+          'inspectionTime': inspectionTime,
+          'siteContactName': siteContactName,
+          'siteContactNumber': siteContactNumber,
+          if (altContactName != null && altContactName.isNotEmpty) 'altContactName': altContactName,
+          if (altContactNumber != null && altContactNumber.isNotEmpty) 'altContactNumber': altContactNumber,
+          if (propertyAccessNotes != null && propertyAccessNotes.isNotEmpty) 'propertyAccessNotes': propertyAccessNotes,
+        },
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        await fetchPaOrders();
+        await fetchAllOrders();
+        return Map<String, dynamic>.from(response.data);
+      }
+    } on DioException catch (e) {
+      if (e.response?.data != null && e.response!.data is Map && e.response!.data['message'] != null) {
+        _lastError = e.response!.data['message'].toString();
+      } else {
+        _lastError = e.message ?? "Failed to schedule inspection";
+      }
+    } catch (e) {
+      _lastError = e.toString();
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> rescheduleInspection(int orderId, {
+    required String newInspectionDate,
+    required String newInspectionTime,
+    required String rescheduleReason,
+    String? siteContactName,
+    String? siteContactNumber,
+  }) async {
+    _lastError = null;
+    try {
+      final response = await _apiService.dio.post(
+        '/api/v1/orders/$orderId/reschedule-inspection',
+        data: {
+          'newInspectionDate': newInspectionDate,
+          'newInspectionTime': newInspectionTime,
+          'rescheduleReason': rescheduleReason,
+          if (siteContactName != null && siteContactName.isNotEmpty) 'siteContactName': siteContactName,
+          if (siteContactNumber != null && siteContactNumber.isNotEmpty) 'siteContactNumber': siteContactNumber,
+        },
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        await fetchPaOrders();
+        await fetchAllOrders();
+        return Map<String, dynamic>.from(response.data);
+      }
+    } on DioException catch (e) {
+      if (e.response?.data != null && e.response!.data is Map && e.response!.data['message'] != null) {
+        _lastError = e.response!.data['message'].toString();
+      } else {
+        _lastError = e.message ?? "Failed to reschedule inspection";
+      }
+    } catch (e) {
+      _lastError = e.toString();
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> startInspection(int orderId, {
+    double? gpsLat,
+    double? gpsLng,
+    double? gpsAccuracy,
+    bool? accessConfirmed,
+    String? accessNotes,
+  }) async {
+    _lastError = null;
+    try {
+      final response = await _apiService.dio.post(
+        '/api/v1/orders/$orderId/start-inspection',
+        data: {
+          if (gpsLat != null) 'gpsLat': gpsLat,
+          if (gpsLng != null) 'gpsLng': gpsLng,
+          if (gpsAccuracy != null) 'gpsAccuracy': gpsAccuracy,
+          if (accessConfirmed != null) 'accessConfirmed': accessConfirmed,
+          if (accessNotes != null) 'accessNotes': accessNotes,
+        },
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        await fetchPaOrders();
+        await fetchAllOrders();
+        return Map<String, dynamic>.from(response.data);
+      }
+    } on DioException catch (e) {
+      if (e.response?.data != null && e.response!.data is Map && e.response!.data['message'] != null) {
+        _lastError = e.response!.data['message'].toString();
+      } else {
+        _lastError = e.message ?? "Failed to mark inspection in progress";
+      }
+    } catch (e) {
+      _lastError = e.toString();
+    }
+    return null;
+  }
+
+  Future<UploadResult> uploadInspectionPhoto(int orderId, {
+    required List<int> bytes,
+    required String filename,
+    required String category,
+    double? gpsLat,
+    double? gpsLng,
+    double? gpsAccuracy,
+    String? deviceTimestamp,
+  }) async {
+    try {
+      final Map<String, dynamic> map = {
+        'file': MultipartFile.fromBytes(bytes, filename: filename),
+        'category': category,
+        if (gpsLat != null) 'gpsLat': gpsLat,
+        if (gpsLng != null) 'gpsLng': gpsLng,
+        if (gpsAccuracy != null) 'gpsAccuracy': gpsAccuracy,
+        if (deviceTimestamp != null) 'deviceTimestamp': deviceTimestamp,
+      };
+      final formData = FormData.fromMap(map);
+      final response = await _apiService.dio.post(
+        '/api/v1/orders/$orderId/inspection/photos',
+        data: formData,
+      );
+      return UploadResult(success: response.statusCode == 201 || response.statusCode == 200);
+    } on DioException catch (e) {
+      String msg = "Failed to upload inspection photo.";
+      if (e.response?.data != null && e.response!.data is Map && e.response!.data['message'] != null) {
+        msg = e.response!.data['message'].toString();
+      } else if (e.response?.data != null && e.response!.data is String) {
+        msg = e.response!.data.toString();
+      } else if (e.message != null) {
+        msg = e.message!;
+      }
+      return UploadResult(success: false, errorMessage: msg);
+    } catch (e) {
+      return UploadResult(success: false, errorMessage: e.toString());
+    }
+  }
+
+  Future<bool> deleteInspectionPhoto(int orderId, int photoId, {String? reason}) async {
+    try {
+      final response = await _apiService.dio.delete(
+        '/api/v1/orders/$orderId/inspection/photos/$photoId',
+        data: {'reason': reason ?? 'Deleted by user'},
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<Map<String, dynamic>?> completeInspection(int orderId, {
+    required String inspectionRemarks,
+    String visitStatus = 'COMPLETED',
+    double? gpsLat,
+    double? gpsLng,
+    double? gpsAccuracy,
+  }) async {
+    _lastError = null;
+    try {
+      final response = await _apiService.dio.post(
+        '/api/v1/orders/$orderId/complete-inspection',
+        data: {
+          'inspectionRemarks': inspectionRemarks,
+          'visitStatus': visitStatus,
+          if (gpsLat != null) 'gpsLat': gpsLat,
+          if (gpsLng != null) 'gpsLng': gpsLng,
+          if (gpsAccuracy != null) 'gpsAccuracy': gpsAccuracy,
+        },
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        await fetchPaOrders();
+        await fetchAllOrders();
+        return Map<String, dynamic>.from(response.data);
+      }
+    } on DioException catch (e) {
+      if (e.response?.data != null && e.response!.data is Map && e.response!.data['message'] != null) {
+        _lastError = e.response!.data['message'].toString();
+      } else {
+        _lastError = e.message ?? "Failed to complete inspection";
+      }
+    } catch (e) {
+      _lastError = e.toString();
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> fetchInspectionSummary(int orderId) async {
+    try {
+      final response = await _apiService.dio.get('/api/v1/orders/$orderId/inspection');
+      if (response.statusCode == 200 && response.data != null) {
+        return Map<String, dynamic>.from(response.data);
+      }
+    } catch (_) {}
+    return null;
   }
 
   Future<bool> submitReportDraft(int orderId, Map<String, String> inputs) async {
@@ -489,6 +784,309 @@ class OrderProvider extends ChangeNotifier {
       // Error downloading document
     }
     return null;
+  }
+
+  Future<Map<String, dynamic>?> fetchPaymentDetails(int orderId) async {
+    try {
+      final response = await _apiService.dio.get('/api/v1/orders/$orderId/payment-details');
+      if (response.statusCode == 200 && response.data is Map) {
+        return Map<String, dynamic>.from(response.data);
+      }
+    } catch (e) {
+      // Error fetching payment details
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> submitPaymentProof({
+    required int orderId,
+    required String utrNumber,
+    required String paymentMethod,
+    required String paymentDate,
+    required double amountPaid,
+    String? notes,
+    required List<int> fileBytes,
+    required String filename,
+  }) async {
+    try {
+      final formData = FormData.fromMap({
+        'file': MultipartFile.fromBytes(fileBytes, filename: filename),
+        'utrNumber': utrNumber,
+        'paymentMethod': paymentMethod,
+        'paymentDate': paymentDate,
+        'amountPaid': amountPaid,
+        if (notes != null && notes.isNotEmpty) 'notes': notes,
+      });
+
+      final response = await _apiService.dio.post(
+        '/api/v1/orders/$orderId/submit-payment',
+        data: formData,
+      );
+
+      if (response.statusCode == 200) {
+        await fetchClientOrders();
+        await fetchAllOrders();
+        return Map<String, dynamic>.from(response.data);
+      }
+    } on DioException catch (e) {
+      String msg = "Payment submission failed.";
+      if (e.response?.data != null && e.response!.data is Map && e.response!.data['error'] != null) {
+        msg = e.response!.data['error'].toString();
+      } else if (e.response?.data != null && e.response!.data is String) {
+        msg = e.response!.data.toString();
+      }
+      return {'error': msg};
+    } catch (e) {
+      return {'error': e.toString()};
+    }
+    return {'error': 'Submission failed.'};
+  }
+
+  Future<Map<String, dynamic>?> verifyPayment({
+    required int orderId,
+    double? verifiedAmount,
+    String? adminNotes,
+  }) async {
+    try {
+      final response = await _apiService.dio.post(
+        '/api/v1/orders/$orderId/verify-payment',
+        data: {
+          if (verifiedAmount != null) 'verifiedAmount': verifiedAmount,
+          if (adminNotes != null && adminNotes.isNotEmpty) 'adminNotes': adminNotes,
+        },
+      );
+      if (response.statusCode == 200) {
+        await fetchAllOrders();
+        return Map<String, dynamic>.from(response.data);
+      }
+    } on DioException catch (e) {
+      String msg = "Payment verification failed.";
+      if (e.response?.data != null && e.response!.data is Map && e.response!.data['error'] != null) {
+        msg = e.response!.data['error'].toString();
+      }
+      return {'error': msg};
+    } catch (e) {
+      return {'error': e.toString()};
+    }
+    return {'error': 'Verification failed.'};
+  }
+
+  Future<Map<String, dynamic>?> rejectPayment({
+    required int orderId,
+    required String rejectionReason,
+    String? adminNotes,
+  }) async {
+    try {
+      final response = await _apiService.dio.post(
+        '/api/v1/orders/$orderId/reject-payment',
+        data: {
+          'rejectionReason': rejectionReason,
+          if (adminNotes != null && adminNotes.isNotEmpty) 'adminNotes': adminNotes,
+        },
+      );
+      if (response.statusCode == 200) {
+        await fetchAllOrders();
+        return Map<String, dynamic>.from(response.data);
+      }
+    } on DioException catch (e) {
+      String msg = "Payment rejection failed.";
+      if (e.response?.data != null && e.response!.data is Map && e.response!.data['error'] != null) {
+        msg = e.response!.data['error'].toString();
+      }
+      return {'error': msg};
+    } catch (e) {
+      return {'error': e.toString()};
+    }
+    return {'error': 'Rejection failed.'};
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // SPRINT 4: Admin Controlled Pool Release
+  // ══════════════════════════════════════════════════════════════════════════
+
+  List<dynamic> _releaseQueue = [];
+  List<dynamic> get releaseQueue => _releaseQueue;
+
+  Future<void> fetchReleaseQueue() async {
+    try {
+      final response = await _apiService.dio.get('/api/v1/orders/release-queue');
+      if (response.statusCode == 200) {
+        _releaseQueue = response.data is List ? response.data : [];
+        notifyListeners();
+      }
+    } on DioException catch (e) {
+      debugPrint('[RELEASE_QUEUE] Error: ${e.response?.data}');
+    } catch (e) {
+      debugPrint('[RELEASE_QUEUE] Error: $e');
+    }
+  }
+
+  Future<Map<String, dynamic>?> releaseToPool({
+    required int orderId,
+    String? intakeNotes,
+  }) async {
+    try {
+      final response = await _apiService.dio.post(
+        '/api/v1/orders/$orderId/release-to-pool',
+        data: {
+          if (intakeNotes != null && intakeNotes.isNotEmpty) 'intakeNotes': intakeNotes,
+        },
+      );
+      if (response.statusCode == 200) {
+        await fetchReleaseQueue();
+        await fetchAllOrders();
+        await fetchUnassignedPool();
+        return Map<String, dynamic>.from(response.data);
+      }
+    } on DioException catch (e) {
+      String msg = 'Release to pool failed.';
+      if (e.response?.data != null && e.response!.data is Map && e.response!.data['error'] != null) {
+        msg = e.response!.data['error'].toString();
+      }
+      return {'error': msg};
+    } catch (e) {
+      return {'error': e.toString()};
+    }
+    return {'error': 'Release failed.'};
+  }
+
+  Future<Map<String, dynamic>?> holdIntake({
+    required int orderId,
+    required String holdReason,
+  }) async {
+    try {
+      final response = await _apiService.dio.post(
+        '/api/v1/orders/$orderId/hold-intake',
+        data: {'holdReason': holdReason},
+      );
+      if (response.statusCode == 200) {
+        await fetchReleaseQueue();
+        await fetchAllOrders();
+        return Map<String, dynamic>.from(response.data);
+      }
+    } on DioException catch (e) {
+      String msg = 'Hold intake failed.';
+      if (e.response?.data != null && e.response!.data is Map && e.response!.data['error'] != null) {
+        msg = e.response!.data['error'].toString();
+      }
+      return {'error': msg};
+    } catch (e) {
+      return {'error': e.toString()};
+    }
+    return {'error': 'Hold failed.'};
+  }
+
+  // ══════════════════════════════════════════════════════════════════════════
+  // SPRINT 6: Document Workspace & SPA Gate Lifecycle
+  // ══════════════════════════════════════════════════════════════════════════
+
+  Future<Map<String, dynamic>?> initializeWorkspace(int orderId) async {
+    _lastError = null;
+    try {
+      final response = await _apiService.dio.post('/api/v1/orders/$orderId/initialize-workspace');
+      if (response.statusCode == 200 && response.data != null) {
+        await fetchPaOrders();
+        await fetchAllOrders();
+        return Map<String, dynamic>.from(response.data);
+      }
+    } on DioException catch (e) {
+      if (e.response?.data != null && e.response!.data is Map && e.response!.data['message'] != null) {
+        _lastError = e.response!.data['message'].toString();
+      } else {
+        _lastError = e.message ?? "Failed to initialize workspace";
+      }
+    } catch (e) {
+      _lastError = e.toString();
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> bindTemplate(int orderId, int templateId, {bool forceSnapshotRebuild = false}) async {
+    _lastError = null;
+    try {
+      final response = await _apiService.dio.post(
+        '/api/v1/orders/$orderId/bind-template',
+        data: {'templateId': templateId, 'forceSnapshotRebuild': forceSnapshotRebuild},
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        await fetchPaOrders();
+        await fetchAllOrders();
+        return Map<String, dynamic>.from(response.data);
+      }
+    } on DioException catch (e) {
+      if (e.response?.data != null && e.response!.data is Map && e.response!.data['error'] != null) {
+        _lastError = e.response!.data['error'].toString();
+      } else {
+        _lastError = e.message ?? "Failed to bind template";
+      }
+    } catch (e) {
+      _lastError = e.toString();
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> validateDraft(int orderId) async {
+    _lastError = null;
+    try {
+      final response = await _apiService.dio.get('/api/v1/orders/$orderId/validate-draft');
+      if (response.statusCode == 200 && response.data != null) {
+        return Map<String, dynamic>.from(response.data);
+      }
+    } on DioException catch (e) {
+      if (e.response?.data != null && e.response!.data is Map && e.response!.data['message'] != null) {
+        _lastError = e.response!.data['message'].toString();
+      } else {
+        _lastError = e.message ?? "Failed to validate draft";
+      }
+    } catch (e) {
+      _lastError = e.toString();
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> submitDraftToSpa(int orderId) async {
+    _lastError = null;
+    try {
+      final response = await _apiService.dio.post('/api/v1/orders/$orderId/submit-to-spa');
+      if (response.statusCode == 200 && response.data != null) {
+        await fetchPaOrders();
+        await fetchAllOrders();
+        return Map<String, dynamic>.from(response.data);
+      }
+    } on DioException catch (e) {
+      if (e.response?.data != null && e.response!.data is Map && e.response!.data['message'] != null) {
+        _lastError = e.response!.data['message'].toString();
+      } else if (e.response?.data != null && e.response!.data is Map && e.response!.data['error'] != null) {
+        _lastError = e.response!.data['error'].toString();
+      } else {
+        _lastError = e.message ?? "Failed to submit draft to SPA gate";
+      }
+    } catch (e) {
+      _lastError = e.toString();
+    }
+    return null;
+  }
+
+  Future<bool> saveDocumentValues(int orderId, Map<String, String> values) async {
+    _lastError = null;
+    try {
+      final response = await _apiService.dio.post(
+        '/api/v1/orders/$orderId/save-document-values',
+        data: {'values': values},
+      );
+      if (response.statusCode == 200) {
+        return true;
+      }
+    } on DioException catch (e) {
+      if (e.response?.data != null && e.response!.data is Map && e.response!.data['error'] != null) {
+        _lastError = e.response!.data['error'].toString();
+      } else {
+        _lastError = e.message ?? "Failed to save document values";
+      }
+    } catch (e) {
+      _lastError = e.toString();
+    }
+    return false;
   }
 
   @override

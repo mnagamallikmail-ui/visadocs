@@ -22,6 +22,11 @@ import '../../providers/auth_provider.dart';
 import '../../utils/report_list_helper.dart';
 import '../../utils/date_picker_helper.dart';
 import '../document_workspace/document_workspace_screen.dart';
+import '../quotations/admin_request_review_modal.dart';
+import '../quotations/client_quote_view_modal.dart';
+import '../quotations/client_payment_submission_modal.dart';
+import '../quotations/admin_payment_review_modal.dart';
+import '../inspection/site_inspection_modal.dart';
 
 class ValuationPortalWidget extends StatefulWidget {
   final String role;
@@ -2774,7 +2779,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
         if (widget.role == 'CLIENT') {
           list = provider.clientOrders.where((o) => o['status'] != 'FINAL_DELIVERY').toList();
         } else if (widget.role == 'PA') {
-          list = provider.paOrders.where((o) => o['status'] == 'ASSIGNED' || o['status'] == 'ACTION_NEEDED' || o['status'] == 'SPA_GATE' || o['status'] == 'SPA_CONFIRMED' || o['status'] == 'FINAL_DELIVERY').toList();
+          list = provider.paOrders.where((o) => o['status'] == 'ASSIGNED' || o['status'] == 'INSPECTION_SCHEDULED' || o['status'] == 'INSPECTION_IN_PROGRESS' || o['status'] == 'INSPECTION_COMPLETED' || o['status'] == 'ACTION_NEEDED' || o['status'] == 'SPA_GATE' || o['status'] == 'SPA_CONFIRMED' || o['status'] == 'FINAL_DELIVERY').toList();
         } else if (widget.role == 'SPA') {
           list = provider.allOrders.where((o) => o['status'] == 'SPA_GATE' || o['status'] == 'SPA_CONFIRMED').toList();
         } else {
@@ -3034,6 +3039,183 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                                           ),
                                         ),
                                       ),
+                                      if ((widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN') && (order['status'] == 'QUOTE_PENDING' || order['status'] == 'QUOTE_PROVIDED')) ...[
+                                        const SizedBox(width: 6),
+                                        InkWell(
+                                          onTap: () => AdminRequestReviewModal.show(
+                                            context: context,
+                                            order: order,
+                                            onRefresh: () => _refreshData(),
+                                          ),
+                                          borderRadius: BorderRadius.circular(4),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFEFF6FF),
+                                              borderRadius: BorderRadius.circular(4),
+                                              border: Border.all(color: const Color(0xFFBFDBFE)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.rate_review_outlined, size: 12, color: Color(0xFF1D4ED8)),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  order['status'] == 'QUOTE_PENDING' ? 'Quote' : 'Review Quote',
+                                                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF1D4ED8)),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                      if (order['status'] == 'QUOTE_PROVIDED' || order['quoteNumber'] != null) ...[
+                                        const SizedBox(width: 6),
+                                        InkWell(
+                                          onTap: () => ClientQuoteViewModal.show(
+                                            context: context,
+                                            orderId: (order['id'] as num).toInt(),
+                                            initialRefCode: order['referenceCode'] ?? order['reportNumber'],
+                                          ),
+                                          borderRadius: BorderRadius.circular(4),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFECFDF5),
+                                              borderRadius: BorderRadius.circular(4),
+                                              border: Border.all(color: const Color(0xFFA7F3D0)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.receipt_long_outlined, size: 12, color: Color(0xFF047857)),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'View Quote',
+                                                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF047857)),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                      // Sprint 3: Client Payment Submission Action
+                                      if (order['status'] == 'QUOTE_PROVIDED' || order['status'] == 'PAYMENT_REJECTED') ...[
+                                        const SizedBox(width: 6),
+                                        InkWell(
+                                          onTap: () => ClientPaymentSubmissionModal.show(
+                                            context: context,
+                                            orderId: (order['id'] as num).toInt(),
+                                            onSuccess: () => _refreshData(),
+                                          ),
+                                          borderRadius: BorderRadius.circular(4),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFEFF6FF),
+                                              borderRadius: BorderRadius.circular(4),
+                                              border: Border.all(color: const Color(0xFFBFDBFE)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.payment_rounded, size: 12, color: Color(0xFF1D4ED8)),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  order['status'] == 'PAYMENT_REJECTED' ? 'Resubmit Pay' : 'Pay / UTR',
+                                                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF1D4ED8)),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                      // Sprint 3: Admin Review or Status Badges
+                                      if (order['status'] == 'PAYMENT_SUBMITTED') ...[
+                                        const SizedBox(width: 6),
+                                        if (widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN' || widget.role == 'ROLE_ADMIN' || widget.role == 'ROLE_SUPER_ADMIN')
+                                          InkWell(
+                                            onTap: () => AdminPaymentReviewModal.show(
+                                              context: context,
+                                              order: order,
+                                              onRefresh: () => _refreshData(),
+                                            ),
+                                            borderRadius: BorderRadius.circular(4),
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                              decoration: BoxDecoration(
+                                                color: const Color(0xFFFEF3C7),
+                                                borderRadius: BorderRadius.circular(4),
+                                                border: Border.all(color: const Color(0xFFFDE68A)),
+                                              ),
+                                              child: Row(
+                                                mainAxisSize: MainAxisSize.min,
+                                                children: [
+                                                  const Icon(Icons.verified_outlined, size: 12, color: Color(0xFFB45309)),
+                                                  const SizedBox(width: 4),
+                                                  Text(
+                                                    'Review Payment',
+                                                    style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFFB45309)),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          )
+                                        else
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFFEF3C7),
+                                              borderRadius: BorderRadius.circular(4),
+                                              border: Border.all(color: const Color(0xFFFDE68A)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.hourglass_top_rounded, size: 12, color: Color(0xFFB45309)),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'Pay Review',
+                                                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFFB45309)),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                      ],
+                                      if (order['status'] == 'PAYMENT_VERIFIED') ...[
+                                        const SizedBox(width: 6),
+                                        InkWell(
+                                          onTap: () {
+                                            if (widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN' || widget.role == 'ROLE_ADMIN' || widget.role == 'ROLE_SUPER_ADMIN') {
+                                              AdminPaymentReviewModal.show(
+                                                context: context,
+                                                order: order,
+                                                onRefresh: () => _refreshData(),
+                                              );
+                                            }
+                                          },
+                                          borderRadius: BorderRadius.circular(4),
+                                          child: Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: const Color(0xFFECFDF5),
+                                              borderRadius: BorderRadius.circular(4),
+                                              border: Border.all(color: const Color(0xFFA7F3D0)),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.check_circle_outline_rounded, size: 12, color: Color(0xFF047857)),
+                                                const SizedBox(width: 4),
+                                                Text(
+                                                  'Payment Verified',
+                                                  style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF047857)),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                       if (canDelete) ...[
                                         const SizedBox(width: 6),
                                         InkWell(
@@ -3093,7 +3275,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
     final String status = order['status'] ?? 'PENDING';
     final isCompleted = status == "FINAL_DELIVERY";
     final isUnassigned = status == "PAID_INTAKE";
-    final isAssignedToMe = (status == "ASSIGNED" || status == "SPA_GATE") && order['paId'] != null;
+    final isAssignedToMe = (status == "ASSIGNED" || status == "INSPECTION_SCHEDULED" || status == "INSPECTION_IN_PROGRESS" || status == "INSPECTION_COMPLETED" || status == "ACTION_NEEDED" || status == "SPA_GATE") && order['paId'] != null;
 
     final String reportNum = order['reportNumber'] ?? 'PV-${order['id']}';
 
@@ -3167,6 +3349,72 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
               child: const Text("CLAIM THIS VALUATION FILE", style: TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.bold)),
             ),
           ),
+
+        // Action: Site Inspection Lifecycle (Sprint 5)
+        if (isAssignedToMe && (widget.role == 'PA' || widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN') &&
+            (status == 'ASSIGNED' || status == 'INSPECTION_SCHEDULED' || status == 'INSPECTION_IN_PROGRESS' || status == 'INSPECTION_COMPLETED' || status == 'ACTION_NEEDED')) ...[
+          Container(
+            padding: const EdgeInsets.all(12),
+            margin: const EdgeInsets.only(bottom: 12),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFF334155)),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.explore_outlined, color: Color(0xFF38BDF8), size: 16),
+                    const SizedBox(width: 8),
+                    Text(
+                      "SITE INSPECTION LIFECYCLE",
+                      style: GoogleFonts.montserrat(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  height: 38,
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.touch_app, size: 16, color: Colors.white),
+                    onPressed: () {
+                      SiteInspectionModal.show(
+                        context: context,
+                        orderId: order['id'],
+                        referenceCode: order['referenceCode'] ?? 'REQ-${order['id']}',
+                        orderStatus: status,
+                        role: widget.role,
+                        onStatusChanged: () {
+                          _refreshData();
+                        },
+                      );
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF0284C7),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                    ),
+                    label: Text(
+                      status == 'ASSIGNED'
+                          ? "SCHEDULE SITE INSPECTION"
+                          : (status == 'INSPECTION_SCHEDULED'
+                              ? "MANAGE SCHEDULE & START VISIT"
+                              : (status == 'INSPECTION_IN_PROGRESS'
+                                  ? "EVIDENCE & COMPLETION GATE"
+                                  : (status == 'ACTION_NEEDED'
+                                      ? "VIEW BLOCKER & RESUME"
+                                      : "VIEW INSPECTION DETAILS"))),
+                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
 
         // Action B: Template selection and inputs form (For PA / SPA / Super Admin)
         if (isAssignedToMe && (widget.role == 'PA' || widget.role == 'SPA' || widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN')) ...[
@@ -4091,6 +4339,14 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
         return AppColors.successBg;
       case "ASSIGNED":
         return AppColors.warningBg;
+      case "INSPECTION_SCHEDULED":
+        return const Color(0xFF818CF8).withOpacity(0.15);
+      case "INSPECTION_IN_PROGRESS":
+        return const Color(0xFFF97316).withOpacity(0.15);
+      case "INSPECTION_COMPLETED":
+        return const Color(0xFF14B8A6).withOpacity(0.15);
+      case "ACTION_NEEDED":
+        return const Color(0xFFEF4444).withOpacity(0.15);
       case "SPA_GATE":
         return AppColors.primaryBlueLight;
       case "SPA_CONFIRMED":
@@ -4109,6 +4365,14 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
         return AppColors.successAccent;
       case "ASSIGNED":
         return AppColors.warning;
+      case "INSPECTION_SCHEDULED":
+        return const Color(0xFF818CF8);
+      case "INSPECTION_IN_PROGRESS":
+        return const Color(0xFFF97316);
+      case "INSPECTION_COMPLETED":
+        return const Color(0xFF14B8A6);
+      case "ACTION_NEEDED":
+        return const Color(0xFFEF4444);
       case "SPA_GATE":
         return AppColors.primaryBlue;
       case "SPA_CONFIRMED":

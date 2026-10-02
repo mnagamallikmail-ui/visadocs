@@ -1,7 +1,18 @@
 package com.provaluer.controller;
 
+import com.provaluer.dto.ProvideQuoteRequest;
+import com.provaluer.dto.QuoteResponseDto;
+import com.provaluer.dto.SubmitPaymentRequest;
+import com.provaluer.dto.VerifyPaymentRequest;
+import com.provaluer.dto.RejectPaymentRequest;
+import com.provaluer.dto.PaymentDetailsResponse;
+import com.provaluer.dto.ReleaseQueueOrderDto;
+import com.provaluer.dto.ReleaseToPoolRequest;
+import com.provaluer.dto.HoldIntakeRequest;
 import com.provaluer.model.*;
 import com.provaluer.repository.*;
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalDate;
 import com.provaluer.security.UserDetailsImpl;
 import com.provaluer.service.SlaService;
 import com.provaluer.service.PricingService;
@@ -15,13 +26,26 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.MessageDigest;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.util.stream.Collectors;
+
+import com.provaluer.dto.ScheduleInspectionRequest;
+import com.provaluer.dto.RescheduleInspectionRequest;
+import com.provaluer.dto.StartInspectionRequest;
+import com.provaluer.dto.CompleteInspectionRequest;
+import com.provaluer.dto.DeleteInspectionPhotoRequest;
+import com.provaluer.dto.InspectionPhotoDto;
+import com.provaluer.dto.InspectionSummaryDto;
+import com.provaluer.service.InspectionService;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/orders")
@@ -34,6 +58,15 @@ public class OrderController {
 
     @Autowired
     private AuditLogRepository auditLogRepository;
+
+    @Autowired
+    private InspectionService inspectionService;
+
+    @Autowired
+    private com.provaluer.service.AuditLogService auditLogService;
+
+    @Autowired
+    private com.provaluer.service.TelegramNotificationService telegramNotificationService;
 
     @Autowired
     private OrderInputRepository orderInputRepository;
@@ -65,6 +98,18 @@ public class OrderController {
     @Autowired
     private com.provaluer.service.DocumentWorkspaceService documentWorkspaceService;
 
+    @Autowired
+    private com.provaluer.service.QuotePdfGeneratorService quotePdfGeneratorService;
+
+    @Autowired
+    private com.provaluer.service.QuotationNotificationService quotationNotificationService;
+
+    @Autowired
+    private com.provaluer.service.PaymentWorkflowService paymentWorkflowService;
+
+    @Autowired
+    private com.provaluer.service.PoolReleaseService poolReleaseService;
+
     // In-memory cache for paused orders remaining SLA business hours
     private final Map<Long, Double> pausedSlaHoursCache = new HashMap<>();
 
@@ -79,11 +124,27 @@ public class OrderController {
                 : new Order();
         
         order.setClientId(principal.getId());
-        order.setPropertyCategory(request.getPropertyCategory());
-        order.setPurpose(request.getPurpose());
+        if (request.getPropertyCategory() != null && !request.getPropertyCategory().isBlank()) {
+            order.setPropertyCategory(request.getPropertyCategory());
+        } else if (order.getPropertyCategory() == null) {
+            order.setPropertyCategory("LAND_AND_BUILDING");
+        }
+
+        if (request.getServiceCategory() != null && !request.getServiceCategory().isBlank()) {
+            order.setServiceCategory(request.getServiceCategory());
+        }
+
+        if (request.getPurpose() != null && !request.getPurpose().isBlank()) {
+            order.setPurpose(request.getPurpose());
+        } else if (order.getPurpose() == null) {
+            order.setPurpose("VALUATION");
+        }
+
         order.setEstimatedValue(request.getEstimatedValue());
         order.setTemplateId(request.getTemplateId());
-        order.setStatus("DRAFT");
+        if (order.getStatus() == null || "DRAFT".equals(order.getStatus())) {
+            order.setStatus("DRAFT");
+        }
         
         if (request.getTemplateId() != null && order.getFieldMappingSnapshot() == null) {
             templateRepository.findById(request.getTemplateId()).ifPresent(t -> {
@@ -100,6 +161,10 @@ public class OrderController {
         // Delete existing inputs and rewrite
         List<OrderInput> existingInputs = orderInputRepository.findAllByOrderId(savedOrder.getId());
         orderInputRepository.deleteAll(existingInputs);
+
+        if (request.getServiceCategory() != null && !request.getServiceCategory().isBlank()) {
+            saveOrUpdateInput(savedOrder.getId(), "SERVICE_CATEGORY", request.getServiceCategory());
+        }
 
         if (request.getInputs() != null) {
             for (Map.Entry<String, String> entry : request.getInputs().entrySet()) {
@@ -152,6 +217,11 @@ public class OrderController {
 
         boolean isSuperAdmin = principal.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+
+        if (order.isArchivalLocked() || "CLOSED".equalsIgnoreCase(order.getStatus())) {
+            return ResponseEntity.status(HttpStatus.LOCKED)
+                    .body(Map.of("error", "Order #" + id + " is permanently CLOSED and under 10-year archival lock. Deletion is strictly prohibited."));
+        }
 
         boolean isFinalized = "FINALIZED".equalsIgnoreCase(order.getValuationStatus())
                 || "LOCKED".equalsIgnoreCase(order.getValuationStatus())
@@ -214,6 +284,608 @@ public class OrderController {
             return ResponseEntity.ok(saved);
         }
         return ResponseEntity.notFound().build();
+    }
+
+    /**
+     * SPRINT 1: POST /api/v1/orders/{id}/submit-request
+     * Client Request Submission with mandatory document validation,
+     * reference code generation (REQ-YYYY-XXXX), status transition to QUOTE_PENDING,
+     * and async Telegram operations alert.
+     */
+    @PostMapping("/{id}/submit-request")
+    @Transactional
+    @PreAuthorize("hasAnyRole('CLIENT', 'SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> submitRequest(@PathVariable Long id) {
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required to submit request"));
+        }
+
+        Optional<Order> orderOpt = orderRepository.findById(id);
+        if (orderOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        Order order = orderOpt.get();
+
+        boolean isAdmin = principal.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin && !order.getClientId().equals(principal.getId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Access denied to submit this request"));
+        }
+
+        // FIX 4 & 5: Submission State Guard & Telegram Duplicate Prevention
+        // Only allow submission when status == DRAFT. Any other status returns 409 Conflict.
+        if (order.getStatus() == null || !"DRAFT".equalsIgnoreCase(order.getStatus())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                    "error", "This request has already been submitted.",
+                    "message", "This request has already been submitted.",
+                    "status", order.getStatus() != null ? order.getStatus() : "UNKNOWN"
+            ));
+        }
+
+        // 1. Validate mandatory documents: Title Deed, Plan/Layout, Tax Receipt
+        List<OrderDocument> docs = orderDocumentRepository.findAllByOrderId(id);
+        Set<String> categories = docs.stream()
+                .map(d -> d.getCategory() != null ? d.getCategory().toUpperCase() : "")
+                .collect(Collectors.toSet());
+
+        List<String> missing = new ArrayList<>();
+        if (!categories.contains("TITLE_DEED") && !categories.contains("SALE_DEED") && !categories.contains("OWNERSHIP_PROOF")) {
+            missing.add("Title Deed / Ownership Proof");
+        }
+        if (!categories.contains("SANCTION_PLAN") && !categories.contains("PLAN_LAYOUT") && !categories.contains("APPROVED_PLAN")) {
+            missing.add("Plan / Layout");
+        }
+        if (!categories.contains("TAX_RECEIPT") && !categories.contains("PROPERTY_TAX")) {
+            missing.add("Tax Receipt");
+        }
+
+        if (!missing.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "error", "Mandatory documents missing: " + String.join(", ", missing),
+                    "missingCategories", missing
+            ));
+        }
+
+        // 2. Generate reference code: REQ-YYYY-XXXX
+        if (order.getReferenceCode() == null || order.getReferenceCode().trim().isEmpty()) {
+            int year = LocalDateTime.now().getYear();
+            String prefix = "REQ-" + year + "-";
+            String refCode;
+            int attempts = 0;
+            do {
+                refCode = prefix + String.format("%04d", (int)(Math.random() * 9000) + 1000);
+                attempts++;
+            } while (orderRepository.existsByReferenceCode(refCode) && attempts < 100);
+            order.setReferenceCode(refCode);
+        }
+
+        // 3. Update status: REQUEST_SUBMITTED -> QUOTE_PENDING
+        order.setStatus("QUOTE_PENDING");
+        order.setUpdatedAt(LocalDateTime.now());
+        Order savedOrder = orderRepository.save(order);
+
+        // Fetch client details for telegram message
+        User clientUser = userRepository.findById(order.getClientId()).orElse(null);
+        String clientName = (clientUser != null && clientUser.getFullName() != null && !clientUser.getFullName().isBlank())
+                ? clientUser.getFullName() : principal.getUsername();
+        String clientMobile = (clientUser != null && clientUser.getMobileNumber() != null && !clientUser.getMobileNumber().isBlank())
+                ? clientUser.getMobileNumber() : "N/A";
+
+        // Extract Service Category, Asset Category, Purpose
+        String serviceCategory = order.getServiceCategory();
+        if (serviceCategory == null || serviceCategory.isBlank()) {
+            Optional<OrderInput> sInput = orderInputRepository.findByOrderIdAndFieldKey(id, "SERVICE_CATEGORY");
+            serviceCategory = sInput.map(OrderInput::getFieldValue).orElse("Valuation Report");
+        }
+        String assetCategory = order.getPropertyCategory() != null ? order.getPropertyCategory() : "Land & Building";
+        String purpose = order.getPurpose() != null ? order.getPurpose() : "Bank Collateral / Loan";
+
+        // 4. Trigger Telegram async notification (Non-blocking, retryable, safe)
+        telegramNotificationService.sendNewRequestNotification(
+                savedOrder.getReferenceCode(),
+                clientName,
+                serviceCategory,
+                assetCategory,
+                purpose,
+                docs.size(),
+                clientMobile
+        );
+
+        // Log audit trail
+        try {
+            auditLogService.log(
+                    principal.getId(),
+                    principal.getUsername(),
+                    principal.getAuthorities().iterator().next().getAuthority(),
+                    "SUBMIT_REQUEST",
+                    "orders",
+                    String.valueOf(savedOrder.getId()),
+                    "Valuation request submitted with reference " + savedOrder.getReferenceCode() + " and transitioned to QUOTE_PENDING"
+            );
+        } catch (Exception e) {
+            log.warn("Failed to write audit log for submit-request order #{}: {}", id, e.getMessage());
+        }
+
+        return ResponseEntity.ok(Map.of(
+                "orderId", savedOrder.getId(),
+                "referenceCode", savedOrder.getReferenceCode(),
+                "status", savedOrder.getStatus(),
+                "documentCount", docs.size(),
+                "message", "Your request has been received and is under review. A quotation will be issued through the portal after document review."
+        ));
+    }
+
+    /**
+     * SPRINT 1.1: GET /api/v1/orders/by-reference/{refCode}
+     * Retrieves order summary by reference code with strict ownership verification.
+     * Allowed only for order owner (clientId == principal.id) or ROLE_ADMIN / ROLE_SUPER_ADMIN.
+     * All others receive 403 Forbidden.
+     */
+    @GetMapping("/by-reference/{refCode}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> getOrderByReferenceCode(@PathVariable String refCode) {
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
+        }
+
+        Optional<Order> orderOpt = orderRepository.findByReferenceCode(refCode);
+        if (orderOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        Order order = orderOpt.get();
+
+        boolean isAdmin = principal.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin && (order.getClientId() == null || !order.getClientId().equals(principal.getId()))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                    "error", "Access denied: you do not have permission to access order " + refCode
+            ));
+        }
+
+        return ResponseEntity.ok(order);
+    }
+
+    /**
+     * SPRINT 2: POST /api/v1/orders/{id}/provide-quote
+     * Admin issues formal valuation quotation for orders in QUOTE_PENDING status.
+     * Transitions status: QUOTE_PENDING -> QUOTE_PROVIDED.
+     * Dispatches multi-channel notifications (Email, Portal, Telegram).
+     */
+    @PostMapping("/{id}/provide-quote")
+    @Transactional
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> provideQuote(@PathVariable Long id, @RequestBody ProvideQuoteRequest request) {
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
+        }
+
+        Optional<Order> orderOpt = orderRepository.findById(id);
+        if (orderOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        Order order = orderOpt.get();
+
+        boolean isAdmin = principal.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Access denied: Only administrators can issue quotations"));
+        }
+
+        // Status guard: ONLY allow when status == QUOTE_PENDING
+        if (!"QUOTE_PENDING".equalsIgnoreCase(order.getStatus())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                    "error", "Cannot issue quote: Order is in status: " + order.getStatus() + ". Only orders in QUOTE_PENDING status can receive a quote.",
+                    "status", order.getStatus()
+            ));
+        }
+
+        if (request.getQuoteAmount() == null || request.getQuoteAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Quote amount must be greater than zero"));
+        }
+        if (request.getTurnaroundTime() == null || request.getTurnaroundTime().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Turnaround time is required"));
+        }
+        if (request.getScopeNotes() == null || request.getScopeNotes().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Scope notes are required"));
+        }
+
+        // Calculate GST (default 18.00% if not specified)
+        BigDecimal gstRate = (request.getGstRate() != null && request.getGstRate().compareTo(BigDecimal.ZERO) >= 0)
+                ? request.getGstRate() : BigDecimal.valueOf(18.00);
+
+        BigDecimal quoteTax = request.getQuoteTax();
+        if (quoteTax == null) {
+            quoteTax = request.getQuoteAmount().multiply(gstRate).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        }
+
+        BigDecimal quoteTotal = request.getQuoteTotal();
+        if (quoteTotal == null) {
+            quoteTotal = request.getQuoteAmount().add(quoteTax);
+        }
+
+        // Generate unique quoteNumber: QTE-YYYY-XXXX
+        if (order.getQuoteNumber() == null || order.getQuoteNumber().trim().isEmpty()) {
+            int year = LocalDateTime.now().getYear();
+            String prefix = "QTE-" + year + "-";
+            String quoteNum;
+            int attempts = 0;
+            do {
+                quoteNum = prefix + String.format("%04d", (int)(Math.random() * 9000) + 1000);
+                attempts++;
+            } while (orderRepository.existsByQuoteNumber(quoteNum) && attempts < 100);
+            order.setQuoteNumber(quoteNum);
+        }
+
+        int validityDays = (request.getValidityDays() != null && request.getValidityDays() > 0)
+                ? request.getValidityDays() : 15;
+
+        order.setQuoteAmount(request.getQuoteAmount());
+        order.setQuoteTax(quoteTax);
+        order.setQuoteTotal(quoteTotal);
+        order.setQuoteTurnaround(request.getTurnaroundTime().trim());
+        order.setQuoteNotes(request.getScopeNotes().trim());
+        order.setQuoteTerms(request.getTermsConditions() != null ? request.getTermsConditions().trim() : null);
+        order.setQuoteValidUntil(LocalDateTime.now().plusDays(validityDays));
+        order.setQuotedBy(principal.getId());
+        order.setQuotedAt(LocalDateTime.now());
+        order.setStatus("QUOTE_PROVIDED");
+        order.setUpdatedAt(LocalDateTime.now());
+
+        Order savedOrder = orderRepository.save(order);
+
+        // Fetch client user & admin user
+        User clientUser = userRepository.findById(savedOrder.getClientId()).orElse(null);
+        User adminUser = userRepository.findById(principal.getId()).orElse(null);
+
+        // Multi-channel notifications
+        try {
+            quotationNotificationService.notifyQuotationIssued(savedOrder, clientUser, adminUser);
+        } catch (Exception e) {
+            log.warn("Failed to dispatch quotation notifications for Order #{}: {}", id, e.getMessage());
+        }
+
+        // Audit Log
+        try {
+            auditLogService.log(
+                    principal.getId(),
+                    principal.getUsername(),
+                    principal.getAuthorities().iterator().next().getAuthority(),
+                    "PROVIDE_QUOTE",
+                    "orders",
+                    String.valueOf(savedOrder.getId()),
+                    "Issued quotation " + savedOrder.getQuoteNumber() + " for Rs " + savedOrder.getQuoteTotal() + " (Turnaround: " + savedOrder.getQuoteTurnaround() + ")"
+            );
+        } catch (Exception e) {
+            log.warn("Failed to write audit log for provide-quote #{}: {}", id, e.getMessage());
+        }
+
+        QuoteResponseDto dto = buildQuoteResponseDto(savedOrder, clientUser, adminUser, gstRate);
+        return ResponseEntity.ok(dto);
+    }
+
+    /**
+     * SPRINT 2: GET /api/v1/orders/{id}/quote
+     * Client or Admin views formal valuation quotation particulars.
+     */
+    @GetMapping("/{id}/quote")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> getOrderQuote(@PathVariable Long id) {
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
+        }
+
+        Optional<Order> orderOpt = orderRepository.findById(id);
+        if (orderOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        Order order = orderOpt.get();
+
+        boolean isAdmin = principal.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin && (order.getClientId() == null || !order.getClientId().equals(principal.getId()))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Access denied: you do not have permission to view quotation for order #" + id));
+        }
+
+        if (order.getQuoteNumber() == null || order.getQuoteAmount() == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Quotation has not been issued for this order yet."));
+        }
+
+        User clientUser = userRepository.findById(order.getClientId()).orElse(null);
+        User adminUser = order.getQuotedBy() != null ? userRepository.findById(order.getQuotedBy()).orElse(null) : null;
+        BigDecimal gstRate = BigDecimal.valueOf(18.00);
+
+        return ResponseEntity.ok(buildQuoteResponseDto(order, clientUser, adminUser, gstRate));
+    }
+
+    /**
+     * SPRINT 2: GET /api/v1/orders/{id}/quote-pdf
+     * Generates and downloads the official branded PDF quotation with authorization checks.
+     */
+    @GetMapping("/{id}/quote-pdf")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> getOrderQuotePdf(@PathVariable Long id) {
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
+        }
+
+        Optional<Order> orderOpt = orderRepository.findById(id);
+        if (orderOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        Order order = orderOpt.get();
+
+        boolean isAdmin = principal.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
+
+        if (!isAdmin && (order.getClientId() == null || !order.getClientId().equals(principal.getId()))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Access denied: you do not have permission to download quotation for order #" + id));
+        }
+
+        if (order.getQuoteNumber() == null || order.getQuoteAmount() == null) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", "Quotation has not been issued for this order yet."));
+        }
+
+        try {
+            User clientUser = userRepository.findById(order.getClientId()).orElse(null);
+            User adminUser = order.getQuotedBy() != null ? userRepository.findById(order.getQuotedBy()).orElse(null) : null;
+            byte[] pdfBytes = quotePdfGeneratorService.generateQuotePdf(order, clientUser, adminUser);
+
+            return ResponseEntity.ok()
+                    .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"Quotation_" + order.getQuoteNumber() + ".pdf\"")
+                    .contentType(MediaType.APPLICATION_PDF)
+                    .body(pdfBytes);
+        } catch (Exception e) {
+            log.error("Failed to generate Quote PDF for order #{}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Failed to generate Quote PDF: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * SPRINT 3: POST /api/v1/orders/{id}/submit-payment
+     * Client owner uploads payment proof (receipt, UTR, date, amount) for an order in QUOTE_PROVIDED or PAYMENT_REJECTED.
+     * Transitions status to PAYMENT_SUBMITTED.
+     */
+    @PostMapping(value = "/{id}/submit-payment", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> submitPayment(
+            @PathVariable Long id,
+            @RequestParam("file") org.springframework.web.multipart.MultipartFile file,
+            @RequestParam("utrNumber") String utrNumber,
+            @RequestParam("paymentMethod") String paymentMethod,
+            @RequestParam("paymentDate") @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate paymentDate,
+            @RequestParam("amountPaid") BigDecimal amountPaid,
+            @RequestParam(value = "notes", required = false) String notes) {
+
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
+        }
+
+        SubmitPaymentRequest req = new SubmitPaymentRequest();
+        req.setUtrNumber(utrNumber);
+        req.setPaymentMethod(paymentMethod);
+        req.setPaymentDate(paymentDate);
+        req.setAmountPaid(amountPaid);
+        req.setNotes(notes);
+
+        try {
+            PaymentDetailsResponse.PaymentRecordDto record = paymentWorkflowService.submitPaymentProof(id, file, req, principal);
+            return ResponseEntity.ok(record);
+        } catch (org.springframework.web.server.ResponseStatusException rse) {
+            return ResponseEntity.status(rse.getStatusCode()).body(Map.of("error", rse.getReason()));
+        } catch (Exception e) {
+            log.error("Failed to submit payment for order #{}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Failed to submit payment: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * SPRINT 3: POST /api/v1/orders/{id}/verify-payment
+     * Admin confirms bank receipt and transitions status to PAYMENT_VERIFIED.
+     */
+    @PostMapping("/{id}/verify-payment")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> verifyPayment(
+            @PathVariable Long id,
+            @RequestBody(required = false) VerifyPaymentRequest request) {
+
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
+        }
+
+        try {
+            PaymentDetailsResponse.PaymentRecordDto record = paymentWorkflowService.verifyPayment(id, request, principal);
+            return ResponseEntity.ok(record);
+        } catch (org.springframework.web.server.ResponseStatusException rse) {
+            return ResponseEntity.status(rse.getStatusCode()).body(Map.of("error", rse.getReason()));
+        } catch (Exception e) {
+            log.error("Failed to verify payment for order #{}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Failed to verify payment: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * SPRINT 3: POST /api/v1/orders/{id}/reject-payment
+     * Admin rejects submitted proof and transitions status to PAYMENT_REJECTED.
+     */
+    @PostMapping("/{id}/reject-payment")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> rejectPayment(
+            @PathVariable Long id,
+            @RequestBody RejectPaymentRequest request) {
+
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
+        }
+
+        if (request == null || request.getRejectionReason() == null || request.getRejectionReason().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Rejection reason is mandatory"));
+        }
+
+        try {
+            PaymentDetailsResponse.PaymentRecordDto record = paymentWorkflowService.rejectPayment(id, request, principal);
+            return ResponseEntity.ok(record);
+        } catch (org.springframework.web.server.ResponseStatusException rse) {
+            return ResponseEntity.status(rse.getStatusCode()).body(Map.of("error", rse.getReason()));
+        } catch (Exception e) {
+            log.error("Failed to reject payment for order #{}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Failed to reject payment: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * SPRINT 3: GET /api/v1/orders/{id}/payment-details
+     * Retrieves order payment details, quote summary, dynamic bank/UPI instructions, and payment history.
+     */
+    @GetMapping("/{id}/payment-details")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> getPaymentDetails(@PathVariable Long id) {
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
+        }
+
+        try {
+            PaymentDetailsResponse response = paymentWorkflowService.getPaymentDetails(id, principal);
+            return ResponseEntity.ok(response);
+        } catch (org.springframework.web.server.ResponseStatusException rse) {
+            return ResponseEntity.status(rse.getStatusCode()).body(Map.of("error", rse.getReason()));
+        } catch (Exception e) {
+            log.error("Failed to fetch payment details for order #{}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", "Failed to fetch payment details: " + e.getMessage()));
+        }
+    }
+
+    // ════════════════════════════════════════════════════════════════════════════
+    // SPRINT 4: Admin Controlled Pool Release Endpoints
+    // ════════════════════════════════════════════════════════════════════════════
+
+    /**
+     * SPRINT 4 — Section C: GET /api/v1/orders/release-queue
+     * Returns all PAYMENT_VERIFIED orders awaiting admin release to Common Pool.
+     * Restricted to ROLE_ADMIN and ROLE_SUPER_ADMIN only.
+     */
+    @GetMapping("/release-queue")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> getReleaseQueue() {
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
+        }
+        try {
+            java.util.List<ReleaseQueueOrderDto> queue = poolReleaseService.getReleaseQueue();
+            return ResponseEntity.ok(queue);
+        } catch (Exception e) {
+            log.error("Failed to fetch release queue: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to fetch release queue: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * SPRINT 4 — Section E: POST /api/v1/orders/{id}/release-to-pool
+     * Admin performs a full 10-step pre-condition check then transitions
+     * a PAYMENT_VERIFIED order to PAID_INTAKE, making it visible in Common Pool.
+     * Generates PV-YYMM-XXXX report number and starts SLA timer.
+     * Restricted to ROLE_ADMIN and ROLE_SUPER_ADMIN.
+     */
+    @PostMapping("/{id}/release-to-pool")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> releaseToPool(
+            @PathVariable Long id,
+            @RequestBody(required = false) ReleaseToPoolRequest request) {
+
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
+        }
+
+        String intakeNotes = (request != null) ? request.getIntakeNotes() : null;
+
+        try {
+            ReleaseQueueOrderDto result = poolReleaseService.releaseToPool(id, intakeNotes, principal);
+            return ResponseEntity.ok(result);
+        } catch (org.springframework.web.server.ResponseStatusException rse) {
+            return ResponseEntity.status(rse.getStatusCode()).body(Map.of("error", rse.getReason()));
+        } catch (Exception e) {
+            log.error("Failed to release order #{} to pool: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to release order to pool: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * SPRINT 4 — Section D: POST /api/v1/orders/{id}/hold-intake
+     * Admin places a PAYMENT_VERIFIED order on intake hold, preventing accidental release.
+     * Restricted to ROLE_ADMIN and ROLE_SUPER_ADMIN.
+     */
+    @PostMapping("/{id}/hold-intake")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> holdIntake(
+            @PathVariable Long id,
+            @RequestBody HoldIntakeRequest request) {
+
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
+        }
+
+        if (request == null || request.getHoldReason() == null || request.getHoldReason().isBlank()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Hold reason is mandatory"));
+        }
+
+        try {
+            ReleaseQueueOrderDto result = poolReleaseService.holdIntake(id, request.getHoldReason(), principal);
+            return ResponseEntity.ok(result);
+        } catch (org.springframework.web.server.ResponseStatusException rse) {
+            return ResponseEntity.status(rse.getStatusCode()).body(Map.of("error", rse.getReason()));
+        } catch (Exception e) {
+            log.error("Failed to hold intake for order #{}: {}", id, e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to hold intake: " + e.getMessage()));
+        }
+    }
+
+    private QuoteResponseDto buildQuoteResponseDto(Order order, User clientUser, User adminUser, BigDecimal gstRate) {
+        QuoteResponseDto dto = new QuoteResponseDto();
+        dto.setOrderId(order.getId());
+        dto.setReferenceCode(order.getReferenceCode());
+        dto.setQuoteNumber(order.getQuoteNumber());
+        dto.setStatus(order.getStatus());
+        dto.setServiceCategory(order.getServiceCategory());
+        dto.setAssetCategory(order.getPropertyCategory());
+        dto.setPurpose(order.getPurpose());
+
+        if (clientUser != null) {
+            dto.setClientName(clientUser.getFullName() != null && !clientUser.getFullName().isBlank() ? clientUser.getFullName() : clientUser.getUsername());
+            dto.setClientEmail(clientUser.getEmail());
+            dto.setClientMobile(clientUser.getMobileNumber());
+        }
+
+        dto.setQuoteAmount(order.getQuoteAmount());
+        dto.setGstRate(gstRate);
+        dto.setQuoteTax(order.getQuoteTax());
+        dto.setQuoteTotal(order.getQuoteTotal());
+        dto.setTurnaroundTime(order.getQuoteTurnaround());
+        dto.setScopeNotes(order.getQuoteNotes());
+        dto.setTermsConditions(order.getQuoteTerms());
+        dto.setValidUntil(order.getQuoteValidUntil());
+        dto.setQuotedAt(order.getQuotedAt());
+
+        if (adminUser != null) {
+            dto.setQuotedByName(adminUser.getFullName() != null && !adminUser.getFullName().isBlank() ? adminUser.getFullName() : adminUser.getUsername());
+        }
+
+        return dto;
     }
 
     @GetMapping("/client")
@@ -290,13 +962,27 @@ public class OrderController {
     @PostMapping("/{id}/pause")
     @Transactional
     @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN')")
-    public ResponseEntity<?> pauseOrder(@PathVariable Long id, @RequestParam("reason") String reason) {
+    public ResponseEntity<?> pauseOrder(
+            @PathVariable Long id,
+            @RequestParam("reason") String reason,
+            @RequestParam(value = "description", required = false) String description) {
         Optional<Order> orderOpt = orderRepository.findById(id);
         if (orderOpt.isPresent()) {
             Order order = orderOpt.get();
+            UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+            boolean isStaff = principal.getAuthorities().stream().anyMatch(a ->
+                    a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SPA"));
+            if (!isStaff && (order.getPaId() == null || !order.getPaId().equals(principal.getId()))) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied.");
+            }
+
+            String previousStatus = order.getStatus();
+            order.setPrePauseStatus(previousStatus);
             order.setPaused(true);
             order.setStatus("ACTION_NEEDED");
             order.setPauseReason(reason);
+            order.setUpdatedAt(LocalDateTime.now());
 
             // Freeze Sla Timer: calculate and cache remaining business hours
             double remainingHours = slaService.getRemainingBusinessHours(LocalDateTime.now(), order.getSlaExpiryTime());
@@ -311,6 +997,30 @@ public class OrderController {
             }
 
             Order saved = orderRepository.save(order);
+
+            // Audit log
+            String actorRole = principal.getAuthorities().stream().map(a -> a.getAuthority().replace("ROLE_", "")).findFirst().orElse("USER");
+            auditLogService.log(
+                    principal.getId(),
+                    principal.getEmail(),
+                    actorRole,
+                    "ASSIGNMENT_PAUSED",
+                    "ORDER",
+                    String.valueOf(order.getId()),
+                    previousStatus,
+                    "ACTION_NEEDED",
+                    "Paused due to: " + reason + (description != null ? " - " + description : "")
+            );
+
+            // Telegram alert
+            telegramNotificationService.sendActionNeededNotification(
+                    order.getReferenceCode(),
+                    order.getReportNumber(),
+                    reason,
+                    description != null ? description : reason,
+                    principal.getUsername()
+            );
+
             return ResponseEntity.ok(saved);
         }
         return ResponseEntity.notFound().build();
@@ -318,13 +1028,25 @@ public class OrderController {
 
     @PostMapping("/{id}/resume")
     @Transactional
+    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<?> resumeOrder(@PathVariable Long id) {
         Optional<Order> orderOpt = orderRepository.findById(id);
         if (orderOpt.isPresent()) {
             Order order = orderOpt.get();
+            UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+            boolean isStaff = principal.getAuthorities().stream().anyMatch(a ->
+                    a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SPA"));
+            if (!isStaff && (order.getPaId() == null || !order.getPaId().equals(principal.getId()))) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied.");
+            }
+
+            String restoredStatus = order.getPrePauseStatus() != null ? order.getPrePauseStatus() : "ASSIGNED";
             order.setPaused(false);
-            order.setStatus("ASSIGNED");
+            order.setStatus(restoredStatus);
+            order.setPrePauseStatus(null);
             order.setPauseReason(null);
+            order.setUpdatedAt(LocalDateTime.now());
 
             // Recalculate SLA expiry based on remaining cached hours
             double remainingHours = pausedSlaHoursCache.getOrDefault(order.getId(), 36.0);
@@ -332,9 +1054,121 @@ public class OrderController {
             order.setSlaExpiryTime(newExpiry);
 
             Order saved = orderRepository.save(order);
+
+            // Audit log
+            String actorRole = principal.getAuthorities().stream().map(a -> a.getAuthority().replace("ROLE_", "")).findFirst().orElse("USER");
+            auditLogService.log(
+                    principal.getId(),
+                    principal.getEmail(),
+                    actorRole,
+                    "ASSIGNMENT_RESUMED",
+                    "ORDER",
+                    String.valueOf(order.getId()),
+                    "ACTION_NEEDED",
+                    restoredStatus,
+                    "Resumed order back to status " + restoredStatus + " with remaining SLA hours: " + remainingHours
+            );
+
             return ResponseEntity.ok(saved);
         }
         return ResponseEntity.notFound().build();
+    }
+
+    // =========================================================================
+    // SPRINT 5: Site Inspection Lifecycle Endpoints
+    // =========================================================================
+
+    @PostMapping("/{id}/schedule-inspection")
+    @PreAuthorize("hasAnyRole('PA', 'SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> scheduleInspection(
+            @PathVariable Long id,
+            @RequestBody ScheduleInspectionRequest request) {
+        UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        InspectionSummaryDto response = inspectionService.scheduleInspection(id, request, principal);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/reschedule-inspection")
+    @PreAuthorize("hasAnyRole('PA', 'SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> rescheduleInspection(
+            @PathVariable Long id,
+            @RequestBody RescheduleInspectionRequest request) {
+        UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        InspectionSummaryDto response = inspectionService.rescheduleInspection(id, request, principal);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/{id}/start-inspection")
+    @PreAuthorize("hasAnyRole('PA', 'SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> startInspection(
+            @PathVariable Long id,
+            @RequestBody(required = false) StartInspectionRequest request) {
+        UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        InspectionSummaryDto response = inspectionService.startInspection(id, request, principal);
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping(value = "/{id}/inspection/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasAnyRole('PA', 'SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> uploadInspectionPhoto(
+            @PathVariable Long id,
+            @RequestParam("file") MultipartFile file,
+            @RequestParam("category") String category,
+            @RequestParam(value = "gpsLat", required = false) BigDecimal gpsLat,
+            @RequestParam(value = "gpsLng", required = false) BigDecimal gpsLng,
+            @RequestParam(value = "gpsAccuracy", required = false) Float gpsAccuracy,
+            @RequestParam(value = "deviceTimestamp", required = false) String deviceTimestamp) {
+        UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        InspectionPhotoDto dto = inspectionService.uploadPhoto(id, file, category, gpsLat, gpsLng, gpsAccuracy, deviceTimestamp, principal);
+        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
+    }
+
+    @DeleteMapping("/{orderId}/inspection/photos/{photoId}")
+    @PreAuthorize("hasAnyRole('PA', 'SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> deleteInspectionPhoto(
+            @PathVariable Long orderId,
+            @PathVariable Long photoId,
+            @RequestBody(required = false) DeleteInspectionPhotoRequest request,
+            @RequestParam(value = "reason", required = false) String queryReason) {
+        UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String reason = request != null && request.getReason() != null ? request.getReason() : queryReason;
+        inspectionService.deletePhoto(orderId, photoId, reason, principal);
+        return ResponseEntity.ok(Map.of("message", "Photo deleted successfully", "photoId", photoId));
+    }
+
+    @PostMapping("/{id}/complete-inspection")
+    @PreAuthorize("hasAnyRole('PA', 'SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> completeInspection(
+            @PathVariable Long id,
+            @RequestBody CompleteInspectionRequest request) {
+        UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        InspectionSummaryDto response = inspectionService.completeInspection(id, request, principal);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{id}/inspection")
+    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN', 'CLIENT')")
+    public ResponseEntity<?> getInspectionSummary(@PathVariable Long id) {
+        UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        InspectionSummaryDto response = inspectionService.getInspectionSummary(id, principal);
+        return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/{orderId}/inspection/photos/{photoId}/download")
+    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> downloadInspectionPhoto(
+            @PathVariable Long orderId,
+            @PathVariable Long photoId) {
+        UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        InspectionPhoto photo = inspectionService.getPhotoEntity(orderId, photoId, principal);
+        MediaType mediaType = MediaType.IMAGE_JPEG;
+        if (photo.getMimeType() != null && photo.getMimeType().equalsIgnoreCase("image/png")) {
+            mediaType = MediaType.IMAGE_PNG;
+        }
+        return ResponseEntity.ok()
+                .contentType(mediaType)
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + photo.getFilename() + "\"")
+                .body(photo.getFileContent());
     }
 
     @PostMapping("/{id}/submit-draft")
@@ -700,6 +1534,7 @@ public class OrderController {
     public static class OrderDraftRequest {
         private Long id;
         private String propertyCategory;
+        private String serviceCategory;
         private String purpose;
         private BigDecimal estimatedValue;
         private Long templateId;
@@ -709,6 +1544,8 @@ public class OrderController {
         public void setId(Long id) { this.id = id; }
         public String getPropertyCategory() { return propertyCategory; }
         public void setPropertyCategory(String propertyCategory) { this.propertyCategory = propertyCategory; }
+        public String getServiceCategory() { return serviceCategory; }
+        public void setServiceCategory(String serviceCategory) { this.serviceCategory = serviceCategory; }
         public String getPurpose() { return purpose; }
         public void setPurpose(String purpose) { this.purpose = purpose; }
         public BigDecimal getEstimatedValue() { return estimatedValue; }
@@ -893,7 +1730,7 @@ public class OrderController {
      * Document Workspace API returning authentic visual preview and active values.
      */
     @GetMapping("/{id}/document-workspace")
-    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN', 'CLIENT')")
+    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<?> getDocumentWorkspace(@PathVariable Long id) {
         try {
             UserDetailsImpl principal = getCurrentPrincipal();
@@ -901,6 +1738,74 @@ public class OrderController {
             return ResponseEntity.ok(response);
         } catch (org.springframework.security.access.AccessDeniedException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", e.getReason() != null ? e.getReason() : e.getMessage()));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/v1/orders/{id}/initialize-workspace
+     * SPRINT 6: Transitions status from INSPECTION_COMPLETED to WORKSPACE_READY.
+     */
+    @PostMapping("/{id}/initialize-workspace")
+    @PreAuthorize("hasAnyRole('PA', 'SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> initializeWorkspace(@PathVariable Long id) {
+        try {
+            UserDetailsImpl principal = getCurrentPrincipal();
+            var response = documentWorkspaceService.initializeWorkspace(id, principal);
+            return ResponseEntity.ok(response);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", e.getReason() != null ? e.getReason() : e.getMessage()));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * POST /api/v1/orders/{id}/bind-template
+     * SPRINT 6: Locks template version permanently and records snapshots.
+     */
+    @PostMapping("/{id}/bind-template")
+    @PreAuthorize("hasAnyRole('PA', 'SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> bindTemplate(@PathVariable Long id, @RequestBody(required = false) com.provaluer.dto.BindTemplateRequest request) {
+        try {
+            UserDetailsImpl principal = getCurrentPrincipal();
+            var response = documentWorkspaceService.bindTemplate(id, request, principal);
+            return ResponseEntity.ok(response);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", e.getReason() != null ? e.getReason() : e.getMessage()));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * GET /api/v1/orders/{id}/validate-draft
+     * SPRINT 6: Evaluates mandatory fields, photos, calculations, and placeholders.
+     */
+    @GetMapping("/{id}/validate-draft")
+    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> validateDraft(@PathVariable Long id) {
+        try {
+            UserDetailsImpl principal = getCurrentPrincipal();
+            var response = documentWorkspaceService.validateDraft(id, principal);
+            return ResponseEntity.ok(response);
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", e.getReason() != null ? e.getReason() : e.getMessage()));
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
@@ -913,7 +1818,7 @@ public class OrderController {
      * Delta persistence of in-document input values without synthetic questions.
      */
     @PostMapping("/{id}/save-document-values")
-    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN', 'CLIENT')")
+    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<?> saveDocumentValues(@PathVariable Long id, @RequestBody com.provaluer.dto.SaveDocumentValuesRequest request) {
         try {
             UserDetailsImpl principal = getCurrentPrincipal();
@@ -921,6 +1826,8 @@ public class OrderController {
             return ResponseEntity.ok(response);
         } catch (org.springframework.security.access.AccessDeniedException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", e.getReason() != null ? e.getReason() : e.getMessage()));
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
@@ -941,6 +1848,8 @@ public class OrderController {
             return ResponseEntity.ok(response);
         } catch (org.springframework.security.access.AccessDeniedException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", e.getReason() != null ? e.getReason() : e.getMessage()));
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {
@@ -950,7 +1859,7 @@ public class OrderController {
 
     /**
      * POST /api/v1/orders/{id}/submit-to-spa
-     * Advances order status from ASSIGNED to SPA_GATE directly from document canvas.
+     * SPRINT 6: Advances order status from DRAFTING to SPA_GATE after validating all mandatory gates.
      */
     @PostMapping("/{id}/submit-to-spa")
     @PreAuthorize("hasAnyRole('PA', 'SUPER_ADMIN', 'ADMIN')")
@@ -961,6 +1870,8 @@ public class OrderController {
             return ResponseEntity.ok(response);
         } catch (org.springframework.security.access.AccessDeniedException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", e.getReason() != null ? e.getReason() : e.getMessage()));
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {

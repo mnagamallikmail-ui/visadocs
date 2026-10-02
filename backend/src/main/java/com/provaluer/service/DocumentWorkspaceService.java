@@ -14,9 +14,14 @@ import com.provaluer.util.DocxTemplateEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
+import com.provaluer.dto.BindTemplateRequest;
+import com.provaluer.dto.DraftValidationResponseDto;
 
 import java.math.BigDecimal;
 import java.nio.file.Files;
@@ -94,6 +99,15 @@ public class DocumentWorkspaceService {
     @Autowired
     private ValuationAuditLogRepository valuationAuditLogRepository;
 
+    @Autowired
+    private OrderInspectionRepository orderInspectionRepository;
+
+    @Autowired
+    private InspectionPhotoRepository inspectionPhotoRepository;
+
+    @Autowired
+    private TelegramNotificationService telegramNotificationService;
+
     private final ObjectMapper objectMapper = new ObjectMapper();
     private final Map<Long, CachedOrderPreview> orderPreviewCache = new java.util.concurrent.ConcurrentHashMap<>();
 
@@ -147,6 +161,13 @@ public class DocumentWorkspaceService {
         boolean isPa = principal.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PA"));
         boolean isClient = principal.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CLIENT"));
 
+        if ((order.isArchivalLocked() || "CLOSED".equalsIgnoreCase(order.getStatus())) && !"VIEW".equalsIgnoreCase(action)) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.LOCKED,
+                    "Order #" + order.getId() + " is permanently CLOSED and archived under 10-year statutory lock. Modifications are strictly forbidden."
+            );
+        }
+
         // Super Admin & Admin have unrestricted access
         if (isSuperAdmin || isAdmin) {
             return;
@@ -157,43 +178,39 @@ public class DocumentWorkspaceService {
             if ("APPROVE".equalsIgnoreCase(action)) {
                 throw new AccessDeniedException("Property Analysts (PA) are not authorized to execute report approval");
             }
-            if ("VIEW".equalsIgnoreCase(action)) {
-                return;
-            }
             if (order.getPaId() == null || !order.getPaId().equals(principal.getId())) {
                 throw new AccessDeniedException("Access denied: You are not the assigned Property Analyst for Order #" + order.getId());
             }
+            if ("VIEW".equalsIgnoreCase(action)) {
+                return;
+            }
 
             // Strict Locking Rule:
-            // PA editing/resubmit rights are available ONLY until SPA approval/finalization.
-            // If report reaches any of: SPA_CONFIRMED, FINALIZED, LOCKED, FINAL_DELIVERY
-            // PA must NOT be able to: Edit, Save, Revise, Resubmit.
-            boolean isLockedOrFinalized = "SPA_CONFIRMED".equalsIgnoreCase(order.getStatus())
+            // PA becomes READ ONLY when in SPA_GATE, SPA_CONFIRMED, FINAL_DELIVERY, FINALIZED, or LOCKED
+            boolean isLockedOrFinalized = "SPA_GATE".equalsIgnoreCase(order.getStatus())
+                    || "SPA_CONFIRMED".equalsIgnoreCase(order.getStatus())
                     || "FINAL_DELIVERY".equalsIgnoreCase(order.getStatus())
                     || "FINALIZED".equalsIgnoreCase(order.getValuationStatus())
                     || "LOCKED".equalsIgnoreCase(order.getValuationStatus());
 
             if (isLockedOrFinalized && ("SAVE".equalsIgnoreCase(action) || "SUBMIT_TO_SPA".equalsIgnoreCase(action))) {
-                throw new AccessDeniedException("Report is finalized/locked (" + order.getStatus() + "/" + order.getValuationStatus() + ") and cannot be modified or resubmitted by Property Analyst");
+                throw new AccessDeniedException("Report is in " + order.getStatus() + " and is READ ONLY for Property Analyst");
             }
 
             return;
         }
 
-        // SPA Validation: May inspect, save, live-preview, and approve orders
+        // SPA Validation: May inspect, live-preview, and review orders. Read-Only during drafting.
         if (isSpa) {
+            if ("SAVE".equalsIgnoreCase(action) && ("WORKSPACE_READY".equalsIgnoreCase(order.getStatus()) || "DRAFTING".equalsIgnoreCase(order.getStatus()))) {
+                throw new AccessDeniedException("SPA has read-only access during Property Analyst drafting phase");
+            }
             return;
         }
 
-        // Client Validation: May view only their own orders
+        // Client Validation: Clients do not have access to Document Workspace
         if (isClient) {
-            if ("SAVE".equalsIgnoreCase(action) || "SUBMIT_TO_SPA".equalsIgnoreCase(action) || "APPROVE".equalsIgnoreCase(action)) {
-                throw new AccessDeniedException("Clients have read-only access to valuation workspace");
-            }
-            if (order.getClientId() == null || !order.getClientId().equals(principal.getId())) {
-                throw new AccessDeniedException("Access denied: You do not own Order #" + order.getId());
-            }
-            return;
+            throw new AccessDeniedException("Clients do not have access to Document Workspace");
         }
 
         throw new AccessDeniedException("Unauthorized role for Order #" + order.getId());
@@ -228,6 +245,480 @@ public class DocumentWorkspaceService {
         return null;
     }
 
+    private boolean isSuperAdminOrAdmin(UserDetailsImpl principal) {
+        if (principal == null || principal.getAuthorities() == null) return false;
+        return principal.getAuthorities().stream().anyMatch(a ->
+                a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
+    }
+
+    private String getPrincipalRole(UserDetailsImpl principal) {
+        if (principal == null || principal.getAuthorities() == null || principal.getAuthorities().isEmpty()) {
+            return "SYSTEM";
+        }
+        return principal.getAuthorities().iterator().next().getAuthority().replace("ROLE_", "");
+    }
+
+    private void saveOrUpdateImageInput(Long orderId, String key, byte[] imageBytes) {
+        if (imageBytes == null || imageBytes.length == 0) return;
+        Optional<OrderInput> opt = orderInputRepository.findByOrderIdAndFieldKey(orderId, key);
+        OrderInput input = opt.orElseGet(() -> {
+            OrderInput oi = new OrderInput();
+            oi.setOrderId(orderId);
+            oi.setFieldKey(key);
+            return oi;
+        });
+        input.setImageValue(imageBytes);
+        input.setFieldValue("[IMAGE_BINARY: " + imageBytes.length + " bytes]");
+        orderInputRepository.save(input);
+    }
+
+    /**
+     * SPRINT 6: Initialize Document Workspace.
+     * Transitions status: INSPECTION_COMPLETED → WORKSPACE_READY.
+     * 1. Resolves template
+     * 2. Locks template version permanently
+     * 3. Generates DOM snapshot
+     * 4. Generates field mapping snapshot
+     * 5. Imports inspection & order/client/quote data
+     * 6. Imports and binds photo evidence
+     * 7. Transitions status to WORKSPACE_READY
+     * 8. Records comprehensive audit entries
+     */
+    @Transactional
+    public DocumentWorkspaceResponse initializeWorkspace(Long orderId, UserDetailsImpl principal) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found with ID: " + orderId));
+
+        validateOrderAccess(order, principal, "VIEW");
+
+        // 1. Resolve template
+        Long templateId = order.getTemplateId();
+        Template template = null;
+        if (templateId != null) {
+            template = templateRepository.findById(templateId).orElse(null);
+        }
+        if (template == null) {
+            List<Template> activeTemplates = templateRepository.findAllByIsActive("Y");
+            if (!activeTemplates.isEmpty()) {
+                template = activeTemplates.get(0);
+                templateId = template.getId();
+                order.setTemplateId(templateId);
+            } else {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No active valuation template available in the system.");
+            }
+        }
+        final Long effectiveTemplateId = templateId;
+
+        // 2. Lock template version permanently
+        if (order.getTemplateVersion() == null && template != null) {
+            order.setTemplateVersion(template.getVersion());
+        }
+        if (order.getTemplateVersionId() == null) {
+            List<TemplateVersion> versions = templateVersionRepository.findAllByTemplateIdOrderByVersionDesc(effectiveTemplateId);
+            for (TemplateVersion v : versions) {
+                if (order.getTemplateVersion() != null && v.getVersion() == order.getTemplateVersion()) {
+                    order.setTemplateVersionId(v.getId());
+                    break;
+                }
+            }
+            if (order.getTemplateVersionId() == null && !versions.isEmpty()) {
+                order.setTemplateVersionId(versions.get(0).getId());
+            } else if (order.getTemplateVersionId() == null && template != null) {
+                TemplateVersion fallbackVer = new TemplateVersion();
+                fallbackVer.setTemplateId(template.getId());
+                fallbackVer.setVersion(order.getTemplateVersion() != null && order.getTemplateVersion() > 0 ? order.getTemplateVersion() : 1);
+                fallbackVer.setName(template.getName() != null ? template.getName() : "Template v1");
+                fallbackVer.setTemplateContent(template.getTemplateContent() != null ? template.getTemplateContent() : new byte[]{1, 2, 3});
+                fallbackVer.setFieldMapping(template.getFieldMapping() != null ? template.getFieldMapping() : "{}");
+                fallbackVer.setDocumentDom(template.getDocumentDom() != null ? template.getDocumentDom() : "{\"sections\":[]}");
+                fallbackVer.setPlaceholderRegistry(template.getPlaceholderRegistry());
+                fallbackVer.setStatus("ACTIVE");
+                fallbackVer.setCreatedAt(LocalDateTime.now());
+                fallbackVer.setCreatedBy(principal != null ? principal.getId() : null);
+                fallbackVer = templateVersionRepository.save(fallbackVer);
+                order.setTemplateVersionId(fallbackVer.getId());
+            }
+        }
+
+        // 3. Generate field mapping snapshot
+        if (order.getFieldMappingSnapshot() == null || order.getFieldMappingSnapshot().trim().isEmpty()) {
+            order.setFieldMappingSnapshot(template != null && template.getFieldMapping() != null ? template.getFieldMapping() : "{}");
+        }
+
+        // 4. Generate DOM snapshot
+        byte[] docxBytes = resolveOrderTemplateBytes(order, template);
+        if (order.getDocumentDomSnapshot() == null || order.getDocumentDomSnapshot().trim().isEmpty()) {
+            if (template != null && template.getDocumentDom() != null && !template.getDocumentDom().trim().isEmpty()) {
+                order.setDocumentDomSnapshot(template.getDocumentDom());
+            } else if (docxBytes != null && docxBytes.length > 0) {
+                try {
+                    Map<String, String> typeOverrides = template != null ? TemplateProcessingService.extractTypeOverrides(template) : Collections.emptyMap();
+                    JsonNode domNode = docxStructureParser.parseDocumentStructure(docxBytes, typeOverrides);
+                    docxStructureParser.applyTypeOverridesToDom(domNode, typeOverrides);
+                    order.setDocumentDomSnapshot(domNode.toString());
+                } catch (Exception e) {
+                    log.warn("Failed to generate document DOM snapshot on the fly: {}", e.getMessage());
+                }
+            }
+        }
+        if (order.getDocumentDomSnapshot() == null || order.getDocumentDomSnapshot().trim().isEmpty()) {
+            order.setDocumentDomSnapshot("{\"sections\":[]}");
+        }
+
+        // 5. Assemble and import inspection, client, order, and quote details
+        Map<String, String> inputsMap = new HashMap<>(getConsolidatedValues(orderId));
+
+        if (order.getReferenceCode() != null) inputsMap.put("ORDER_REF_NO", order.getReferenceCode());
+        if (order.getReportNumber() != null) inputsMap.put("REPORT_NUMBER", order.getReportNumber());
+        if (order.getPurpose() != null) inputsMap.put("PURPOSE_OF_VALUATION", order.getPurpose());
+        if (order.getPropertyCategory() != null) inputsMap.put("PROPERTY_CATEGORY", order.getPropertyCategory());
+        if (order.getClientName() != null) inputsMap.put("CLIENT_NAME", order.getClientName());
+        if (order.getBankName() != null) inputsMap.put("BANK_NAME", order.getBankName());
+        if (order.getBranchName() != null) inputsMap.put("BRANCH_NAME", order.getBranchName());
+
+        if (order.getQuoteNumber() != null) inputsMap.put("QUOTE_NUMBER", order.getQuoteNumber());
+        if (order.getQuoteAmount() != null) inputsMap.put("QUOTE_AMOUNT", order.getQuoteAmount().toPlainString());
+        if (order.getQuoteTax() != null) inputsMap.put("QUOTE_TAX", order.getQuoteTax().toPlainString());
+        if (order.getQuoteTotal() != null) inputsMap.put("QUOTE_TOTAL", order.getQuoteTotal().toPlainString());
+        if (order.getQuoteTurnaround() != null) inputsMap.put("QUOTE_TURNAROUND", order.getQuoteTurnaround());
+
+        // Inspection records
+        OrderInspection inspection = orderInspectionRepository.findByOrderId(orderId).orElse(null);
+        if (inspection != null) {
+            if (inspection.getInspectionDate() != null) {
+                inputsMap.put("INSPECTION_DATE", inspection.getInspectionDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")));
+            }
+            if (inspection.getInspectionTime() != null) {
+                inputsMap.put("INSPECTION_TIME", inspection.getInspectionTime().format(DateTimeFormatter.ofPattern("HH:mm")));
+            }
+            if (inspection.getSiteContactName() != null) {
+                inputsMap.put("SITE_CONTACT_PERSON", inspection.getSiteContactName());
+            }
+            if (inspection.getSiteContactNumber() != null) {
+                inputsMap.put("SITE_CONTACT_PHONE", inspection.getSiteContactNumber());
+            }
+            if (inspection.getInspectionRemarks() != null) {
+                inputsMap.put("SITE_INSPECTION_REMARKS", inspection.getInspectionRemarks());
+                inputsMap.put("INSPECTION_REMARKS", inspection.getInspectionRemarks());
+            }
+            if (inspection.getVisitStatus() != null) {
+                inputsMap.put("VISIT_STATUS", inspection.getVisitStatus());
+            }
+            if (inspection.getGpsAccuracyStart() != null) {
+                inputsMap.put("GPS_ACCURACY_START", String.valueOf(inspection.getGpsAccuracyStart()));
+            }
+            if (inspection.getGpsAccuracyEnd() != null) {
+                inputsMap.put("GPS_ACCURACY_END", String.valueOf(inspection.getGpsAccuracyEnd()));
+            }
+            if (inspection.getGpsLatEnd() != null) {
+                inputsMap.put("PROPERTY_LATITUDE", inspection.getGpsLatEnd().toPlainString());
+            } else if (inspection.getGpsLatStart() != null) {
+                inputsMap.put("PROPERTY_LATITUDE", inspection.getGpsLatStart().toPlainString());
+            }
+            if (inspection.getGpsLngEnd() != null) {
+                inputsMap.put("PROPERTY_LONGITUDE", inspection.getGpsLngEnd().toPlainString());
+            } else if (inspection.getGpsLngStart() != null) {
+                inputsMap.put("PROPERTY_LONGITUDE", inspection.getGpsLngStart().toPlainString());
+            }
+        }
+
+        // Valuer / PA Details
+        if (order.getPaId() != null) {
+            userRepository.findById(order.getPaId()).ifPresent(pa -> {
+                String paName = pa.getFullName() != null && !pa.getFullName().trim().isEmpty() ? pa.getFullName() : pa.getUsername();
+                inputsMap.put("VALUER_NAME", paName);
+                inputsMap.put("PA_NAME", paName);
+                if (pa.getMobileNumber() != null) inputsMap.put("VALUER_PHONE", pa.getMobileNumber());
+                if (pa.getEmail() != null) inputsMap.put("VALUER_EMAIL", pa.getEmail());
+            });
+        }
+
+        // Save imported text fields
+        for (Map.Entry<String, String> entry : inputsMap.entrySet()) {
+            saveOrUpdateInput(orderId, entry.getKey(), entry.getValue());
+        }
+
+        // 6. Import and Bind Photo Evidence
+        List<InspectionPhoto> photos = inspectionPhotoRepository.findAllByOrderIdAndIsDeletedFalseOrderByCategoryAscCaptureSequenceAsc(orderId);
+        int surroundingsCount = 0;
+        int extraCount = 0;
+        for (InspectionPhoto photo : photos) {
+            if (photo.getFileContent() == null || photo.getFileContent().length == 0) continue;
+            String cat = photo.getCategory();
+            if (PhotoCategory.FRONT_ELEVATION.name().equalsIgnoreCase(cat)) {
+                saveOrUpdateImageInput(orderId, "IMG_FRONT_PAGE", photo.getFileContent());
+                saveOrUpdateImageInput(orderId, "IMG_COVER_PAGE", photo.getFileContent());
+                saveOrUpdateImageInput(orderId, "IMG_FRONT_ELEVATION", photo.getFileContent());
+                saveOrUpdateImageInput(orderId, "COVER_IMAGE", photo.getFileContent());
+                inputsMap.put("IMG_FRONT_PAGE", "[ATTACHED_PHOTO: FRONT_ELEVATION #" + photo.getId() + "]");
+            } else if (PhotoCategory.REAR_ELEVATION.name().equalsIgnoreCase(cat)) {
+                saveOrUpdateImageInput(orderId, "IMG_REAR_ELEVATION", photo.getFileContent());
+                inputsMap.put("IMG_REAR_ELEVATION", "[ATTACHED_PHOTO: REAR_ELEVATION #" + photo.getId() + "]");
+            } else if (PhotoCategory.SIDE_VIEW_LEFT.name().equalsIgnoreCase(cat)) {
+                saveOrUpdateImageInput(orderId, "IMG_SIDE_VIEW_LEFT", photo.getFileContent());
+                inputsMap.put("IMG_SIDE_VIEW_LEFT", "[ATTACHED_PHOTO: SIDE_VIEW_LEFT #" + photo.getId() + "]");
+            } else if (PhotoCategory.SIDE_VIEW_RIGHT.name().equalsIgnoreCase(cat)) {
+                saveOrUpdateImageInput(orderId, "IMG_SIDE_VIEW_RIGHT", photo.getFileContent());
+                inputsMap.put("IMG_SIDE_VIEW_RIGHT", "[ATTACHED_PHOTO: SIDE_VIEW_RIGHT #" + photo.getId() + "]");
+            } else if (PhotoCategory.STREET_VIEW.name().equalsIgnoreCase(cat)) {
+                saveOrUpdateImageInput(orderId, "IMG_STREET_VIEW", photo.getFileContent());
+                saveOrUpdateImageInput(orderId, "IMG_APPROACH_ROAD", photo.getFileContent());
+                inputsMap.put("IMG_STREET_VIEW", "[ATTACHED_PHOTO: STREET_VIEW #" + photo.getId() + "]");
+            } else if (PhotoCategory.ACCESS_ROAD.name().equalsIgnoreCase(cat)) {
+                saveOrUpdateImageInput(orderId, "IMG_ACCESS_ROAD", photo.getFileContent());
+                inputsMap.put("IMG_ACCESS_ROAD", "[ATTACHED_PHOTO: ACCESS_ROAD #" + photo.getId() + "]");
+            } else if (PhotoCategory.SURROUNDINGS.name().equalsIgnoreCase(cat)) {
+                surroundingsCount++;
+                String slot = surroundingsCount == 1 ? "IMG_SURROUNDINGS_1" : "IMG_SURROUNDINGS_2";
+                saveOrUpdateImageInput(orderId, slot, photo.getFileContent());
+                inputsMap.put(slot, "[ATTACHED_PHOTO: SURROUNDINGS #" + photo.getId() + "]");
+            } else {
+                extraCount++;
+                String slot = "IMG_ANNEXURE_EXTRA_" + extraCount;
+                saveOrUpdateImageInput(orderId, slot, photo.getFileContent());
+                inputsMap.put(slot, "[ATTACHED_PHOTO: " + cat + " #" + photo.getId() + "]");
+            }
+        }
+
+        // Update orders.input_values JSONB
+        try {
+            Map<String, String> textOnly = new HashMap<>();
+            for (Map.Entry<String, String> e : inputsMap.entrySet()) {
+                if (e.getValue() != null && !e.getValue().startsWith("data:image")) {
+                    textOnly.put(e.getKey(), e.getValue());
+                }
+            }
+            order.setInputValues(objectMapper.writeValueAsString(textOnly));
+        } catch (Exception ignored) {}
+
+        // 7. Transition status: INSPECTION_COMPLETED → WORKSPACE_READY
+        String previousStatus = order.getStatus();
+        if ("INSPECTION_COMPLETED".equalsIgnoreCase(order.getStatus())) {
+            order.setStatus("WORKSPACE_READY");
+        }
+        order.setUpdatedAt(LocalDateTime.now());
+        Order savedOrder = orderRepository.save(order);
+
+        // 8. Audit Logging
+        Long actorId = principal != null ? principal.getId() : null;
+        String actorEmail = principal != null ? principal.getEmail() : "SYSTEM";
+        String actorRole = getPrincipalRole(principal);
+
+        auditLogService.log(actorId, actorEmail, actorRole, "WORKSPACE_INITIALIZED", "ORDER",
+                String.valueOf(orderId), previousStatus, savedOrder.getStatus(), "Workspace initialized from inspection artifacts");
+        auditLogService.log(actorId, actorEmail, actorRole, "TEMPLATE_BOUND", "ORDER",
+                String.valueOf(orderId), "Template #" + (template != null ? template.getId() : effectiveTemplateId) + " v" + (template != null ? template.getVersion() : order.getTemplateVersion()) + " locked (Version ID: " + order.getTemplateVersionId() + ")");
+        auditLogService.log(actorId, actorEmail, actorRole, "INSPECTION_DATA_IMPORTED", "ORDER",
+                String.valueOf(orderId), "Imported " + inputsMap.size() + " fields from inspection, order, and quotation records");
+        auditLogService.log(actorId, actorEmail, actorRole, "PHOTO_BOUND", "ORDER",
+                String.valueOf(orderId), "Bound " + photos.size() + " inspection photos to template image placeholders");
+
+        return getDocumentWorkspace(orderId, principal);
+    }
+
+    /**
+     * SPRINT 6: Bind template to order.
+     * Locks template version permanently, records DOM and field mapping snapshots.
+     */
+    @Transactional
+    public Map<String, Object> bindTemplate(Long orderId, BindTemplateRequest req, UserDetailsImpl principal) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found with ID: " + orderId));
+
+        validateOrderAccess(order, principal, "SAVE");
+
+        Long requestedTemplateId = req != null && req.getTemplateId() != null ? req.getTemplateId() : order.getTemplateId();
+        if (requestedTemplateId == null) {
+            List<Template> activeTemplates = templateRepository.findAllByIsActive("Y");
+            if (!activeTemplates.isEmpty()) {
+                requestedTemplateId = activeTemplates.get(0).getId();
+            } else {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No active template available to bind");
+            }
+        }
+
+        final Long targetTemplateId = requestedTemplateId;
+        Template template = templateRepository.findById(targetTemplateId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Template not found: " + targetTemplateId));
+
+        // Lock template version
+        order.setTemplateId(template.getId());
+        order.setTemplateVersion(template.getVersion());
+
+        List<TemplateVersion> versions = templateVersionRepository.findAllByTemplateIdOrderByVersionDesc(template.getId());
+        TemplateVersion matched = versions.stream()
+                .filter(v -> v.getVersion() == template.getVersion())
+                .findFirst()
+                .orElse(!versions.isEmpty() ? versions.get(0) : null);
+
+        if (matched != null) {
+            order.setTemplateVersionId(matched.getId());
+        } else {
+            TemplateVersion fallbackVer = new TemplateVersion();
+            fallbackVer.setTemplateId(template.getId());
+            fallbackVer.setVersion(template.getVersion() > 0 ? template.getVersion() : 1);
+            fallbackVer.setName(template.getName() != null ? template.getName() : "Template v1");
+            fallbackVer.setTemplateContent(template.getTemplateContent() != null ? template.getTemplateContent() : new byte[]{1, 2, 3});
+            fallbackVer.setFieldMapping(template.getFieldMapping() != null ? template.getFieldMapping() : "{}");
+            fallbackVer.setDocumentDom(template.getDocumentDom() != null ? template.getDocumentDom() : "{\"sections\":[]}");
+            fallbackVer.setPlaceholderRegistry(template.getPlaceholderRegistry());
+            fallbackVer.setStatus("ACTIVE");
+            fallbackVer.setCreatedAt(LocalDateTime.now());
+            fallbackVer.setCreatedBy(principal != null ? principal.getId() : null);
+            fallbackVer = templateVersionRepository.save(fallbackVer);
+            order.setTemplateVersionId(fallbackVer.getId());
+        }
+
+        order.setFieldMappingSnapshot(template.getFieldMapping() != null ? template.getFieldMapping() : "{}");
+
+        boolean forceRebuild = req != null && Boolean.TRUE.equals(req.getForceSnapshotRebuild());
+        if (forceRebuild || order.getDocumentDomSnapshot() == null || order.getDocumentDomSnapshot().trim().isEmpty()) {
+            if (template.getDocumentDom() != null && !template.getDocumentDom().trim().isEmpty()) {
+                order.setDocumentDomSnapshot(template.getDocumentDom());
+            } else {
+                byte[] docxBytes = resolveOrderTemplateBytes(order, template);
+                if (docxBytes != null && docxBytes.length > 0) {
+                    try {
+                        Map<String, String> typeOverrides = TemplateProcessingService.extractTypeOverrides(template);
+                        JsonNode domNode = docxStructureParser.parseDocumentStructure(docxBytes, typeOverrides);
+                        docxStructureParser.applyTypeOverridesToDom(domNode, typeOverrides);
+                        order.setDocumentDomSnapshot(domNode.toString());
+                    } catch (Exception e) {
+                        log.warn("Failed to generate document DOM snapshot during bind-template: {}", e.getMessage());
+                    }
+                }
+            }
+        }
+        if (order.getDocumentDomSnapshot() == null || order.getDocumentDomSnapshot().trim().isEmpty()) {
+            order.setDocumentDomSnapshot("{\"sections\":[]}");
+        }
+
+        order.setUpdatedAt(LocalDateTime.now());
+        orderRepository.save(order);
+
+        // Audit log
+        auditLogService.log(
+                principal != null ? principal.getId() : null,
+                principal != null ? principal.getEmail() : "PA",
+                getPrincipalRole(principal),
+                "TEMPLATE_BOUND",
+                "ORDER",
+                String.valueOf(orderId),
+                String.format("Template #%d (Version %d, VersionID: %s) bound to Order %s",
+                        template.getId(), template.getVersion(), String.valueOf(order.getTemplateVersionId()), order.getReferenceCode())
+        );
+
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("orderId", orderId);
+        resp.put("templateId", template.getId());
+        resp.put("templateVersion", order.getTemplateVersion());
+        resp.put("templateVersionId", order.getTemplateVersionId());
+        resp.put("status", order.getStatus());
+        return resp;
+    }
+
+    /**
+     * SPRINT 6: Draft Pre-submission Validation Engine.
+     * Evaluates mandatory fields, mandatory photos, formula calculations, and image placeholders.
+     */
+    @Transactional(readOnly = true)
+    public DraftValidationResponseDto validateDraft(Long orderId, UserDetailsImpl principal) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found with ID: " + orderId));
+
+        validateOrderAccess(order, principal, "VIEW");
+
+        List<String> missingFields = new ArrayList<>();
+        List<String> missingPhotos = new ArrayList<>();
+        List<String> calculationErrors = new ArrayList<>();
+        List<String> placeholderErrors = new ArrayList<>();
+
+        Map<String, String> consolidatedValues = getConsolidatedValues(orderId);
+
+        // 1. Mandatory Fields
+        String[] coreMandatory = {"CLIENT_NAME", "PROPERTY_ADDRESS", "PURPOSE_OF_VALUATION", "INSPECTION_DATE", "VALUER_NAME"};
+        for (String k : coreMandatory) {
+            String val = consolidatedValues.get(k);
+            if (val == null || val.trim().isEmpty()) {
+                missingFields.add(k);
+            }
+        }
+
+        if (order.getDocumentDomSnapshot() != null) {
+            try {
+                JsonNode dom = objectMapper.readTree(order.getDocumentDomSnapshot());
+                if (dom.has("placeholdersSummary")) {
+                    for (JsonNode ph : dom.get("placeholdersSummary")) {
+                        if (ph.path("isMandatory").asBoolean(false) || ph.path("mandatory").asBoolean(false)) {
+                            String key = ph.path("key").asText().toUpperCase();
+                            String val = consolidatedValues.get(key);
+                            if ((val == null || val.trim().isEmpty()) && !missingFields.contains(key)) {
+                                missingFields.add(key);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception ignored) {}
+        }
+
+        // 2. Mandatory Photos Check (All 7 mandatory categories from Sprint 5)
+        for (PhotoCategory cat : PhotoCategory.getMandatoryCategories()) {
+            long count = inspectionPhotoRepository.countByOrderIdAndCategoryAndIsDeletedFalse(orderId, cat.name());
+            if (count < cat.getMinPhotos()) {
+                missingPhotos.add(cat.name() + " (min " + cat.getMinPhotos() + " required)");
+            }
+        }
+
+        // 3. Formula & Valuation Calculation
+        BigDecimal estVal = order.getEstimatedValue();
+        BigDecimal finVal = order.getFinalValue();
+        if ((estVal == null || estVal.compareTo(BigDecimal.ZERO) <= 0) && (finVal == null || finVal.compareTo(BigDecimal.ZERO) <= 0)) {
+            String totalValStr = consolidatedValues.get("FINAL_VALUATION_AMOUNT");
+            if (totalValStr == null || totalValStr.trim().isEmpty()) {
+                totalValStr = consolidatedValues.get("TOTAL_VALUATION");
+            }
+            if (totalValStr == null || totalValStr.trim().isEmpty()) {
+                totalValStr = consolidatedValues.get("FAIR_MARKET_VALUE");
+            }
+            if (totalValStr == null || totalValStr.trim().isEmpty()) {
+                calculationErrors.add("Final valuation amount must be greater than zero.");
+            }
+        }
+
+        // 4. Placeholder & Unresolved Syntax Validation
+        for (Map.Entry<String, String> e : consolidatedValues.entrySet()) {
+            String v = e.getValue();
+            if (v != null && (v.contains("{{") || v.contains("}}") || v.contains("<<") || v.contains(">>"))) {
+                placeholderErrors.add("Unresolved placeholder syntax detected in field " + e.getKey());
+            }
+        }
+
+        // 5. Image Placeholder Validation
+        boolean hasFrontPhoto = orderInputRepository.findAllByOrderId(orderId).stream()
+                .anyMatch(i -> ("IMG_FRONT_PAGE".equalsIgnoreCase(i.getFieldKey())
+                        || "IMG_COVER_PAGE".equalsIgnoreCase(i.getFieldKey())
+                        || "IMG_FRONT_ELEVATION".equalsIgnoreCase(i.getFieldKey()))
+                        && i.getImageValue() != null && i.getImageValue().length > 0);
+        if (!hasFrontPhoto) {
+            missingPhotos.add("FRONT_ELEVATION image binary missing in workspace");
+        }
+
+        boolean valid = missingFields.isEmpty() && missingPhotos.isEmpty() && calculationErrors.isEmpty() && placeholderErrors.isEmpty();
+        String msg = valid ? "Draft is valid and ready for SPA submission." : "Draft validation failed with issues.";
+
+        DraftValidationResponseDto resp = new DraftValidationResponseDto();
+        resp.setOrderId(orderId);
+        resp.setValid(valid);
+        resp.setCanSubmit(valid);
+        resp.setMissingFields(missingFields);
+        resp.setMissingPhotos(missingPhotos);
+        resp.setCalculationErrors(calculationErrors);
+        resp.setPlaceholderErrors(placeholderErrors);
+        resp.setMessage(msg);
+        resp.setValidationTimestamp(LocalDateTime.now());
+        return resp;
+    }
+
     /**
      * GET /api/v1/orders/{id}/document-workspace
      * Pure, instantaneous workspace data endpoint returning documentDom, placeholders, values, and sections.
@@ -236,9 +727,14 @@ public class DocumentWorkspaceService {
     @Transactional
     public DocumentWorkspaceResponse getDocumentWorkspace(Long orderId, UserDetailsImpl principal) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new NoSuchElementException("Order not found with ID: " + orderId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found with ID: " + orderId));
 
         validateOrderAccess(order, principal, "VIEW");
+
+        // SPRINT 6 Auto-initialization:
+        if ("INSPECTION_COMPLETED".equalsIgnoreCase(order.getStatus())) {
+            return initializeWorkspace(orderId, principal);
+        }
 
         Long templateId = order.getTemplateId();
         if (templateId == null) {
@@ -539,6 +1035,13 @@ public class DocumentWorkspaceService {
 
         validateOrderAccess(order, principal, "SAVE");
 
+        // SPRINT 6: Transition WORKSPACE_READY → DRAFTING upon first save
+        if ("WORKSPACE_READY".equalsIgnoreCase(order.getStatus())) {
+            order.setStatus("DRAFTING");
+            order.setUpdatedAt(LocalDateTime.now());
+            orderRepository.save(order);
+        }
+
         if (request != null && request.getValues() != null) {
             Map<String, String> expandedInputs = new HashMap<>(request.getValues());
 
@@ -802,46 +1305,96 @@ public class DocumentWorkspaceService {
             }
         }
 
+        // SPRINT 6: Audit log for saved draft values
+        try {
+            Long actorId = principal != null ? principal.getId() : null;
+            String actorEmail = principal != null ? principal.getEmail() : "PA";
+            String actorRole = getPrincipalRole(principal);
+            auditLogService.log(
+                    actorId,
+                    actorEmail,
+                    actorRole,
+                    "DRAFT_SAVED",
+                    "ORDER",
+                    String.valueOf(orderId),
+                    "Saved workspace draft input values (keys: " + (request != null && request.getValues() != null ? request.getValues().size() : 0) + ")"
+            );
+        } catch (Exception e) {
+            log.warn("Failed to log DRAFT_SAVED for order #{}: {}", orderId, e.getMessage());
+        }
+
         return Map.of("status", "SAVED");
     }
 
     /**
-     * POST /api/v1/orders/{id}/submit-to-spa
+     * SPRINT 6: POST /api/v1/orders/{id}/submit-to-spa
+     * Advances order status from DRAFTING to SPA_GATE after validating all mandatory gates.
      */
     @Transactional
     public Map<String, String> submitToSpa(Long orderId, UserDetailsImpl principal) {
         Order order = orderRepository.findById(orderId)
-                .orElseThrow(() -> new NoSuchElementException("Order not found with ID: " + orderId));
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Order not found with ID: " + orderId));
 
         validateOrderAccess(order, principal, "SUBMIT_TO_SPA");
 
-        boolean wasAlreadyInSpaGate = "SPA_GATE".equalsIgnoreCase(order.getStatus());
+        boolean isAdmin = isSuperAdminOrAdmin(principal);
+        if (!isAdmin) {
+            if (order.getPaId() == null || !order.getPaId().equals(principal.getId())) {
+                throw new AccessDeniedException("Access denied: You are not the assigned Property Analyst for Order #" + order.getId());
+            }
+        }
+
+        if (!"DRAFTING".equalsIgnoreCase(order.getStatus()) && !"WORKSPACE_READY".equalsIgnoreCase(order.getStatus())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Order must be in DRAFTING or WORKSPACE_READY status to submit to SPA. Current status: " + order.getStatus());
+        }
+
+        DraftValidationResponseDto validation = validateDraft(orderId, principal);
+        if (!validation.isValid()) {
+            List<String> allErrors = new ArrayList<>();
+            allErrors.addAll(validation.getMissingFields());
+            allErrors.addAll(validation.getMissingPhotos());
+            allErrors.addAll(validation.getCalculationErrors());
+            allErrors.addAll(validation.getPlaceholderErrors());
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Draft validation failed. Incomplete draft: " + String.join("; ", allErrors));
+        }
+
+        String previousStatus = order.getStatus();
         order.setStatus("SPA_GATE");
+        order.setValuationStatus("SUBMITTED");
         order.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(order);
 
-        // Audit Logging for submission / resubmission
-        String actionType = wasAlreadyInSpaGate ? "PA_RESUBMITTED" : "PA_SUBMITTED";
-        String description = wasAlreadyInSpaGate
-                ? "PA resubmitted updated report draft to SPA review queue"
-                : "PA submitted report draft to SPA review queue";
-        try {
-            Long actorId = principal != null ? principal.getId() : null;
-            String actorEmail = principal != null ? principal.getEmail() : "PA";
-            auditLogService.log(
-                    actorId,
-                    actorEmail,
-                    "ROLE_PA",
-                    actionType,
-                    "ORDER",
-                    String.valueOf(orderId),
-                    description
-            );
-        } catch (Exception e) {
-            log.warn("Failed to create audit log for order #{}: {}", orderId, e.getMessage());
-        }
+        // Audit Logging for submission
+        String actorRole = getPrincipalRole(principal);
+        auditLogService.log(
+                principal != null ? principal.getId() : null,
+                principal != null ? principal.getEmail() : "PA",
+                actorRole,
+                "PA_SUBMITTED",
+                "ORDER",
+                String.valueOf(orderId),
+                previousStatus,
+                "SPA_GATE",
+                "PA submitted report draft to SPA review queue"
+        );
 
-        return Map.of("status", "SPA_GATE");
+        // Telegram Notification
+        telegramNotificationService.sendSpaReviewSubmissionNotification(
+                order.getReferenceCode(),
+                order.getReportNumber(),
+                order.getClientName(),
+                principal != null ? principal.getUsername() : "Assigned PA"
+        );
+
+        Map<String, String> resp = new HashMap<>();
+        resp.put("orderId", String.valueOf(orderId));
+        resp.put("previousStatus", previousStatus);
+        resp.put("status", "SPA_GATE");
+        resp.put("valuationStatus", "SUBMITTED");
+        resp.put("message", "Report draft successfully submitted to SPA review gate.");
+        return resp;
     }
 
     /**
