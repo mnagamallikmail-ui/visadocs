@@ -6,7 +6,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_components.dart';
-import '../features/valuation_portal/valuation_portal_widget.dart';
+import '../features/client_dashboard/client_workspace_hub.dart';
 
 class ClientDashboard extends StatefulWidget {
   const ClientDashboard({super.key});
@@ -20,7 +20,7 @@ class _ClientDashboardState extends State<ClientDashboard> {
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
 
-    // T&C interceptor — Miro-inspired modal overlay
+    // T&C interceptor — preserved unchanged
     if (authProvider.tcRequired) {
       return Scaffold(
         backgroundColor: AppColors.canvas,
@@ -39,7 +39,6 @@ class _ClientDashboardState extends State<ClientDashboard> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Deep teal icon badge
                   Container(
                     padding: const EdgeInsets.all(AppSpacing.lg),
                     decoration: BoxDecoration(
@@ -103,14 +102,7 @@ class _ClientDashboardState extends State<ClientDashboard> {
       );
     }
 
-    return ValuationPortalWidget(
-      role: authProvider.role ?? 'CLIENT',
-      email: authProvider.email ?? 'client@provaluer.com',
-      fullName: authProvider.fullName ?? 'Client User',
-      onLogout: () {
-        authProvider.logout();
-        context.go('/login');
-      },
-    );
+    // Authenticated client — serve the unified workspace hub
+    return const ClientWorkspaceHub();
   }
 }

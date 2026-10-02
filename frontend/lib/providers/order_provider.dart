@@ -1137,6 +1137,102 @@ class OrderProvider extends ChangeNotifier {
     return false;
   }
 
+  Future<Map<String, dynamic>?> fetchClientDeliverable(String refCode) async {
+    try {
+      final response = await _apiService.dio.get('/api/v1/client/delivery/orders/$refCode');
+      if (response.statusCode == 200 && response.data != null) {
+        return Map<String, dynamic>.from(response.data);
+      }
+    } catch (e) {
+      _lastError = e.toString();
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> generateDeliveryToken(String refCode, {String fileType = 'REPORT_PDF'}) async {
+    try {
+      final response = await _apiService.dio.post(
+        '/api/v1/client/delivery/orders/$refCode/generate-token',
+        data: {'fileType': fileType},
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        return Map<String, dynamic>.from(response.data);
+      }
+    } on DioException catch (e) {
+      if (e.response?.data != null && e.response!.data is Map && e.response!.data['error'] != null) {
+        _lastError = e.response!.data['error'].toString();
+      } else {
+        _lastError = e.message ?? "Failed to generate download token";
+      }
+    } catch (e) {
+      _lastError = e.toString();
+    }
+    return null;
+  }
+
+  Future<Uint8List?> streamDeliveryFile(String token) async {
+    try {
+      final response = await _apiService.dio.get(
+        '/api/v1/client/delivery/stream',
+        queryParameters: {'token': token},
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {'Accept': '*/*'},
+        ),
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        return Uint8List.fromList(response.data);
+      }
+    } catch (e) {
+      _lastError = e.toString();
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> acknowledgeDelivery(
+    String refCode, {
+    required String action,
+    String? clarificationType,
+    String? clarificationNotes,
+    String? acceptanceDeclaration,
+  }) async {
+    try {
+      final response = await _apiService.dio.post(
+        '/api/v1/client/delivery/orders/$refCode/acknowledge',
+        data: {
+          'action': action,
+          if (clarificationType != null) 'clarificationType': clarificationType,
+          if (clarificationNotes != null) 'clarificationNotes': clarificationNotes,
+          if (acceptanceDeclaration != null) 'acceptanceDeclaration': acceptanceDeclaration,
+        },
+      );
+      if (response.statusCode == 200 && response.data != null) {
+        return Map<String, dynamic>.from(response.data);
+      }
+    } on DioException catch (e) {
+      if (e.response?.data != null && e.response!.data is Map && e.response!.data['error'] != null) {
+        _lastError = e.response!.data['error'].toString();
+      } else {
+        _lastError = e.message ?? "Failed to submit acknowledgement";
+      }
+    } catch (e) {
+      _lastError = e.toString();
+    }
+    return null;
+  }
+
+  Future<Map<String, dynamic>?> fetchOrderInvoice(int orderId) async {
+    try {
+      final response = await _apiService.dio.get('/api/v1/delivery/orders/$orderId/invoice');
+      if (response.statusCode == 200 && response.data != null) {
+        return Map<String, dynamic>.from(response.data);
+      }
+    } catch (e) {
+      _lastError = e.toString();
+    }
+    return null;
+  }
+
   @override
   void dispose() {
     stopHeartbeat();

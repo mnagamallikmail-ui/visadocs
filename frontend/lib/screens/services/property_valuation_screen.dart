@@ -2052,7 +2052,7 @@ class _PropertyValuationScreenState extends State<PropertyValuationScreen> {
                 alignment: WrapAlignment.center,
                 children: [
                   ElevatedButton.icon(
-                    onPressed: () => CommercialIntakeModal.show(context, initialService: 'PROPERTY_VALUATION'),
+                    onPressed: () => context.go('/login'),
                     icon: const Icon(Icons.bolt_rounded, size: 20),
                     label: Text(
                       '⚡ Request Valuation Quote',

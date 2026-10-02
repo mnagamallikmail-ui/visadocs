@@ -1991,7 +1991,7 @@ class _NcltIbcValuationScreenState extends State<NcltIbcValuationScreen> {
                   runSpacing: 14,
                   children: [
                     ElevatedButton.icon(
-                      onPressed: () => CommercialIntakeModal.show(context, initialService: 'NCLT_IBC'),
+                      onPressed: () => context.go('/login'),
                       icon: const Icon(Icons.bolt_rounded, size: 20),
                       label: Text(
                         '⚡ Request Valuation Quote',

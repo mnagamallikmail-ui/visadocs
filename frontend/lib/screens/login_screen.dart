@@ -33,44 +33,66 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() { _isLoading = true; _error = null; });
 
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    bool success;
 
     if (_isLogin) {
-      success = await auth.login(
+      final success = await auth.login(
         _usernameCtrl.text.trim(), _passwordCtrl.text.trim());
+      setState(() => _isLoading = false);
+
+      if (success && mounted) {
+        final role = auth.role;
+        if (role == 'CLIENT') {
+          context.go('/client');
+        } else if (role == 'PA') {
+          context.go('/pa');
+        } else if (role == 'SPA') {
+          context.go('/spa');
+        } else if (role == 'SUPER_ADMIN' || role == 'ADMIN') {
+          context.go('/admin');
+        }
+      } else {
+        setState(() => _error = 'Invalid credentials. Please verify username and password.');
+      }
     } else {
-      success = await auth.register(
-        _emailCtrl.text.trim().isNotEmpty ? _emailCtrl.text.trim() : "${_usernameCtrl.text.trim()}@provaluer.com",
-        _passwordCtrl.text.trim(),
+      final email = _emailCtrl.text.trim().isNotEmpty
+          ? _emailCtrl.text.trim()
+          : (_usernameCtrl.text.trim().contains('@')
+              ? _usernameCtrl.text.trim()
+              : "${_usernameCtrl.text.trim()}@provaluer.com");
+      final pass = _passwordCtrl.text.trim();
+      final usernameOrEmail = _usernameCtrl.text.trim().isNotEmpty ? _usernameCtrl.text.trim() : email;
+      final name = _nameCtrl.text.trim().isNotEmpty ? _nameCtrl.text.trim() : usernameOrEmail;
+      final mobile = _mobileCtrl.text.trim().isNotEmpty ? _mobileCtrl.text.trim() : "9999999999";
+
+      final success = await auth.register(
+        email,
+        pass,
         'CLIENT',
-        _mobileCtrl.text.trim(),
-        _nameCtrl.text.trim(),
+        mobile,
+        name,
       );
+
       if (success) {
-        setState(() => _isLogin = true);
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            AppComponents.successSnack('Account created. Please sign in with your username.'));
+        // Auto Authenticate and navigate directly to /client
+        final loggedIn = await auth.login(usernameOrEmail, pass);
+        if (loggedIn && mounted) {
+          setState(() => _isLoading = false);
+          context.go('/client');
+          return;
+        } else {
+          final fallbackLoggedIn = await auth.login(email, pass);
+          if (fallbackLoggedIn && mounted) {
+            setState(() => _isLoading = false);
+            context.go('/client');
+            return;
+          }
         }
       }
-    }
 
-    setState(() => _isLoading = false);
-
-    if (success && _isLogin) {
-      final role = auth.role;
-      if (!mounted) return;
-      if (role == 'CLIENT') {
-        context.go('/client');
-      } else if (role == 'PA') {
-        context.go('/pa');
-      } else if (role == 'SPA') {
-        context.go('/spa');
-      } else if (role == 'SUPER_ADMIN' || role == 'ADMIN') {
-        context.go('/admin');
-      }
-    } else if (!success) {
-      setState(() => _error = 'Invalid credentials. Please verify username and password.');
+      setState(() {
+        _isLoading = false;
+        _error = 'Registration failed. Email or username may already be in use.';
+      });
     }
   }
 
@@ -110,10 +132,45 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (!isDesktop) ...[
-                          AppComponents.logo(fontSize: 18),
-                          const SizedBox(height: AppSpacing.xxxl),
-                        ],
+                        // Back to Home action
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              InkWell(
+                                onTap: () => context.go('/'),
+                                borderRadius: BorderRadius.circular(6),
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: const [
+                                      Icon(Icons.arrow_back_rounded, size: 16, color: Color(0xFF64748B)),
+                                      SizedBox(width: 6),
+                                      Text(
+                                        'Back to Home',
+                                        style: TextStyle(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(0xFF64748B),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              if (!isDesktop)
+                                GestureDetector(
+                                  onTap: () => context.go('/'),
+                                  child: MouseRegion(
+                                    cursor: SystemMouseCursors.click,
+                                    child: AppComponents.logo(fontSize: 18),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
 
                         // Heading
                         Text(
@@ -370,8 +427,14 @@ class _LeftPanel extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Logo
-          AppComponents.logo(fontSize: 18, darkMode: true),
+          // Clickable Logo to return home
+          GestureDetector(
+            onTap: () => context.go('/'),
+            child: MouseRegion(
+              cursor: SystemMouseCursors.click,
+              child: AppComponents.logo(fontSize: 18, darkMode: true),
+            ),
+          ),
 
           // Central editorial content
           Column(

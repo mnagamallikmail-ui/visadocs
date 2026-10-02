@@ -2053,7 +2053,7 @@ class _ShareValuationScreenState extends State<ShareValuationScreen> {
                 alignment: WrapAlignment.center,
                 children: [
                   ElevatedButton.icon(
-                    onPressed: () => CommercialIntakeModal.show(context, initialService: 'SHARE_VALUATION'),
+                    onPressed: () => context.go('/login'),
                     icon: const Icon(Icons.bolt_rounded, size: 20),
                     label: Text(
                       '⚡ Request Valuation Quote',

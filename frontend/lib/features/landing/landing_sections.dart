@@ -268,7 +268,7 @@ class LandingHeader extends StatelessWidget {
 
                         // Request Valuation Report Button (Obsidian & Platinum)
                         GestureDetector(
-                          onTap: () => CommercialIntakeModal.show(context),
+                          onTap: () => context.go('/login'),
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
                             decoration: BoxDecoration(
@@ -682,7 +682,7 @@ class _HeroSectionState extends State<HeroSection> {
           children: [
             // Primary CTA: Request Valuation Report (Solid Deep Teal)
             GestureDetector(
-              onTap: () => CommercialIntakeModal.show(context),
+              onTap: () => context.go('/login'),
               child: Container(
                 padding: EdgeInsets.symmetric(
                   horizontal: isCompactDesktop ? 22 : 28,
@@ -2615,7 +2615,7 @@ class CtaBanner extends StatelessWidget {
                   alignment: WrapAlignment.center,
                   children: [
                     GestureDetector(
-                      onTap: () => CommercialIntakeModal.show(context),
+                      onTap: () => context.go('/login'),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                         decoration: BoxDecoration(
@@ -2888,7 +2888,7 @@ class MobileMenuDrawer extends StatelessWidget {
                 child: GestureDetector(
                   onTap: () {
                     Navigator.of(context).pop();
-                    CommercialIntakeModal.show(context);
+                    context.go('/login');
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 16),

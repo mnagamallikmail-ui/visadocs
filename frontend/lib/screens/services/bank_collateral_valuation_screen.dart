@@ -1306,7 +1306,7 @@ class _BankCollateralValuationScreenState extends State<BankCollateralValuationS
                 alignment: WrapAlignment.center,
                 children: [
                   ElevatedButton.icon(
-                    onPressed: () => CommercialIntakeModal.show(context, initialService: 'BANK_COLLATERAL'),
+                    onPressed: () => context.go('/login'),
                     icon: const Icon(Icons.bolt_rounded, size: 20),
                     label: Text(
                       '⚡ Request Valuation Quote',

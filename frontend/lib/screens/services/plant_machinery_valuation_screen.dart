@@ -43,7 +43,7 @@ class _PlantMachineryValuationScreenState extends State<PlantMachineryValuationS
   }
 
   void _openQuoteModal() {
-    CommercialIntakeModal.show(context, initialService: 'PLANT_AND_MACHINERY');
+    context.go('/login');
   }
 
   @override
