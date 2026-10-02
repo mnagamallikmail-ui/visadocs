@@ -47,12 +47,45 @@ void main() {
         'createdAt': '2026-08-15T09:00:00',
         'status': 'SPA_CONFIRMED',
       },
+      {
+        'id': 104,
+        'referenceCode': 'REQ-2026-923',
+        'quoteNumber': 'QTE-2026-923',
+        'clientName': 'Global Logistics Ltd',
+        'bankName': 'Axis Bank',
+        'createdAt': '2026-09-05T14:00:00',
+        'status': 'PAYMENT_SUBMITTED',
+      },
+      {
+        'id': 105,
+        'referenceCode': 'VAL-2026-851',
+        'clientName': 'Summit Infra Corp',
+        'bankName': 'Kotak Mahindra',
+        'createdAt': '2026-09-06T16:00:00',
+        'status': 'PAYMENT_VERIFIED',
+      },
     ];
 
     test('Search strictly filters by Report Number', () {
       final results = ReportListHelper.filterAndSortReports(sampleReports, 'MUM-2026', 'date_desc');
       expect(results.length, 1);
       expect(results.first['reportNumber'], 'PV-MUM-2026-001');
+    });
+
+    test('Search strictly filters by Reference Code (REQ-xxxx and VAL-xxxx)', () {
+      final reqResults = ReportListHelper.filterAndSortReports(sampleReports, 'REQ-2026-923', 'date_desc');
+      expect(reqResults.length, 1);
+      expect(reqResults.first['id'], 104);
+
+      final valResults = ReportListHelper.filterAndSortReports(sampleReports, 'VAL-2026-851', 'date_desc');
+      expect(valResults.length, 1);
+      expect(valResults.first['id'], 105);
+    });
+
+    test('Search strictly filters by Quote Number (QTE-xxxx)', () {
+      final qteResults = ReportListHelper.filterAndSortReports(sampleReports, 'QTE-2026-923', 'date_desc');
+      expect(qteResults.length, 1);
+      expect(qteResults.first['id'], 104);
     });
 
     test('Search strictly filters by Client Name', () {

@@ -66,6 +66,13 @@ public class PoolReleaseService {
                 .collect(Collectors.toList());
     }
 
+    public List<ReleaseQueueOrderDto> getPaymentReviewQueue() {
+        List<Order> submittedOrders = orderRepository.findAllByStatus("PAYMENT_SUBMITTED");
+        return submittedOrders.stream()
+                .map(this::mapToReleaseQueueDto)
+                .collect(Collectors.toList());
+    }
+
     // ────────────────────────────────────────────────────────────────────────────
     // Section E: POST /api/v1/orders/{id}/release-to-pool
     // Full pre-condition verification + state transition PAYMENT_VERIFIED → PAID_INTAKE.
@@ -155,6 +162,17 @@ public class PoolReleaseService {
 
         // Step 13: Audit log
         try {
+            auditLogService.log(
+                    principal.getId(),
+                    principal.getUsername(),
+                    principal.getAuthorities().iterator().next().getAuthority(),
+                    "POOL_RELEASED",
+                    "orders",
+                    String.valueOf(order.getId()),
+                    "Released to Common Pool. ReportNumber=" + reportNumber +
+                    " SLA=" + slaExpiry + " ReleasedBy=" + releasedByStr
+            );
+            // Also log RELEASE_TO_POOL for backwards compatibility
             auditLogService.log(
                     principal.getId(),
                     principal.getUsername(),

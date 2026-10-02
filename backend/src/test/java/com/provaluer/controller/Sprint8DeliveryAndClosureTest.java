@@ -86,7 +86,7 @@ public class Sprint8DeliveryAndClosureTest {
     @BeforeEach
     void setUp() {
         adminUser = userRepository.findAll().stream()
-                .filter(u -> UserRole.SUPER_ADMIN.equals(u.getRole()) || UserRole.ADMIN.equals(u.getRole()))
+                .filter(u -> UserRole.SUPER_ADMIN.equals(u.getRole()))
                 .findFirst()
                 .orElseGet(() -> {
                     User u = new User();

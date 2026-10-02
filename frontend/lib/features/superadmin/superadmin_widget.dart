@@ -662,7 +662,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
     return _menuItems.where((m) {
       final key = m['key'] as String;
       if (isSuper) return true;
-      return key == 'overview' || key == 'templates' || key == 'signing' || key == 'valuation_portal' || key == 'seo_intelligence' || key == 'intake_clearance';
+      return key == 'overview' || key == 'leads_crm' || key == 'queue' || key == 'intake_clearance' || key == 'templates' || key == 'signing' || key == 'valuation_portal' || key == 'seo_intelligence';
     }).toList();
   }
 
@@ -865,7 +865,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
   Widget _buildCanvas() {
     final isSuper = widget.role == 'SUPER_ADMIN';
     final menu = _selectedMenu;
-    if (!isSuper && menu != 'overview' && menu != 'leads_crm' && menu != 'templates' && menu != 'signing' && menu != 'seo_intelligence' && menu != 'intake_clearance') {
+    if (!isSuper && menu != 'overview' && menu != 'leads_crm' && menu != 'queue' && menu != 'intake_clearance' && menu != 'templates' && menu != 'signing' && menu != 'seo_intelligence') {
       return const AdminOverviewSection();
     }
     switch (menu) {

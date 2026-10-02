@@ -770,6 +770,28 @@ public class OrderController {
     // ════════════════════════════════════════════════════════════════════════════
 
     /**
+     * SPRINT 3/4 Fix: GET /api/v1/orders/payment-review-queue
+     * Returns all PAYMENT_SUBMITTED orders awaiting admin payment verification.
+     * Restricted to ROLE_ADMIN and ROLE_SUPER_ADMIN only.
+     */
+    @GetMapping("/payment-review-queue")
+    @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> getPaymentReviewQueue() {
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
+        }
+        try {
+            java.util.List<ReleaseQueueOrderDto> queue = poolReleaseService.getPaymentReviewQueue();
+            return ResponseEntity.ok(queue);
+        } catch (Exception e) {
+            log.error("Failed to fetch payment review queue: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Map.of("error", "Failed to fetch payment review queue: " + e.getMessage()));
+        }
+    }
+
+    /**
      * SPRINT 4 — Section C: GET /api/v1/orders/release-queue
      * Returns all PAYMENT_VERIFIED orders awaiting admin release to Common Pool.
      * Restricted to ROLE_ADMIN and ROLE_SUPER_ADMIN only.

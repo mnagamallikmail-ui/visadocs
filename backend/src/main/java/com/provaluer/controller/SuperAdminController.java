@@ -34,6 +34,7 @@ public class SuperAdminController {
     @Autowired private OrderRepository orderRepository;
     @Autowired private OrderInputRepository orderInputRepository;
     @Autowired private OrderDocumentRepository orderDocumentRepository;
+    @Autowired private OrderPaymentRepository orderPaymentRepository;
     @Autowired private RevisionRepository revisionRepository;
     @Autowired private TransactionRepository transactionRepository;
     @Autowired private PerformanceLedgerRepository performanceLedgerRepository;
@@ -424,16 +425,74 @@ public class SuperAdminController {
 
     @PostMapping("/orders/{id}/waive-payment")
     @Transactional
-    public ResponseEntity<?> waivePayment(@PathVariable Long id) {
+    public ResponseEntity<?> waivePayment(@PathVariable Long id, @RequestBody(required = false) Map<String, String> body) {
+        String reason = (body != null && body.get("reason") != null && !body.get("reason").isBlank())
+                ? body.get("reason").trim()
+                : (body != null && body.get("notes") != null && !body.get("notes").isBlank())
+                    ? body.get("notes").trim()
+                    : "Commercial Payment Waiver Authorized by Super Admin";
+
         return orderRepository.findById(id).map(order -> {
-            String old = order.getBalanceDue() != null ? order.getBalanceDue().toString() : "0";
+            String oldStatus = order.getStatus();
+            String oldBalance = order.getBalanceDue() != null ? order.getBalanceDue().toString() : "0";
+            LocalDateTime now = LocalDateTime.now();
+            String actor = actorEmail();
+
             order.setBalanceDue(BigDecimal.ZERO);
-            order.setUpdatedAt(LocalDateTime.now());
+            order.setPaymentStatus("VERIFIED");
+            order.setStatus("PAYMENT_VERIFIED");
+            order.setCommercialOverrideNotes(reason);
+            order.setUpdatedAt(now);
+
+            // If an active/submitted payment exists, mark it as verified
+            OrderPayment payment = null;
+            if (order.getLatestPaymentId() != null) {
+                payment = orderPaymentRepository.findById(order.getLatestPaymentId()).orElse(null);
+            }
+            if (payment == null) {
+                payment = orderPaymentRepository.findTopByOrderIdOrderBySubmittedAtDesc(id).orElse(null);
+            }
+
+            if (payment != null) {
+                payment.setStatus("VERIFIED");
+                payment.setVerifiedAmount(payment.getAmountPaid() != null ? payment.getAmountPaid() : BigDecimal.ZERO);
+                payment.setVerifiedBy(actor);
+                payment.setVerifiedAt(now);
+                payment.setAdminNotes("Payment waived: " + reason);
+                orderPaymentRepository.save(payment);
+            } else {
+                OrderPayment waiverPayment = new OrderPayment();
+                waiverPayment.setOrderId(order.getId());
+                waiverPayment.setQuoteNumber(order.getQuoteNumber() != null ? order.getQuoteNumber() : "WAIVE-" + order.getId());
+                waiverPayment.setUtrNumber("WAIVER-" + System.currentTimeMillis());
+                waiverPayment.setPaymentMethod("COMMERCIAL_WAIVER");
+                waiverPayment.setPaymentDate(now.toLocalDate());
+                waiverPayment.setAmountExpected(order.getQuoteTotal() != null ? order.getQuoteTotal() : BigDecimal.ZERO);
+                waiverPayment.setAmountPaid(BigDecimal.ZERO);
+                waiverPayment.setVerifiedAmount(BigDecimal.ZERO);
+                waiverPayment.setStatus("VERIFIED");
+                waiverPayment.setSubmittedBy(actor);
+                waiverPayment.setSubmittedAt(now);
+                waiverPayment.setVerifiedBy(actor);
+                waiverPayment.setVerifiedAt(now);
+                waiverPayment.setAdminNotes("Full Commercial Waiver: " + reason);
+                OrderPayment savedWaiver = orderPaymentRepository.save(waiverPayment);
+                order.setLatestPaymentId(savedWaiver.getId());
+            }
+
             orderRepository.save(order);
-            auditLogService.log(actorId(), actorEmail(), "SUPER_ADMIN", "PAYMENT_WAIVE", "ORDER",
-                    String.valueOf(id), old, "0",
-                    "Balance payment waived by SUPER_ADMIN");
-            return ResponseEntity.ok("Payment waived.");
+
+            auditLogService.log(actorId(), actorEmail(), "SUPER_ADMIN", "PAYMENT_WAIVED", "ORDER",
+                    String.valueOf(id), oldStatus + " (Balance: " + oldBalance + ")", "PAYMENT_VERIFIED (Balance: 0)",
+                    "Payment waived by " + actor + ". Reason: " + reason);
+
+            return ResponseEntity.ok(Map.of(
+                    "message", "Payment waived successfully. Order is now in PAYMENT_VERIFIED status.",
+                    "orderId", order.getId(),
+                    "status", order.getStatus(),
+                    "paymentStatus", order.getPaymentStatus(),
+                    "balanceDue", order.getBalanceDue()
+            ));
         }).orElse(ResponseEntity.notFound().build());
     }
 

@@ -36,12 +36,16 @@ class ReportListHelper {
     var result = reports.where((r) {
       if (q.isEmpty) return true;
       final reportNum = (r['reportNumber'] ?? 'PV-${r['id']}').toString().toLowerCase();
+      final refCode = (r['referenceCode'] ?? '').toString().toLowerCase();
+      final quoteNum = (r['quoteNumber'] ?? '').toString().toLowerCase();
       final clientName = (r['clientName'] ?? '').toString().toLowerCase();
       final bankName = (r['bankName'] ?? '').toString().toLowerCase();
       final dateFormatted = formatReportDate(r['createdAt']).toLowerCase();
       final rawDate = (r['createdAt'] ?? '').toString().toLowerCase();
 
       return reportNum.contains(q) ||
+          refCode.contains(q) ||
+          quoteNum.contains(q) ||
           clientName.contains(q) ||
           bankName.contains(q) ||
           dateFormatted.contains(q) ||

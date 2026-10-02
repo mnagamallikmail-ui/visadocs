@@ -58,6 +58,9 @@ public class PaymentWorkflowService {
     @Autowired
     private PaymentNotificationService paymentNotificationService;
 
+    @Autowired
+    private AuditLogService auditLogService;
+
     private static final Set<String> ALLOWED_PAYMENT_PROOF_EXT = Set.of("pdf", "png", "jpg", "jpeg");
 
     public PaymentDetailsResponse.BankDetailsDto getBankDetails(BigDecimal amount, String referenceCode) {
@@ -189,6 +192,23 @@ public class PaymentWorkflowService {
         order.setLatestPaymentId(savedPayment.getId());
         orderRepository.save(order);
 
+        // Required Audit Event: PAYMENT_SUBMITTED
+        try {
+            auditLogService.log(
+                    principal.getId(),
+                    principal.getEmail() != null ? principal.getEmail() : principal.getUsername(),
+                    principal.getAuthorities().stream().findFirst().map(a -> a.getAuthority().replace("ROLE_", "")).orElse("CLIENT"),
+                    "PAYMENT_SUBMITTED",
+                    "ORDER",
+                    String.valueOf(order.getId()),
+                    currentStatus,
+                    "PAYMENT_SUBMITTED",
+                    "Payment proof submitted for order " + order.getReferenceCode() + " | UTR: " + cleanUtr + " | Amount: INR " + request.getAmountPaid()
+            );
+        } catch (Exception e) {
+            log.warn("Failed to write audit log for PAYMENT_SUBMITTED on order #{}: {}", order.getId(), e.getMessage());
+        }
+
         // Trigger Notifications asynchronously
         User clientUser = userRepository.findById(order.getClientId()).orElse(uploader);
         paymentNotificationService.notifyPaymentSubmitted(order, savedPayment, clientUser);
@@ -239,6 +259,23 @@ public class PaymentWorkflowService {
         order.setPaymentStatus("VERIFIED");
         orderRepository.save(order);
 
+        // Required Audit Event: PAYMENT_VERIFIED
+        try {
+            auditLogService.log(
+                    principal.getId(),
+                    principal.getEmail() != null ? principal.getEmail() : principal.getUsername(),
+                    principal.getAuthorities().stream().findFirst().map(a -> a.getAuthority().replace("ROLE_", "")).orElse("ADMIN"),
+                    "PAYMENT_VERIFIED",
+                    "ORDER",
+                    String.valueOf(order.getId()),
+                    "PAYMENT_SUBMITTED",
+                    "PAYMENT_VERIFIED",
+                    "Payment verified for order " + order.getReferenceCode() + " | UTR: " + payment.getUtrNumber() + " | Verified Amount: INR " + verifiedAmt
+            );
+        } catch (Exception e) {
+            log.warn("Failed to write audit log for PAYMENT_VERIFIED on order #{}: {}", order.getId(), e.getMessage());
+        }
+
         // Trigger notifications
         User clientUser = userRepository.findById(order.getClientId()).orElse(null);
         paymentNotificationService.notifyPaymentVerified(order, payment, clientUser, payment.getVerifiedBy());
@@ -285,6 +322,23 @@ public class PaymentWorkflowService {
         order.setStatus("PAYMENT_REJECTED");
         order.setPaymentStatus("REJECTED");
         orderRepository.save(order);
+
+        // Required Audit Event: PAYMENT_REJECTED
+        try {
+            auditLogService.log(
+                    principal.getId(),
+                    principal.getEmail() != null ? principal.getEmail() : principal.getUsername(),
+                    principal.getAuthorities().stream().findFirst().map(a -> a.getAuthority().replace("ROLE_", "")).orElse("ADMIN"),
+                    "PAYMENT_REJECTED",
+                    "ORDER",
+                    String.valueOf(order.getId()),
+                    "PAYMENT_SUBMITTED",
+                    "PAYMENT_REJECTED",
+                    "Payment rejected for order " + order.getReferenceCode() + " | Reason: " + request.getRejectionReason()
+            );
+        } catch (Exception e) {
+            log.warn("Failed to write audit log for PAYMENT_REJECTED on order #{}: {}", order.getId(), e.getMessage());
+        }
 
         // Trigger notifications
         User clientUser = userRepository.findById(order.getClientId()).orElse(null);

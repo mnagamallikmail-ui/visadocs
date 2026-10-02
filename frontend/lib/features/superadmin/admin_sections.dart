@@ -360,16 +360,62 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
   }
 
   Future<void> _waivePayment(dynamic order) async {
+    final reasonController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Waive Payment for #${order['id']}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Reference: ${order['referenceCode'] ?? 'REQ-${order['id']}'}',
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                labelText: 'Waiver Reason *',
+                hintText: 'Enter reason (e.g. VIP pre-approved, SLA exemption)',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              if (reasonController.text.trim().isEmpty) return;
+              Navigator.pop(ctx, true);
+            },
+            child: const Text('Waive Payment'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
     try {
-      await _api.dio.post('/api/v1/admin/orders/${order['id']}/waive-payment');
+      await _api.dio.post('/api/v1/admin/orders/${order['id']}/waive-payment', data: {
+        'reason': reasonController.text.trim(),
+      });
       _load();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
           backgroundColor: AppColors.success,
-          content: Text('Payment waived successfully.'),
+          content: Text('Payment waived successfully. Order moved to PAYMENT_VERIFIED.'),
         ));
       }
-    } catch (_) {}
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.brandRedDark,
+          content: Text('Failed to waive payment: ${ApiService.getErrorMessage(e)}'),
+        ));
+      }
+    }
   }
 
   Future<void> _deleteOrder(dynamic order) async {

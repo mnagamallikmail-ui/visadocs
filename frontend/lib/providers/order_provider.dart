@@ -856,6 +856,8 @@ class OrderProvider extends ChangeNotifier {
         },
       );
       if (response.statusCode == 200) {
+        await fetchPaymentReviewQueue();
+        await fetchReleaseQueue();
         await fetchAllOrders();
         return Map<String, dynamic>.from(response.data);
       }
@@ -907,6 +909,23 @@ class OrderProvider extends ChangeNotifier {
   List<dynamic> _releaseQueue = [];
   List<dynamic> get releaseQueue => _releaseQueue;
 
+  List<dynamic> _paymentReviewQueue = [];
+  List<dynamic> get paymentReviewQueue => _paymentReviewQueue;
+
+  Future<void> fetchPaymentReviewQueue() async {
+    try {
+      final response = await _apiService.dio.get('/api/v1/orders/payment-review-queue');
+      if (response.statusCode == 200) {
+        _paymentReviewQueue = response.data is List ? response.data : [];
+        notifyListeners();
+      }
+    } on DioException catch (e) {
+      debugPrint('[PAYMENT_REVIEW_QUEUE] Error: ${e.response?.data}');
+    } catch (e) {
+      debugPrint('[PAYMENT_REVIEW_QUEUE] Error: $e');
+    }
+  }
+
   Future<void> fetchReleaseQueue() async {
     try {
       final response = await _apiService.dio.get('/api/v1/orders/release-queue');
@@ -919,6 +938,35 @@ class OrderProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('[RELEASE_QUEUE] Error: $e');
     }
+  }
+
+  Future<Map<String, dynamic>?> waivePayment({
+    required int orderId,
+    String? reason,
+  }) async {
+    try {
+      final response = await _apiService.dio.post(
+        '/api/v1/admin/orders/$orderId/waive-payment',
+        data: {
+          if (reason != null && reason.isNotEmpty) 'reason': reason,
+        },
+      );
+      if (response.statusCode == 200) {
+        await fetchPaymentReviewQueue();
+        await fetchReleaseQueue();
+        await fetchAllOrders();
+        return Map<String, dynamic>.from(response.data);
+      }
+    } on DioException catch (e) {
+      String msg = 'Waive payment failed.';
+      if (e.response?.data != null && e.response!.data is Map && e.response!.data['message'] != null) {
+        msg = e.response!.data['message'].toString();
+      }
+      return {'error': msg};
+    } catch (e) {
+      return {'error': e.toString()};
+    }
+    return {'error': 'Waive payment failed.'};
   }
 
   Future<Map<String, dynamic>?> releaseToPool({

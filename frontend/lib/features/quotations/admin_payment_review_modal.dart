@@ -38,9 +38,9 @@ class _AdminPaymentReviewModalState extends State<AdminPaymentReviewModal> {
   String? _errorMessage;
   Map<String, dynamic>? _paymentDetails;
 
-  int get _orderId => (widget.order['id'] as num?)?.toInt() ?? 0;
-  String get _refCode => widget.order['referenceCode'] ?? 'REQ-${widget.order['id']}';
-  String get _clientName => widget.order['clientName'] ?? widget.order['clientUsername'] ?? 'Client #${widget.order['clientId']}';
+  int get _orderId => (widget.order['id'] as num?)?.toInt() ?? (widget.order['orderId'] as num?)?.toInt() ?? 0;
+  String get _refCode => widget.order['referenceCode'] ?? 'REQ-$_orderId';
+  String get _clientName => widget.order['clientName'] ?? widget.order['clientUsername'] ?? 'Client #${widget.order['clientId'] ?? _orderId}';
 
   @override
   void initState() {
