@@ -1,160 +1,866 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Flat Minimalist Design</title>
-    <link rel="stylesheet" href="styles.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ProValuer Commercial - Official Valuation & Verification Portal</title>
+  <meta name="description" content="Official government-recognized commercial and visa property valuation portal with real-time 11-stage progress tracker and next-action workflow guidance.">
+  <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <div class="app-container">
-        <!-- Sidebar Navigation -->
-        <aside class="sidebar">
-            <h2>ProValuer</h2>
-            <div class="flex-col">
-                <button class="btn-primary" style="width: 100%; justify-content: flex-start; padding-left: 16px;">
-                    Dashboard
-                </button>
-                <button class="btn-secondary" style="width: 100%; justify-content: flex-start; border-color: transparent; color: var(--text-secondary); padding-left: 16px;">
-                    Valuations
-                </button>
-                <button class="btn-secondary" style="width: 100%; justify-content: flex-start; border-color: transparent; color: var(--text-secondary); padding-left: 16px;">
-                    Clients
-                </button>
-                <button class="btn-secondary" style="width: 100%; justify-content: flex-start; border-color: transparent; color: var(--text-secondary); padding-left: 16px;">
-                    Settings
-                </button>
-            </div>
-        </aside>
 
-        <!-- Main Content Area -->
-        <main class="main-content">
-            <header class="header">
-                <div>
-                    <h1>Dashboard Overview</h1>
-                    <p style="color: var(--text-secondary); margin-bottom: 0;">Welcome back to the valuation portal.</p>
-                </div>
-                <div class="flex-row">
-                    <input type="text" class="form-field" placeholder="Search..." style="width: 250px;">
-                    <button class="btn-primary">New Order</button>
-                </div>
-            </header>
+  <!-- Ambient Light Backdrops -->
+  <div class="bg-ambient">
+    <div class="ambient-circle-1"></div>
+    <div class="ambient-circle-2"></div>
+  </div>
 
-            <div class="flex-row" style="margin-bottom: 24px;">
-                <!-- Summary Card -->
-                <div class="card" style="flex: 1;">
-                    <h3>Total Valuations</h3>
-                    <div style="font-size: 32px; font-weight: 700; color: var(--primary);">142</div>
-                    <p style="color: var(--text-secondary); font-size: 12px; margin-top: 8px; margin-bottom: 0;">+12% from last month</p>
-                </div>
-                <!-- Summary Card -->
-                <div class="card" style="flex: 1;">
-                    <h3>Pending Review</h3>
-                    <div style="font-size: 32px; font-weight: 700; color: var(--state-warning);">28</div>
-                    <p style="color: var(--text-secondary); font-size: 12px; margin-top: 8px; margin-bottom: 0;">Require immediate attention</p>
-                </div>
-                <!-- Summary Card -->
-                <div class="card" style="flex: 1;">
-                    <h3>Completed Today</h3>
-                    <div style="font-size: 32px; font-weight: 700; color: var(--state-success);">15</div>
-                    <p style="color: var(--text-secondary); font-size: 12px; margin-top: 8px; margin-bottom: 0;">All reports submitted</p>
-                </div>
-            </div>
-
-            <!-- Form Example -->
-            <div class="card">
-                <h2>Quick Filter</h2>
-                <div class="flex-row">
-                    <div class="form-group" style="flex: 1;">
-                        <label for="client">Client Name</label>
-                        <input type="text" id="client" class="form-field" placeholder="Enter client name">
-                    </div>
-                    <div class="form-group" style="flex: 1;">
-                        <label for="status">Status</label>
-                        <select id="status" class="dropdown form-field" style="height: auto; padding: 12px 16px;">
-                            <option>All Statuses</option>
-                            <option>Pending</option>
-                            <option>Completed</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="flex: 1;">
-                        <label>&nbsp;</label>
-                        <button class="btn-secondary" style="width: 100%;">Apply Filters</button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Data Table -->
-            <h2 style="margin-top: 40px; margin-bottom: 16px;">Recent Orders</h2>
-            <div class="table-container">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Order details</th>
-                            <th>Client</th>
-                            <th>Date / Time</th>
-                            <th>Status</th>
-                            <th style="text-align: right;">Actions</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td>
-                                <div class="td-stacked">
-                                    <span class="primary-text">ORD-2026-089</span>
-                                    <span class="secondary-text">Commercial Valuation</span>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="td-stacked">
-                                    <span class="primary-text">Acme Corp</span>
-                                    <span class="secondary-text">contact@acme.com</span>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="td-stacked">
-                                    <span class="primary-text">Jul 29, 2026</span>
-                                    <span class="secondary-text">10:45 AM</span>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="tag warning">Pending</span>
-                            </td>
-                            <td style="text-align: right;">
-                                <button class="btn-secondary" style="padding: 6px 12px; font-size: 12px;">View</button>
-                            </td>
-                        </tr>
-                        <tr>
-                            <td>
-                                <div class="td-stacked">
-                                    <span class="primary-text">ORD-2026-088</span>
-                                    <span class="secondary-text">Residential Appraisal</span>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="td-stacked">
-                                    <span class="primary-text">Jane Doe</span>
-                                    <span class="secondary-text">jane.doe@example.com</span>
-                                </div>
-                            </td>
-                            <td>
-                                <div class="td-stacked">
-                                    <span class="primary-text">Jul 28, 2026</span>
-                                    <span class="secondary-text">02:30 PM</span>
-                                </div>
-                            </td>
-                            <td>
-                                <span class="tag success">Completed</span>
-                            </td>
-                            <td style="text-align: right;">
-                                <button class="btn-secondary" style="padding: 6px 12px; font-size: 12px;">View</button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </main>
+  <!-- Global Sticky Navigation Bar -->
+  <header class="navbar">
+    <div class="brand-wrapper" id="navBrandLogo" onclick="switchView('landing')">
+      <div class="brand-logo-icon">PV</div>
+      <div class="brand-info">
+        <h1>ProValuer <span class="tag-pro">Official</span></h1>
+        <p>Govt Approved & IBBI Registered Valuers</p>
+      </div>
     </div>
-    <script src="script.js"></script>
+
+    <!-- Navigation Views Switcher -->
+    <nav>
+      <ul class="nav-center-menu">
+        <li>
+          <button class="nav-link-btn active" id="navBtnLanding" onclick="switchView('landing')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+            Landing Page
+          </button>
+        </li>
+        <li>
+          <button class="nav-link-btn" id="navBtnRequest" onclick="switchView('request')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+            Request Valuation
+          </button>
+        </li>
+        <li>
+          <button class="nav-link-btn" id="navBtnAuth" onclick="switchView('auth')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
+            Login / Register
+          </button>
+        </li>
+        <li>
+          <button class="nav-link-btn" id="navBtnDashboard" onclick="switchView('dashboard')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+            Client Dashboard
+          </button>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="nav-actions">
+      <!-- Theme Switcher -->
+      <button class="icon-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Light/Dark Theme">
+        <svg id="themeIconSun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+      </button>
+
+      <!-- User Chip or Quick Action -->
+      <div id="userProfileChip" style="display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 600;">
+        <span style="width: 8px; height: 8px; border-radius: 50%; background: #10B981;"></span>
+        <span>Anand Mehta</span>
+      </div>
+
+      <button class="btn btn-gold btn-sm" onclick="switchView('request')">
+        + Request Valuation
+      </button>
+    </div>
+  </header>
+
+  <!-- =====================================================================
+       VIEW 1: LANDING PAGE
+       ===================================================================== -->
+  <main id="viewLanding" class="view-section active-view">
+    <div class="hero-wrapper">
+      <div class="hero-grid">
+        <div class="hero-content">
+          <div class="hero-pill-badge">
+            <span class="pulse-dot"></span>
+            IBBI & Income Tax Rule 8A Approved Valuers
+          </div>
+          <h1 class="hero-title">
+            Commercial & Visa Property Valuation <br>
+            <span class="gradient-text">Engineered For Zero Friction.</span>
+          </h1>
+          <p class="hero-desc">
+            Fast, transparent, and legally binding valuation reports accepted by embassies (US, Canada, UK, Australia, Schengen) and all major scheduled commercial banks. Track every stage from inquiry to digitally signed report delivery.
+          </p>
+          <div class="hero-cta-group">
+            <button class="btn btn-primary btn-lg" onclick="switchView('request')">
+              Request Valuation Report
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            </button>
+            <button class="btn btn-secondary btn-lg" onclick="switchView('dashboard')">
+              Enter Client Dashboard
+            </button>
+          </div>
+          <div class="hero-stats-row">
+            <div class="stat-item">
+              <h3>2,500+</h3>
+              <p>Reports Certified</p>
+            </div>
+            <div class="stat-item">
+              <h3>48 Hrs</h3>
+              <p>Standard SLA</p>
+            </div>
+            <div class="stat-item">
+              <h3>99.8%</h3>
+              <p>Visa Approval Rate</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Workflow Pipeline Preview Hero Card -->
+        <div class="hero-preview-card">
+          <div class="preview-header">
+            <div>
+              <div style="font-size: 11px; text-transform: uppercase; color: var(--accent-gold); font-weight: 700; letter-spacing: 0.05em;">Interactive Flow</div>
+              <h3 style="font-size: 16px; margin: 0; color: var(--text-main);">ProValuer 11-Stage Pipeline</h3>
+            </div>
+            <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10B981; padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 600;">Active System</span>
+          </div>
+
+          <div class="workflow-flow-preview">
+            <div class="flow-step-preview">
+              <span class="step-num-badge">1-3</span>
+              <div>
+                <strong style="display:block; font-size: 13px;">Request & Quote</strong>
+                <span style="font-size: 11px; color: var(--text-muted);">Select Service & Property Type → Instant Quote → Payment</span>
+              </div>
+            </div>
+            <div class="flow-step-preview active-step">
+              <span class="step-num-badge" style="background: #0284C7;">4-6</span>
+              <div>
+                <strong style="display:block; font-size: 13px; color: #38BDF8;">Verification & Assignment</strong>
+                <span style="font-size: 11px; color: var(--text-muted);">Document verification → Global pool → Property Analyst claim</span>
+              </div>
+            </div>
+            <div class="flow-step-preview">
+              <span class="step-num-badge" style="background: #475569;">7-9</span>
+              <div>
+                <strong style="display:block; font-size: 13px;">Inspection & Review</strong>
+                <span style="font-size: 11px; color: var(--text-muted);">Site audit → Docx4j template drafting → Senior Analyst sign-off</span>
+              </div>
+            </div>
+            <div class="flow-step-preview">
+              <span class="step-num-badge" style="background: #10B981;">10-11</span>
+              <div>
+                <strong style="display:block; font-size: 13px; color: #10B981;">Delivery & Closure</strong>
+                <span style="font-size: 11px; color: var(--text-muted);">Class 3 Cloud HSM Digital Signing → Instant Download</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="margin-top: 20px; text-align: center;">
+            <button class="btn btn-secondary btn-sm" style="width: 100%;" onclick="switchView('dashboard')">
+              View Live Tracker in Dashboard →
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Core Features Grid -->
+    <section class="features-section">
+      <div class="section-head">
+        <span style="color: #38BDF8; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Engineered Architecture</span>
+        <h2>Why Institutional Clients Rely on ProValuer</h2>
+        <p style="color: var(--text-muted); font-size: 14px;">Every valuation is backed by institutional grade compliance, cryptographic signing, and transparent workflow tracking.</p>
+      </div>
+
+      <div class="features-grid">
+        <div class="feature-card">
+          <div class="feature-icon-box">🏛️</div>
+          <h3 style="font-size: 16px; margin-bottom: 8px;">Embassy & Bank Accepted</h3>
+          <p style="font-size: 13px; color: var(--text-muted);">Prepared in accordance with Wealth Tax Act, Companies Act 2013, and international IVS guidelines for global immigration.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-box">⏱️</div>
+          <h3 style="font-size: 16px; margin-bottom: 8px;">Next Valid Action Focus</h3>
+          <p style="font-size: 13px; color: var(--text-muted);">No confusing multi-screen mazes. The client portal guides you step-by-step, highlighting only the single next valid action required.</p>
+        </div>
+
+        <div class="feature-card">
+          <div class="feature-icon-box">🔏</div>
+          <h3 style="font-size: 16px; margin-bottom: 8px;">Class 3 Cloud HSM Signatures</h3>
+          <p style="font-size: 13px; color: var(--text-muted);">Tamper-evident reports signed with e-mudhra cryptographic digital signatures and SHA-256 verification seals.</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- =====================================================================
+       VIEW 2: REQUEST VALUATION REPORT (INTAKE WIZARD)
+       ===================================================================== -->
+  <section id="viewRequest" class="view-section">
+    <div class="intake-container">
+      <div class="form-wizard-card">
+        <div class="wizard-header">
+          <div style="font-size: 12px; color: #38BDF8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Order Intake Wizard</div>
+          <h2>Request Valuation Report</h2>
+          <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 0;">Specify your valuation service, property classification, and upload legal records to generate your official quote.</p>
+        </div>
+
+        <form id="intakeForm" onsubmit="event.preventDefault(); submitIntakeRequest();">
+          <!-- Step 1: Select Service -->
+          <div class="form-section-title">
+            <span>1. Select Service Category</span>
+          </div>
+          <div class="selection-grid-options" id="serviceOptions">
+            <div class="select-card-option selected" onclick="selectServiceOption(this, 'Visa Immigrations & Study Abroad')">
+              <div class="option-title">Visa & Study Abroad</div>
+              <div class="option-sub">Certified for US, Canada, UK & Schengen embassy compliance.</div>
+            </div>
+            <div class="select-card-option" onclick="selectServiceOption(this, 'Commercial Real Estate Valuation')">
+              <div class="option-title">Commercial Real Estate</div>
+              <div class="option-sub">Offices, retail complexes, shopping plazas, and lease assets.</div>
+            </div>
+            <div class="select-card-option" onclick="selectServiceOption(this, 'Bank Collateral & Solvency')">
+              <div class="option-title">Bank Collateral & Solvency</div>
+              <div class="option-sub">Mortgage financing, overdraft security, and net worth checks.</div>
+            </div>
+            <div class="select-card-option" onclick="selectServiceOption(this, 'Capital Gains & Tax Assessment')">
+              <div class="option-title">Capital Gains / Tax</div>
+              <div class="option-sub">FMV calculation under Section 50C & 55(2)(b) Income Tax Act.</div>
+            </div>
+          </div>
+
+          <!-- Step 2: Select Property Type -->
+          <div class="form-section-title">
+            <span>2. Select Property Type</span>
+          </div>
+          <div class="selection-grid-options" id="propertyOptions">
+            <div class="select-card-option selected" onclick="selectPropertyOption(this, 'Commercial Office Unit')">
+              <div class="option-title">🏢 Commercial Office Unit</div>
+              <div class="option-sub">Corporate offices, IT park bays, co-working suites.</div>
+            </div>
+            <div class="select-card-option" onclick="selectPropertyOption(this, 'Residential Apartment / Flat')">
+              <div class="option-title">🏠 Residential Apartment</div>
+              <div class="option-sub">Gated society flats, standalone floors, luxury penthouses.</div>
+            </div>
+            <div class="select-card-option" onclick="selectPropertyOption(this, 'Independent Villa / House')">
+              <div class="option-title">🏡 Independent Villa / House</div>
+              <div class="option-sub">Self-constructed houses, duplex villas, gated plots.</div>
+            </div>
+            <div class="select-card-option" onclick="selectPropertyOption(this, 'Industrial Warehouse / Land')">
+              <div class="option-title">🏭 Industrial / Warehouse</div>
+              <div class="option-sub">Manufacturing sheds, logistical hubs, industrial zones.</div>
+            </div>
+          </div>
+
+          <!-- Step 3: Property Details -->
+          <div class="form-section-title">
+            <span>3. Property & Applicant Particulars</span>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="intakeClientName">Applicant / Legal Owner Name</label>
+              <input type="text" id="intakeClientName" class="form-control" value="Anand Mehta" required>
+            </div>
+            <div class="form-group">
+              <label for="intakeEmail">Contact Email Address</label>
+              <input type="email" id="intakeEmail" class="form-control" value="anand.mehta@visadocs.com" required>
+            </div>
+          </div>
+
+          <div class="form-row">
+            <div class="form-group">
+              <label for="intakeAddress">Property Full Address & City</label>
+              <input type="text" id="intakeAddress" class="form-control" value="Cyber Towers Unit 402, HITEC City, Hyderabad" required>
+            </div>
+            <div class="form-group">
+              <label for="intakeEstValue">Estimated Market Value (₹ / USD)</label>
+              <input type="text" id="intakeEstValue" class="form-control" value="₹ 1,85,00,000" required>
+            </div>
+          </div>
+
+          <!-- Step 4: Upload Documents -->
+          <div class="form-section-title">
+            <span>4. Upload Mandatory Verification Documents (Max 20MB / file)</span>
+          </div>
+          <div class="upload-dropzone" onclick="document.getElementById('fileUploadInput').click()">
+            <input type="file" id="fileUploadInput" multiple style="display: none;" onchange="handleFileSelected(event)">
+            <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2" style="margin-bottom: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+            <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Click to select or drag & drop files here</div>
+            <div style="font-size: 12px; color: var(--text-muted);">Required: Registered Sale Deed, Property Tax Receipt, Approved Floor Plan (PDF, DOCX, JPG)</div>
+          </div>
+
+          <div class="upload-list-items" id="uploadListPreview">
+            <div class="file-item-pill">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span>📄</span>
+                <strong>Sale_Deed_CyberTowers_Unit402.pdf</strong>
+                <span style="font-size: 11px; color: var(--text-dim);">(4.8 MB)</span>
+              </div>
+              <span style="color: #10B981; font-weight: 600; font-size: 11px;">✓ Attached</span>
+            </div>
+            <div class="file-item-pill">
+              <div style="display: flex; align-items: center; gap: 8px;">
+                <span>📄</span>
+                <strong>Property_Tax_Receipt_2025_26.pdf</strong>
+                <span style="font-size: 11px; color: var(--text-dim);">(1.2 MB)</span>
+              </div>
+              <span style="color: #10B981; font-weight: 600; font-size: 11px;">✓ Attached</span>
+            </div>
+          </div>
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border-subtle);">
+            <div>
+              <div style="font-size: 12px; color: var(--text-muted);">Estimated Intake Quote:</div>
+              <div style="font-size: 20px; font-weight: 800; color: #FABB1F;">₹ 9,500 <span style="font-size: 12px; color: var(--text-dim); font-weight: normal;">(All inclusive)</span></div>
+            </div>
+            <div style="display: flex; gap: 12px;">
+              <button type="button" class="btn btn-secondary" onclick="switchView('landing')">Cancel</button>
+              <button type="submit" class="btn btn-primary btn-lg">
+                Continue to Login / Register →
+              </button>
+            </div>
+          </div>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       VIEW 3: LOGIN / REGISTER MODAL & VIEW
+       ===================================================================== -->
+  <section id="viewAuth" class="view-section">
+    <div class="auth-container">
+      <div class="auth-card">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <div class="brand-logo-icon" style="margin: 0 auto 12px; width: 44px; height: 44px; font-size: 22px;">PV</div>
+          <h2 style="font-family: var(--font-heading); font-size: 22px; margin-bottom: 4px;">Client Access Portal</h2>
+          <p style="color: var(--text-muted); font-size: 13px;">Sign in to access your valuation orders & reports</p>
+        </div>
+
+        <div class="auth-tabs">
+          <button class="auth-tab-btn active" id="tabLogin" onclick="switchAuthTab('login')">Sign In</button>
+          <button class="auth-tab-btn" id="tabRegister" onclick="switchAuthTab('register')">Register</button>
+        </div>
+
+        <!-- 1-Click Demo Shortcut -->
+        <div class="demo-account-box">
+          <div>
+            <div style="font-size: 12px; font-weight: 700; color: #FABB1F;">⚡ Fast Demo Access</div>
+            <div style="font-size: 11px; color: var(--text-muted);">Test client account with active order PV-2026-9842</div>
+          </div>
+          <button class="btn btn-gold btn-sm" onclick="performDemoLogin()">
+            1-Click Login
+          </button>
+        </div>
+
+        <form id="authForm" onsubmit="event.preventDefault(); handleAuthSubmit();">
+          <div class="form-group">
+            <label for="authEmail">Email Address</label>
+            <input type="email" id="authEmail" class="form-control" value="anand.mehta@visadocs.com" required>
+          </div>
+          <div class="form-group">
+            <label for="authPassword">Password</label>
+            <input type="password" id="authPassword" class="form-control" value="••••••••••••" required>
+          </div>
+
+          <div style="margin-bottom: 20px;">
+            <label style="display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--text-muted); cursor: pointer;">
+              <input type="checkbox" id="authTermsAgree" checked style="margin-top: 3px;">
+              <span>I agree to the <a href="javascript:void(0)" style="color: #38BDF8;">Terms & Conditions (v2.4)</a> and Privacy Guidelines as governed by ProValuer.</span>
+            </label>
+          </div>
+
+          <button type="submit" class="btn btn-primary" style="width: 100%; padding: 12px;">
+            Enter Client Dashboard
+          </button>
+        </form>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       VIEW 4: CLIENT DASHBOARD (CORE WORKFLOW)
+       ===================================================================== -->
+  <main id="viewDashboard" class="view-section">
+    <div class="dashboard-container">
+      
+      <!-- Dashboard Top Header Bar -->
+      <div class="dashboard-topbar">
+        <div class="order-headline">
+          <div>
+            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
+              <span class="order-badge-id" id="displayReportId">ORDER PV-2026-9842</span>
+              <span class="badge" style="background: rgba(14, 165, 233, 0.15); color: #38BDF8; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px;" id="orderCategoryBadge">COMMERCIAL VALUATION</span>
+            </div>
+            <h1 style="font-family: var(--font-heading); font-size: 22px; font-weight: 700; margin: 0;" id="propertyHeading">Cyber Towers Unit 402, HITEC City</h1>
+          </div>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <div style="text-align: right;">
+            <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Valuation Purpose</div>
+            <div style="font-size: 13px; font-weight: 600; color: var(--text-main);">Visa / Immigration Compliance</div>
+          </div>
+          <button class="btn btn-secondary btn-sm" onclick="switchView('request')">
+            + New Request
+          </button>
+        </div>
+      </div>
+
+      <!-- Quick Interactive Stage Simulator (Test every workflow stage) -->
+      <div class="simulator-strip">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span style="color: #38BDF8; font-weight: 700;">🔄 Interactive Stage Simulator:</span>
+          <span style="color: var(--text-muted);">Jump directly to any phase to inspect the dynamic Next Valid Action:</span>
+        </div>
+        <div class="sim-buttons-group" id="simulatorButtons">
+          <!-- Dynamically populated via script -->
+        </div>
+      </div>
+
+      <!-- -----------------------------------------------------------------
+           TOP OF PAGE: PROGRESS TRACKER (11 Sequential Stages)
+           REQUEST -> QUOTE -> PAYMENT -> VERIFICATION -> POOL -> ASSIGNMENT ->
+           INSPECTION -> DRAFTING -> REVIEW -> DELIVERY -> CLOSED
+           ----------------------------------------------------------------- -->
+      <section class="progress-tracker-panel">
+        <div class="tracker-title-row">
+          <h3>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+            Valuation Progress Tracker
+          </h3>
+          <div class="tracker-sla-status" id="trackerSlaStatus">
+            Active Stage: <strong id="currentStageName">REQUEST</strong> • SLA: <span id="slaCountdown">48h Remaining</span>
+          </div>
+        </div>
+
+        <!-- 11 Stages Chain -->
+        <div class="stages-chain-container" id="stagesChainContainer">
+          <div class="chain-line-bg"></div>
+          <div class="chain-line-fill" id="chainLineFill" style="width: 5%;"></div>
+
+          <!-- 11 Nodes will be rendered here by script.js -->
+        </div>
+      </section>
+
+      <!-- -----------------------------------------------------------------
+           MIDDLE OF PAGE: ONLY NEXT VALID ACTION SPOTLIGHT
+           Intelligently displays ONLY the single valid next action based on state:
+           [ Select Service ]
+           [ Select Property Type ]
+           [ Upload Documents ]
+           [ View Quote ]
+           [ Submit Payment ]
+           [ Track Progress ]
+           [ Download Report ]
+           ----------------------------------------------------------------- -->
+      <section class="next-action-hero-container">
+        <div class="next-action-card" id="nextActionCard">
+          <div class="next-action-badge-row">
+            <span class="pill-next-action">
+              <span class="pulse-dot" style="background: #FABB1F; width: 6px; height: 6px; border-radius: 50%; display: inline-block;"></span>
+              Only Next Valid Action
+            </span>
+            <span style="font-size: 12px; color: var(--text-muted); font-family: var(--font-mono);" id="actionRequirementNotice">Required to advance order to next stage</span>
+          </div>
+
+          <div class="next-action-content">
+            <!-- Left: Action Guidance and Big Action Button -->
+            <div class="action-guidance">
+              <h2 class="action-title" id="actionTitleText">Select Service & Property Scope</h2>
+              <p class="action-instructions" id="actionDescText">
+                Configure your valuation requirement and verify property ownership details so our assessment algorithms can calculate the precise intake fee and assign a certified surveyor.
+              </p>
+              
+              <div class="action-interactive-area" id="actionButtonWrapper">
+                <!-- Dynamically updated main button: e.g. [ Select Service ], [ View Quote ], [ Submit Payment ], etc. -->
+                <button class="big-action-trigger-btn" id="primaryNextActionBtn" onclick="handleCurrentNextAction()">
+                  [ Select Service ]
+                </button>
+              </div>
+            </div>
+
+            <!-- Right: Dynamic Context & Stage Meta Info Panel -->
+            <div class="action-context-panel" id="actionContextBox">
+              <div class="context-row">
+                <span class="context-label">Current Stage:</span>
+                <span class="context-val" id="ctxCurrentStage" style="color: #38BDF8;">1. REQUEST</span>
+              </div>
+              <div class="context-row">
+                <span class="context-label">Next Milestone:</span>
+                <span class="context-val" id="ctxNextMilestone">2. QUOTE (Instant Estimation)</span>
+              </div>
+              <div class="context-row">
+                <span class="context-label">Assigned Valuer:</span>
+                <span class="context-val" id="ctxAssignedPerson">Queued for Operational Pool</span>
+              </div>
+              <div class="context-row">
+                <span class="context-label">Stage Status:</span>
+                <span class="context-val" id="ctxStageStatus" style="color: #FABB1F;">Action Required</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Bottom Supporting Panels: Documents Vault & Operational Telemetry Log -->
+      <div class="dashboard-grid-two-col">
+        <!-- Order Documents Vault -->
+        <div class="detail-card">
+          <div class="detail-card-head">
+            <h4>Uploaded Legal Documents</h4>
+            <button class="btn btn-secondary btn-sm" onclick="openModal('uploadDocsModal')">
+              + Upload More
+            </button>
+          </div>
+          <table class="docs-table">
+            <thead>
+              <tr>
+                <th>Document Name</th>
+                <th>Category</th>
+                <th>Status</th>
+                <th style="text-align: right;">Action</th>
+              </tr>
+            </thead>
+            <tbody id="documentsTableBody">
+              <tr>
+                <td>
+                  <strong>Sale_Deed_CyberTowers_Unit402.pdf</strong>
+                  <div style="font-size: 11px; color: var(--text-dim);">4.8 MB • SHA-256 Verified</div>
+                </td>
+                <td>Title Deed</td>
+                <td><span style="color: #10B981; font-weight: 600; font-size: 11px;">✓ Verified</span></td>
+                <td style="text-align: right;">
+                  <button class="btn btn-secondary btn-sm" onclick="alert('Viewing document preview...')">View</button>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <strong>Property_Tax_Paid_Receipt_2025_26.pdf</strong>
+                  <div style="font-size: 11px; color: var(--text-dim);">1.2 MB • Municipal Stamp</div>
+                </td>
+                <td>Tax Receipt</td>
+                <td><span style="color: #10B981; font-weight: 600; font-size: 11px;">✓ Verified</span></td>
+                <td style="text-align: right;">
+                  <button class="btn btn-secondary btn-sm" onclick="alert('Viewing document preview...')">View</button>
+                </td>
+              </tr>
+              <tr>
+                <td>
+                  <strong>Approved_Floor_Layout_GHMC.pdf</strong>
+                  <div style="font-size: 11px; color: var(--text-dim);">3.1 MB • Sanction Plan</div>
+                </td>
+                <td>Architectural</td>
+                <td><span style="color: #F59E0B; font-weight: 600; font-size: 11px;">⏳ Pending QA</span></td>
+                <td style="text-align: right;">
+                  <button class="btn btn-secondary btn-sm" onclick="alert('Viewing document preview...')">View</button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Telemetry & Operational Activity Log -->
+        <div class="detail-card">
+          <div class="detail-card-head">
+            <h4>Order Audit & Telemetry Log</h4>
+            <span style="font-size: 11px; font-family: var(--font-mono); color: #10B981;">● Heartbeat Live</span>
+          </div>
+          <div class="timeline-stream" id="auditTimelineStream">
+            <div class="timeline-entry">
+              <div class="timeline-dot"></div>
+              <div class="timeline-content">
+                <div style="font-weight: 600;">Valuation Intake Order Initiated</div>
+                <div style="font-size: 12px; color: var(--text-muted);">Client submitted basic property parameters and preliminary records.</div>
+                <div class="timeline-time">Today, 10:15 AM • Client Portal</div>
+              </div>
+            </div>
+            <div class="timeline-entry">
+              <div class="timeline-dot" style="background: #10B981;"></div>
+              <div class="timeline-content">
+                <div style="font-weight: 600;">System Generated Automated Quote</div>
+                <div style="font-size: 12px; color: var(--text-muted);">Calculated standard fee ₹ 9,500 under Visa Tier A schedule.</div>
+                <div class="timeline-time">Today, 10:16 AM • Pricing Engine</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- =====================================================================
+       INTERACTIVE MODALS FOR NEXT VALID ACTIONS
+       ===================================================================== -->
+
+  <!-- Modal: Select Service & Property Type -->
+  <div class="modal-overlay" id="serviceSelectModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 style="font-family: var(--font-heading); font-size: 18px;">[ Select Service ]</h3>
+        <button class="icon-btn" onclick="closeModal('serviceSelectModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Choose your primary valuation service requirement:</p>
+        <div class="selection-grid-options" style="grid-template-columns: 1fr; margin-bottom: 16px;">
+          <div class="select-card-option selected" onclick="confirmServiceModalPick('Visa Immigrations & Study Abroad')">
+            <div class="option-title">Visa Immigrations & Study Abroad Valuation</div>
+            <div class="option-sub">Certified for US, Canada, UK, Australia & Schengen embassies. Includes Solvency Affidavit.</div>
+          </div>
+          <div class="select-card-option" onclick="confirmServiceModalPick('Commercial Asset & Real Estate')">
+            <div class="option-title">Commercial Real Estate Asset Valuation</div>
+            <div class="option-sub">Certified for balance sheet, company audit, M&A, and rental yield analysis.</div>
+          </div>
+          <div class="select-card-option" onclick="confirmServiceModalPick('Capital Gains & IT Act Valuation')">
+            <div class="option-title">Capital Gains & IT Act Section 50C</div>
+            <div class="option-sub">Fair market value determination as on 01-04-2001 for tax indexation.</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('serviceSelectModal')">Close</button>
+        <button class="btn btn-primary" onclick="applyServiceSelection()">Confirm Service Selection</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Select Property Type -->
+  <div class="modal-overlay" id="propertySelectModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 style="font-family: var(--font-heading); font-size: 18px;">[ Select Property Type ]</h3>
+        <button class="icon-btn" onclick="closeModal('propertySelectModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Select the asset type for inspection and surveyor assignment:</p>
+        <div class="selection-grid-options" style="grid-template-columns: 1fr; margin-bottom: 16px;">
+          <div class="select-card-option selected" onclick="confirmPropertyModalPick('Commercial Office Unit')">
+            <div class="option-title">🏢 Commercial Office Unit / Retail Shop</div>
+            <div class="option-sub">Ready to move or under-construction commercial real estate asset.</div>
+          </div>
+          <div class="select-card-option" onclick="confirmPropertyModalPick('Residential Apartment')">
+            <div class="option-title">🏠 Residential Apartment / Multi-storey Flat</div>
+            <div class="option-sub">Individual ownership flat with undivided share of land (UDS).</div>
+          </div>
+          <div class="select-card-option" onclick="confirmPropertyModalPick('Industrial Warehouse')">
+            <div class="option-title">🏭 Industrial Shed / Logistics Warehouse</div>
+            <div class="option-sub">Heavy machinery foundations, logistics, or industrial land plots.</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('propertySelectModal')">Close</button>
+        <button class="btn btn-primary" onclick="applyPropertySelection()">Confirm Property Type</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: View Quote -->
+  <div class="modal-overlay" id="viewQuoteModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 style="font-family: var(--font-heading); font-size: 18px;">[ View Official Valuation Quote ]</h3>
+        <button class="icon-btn" onclick="closeModal('viewQuoteModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="background: rgba(30, 87, 164, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 18px; margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span style="color: var(--text-muted);">Quote Reference:</span>
+            <strong style="font-family: var(--font-mono); color: #38BDF8;">QU-2026-9842</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+            <span style="color: var(--text-muted);">Property Evaluated:</span>
+            <strong style="color: var(--text-main);">Cyber Towers Unit 402</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted);">Turnaround SLA:</span>
+            <strong style="color: #10B981;">Guaranteed 48 Hours</strong>
+          </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 20px;">
+          <tr style="border-bottom: 1px solid var(--border-subtle); padding: 8px 0;">
+            <td style="padding: 10px 0;">Base Professional Valuation Fee</td>
+            <td style="text-align: right; font-weight: 600;">₹ 7,500.00</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-subtle);">
+            <td style="padding: 10px 0;">Municipal Registry & Title Cross-check</td>
+            <td style="text-align: right; font-weight: 600;">₹ 1,000.00</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-subtle);">
+            <td style="padding: 10px 0;">Cloud HSM Class 3 Digital Certificate Signing</td>
+            <td style="text-align: right; font-weight: 600;">₹ 500.00</td>
+          </tr>
+          <tr style="border-bottom: 1px solid var(--border-subtle);">
+            <td style="padding: 10px 0;">Applicable GST (18%)</td>
+            <td style="text-align: right; font-weight: 600;">₹ 500.00</td>
+          </tr>
+          <tr style="font-size: 16px; font-weight: 800; color: #FABB1F;">
+            <td style="padding: 14px 0;">Total Payable Intake Amount</td>
+            <td style="text-align: right;">₹ 9,500.00</td>
+          </tr>
+        </table>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('viewQuoteModal')">Dismiss</button>
+        <button class="btn btn-gold" onclick="acceptQuoteAndProceedToPayment()">
+          Approve Quote & Proceed to Payment →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Submit Payment -->
+  <div class="modal-overlay" id="paymentModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 style="font-family: var(--font-heading); font-size: 18px;">[ Submit Payment ]</h3>
+        <button class="icon-btn" onclick="closeModal('paymentModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <div style="font-size: 13px; color: var(--text-muted);">Amount Due for Intake Processing:</div>
+          <div style="font-size: 32px; font-weight: 800; color: #10B981; font-family: var(--font-heading);">₹ 9,500.00</div>
+          <div style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">256-Bit SSL Encrypted Escrow Payment Gateway</div>
+        </div>
+
+        <div class="form-group">
+          <label>Select Payment Method</label>
+          <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;">
+            <button type="button" class="btn btn-secondary" style="border-color: #38BDF8; font-size: 12px;">UPI / QR</button>
+            <button type="button" class="btn btn-secondary" style="font-size: 12px;">Credit / Debit</button>
+            <button type="button" class="btn btn-secondary" style="font-size: 12px;">Net Banking</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>UPI ID / Virtual Payment Address</label>
+          <input type="text" class="form-control" value="anand.mehta@oksbi">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('paymentModal')">Cancel</button>
+        <button class="btn btn-gold" onclick="processSimulatedPayment()">
+          Pay ₹ 9,500 Securely →
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Upload Documents -->
+  <div class="modal-overlay" id="uploadDocsModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 style="font-family: var(--font-heading); font-size: 18px;">[ Upload Documents ]</h3>
+        <button class="icon-btn" onclick="closeModal('uploadDocsModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Please upload any pending or supplementary property deeds for Analyst Verification:</p>
+        <div class="upload-dropzone" onclick="document.getElementById('modalFileInput').click()">
+          <input type="file" id="modalFileInput" style="display: none;" onchange="handleModalFileUpload(event)">
+          <div style="font-size: 24px; margin-bottom: 8px;">📂</div>
+          <div style="font-weight: 600; font-size: 14px;">Select property document file</div>
+          <div style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">PDF, DOCX, PNG (Max 20MB)</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('uploadDocsModal')">Close</button>
+        <button class="btn btn-primary" onclick="confirmUploadModal()">Upload & Verify Document</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Track Progress -->
+  <div class="modal-overlay" id="trackProgressModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 style="font-family: var(--font-heading); font-size: 18px;">[ Track Progress Telemetry ]</h3>
+        <button class="icon-btn" onclick="closeModal('trackProgressModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="background: rgba(14, 165, 233, 0.08); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 18px; margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <span style="font-size: 12px; color: var(--text-muted);">Active Property Analyst (PA):</span>
+            <strong style="color: #38BDF8;">Rajesh Sharma (IBBI Reg. 2021)</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+            <span style="font-size: 12px; color: var(--text-muted);">SLA Telemetry Heartbeat:</span>
+            <span style="color: #10B981; font-family: var(--font-mono); font-size: 12px;">● Synced 18 seconds ago</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center;">
+            <span style="font-size: 12px; color: var(--text-muted);">Template Engine State:</span>
+            <span style="color: var(--text-main); font-weight: 600; font-size: 12px;">docx4j Commercial_v3.2 compiled</span>
+          </div>
+        </div>
+
+        <div style="font-size: 13px; color: var(--text-muted); line-height: 1.6;">
+          Your order is actively progressing through our verification pipeline. You do not need to take any manual actions at this time. When the Senior Analyst approves the report and signs it via Cloud HSM, the download button will activate immediately.
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('trackProgressModal')">Close</button>
+        <button class="btn btn-primary" onclick="advanceSimulatedStep()">Simulate Next Stage →</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Download Report -->
+  <div class="modal-overlay" id="downloadReportModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 style="font-family: var(--font-heading); font-size: 18px; color: #10B981;">[ Download Certified Valuation Report ]</h3>
+        <button class="icon-btn" onclick="closeModal('downloadReportModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="text-align: center; margin-bottom: 24px;">
+          <div style="font-size: 44px; margin-bottom: 8px;">📜</div>
+          <h4 style="font-size: 18px; margin-bottom: 4px;">Valuation Report PV-2026-9842 Ready</h4>
+          <p style="font-size: 13px; color: var(--text-muted);">Digitally Signed by Senior Property Analyst & Cloud HSM Sealed</p>
+        </div>
+
+        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 18px; margin-bottom: 20px;">
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
+            <span style="color: var(--text-muted);">Certified Valuation:</span>
+            <strong style="color: #10B981; font-size: 16px;">₹ 1,92,40,000 INR</strong>
+          </div>
+          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
+            <span style="color: var(--text-muted);">Digital Signature Seal:</span>
+            <span style="font-family: var(--font-mono); color: #38BDF8;">Class 3 e-Mudhra (Verified)</span>
+          </div>
+          <div style="display: flex; justify-content: space-between; font-size: 12px;">
+            <span style="color: var(--text-muted);">SHA-256 Hash:</span>
+            <span style="font-family: var(--font-mono); color: var(--text-dim);">e3b0c44298fc1c149afb...</span>
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+          <button class="btn btn-primary" onclick="simulateFileDownload('PDF')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download PDF Report
+          </button>
+          <button class="btn btn-secondary" onclick="simulateFileDownload('DOCX')">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download Editable DOCX
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('downloadReportModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global Toast Notification -->
+  <div class="toast-notice" id="globalToast">
+    <span id="toastIcon">✓</span>
+    <span id="toastMessage">Action completed successfully.</span>
+  </div>
+
+  <!-- Application Logic -->
+  <script src="script.js"></script>
 </body>
 </html>
