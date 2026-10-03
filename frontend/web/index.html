@@ -40,6 +40,28 @@
 
   <base href="$FLUTTER_BASE_HREF">
 
+  <!-- Immediate Scroll Restoration Reset (Ensures initial load always starts at top) -->
+  <script>
+    if ('scrollRestoration' in history) {
+      history.scrollRestoration = 'manual';
+    }
+    window.scrollTo(0, 0);
+    window.addEventListener('beforeunload', function() {
+      if ('scrollRestoration' in history) {
+        history.scrollRestoration = 'manual';
+      }
+      window.scrollTo(0, 0);
+    });
+    window.addEventListener('DOMContentLoaded', function() {
+      window.scrollTo(0, 0);
+    });
+  </script>
+
+  <!-- Cache Freshness Policy for Entry Point HTML -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
 
@@ -314,8 +336,11 @@
   </script>
 
   <style>
-    /* Immediate pre-render container: Visible to search crawlers & during initial hydration.
-       Hidden via flutter-first-frame lifecycle event once Flutter has painted. */
+    /* ==========================================================================
+       ProValuer Commercial — Institutional Hero Pre-Render Shell
+       Ensures initial first paint exactly matches Flutter HeroSection.
+       Fades out seamlessly via flutter-first-frame lifecycle event.
+       ========================================================================== */
     #seo-prerender-shell {
       position: absolute;
       top: 0;
@@ -325,46 +350,520 @@
       background: #FFFFFF;
       color: #0F172A;
       font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-      padding: 32px 24px;
       box-sizing: border-box;
-      z-index: 0;
-      /* Smooth fade-out triggered by Flutter lifecycle hook */
-      transition: opacity 0.2s ease;
+      z-index: 99;
+      opacity: 1;
+      overflow-x: hidden;
+      transition: opacity 0.35s cubic-bezier(0.16, 1, 0.3, 1);
     }
-    #seo-prerender-shell h1 {
-      font-size: 28px;
+    #seo-prerender-shell.prerender-fading-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* Fixed Glass Header Bar */
+    .prerender-header-wrap {
+      width: 100%;
+      padding: 16px 24px;
+      box-sizing: border-box;
+    }
+    .prerender-header-bar {
+      max-width: 1440px;
+      margin: 0 auto;
+      height: 64px;
+      border-radius: 100px;
+      background: rgba(255, 255, 255, 0.90);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(242, 242, 242, 0.95);
+      box-shadow: 0 4px 20px rgba(15, 23, 42, 0.05);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      box-sizing: border-box;
+    }
+    .prerender-brand {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+    }
+    .prerender-logo-badge {
+      width: 32px;
+      height: 32px;
+      background: #0D4A47;
+      color: #FFFFFF;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 13px;
+      letter-spacing: -0.5px;
+    }
+    .prerender-brand-name {
+      font-size: 17px;
       font-weight: 800;
       color: #0F172A;
       letter-spacing: -0.5px;
-      margin: 0 0 12px 0;
     }
-    #seo-prerender-shell h2 {
-      font-size: 20px;
+    .prerender-nav-items {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+    .prerender-nav-items span {
+      font-size: 14px;
+      font-weight: 600;
+      color: #334155;
+      cursor: default;
+    }
+    .prerender-login-btn {
+      font-size: 13.5px;
+      font-weight: 600;
+      color: #0F172A;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 7px 14px;
+      border-radius: 100px;
+      background: #F1F5F9;
+      text-decoration: none;
+    }
+    .prerender-btn-header-cta {
+      background: #0D695A;
+      color: #FFFFFF;
+      font-size: 13.5px;
+      font-weight: 700;
+      padding: 10px 20px;
+      border-radius: 100px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.2s ease;
+    }
+
+    /* Hero Section (Above-the-Fold Viewport) */
+    .prerender-hero-viewport {
+      min-height: calc(100vh - 96px);
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 24px 32px 48px 32px;
+      box-sizing: border-box;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 48px;
+    }
+    .prerender-hero-left {
+      flex: 54;
+      max-width: 720px;
+    }
+    .prerender-hero-right {
+      flex: 46;
+      display: flex;
+      gap: 14px;
+      height: 480px;
+      align-items: stretch;
+    }
+
+    /* Eyebrow Badge */
+    .prerender-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 100px;
+      padding: 7px 16px;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.04);
+      margin-bottom: 20px;
+    }
+    .prerender-eyebrow-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #0D695A;
+    }
+    .prerender-eyebrow span {
+      font-size: 11px;
       font-weight: 700;
       color: #0F172A;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+    }
+
+    /* Headlines */
+    .prerender-brand-kicker {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 2px;
+      color: #0D695A;
+      text-transform: uppercase;
+      margin: 0 0 12px 0;
+    }
+    .prerender-title-lead {
+      font-size: 48px;
+      font-weight: 800;
+      color: #0F172A;
+      line-height: 1.12;
+      letter-spacing: -1px;
+      margin: 0;
+    }
+    .prerender-title-for {
+      font-size: 20px;
+      font-weight: 500;
+      color: #64748B;
+      margin: 8px 0;
+    }
+    .prerender-title-target {
+      font-size: 44px;
+      font-weight: 800;
+      color: #0D695A;
+      line-height: 1.15;
+      letter-spacing: -0.5px;
+      margin-bottom: 20px;
+    }
+
+    /* Value Proposition Block */
+    .prerender-value-box {
+      margin: 20px 0 28px 0;
+    }
+    .prerender-value-heading {
+      font-size: 15px;
+      font-weight: 700;
+      color: #1E293B;
+      margin: 0 0 10px 0;
+    }
+    .prerender-value-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px 18px;
+    }
+    .prerender-value-list li {
+      font-size: 14px;
+      font-weight: 600;
+      color: #334155;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .prerender-check {
+      color: #0D695A;
+      font-weight: 800;
+      font-size: 13px;
+    }
+
+    /* CTAs */
+    .prerender-btn-row {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      margin-bottom: 28px;
+    }
+    .prerender-btn-primary {
+      background: #0D695A;
+      color: #FFFFFF;
+      font-size: 15px;
+      font-weight: 700;
+      padding: 13px 28px;
+      border-radius: 100px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 4px 14px rgba(13, 105, 90, 0.25);
+    }
+    .prerender-btn-secondary {
+      background: #FFFFFF;
+      color: #0F172A;
+      border: 1.5px solid #CBD5E1;
+      font-size: 14.5px;
+      font-weight: 600;
+      padding: 12px 24px;
+      border-radius: 100px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Implementation 5: Slow network user experience status indicator */
+    .prerender-loading-container {
+      margin-top: 8px;
+      max-width: 380px;
+    }
+    .prerender-progress-track {
+      width: 100%;
+      height: 3px;
+      background: #E2E8F0;
+      border-radius: 6px;
+      overflow: hidden;
+      margin-bottom: 8px;
+    }
+    .prerender-progress-bar {
+      width: 45%;
+      height: 100%;
+      background: linear-gradient(90deg, #0D695A, #10B981, #0D695A);
+      background-size: 200% 100%;
+      border-radius: 6px;
+      animation: prerenderPulse 1.8s infinite ease-in-out;
+    }
+    @keyframes prerenderPulse {
+      0% { transform: translateX(-100%); }
+      100% { transform: translateX(250%); }
+    }
+    .prerender-status-text {
+      font-size: 12.5px;
+      font-weight: 600;
+      color: #64748B;
+      letter-spacing: -0.2px;
+      transition: opacity 0.18s ease;
+    }
+
+    /* Right Column Accordion Replica */
+    .prerender-accordion-card {
+      border-radius: 20px;
+      overflow: hidden;
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 20px 16px;
+      box-sizing: border-box;
+      box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+    }
+    .card-dim {
+      flex: 1;
+      background: linear-gradient(180deg, #1E293B 0%, #0F172A 100%);
+      color: #94A3B8;
+      align-items: center;
+      justify-content: flex-end;
+    }
+    .card-active {
+      flex: 2.4;
+      background: linear-gradient(180deg, #0F172A 0%, #064E3B 100%);
+      color: #FFFFFF;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .card-num {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      color: rgba(255, 255, 255, 0.6);
+      margin-bottom: 8px;
+    }
+    .card-label {
+      writing-mode: vertical-rl;
+      transform: rotate(180deg);
+      font-size: 12.5px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: rgba(255, 255, 255, 0.85);
+      margin-top: auto;
+    }
+    .card-active-badge {
+      font-size: 10px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      background: rgba(16, 185, 129, 0.2);
+      color: #34D399;
+      border: 1px solid rgba(52, 211, 153, 0.3);
+      padding: 4px 10px;
+      border-radius: 100px;
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+    .card-active-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #FFFFFF;
+      margin-bottom: 6px;
+    }
+    .card-active-desc {
+      font-size: 12px;
+      color: #94A3B8;
+      line-height: 1.4;
+      margin: 0;
+    }
+
+    /* Below-The-Fold SEO Content Container */
+    .prerender-below-fold-content {
+      max-width: 1200px;
+      margin: 40px auto 0 auto;
+      padding: 48px 24px 80px 24px;
+      border-top: 1px solid #E2E8F0;
+      box-sizing: border-box;
+    }
+    .prerender-below-fold-content h2 {
+      font-size: 24px;
+      font-weight: 700;
+      color: #0F172A;
+      margin: 36px 0 12px 0;
+    }
+    .prerender-below-fold-content h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: #1E293B;
       margin: 24px 0 8px 0;
     }
-    #seo-prerender-shell p, #seo-prerender-shell li {
+    .prerender-below-fold-content p, .prerender-below-fold-content li {
       font-size: 14.5px;
-      line-height: 1.6;
+      line-height: 1.65;
       color: #475569;
     }
-    #seo-prerender-shell ul {
-      padding-left: 20px;
-      margin: 8px 0;
+    .prerender-below-fold-content ul, .prerender-below-fold-content ol {
+      padding-left: 22px;
+      margin: 10px 0 16px 0;
+    }
+
+    /* Responsive Adaptation for Mobile and Tablets */
+    @media (max-width: 960px) {
+      .prerender-header-bar {
+        padding: 0 16px;
+        height: 56px;
+      }
+      .prerender-nav-items {
+        display: none;
+      }
+      .prerender-btn-header-cta {
+        padding: 8px 14px;
+        font-size: 12px;
+      }
+      .prerender-hero-viewport {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 16px 20px 36px 20px;
+        min-height: calc(100vh - 72px);
+        gap: 24px;
+      }
+      .prerender-hero-left {
+        flex: 1;
+        width: 100%;
+        max-width: 100%;
+      }
+      .prerender-hero-right {
+        display: none;
+      }
+      .prerender-title-lead {
+        font-size: 32px;
+      }
+      .prerender-title-target {
+        font-size: 30px;
+      }
+      .prerender-value-list {
+        flex-direction: column;
+        gap: 8px;
+      }
+      .prerender-btn-row {
+        flex-direction: column;
+        width: 100%;
+      }
+      .prerender-btn-primary, .prerender-btn-secondary {
+        width: 100%;
+        text-align: center;
+        justify-content: center;
+        box-sizing: border-box;
+      }
     }
   </style>
 </head>
 <body>
-  <!-- Semantic SEO Pre-Render Shell for Search Engines, AI Crawlers & Fallbacks -->
+  <!-- Semantic SEO Pre-Render Shell for Search Engines, AI Crawlers & Fast Hydration -->
   <div id="seo-prerender-shell">
-    <header>
-      <h1>Pro Valuer Commercial</h1>
-      <h2>Defensible Asset Valuations for Banks, Financial Institutions, Insolvency Professionals, Corporate Transactions and Regulatory Compliance.</h2>
-      
-      <!-- Primary Authority Statement -->
+    
+    <!-- Above-The-Fold Luxury Hero Placeholder (Exact Visual Match to Flutter HeroSection) -->
+    <header class="prerender-header-wrap">
+      <div class="prerender-header-bar">
+        <div class="prerender-brand">
+          <span class="prerender-logo-badge">PV</span>
+          <span class="prerender-brand-name">Pro Valuer</span>
+        </div>
+        <nav class="prerender-nav-items">
+          <span>Services</span>
+          <span>Why Pro Valuer</span>
+          <span>Process</span>
+          <span>Credentials</span>
+          <a href="/login" class="prerender-login-btn">&#128274; Client Login</a>
+        </nav>
+        <a href="/login" class="prerender-btn-header-cta">Request Valuation Report &rarr;</a>
+      </div>
+    </header>
+
+    <section class="prerender-hero-viewport">
+      <!-- Left Column: Eyebrow, Headings, Value Prop, CTAs & Dynamic Loading Indicator -->
+      <div class="prerender-hero-left">
+        <div class="prerender-eyebrow">
+          <span class="prerender-eyebrow-dot"></span>
+          <span>REGISTERED VALUERS (GOVT APPROVED) &bull; IBBI &bull; INCOME TAX &bull; ASSET INTELLIGENCE</span>
+        </div>
+
+        <h1 class="prerender-brand-kicker">PROVALUER COMMERCIAL</h1>
+        <div class="prerender-title-lead">Independent Valuation</div>
+        <div class="prerender-title-for">For</div>
+        <div class="prerender-title-target">Land &amp; Buildings</div>
+
+        <div class="prerender-value-box">
+          <p class="prerender-value-heading">Defensible Asset Valuations For:</p>
+          <ul class="prerender-value-list">
+            <li><span class="prerender-check">&#10003;</span> Banks</li>
+            <li><span class="prerender-check">&#10003;</span> Financial Institutions</li>
+            <li><span class="prerender-check">&#10003;</span> Insolvency Professionals</li>
+            <li><span class="prerender-check">&#10003;</span> Corporate Transactions</li>
+            <li><span class="prerender-check">&#10003;</span> Regulatory Compliance</li>
+          </ul>
+        </div>
+
+        <div class="prerender-btn-row">
+          <a href="/login" class="prerender-btn-primary">Request Valuation Report &rarr;</a>
+          <a href="tel:+918500019091" class="prerender-btn-secondary">&#9742; +91 85000 19091</a>
+        </div>
+
+        <!-- Implementation 5: Slow Network User Experience Status Indicator -->
+        <div class="prerender-loading-container" id="prerender-loading-box">
+          <div class="prerender-progress-track">
+            <div class="prerender-progress-bar"></div>
+          </div>
+          <div class="prerender-status-text" id="hero-loading-status-text">
+            Loading ProValuer Platform...
+          </div>
+        </div>
+      </div>
+
+      <!-- Right Column: Visual Accordion Showcase Replica -->
+      <div class="prerender-hero-right">
+        <div class="prerender-accordion-card card-dim">
+          <span class="card-num">01</span>
+          <span class="card-label">Land Valuation</span>
+        </div>
+        <div class="prerender-accordion-card card-active">
+          <span class="card-num">02</span>
+          <div class="card-active-content">
+            <div class="card-active-badge">IBBI ASSET CLASS</div>
+            <div class="card-active-title">Building Valuation</div>
+            <p class="card-active-desc">Statutory collateral &amp; commercial property appraisal</p>
+          </div>
+        </div>
+        <div class="prerender-accordion-card card-dim">
+          <span class="card-num">03</span>
+          <span class="card-label">Plant &amp; Machinery</span>
+        </div>
+        <div class="prerender-accordion-card card-dim">
+          <span class="card-num">04</span>
+          <span class="card-label">Financial Assets</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Below-The-Fold Extended SEO Crawlable Content (Preserves 100% of Indexable Content) -->
+    <div class="prerender-below-fold-content">
       <div class="authority-banner">
-        <p><strong>Primary Institutional Track Record:</strong></p>
+        <h2>Primary Institutional Track Record:</h2>
         <ul>
           <li><strong>₹50,000+ Cr Assets Valued</strong> across industrial, commercial, infrastructure, and financial asset classes</li>
           <li><strong>1,200+ Institutional Mandates</strong> executed for India's leading enterprises, lenders, and regulatory bodies</li>
@@ -373,9 +872,8 @@
           <li><strong>Pan India Coverage</strong> with verified forensic site inspection capabilities across all 28 states and union territories</li>
         </ul>
       </div>
-    </header>
 
-    <main>
+      <main>
       <!-- Section: About Pro Valuer -->
       <section>
         <h2>About Pro Valuer</h2>
@@ -484,10 +982,9 @@
         <p>Pro Valuer provides nationwide coverage across all 28 states and union territories in India. Standard turnaround timelines range between 3 to 7 business days following on-site physical inspection and receipt of complete technical documentation. Urgent institutional mandates for banking or NCLT deadlines can be expedited under priority engagement protocols.</p>
 
         <h3>How can an institution engage Pro Valuer for valuation mandates?</h3>
-        <p>Institutions, banks, resolution professionals, and corporate enterprises can connect directly with our practice leadership via our primary portal at <a href="https://www.provaluer.in/">https://www.provaluer.in/</a>, by telephone at <a href="tel:+918500019091">+91 85000 19091</a>, or by submitting valuation mandates to <a href="mailto:contact@provaluer.in">contact@provaluer.in</a>.</p>
-      </section>
-    </main>
-  </div>
+        <p>Institutions, banks, resolution professionals, and corporate enterprises can connect directly with our practice leadership via our primary portal at <a href="https://www.provaluer.in/">https://www.provaluer.in/</a>, by telephone at <a href="tel:+918500019091">+91 85000 19091</a>, or by submitting valuation mandates to <a href="mailto:contact@provaluer.in">contact@prova      </main>
+    </div> <!-- /.prerender-below-fold-content -->
+  </div> <!-- /#seo-prerender-shell -->
 
   <noscript>
     <div style="padding: 20px; font-family: sans-serif; background: #fff; color: #000;">
@@ -498,36 +995,66 @@
     </div>
   </noscript>
 
-  <!-- Flutter Web Application Bootstrap -->
-  <!-- SEO Shell Lifecycle Hook: listens for flutter-first-frame event.
-       The shell HTML remains in the DOM (and in raw HTML source) so crawlers
-       continue to index it. It is only hidden visually once Flutter has painted
-       its first real frame, eliminating the flash without any timer hacks. -->
+  <!-- Flutter Web Application Bootstrap & Smooth SEO Transition Lifecycle -->
   <script>
     (function () {
+      // 1. Dynamic Status Message Rotator for Slow Network Hydration
+      var messages = [
+        'Loading ProValuer Platform...',
+        'Preparing Valuation Services...',
+        'Initializing Client Portal...'
+      ];
+      var msgIndex = 0;
+      var statusEl = document.getElementById('hero-loading-status-text');
+      var rotatorInterval = null;
+      if (statusEl) {
+        rotatorInterval = setInterval(function () {
+          msgIndex = (msgIndex + 1) % messages.length;
+          statusEl.style.opacity = '0';
+          setTimeout(function () {
+            statusEl.textContent = messages[msgIndex];
+            statusEl.style.opacity = '1';
+          }, 180);
+        }, 2200);
+      }
+
+      // 2. Smooth Transition and Dismissal of Pre-Render Shell
+      var dismissed = false;
       function dismissSeoShell() {
+        if (dismissed) return;
+        dismissed = true;
+        if (rotatorInterval) clearInterval(rotatorInterval);
+
         var shell = document.getElementById('seo-prerender-shell');
         if (!shell) return;
-        // Immediately kill pointer events so users cannot click shell links
-        // during the 200ms fade-out window.
+
+        // Immediately kill pointer events during the smooth fade-out window
         shell.style.pointerEvents = 'none';
-        // Trigger the CSS opacity transition defined above.
-        shell.style.opacity = '0';
-        // After the transition completes, remove the node from the DOM entirely.
-        // This keeps the shell out of the live accessibility tree while
-        // preserving it in the original HTML source for search crawlers.
-        shell.addEventListener('transitionend', function onFadeOut() {
-          shell.removeEventListener('transitionend', onFadeOut);
+        shell.classList.add('prerender-fading-out');
+
+        // Clean removal from DOM after smooth CSS opacity transition
+        shell.addEventListener('transitionend', function onFadeEnd(e) {
+          if (e.target !== shell) return;
+          shell.removeEventListener('transitionend', onFadeEnd);
           if (shell.parentNode) {
             shell.parentNode.removeChild(shell);
           }
         });
+
+        // Safety fallback removal in case transitionend is skipped by browser
+        setTimeout(function () {
+          if (shell.parentNode) {
+            shell.parentNode.removeChild(shell);
+          }
+        }, 600);
       }
+
       // flutter-first-frame is dispatched on window by the Flutter Web engine
-      // immediately after the first rasterized frame has been composited.
-      // This is the earliest point at which the Flutter UI is actually visible,
-      // making it the correct lifecycle moment to hide the pre-render shell.
+      // immediately after the first rasterized frame has composited.
       window.addEventListener('flutter-first-frame', dismissSeoShell, { once: true });
+
+      // Fallback safety: ensure shell fades out after 8 seconds on extremely slow connections
+      setTimeout(dismissSeoShell, 8000);
     })();
   </script>
   <script src="flutter_bootstrap.js" async></script>
