@@ -27,6 +27,7 @@ import '../quotations/client_quote_view_modal.dart';
 import '../quotations/client_payment_submission_modal.dart';
 import '../quotations/admin_payment_review_modal.dart';
 import '../inspection/site_inspection_modal.dart';
+import '../../utils/build_info.dart';
 
 class ValuationPortalWidget extends StatefulWidget {
   final String role;
@@ -1449,6 +1450,9 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 8),
+                const Divider(height: 1, color: AppColors.hairlineSoft),
+                const BuildFooterWidget(),
               ],
             ),
           ),

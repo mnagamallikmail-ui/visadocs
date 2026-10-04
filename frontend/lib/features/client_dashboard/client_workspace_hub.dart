@@ -16,6 +16,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/order_provider.dart';
+import '../../utils/build_info.dart';
 
 // ─── Simplified Client Navigation ─────────────────────────────────────────────
 enum _ClientNav {
@@ -335,6 +336,43 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
   PlatformFile? _paymentReceiptFile;
   String? _paymentError;
 
+  // ─── Deliverable Artifact Tracking (Fix 5) ──────────────────────────────────
+  final Map<int, Map<String, dynamic>> _deliverableData = {};
+  final Set<int> _fetchingDeliverableIds = {};
+
+  bool _hasReportArtifact(dynamic order) {
+    if (order == null) return false;
+    final refCode = order['referenceCode']?.toString();
+    if (refCode == null || refCode.trim().isEmpty) return false;
+    final id = (order['id'] as num?)?.toInt();
+    if (order['availableFiles'] is List && (order['availableFiles'] as List).contains('REPORT_PDF')) {
+      return true;
+    }
+    if (id != null && _deliverableData.containsKey(id)) {
+      final files = _deliverableData[id]?['availableFiles'];
+      if (files is List && files.contains('REPORT_PDF')) {
+        return true;
+      }
+    }
+    if (id != null && !_fetchingDeliverableIds.contains(id) && mounted) {
+      _fetchDeliverableForOrder(id, refCode);
+    }
+    return false;
+  }
+
+  void _fetchDeliverableForOrder(int id, String refCode) {
+    _fetchingDeliverableIds.add(id);
+    context.read<OrderProvider>().fetchClientDeliverable(refCode).then((deliv) {
+      if (deliv != null && mounted) {
+        setState(() {
+          _deliverableData[id] = deliv;
+        });
+      }
+    }).whenComplete(() {
+      _fetchingDeliverableIds.remove(id);
+    });
+  }
+
   @override
   void initState() {
     super.initState();
@@ -382,6 +420,14 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
           );
         }
       });
+
+      for (final o in completedList) {
+        final ref = o['referenceCode']?.toString();
+        final id = (o['id'] as num?)?.toInt();
+        if (ref != null && id != null && !_deliverableData.containsKey(id)) {
+          _fetchDeliverableForOrder(id, ref);
+        }
+      }
     }
   }
 
@@ -700,10 +746,10 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
                     _ClientNav.createReport => 'New Request',
                     _ClientNav.reportsInProgress => _focusedActiveOrder == null
                         ? 'Reports'
-                        : 'Report • ${_focusedActiveOrder['referenceCode'] ?? 'REQ-${_focusedActiveOrder['id']}'}',
+                        : 'Report • ${_focusedActiveOrder['referenceCode'] ?? 'PV-${_focusedActiveOrder['id']}'}',
                     _ClientNav.completedReports => _focusedCompletedOrder == null
                         ? 'Delivered Reports'
-                        : 'Delivered Report • ${_focusedCompletedOrder['referenceCode'] ?? 'REQ-${_focusedCompletedOrder['id']}'}',
+                        : 'Delivered Report • ${_focusedCompletedOrder['referenceCode'] ?? 'PV-${_focusedCompletedOrder['id']}'}',
                   },
                   onRefresh: _loadOrdersAndSync,
                 ),
@@ -1965,7 +2011,7 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
 
   Widget _buildNeedsAttentionCard(dynamic order) {
     final orderId = order['id'] as int;
-    final refCode = order['referenceCode'] ?? 'REQ-$orderId';
+    final refCode = order['referenceCode']?.toString() ?? 'PV-$orderId';
     final title = (order['propertyCategory'] ?? 'Commercial Property Valuation').toString().replaceAll('_', ' ');
     final status = (order['status'] as String? ?? '').toUpperCase();
     final assetName = order['assetName'] != null && order['assetName'].toString().isNotEmpty
@@ -2071,7 +2117,7 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
   Widget _buildCompactActiveReportCard(dynamic order) {
     final stageInfo = _mapToClientStage(order);
     final orderId = order['id'] as int;
-    final refCode = order['referenceCode'] ?? 'REQ-$orderId';
+    final refCode = order['referenceCode']?.toString() ?? 'PV-$orderId';
     final title = (order['propertyCategory'] ?? 'Commercial Property Valuation').toString().replaceAll('_', ' ');
     final purpose = (order['purpose'] ?? 'Bank Collateral').toString().replaceAll('_', ' ');
     final assetName = order['assetName'] != null && order['assetName'].toString().isNotEmpty
@@ -2198,7 +2244,8 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
 
   Widget _buildDeliveredReportRow(dynamic order) {
     final orderId = order['id'] as int;
-    final refCode = order['referenceCode'] ?? 'REQ-$orderId';
+    final String? refCode = order['referenceCode']?.toString();
+    final bool hasArtifact = _hasReportArtifact(order);
     final title = (order['propertyCategory'] ?? 'Commercial Property Valuation').toString().replaceAll('_', ' ');
     final assetName = order['assetName'] != null && order['assetName'].toString().isNotEmpty
         ? order['assetName'].toString()
@@ -2224,19 +2271,20 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
           Expanded(
             child: Row(
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: _LandingDesignSystem.bgSubtle,
-                    borderRadius: BorderRadius.circular(5),
-                    border: Border.all(color: _LandingDesignSystem.cardBorder),
+                if (refCode != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: _LandingDesignSystem.bgSubtle,
+                      borderRadius: BorderRadius.circular(5),
+                      border: Border.all(color: _LandingDesignSystem.cardBorder),
+                    ),
+                    child: Text(
+                      refCode,
+                      style: GoogleFonts.robotoMono(fontSize: 11, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
+                    ),
                   ),
-                  child: Text(
-                    refCode,
-                    style: GoogleFonts.robotoMono(fontSize: 11, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
-                  ),
-                ),
-                const SizedBox(width: 10),
+                if (refCode != null) const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     assetName,
@@ -2247,28 +2295,55 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
               ],
             ),
           ),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-            decoration: BoxDecoration(
-              color: _LandingDesignSystem.stateSuccessSubtle,
-              borderRadius: BorderRadius.circular(100),
-              border: Border.all(color: const Color(0xFFA7F3D0)),
+          if (refCode == null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: _LandingDesignSystem.bgSubtle,
+                borderRadius: BorderRadius.circular(100),
+                border: Border.all(color: _LandingDesignSystem.cardBorder),
+              ),
+              child: Text(
+                'Report not yet available.',
+                style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: _LandingDesignSystem.textMuted),
+              ),
+            )
+          else if (hasArtifact) ...[
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: _LandingDesignSystem.stateSuccessSubtle,
+                borderRadius: BorderRadius.circular(100),
+                border: Border.all(color: const Color(0xFFA7F3D0)),
+              ),
+              child: Text(
+                'Ready for Download',
+                style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: _LandingDesignSystem.stateSuccess),
+              ),
             ),
-            child: Text(
-              'Ready for Download',
-              style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: _LandingDesignSystem.stateSuccess),
+            const SizedBox(width: 14),
+            _primaryCtaButton(
+              label: 'Download PDF',
+              onTap: () => _downloadFinalReport(refCode),
             ),
-          ),
-          const SizedBox(width: 14),
-          _primaryCtaButton(
-            label: 'Download PDF',
-            onTap: () => _downloadFinalReport(refCode),
-          ),
-          const SizedBox(width: 8),
-          _secondaryButton(
-            label: 'Invoice',
-            onTap: () => _downloadTaxInvoice(orderId),
-          ),
+            const SizedBox(width: 8),
+            _secondaryButton(
+              label: 'Invoice',
+              onTap: () => _downloadTaxInvoice(orderId),
+            ),
+          ] else
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7),
+                borderRadius: BorderRadius.circular(100),
+                border: Border.all(color: const Color(0xFFFCD34D)),
+              ),
+              child: Text(
+                'Preparing Report',
+                style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFFB45309)),
+              ),
+            ),
         ],
       ),
     );
@@ -2395,7 +2470,7 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
     Widget _buildActiveReportWorkspace(dynamic order, OrderProvider orders) {
     final stageInfo = _mapToClientStage(order);
     final orderId = order['id'] as int;
-    final refCode = order['referenceCode'] ?? 'REQ-$orderId';
+    final refCode = order['referenceCode']?.toString() ?? 'PV-$orderId';
     final title = (order['propertyCategory'] ?? 'Commercial Property Valuation').toString().replaceAll('_', ' ');
     final createdDate = order['createdAt'] != null ? order['createdAt'].toString().split('T').first : 'Recent';
     final reportNumber = order['reportNumber'] ?? 'PV-2026-PENDING';
@@ -2717,11 +2792,23 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
               label: 'View Proposal',
               onTap: () => _showQuotationModal(order),
             )
-          else if (stageInfo.stageIndex == 5 && order['referenceCode'] != null)
-            _primaryCtaButton(
-              label: 'Download Report',
-              onTap: () => _downloadFinalReport(order['referenceCode'].toString()),
-            ),
+          else if (stageInfo.stageIndex == 5) ...[
+            if (order['referenceCode'] == null)
+              Text(
+                'Report not yet available.',
+                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: _LandingDesignSystem.textMuted),
+              )
+            else if (_hasReportArtifact(order))
+              _primaryCtaButton(
+                label: 'Download Report',
+                onTap: () => _downloadFinalReport(order['referenceCode'].toString()),
+              )
+            else
+              Text(
+                'Preparing Report',
+                style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFB45309)),
+              ),
+          ],
         ],
       ),
     );
@@ -2871,7 +2958,8 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
 
   Widget _buildContextualActionCenter(_ClientStageInfo stageInfo, dynamic order) {
     final orderId = order['id'] as int;
-    final refCode = order['referenceCode'] ?? 'REQ-$orderId';
+    final String? refCode = order['referenceCode']?.toString();
+    final bool hasArtifact = _hasReportArtifact(order);
 
     return Container(
       padding: const EdgeInsets.all(26),
@@ -2904,19 +2992,42 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
                 ),
               ],
               if (stageInfo.stageIndex == 5) ...[
-                _primaryCtaButton(
-                  label: 'Download Certified Report',
-                  onTap: () => _downloadFinalReport(refCode),
-                ),
-                _secondaryButton(
-                  label: 'Download Commercial Invoice',
-                  onTap: () => _downloadTaxInvoice(orderId),
-                ),
+                if (refCode == null)
+                  Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 4),
+                    child: Text(
+                      'Report not yet available.',
+                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: _LandingDesignSystem.textMuted),
+                    ),
+                  )
+                else if (hasArtifact) ...[
+                  _primaryCtaButton(
+                    label: 'Download Certified Report',
+                    onTap: () => _downloadFinalReport(refCode),
+                  ),
+                  _secondaryButton(
+                    label: 'Download Commercial Invoice',
+                    onTap: () => _downloadTaxInvoice(orderId),
+                  ),
+                ] else
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: const Color(0xFFFCD34D)),
+                    ),
+                    child: Text(
+                      'Preparing Report',
+                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFB45309)),
+                    ),
+                  ),
               ],
-              _secondaryButton(
-                label: 'Request Clarification',
-                onTap: () => _requestReportClarification(refCode),
-              ),
+              if (refCode != null)
+                _secondaryButton(
+                  label: 'Request Clarification',
+                  onTap: () => _requestReportClarification(refCode),
+                ),
             ],
           ),
         ],
@@ -3023,7 +3134,8 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
           const SizedBox(height: 24),
           ...completedOrders.map((order) {
             final orderId = order['id'] as int;
-            final refCode = order['referenceCode'] ?? 'REQ-$orderId';
+            final String? refCode = order['referenceCode']?.toString();
+            final bool hasArtifact = _hasReportArtifact(order);
             final title = (order['propertyCategory'] ?? 'Commercial Property Valuation').toString().replaceAll('_', ' ');
 
             return Container(
@@ -3051,21 +3163,41 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(refCode, style: GoogleFonts.robotoMono(fontSize: 12, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary)),
+                        if (refCode != null)
+                          Text(refCode, style: GoogleFonts.robotoMono(fontSize: 12, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary)),
                         const SizedBox(height: 2),
                         Text(title, style: GoogleFonts.montserrat(fontSize: 14.5, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary)),
                       ],
                     ),
                   ),
-                  _primaryCtaButton(
-                    label: 'Download Report',
-                    onTap: () => _downloadFinalReport(refCode),
-                  ),
-                  const SizedBox(width: 10),
-                  _secondaryButton(
-                    label: 'Invoice',
-                    onTap: () => _downloadTaxInvoice(orderId),
-                  ),
+                  if (refCode == null)
+                    Text(
+                      'Report not yet available.',
+                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: _LandingDesignSystem.textMuted),
+                    )
+                  else if (hasArtifact) ...[
+                    _primaryCtaButton(
+                      label: 'Download Report',
+                      onTap: () => _downloadFinalReport(refCode),
+                    ),
+                    const SizedBox(width: 10),
+                    _secondaryButton(
+                      label: 'Invoice',
+                      onTap: () => _downloadTaxInvoice(orderId),
+                    ),
+                  ] else
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFEF3C7),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(color: const Color(0xFFFCD34D)),
+                      ),
+                      child: Text(
+                        'Preparing Report',
+                        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFB45309)),
+                      ),
+                    ),
                 ],
               ),
             );
@@ -3077,7 +3209,8 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
 
   Widget _buildCompletedReportWorkspace(dynamic order, OrderProvider orders) {
     final orderId = order['id'] as int;
-    final refCode = order['referenceCode'] ?? 'REQ-$orderId';
+    final String? refCode = order['referenceCode']?.toString();
+    final bool hasArtifact = _hasReportArtifact(order);
     final title = (order['propertyCategory'] ?? 'Commercial Property Valuation').toString().replaceAll('_', ' ');
 
     return SingleChildScrollView(
@@ -3111,15 +3244,36 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(refCode, style: GoogleFonts.robotoMono(fontSize: 13, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary)),
-                const SizedBox(height: 4),
+                if (refCode != null) ...[
+                  Text(refCode, style: GoogleFonts.robotoMono(fontSize: 13, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary)),
+                  const SizedBox(height: 4),
+                ],
                 Text(title, style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary)),
                 const SizedBox(height: 18),
                 Row(
                   children: [
-                    _primaryCtaButton(label: 'Download Certified PDF', onTap: () => _downloadFinalReport(refCode)),
-                    const SizedBox(width: 12),
-                    _secondaryButton(label: 'Download Commercial Invoice', onTap: () => _downloadTaxInvoice(orderId)),
+                    if (refCode == null)
+                      Text(
+                        'Report not yet available.',
+                        style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: _LandingDesignSystem.textMuted),
+                      )
+                    else if (hasArtifact) ...[
+                      _primaryCtaButton(label: 'Download Certified PDF', onTap: () => _downloadFinalReport(refCode)),
+                      const SizedBox(width: 12),
+                      _secondaryButton(label: 'Download Commercial Invoice', onTap: () => _downloadTaxInvoice(orderId)),
+                    ] else
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFEF3C7),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFFFCD34D)),
+                        ),
+                        child: Text(
+                          'Preparing Report',
+                          style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFB45309)),
+                        ),
+                      ),
                   ],
                 ),
               ],
@@ -3237,7 +3391,7 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Text('Mandate: ${order['referenceCode'] ?? 'REQ-$orderId'}', style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textSecondary)),
+                    Text('Mandate: ${order['referenceCode'] ?? 'PV-$orderId'}', style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textSecondary)),
                     Text(quoteNum, style: GoogleFonts.montserrat(fontSize: 12.5, fontWeight: FontWeight.w700, color: _LandingDesignSystem.tealBrand)),
                   ],
                 ),
@@ -3997,6 +4151,11 @@ class _ClientSidebar extends StatelessWidget {
             leading: Icon(collapsed ? Icons.chevron_right : Icons.chevron_left, color: _LandingDesignSystem.textSecondary, size: 16),
             title: collapsed ? null : const Text('Collapse', style: TextStyle(color: _LandingDesignSystem.textSecondary, fontSize: 11)),
             onTap: onToggleCollapse,
+          ),
+          const SizedBox(height: 4),
+          BuildFooterWidget(
+            compact: collapsed,
+            textColor: _LandingDesignSystem.textMuted,
           ),
           const SizedBox(height: 6),
         ],

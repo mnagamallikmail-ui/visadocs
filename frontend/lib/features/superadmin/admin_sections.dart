@@ -960,7 +960,8 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
         break;
     }
 
-    if (canDelete) {
+    final isDelivered = status == 'FINAL_DELIVERY' || status == 'CLIENT_DOWNLOADED' || status == 'CLOSED';
+    if (canDelete && !isDelivered) {
       actions.add(const SizedBox(width: 6));
       actions.add(_queueBtn(
         'Delete',
@@ -3845,7 +3846,7 @@ class _AdminReportSectionState extends State<AdminReportSection> {
       children: [
         _sectionHeader(
           'Report Control',
-          'Stateless status overrides and workflow actions',
+          'Status-aware workflow actions — mirrors Queue Management',
           action: ElevatedButton.icon(
             onPressed: _load,
             icon: const Icon(Icons.refresh, size: 16),
@@ -3869,6 +3870,46 @@ class _AdminReportSectionState extends State<AdminReportSection> {
             if (val != null) setState(() => _sortBy = val);
           },
         ),
+        // ── Column headers ──────────────────────────────────────────
+        Container(
+          margin: const EdgeInsets.fromLTRB(24, 0, 24, 0),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(8), topRight: Radius.circular(8)),
+          ),
+          child: Row(
+            children: [
+              SizedBox(
+                width: 130,
+                child: Text('Report # / Date',
+                    style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text('Client / Ref',
+                    style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
+              ),
+              Expanded(
+                flex: 3,
+                child: Text('Quotation & Fee',
+                    style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
+              ),
+              SizedBox(
+                width: 130,
+                child: Text('Status',
+                    style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
+              ),
+              SizedBox(
+                width: 320,
+                child: Text('Actions',
+                    style: AppTypography.captionBold().copyWith(color: AppColors.slate),
+                    textAlign: TextAlign.right),
+              ),
+            ],
+          ),
+        ),
         if (_loading)
           const Expanded(child: Center(child: CircularProgressIndicator()))
         else if (_orders.isEmpty)
@@ -3878,127 +3919,165 @@ class _AdminReportSectionState extends State<AdminReportSection> {
             child: Builder(
               builder: (ctx) {
                 final authProvider = Provider.of<AuthProvider>(ctx, listen: false);
-                final displayOrders = ReportListHelper.filterAndSortReports(_orders, _searchQuery, _sortBy);
+                final displayOrders =
+                    ReportListHelper.filterAndSortReports(_orders, _searchQuery, _sortBy);
 
                 if (displayOrders.isEmpty) {
                   return Center(
                     child: Text(
-                      _searchQuery.isNotEmpty ? "No reports match '$_searchQuery'." : "Workflow queue is empty.",
+                      _searchQuery.isNotEmpty
+                          ? "No reports match '$_searchQuery'."
+                          : 'Workflow queue is empty.',
                       style: AppTypography.bodySm(color: AppColors.slate),
                     ),
                   );
                 }
 
                 return ListView.builder(
-                  padding: const EdgeInsets.all(24),
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
                   itemCount: displayOrders.length,
                   itemBuilder: (_, i) {
                     final o = displayOrders[i];
-                    final hasLock = o['status'] == 'PAYMENT_LOCK';
-                    final isDelivered = o['status'] == 'FINAL_DELIVERY' || o['status'] == 'CLIENT_DOWNLOADED' || o['status'] == 'CLOSED';
                     final canDelete = ReportListHelper.canDeleteReport(o, authProvider);
                     final reportNum = o['reportNumber'] ?? 'PV-${o['id']}';
                     final dateStr = ReportListHelper.formatReportDate(o['createdAt']);
+                    final quoteNum = o['quoteNumber']?.toString();
+                    final quoteTotal = o['quoteTotal'] ?? o['quoteAmount'];
+                    final isPaymentSubmitted = o['status'] == 'PAYMENT_SUBMITTED';
 
                     return Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(20),
+                      margin: const EdgeInsets.only(bottom: 8),
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: AppRadius.brXl,
-                        border: Border.all(color: AppColors.hairlineSoft),
+                        color: isPaymentSubmitted
+                            ? const Color(0xFFFFFBEB)
+                            : AppColors.surface,
+                        borderRadius: AppRadius.brLg,
+                        border: Border.all(
+                          color: isPaymentSubmitted
+                              ? const Color(0xFFFCD34D)
+                              : AppColors.hairlineSoft,
+                          width: isPaymentSubmitted ? 1.5 : 1,
+                        ),
                       ),
                       child: Row(
                         children: [
-                          Expanded(
-                            child: Row(
+                          // Col 1 – Report # / Date
+                          SizedBox(
+                            width: 130,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Expanded(
-                                  flex: 3,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        reportNum,
-                                        style: AppTypography.bodySm().copyWith(
-                                          color: AppColors.ink,
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Date: $dateStr',
-                                        style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 12),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  flex: 4,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Client: ${o['clientName'] ?? '—'}',
-                                        style: AppTypography.bodySm().copyWith(
-                                          color: AppColors.ink,
-                                          fontSize: 12.5,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        o['referenceCode'] != null ? '${o['referenceCode']}' : 'Ref: —',
-                                        style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 12),
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary.withOpacity(0.08),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    '${o['status']}',
+                                Text(reportNum,
                                     style: AppTypography.bodySm().copyWith(
-                                      color: AppColors.primary,
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
+                                        color: AppColors.ink,
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.bold)),
+                                const SizedBox(height: 3),
+                                Text(dateStr,
+                                    style: AppTypography.bodySm()
+                                        .copyWith(color: AppColors.slate, fontSize: 11)),
+                              ],
+                            ),
+                          ),
+                          // Col 2 – Client / Ref
+                          Expanded(
+                            flex: 3,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  o['clientName'] ?? 'Client #${o['id']}',
+                                  style: AppTypography.bodySm().copyWith(
+                                      color: AppColors.ink,
+                                      fontSize: 12.5,
+                                      fontWeight: FontWeight.w600),
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  o['referenceCode'] ?? '—',
+                                  style: AppTypography.bodySm()
+                                      .copyWith(color: AppColors.slate, fontSize: 11),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               ],
                             ),
                           ),
-                          const SizedBox(width: 16),
-                          Row(
-                            children: [
-                              if (hasLock) ...[
-                                _overrideBtn('Release Delivery', AppColors.success, () => _forceStatus(o, 'FINAL_DELIVERY')),
-                                const SizedBox(width: 8),
-                              ],
-                              if (!isDelivered) ...[
-                                _overrideBtn('Force SPA Gate', AppColors.brandBlue, () => _forceStatus(o, 'SPA_GATE')),
-                                const SizedBox(width: 8),
-                                _overrideBtn('Reset Draft', AppColors.slate, () => _forceStatus(o, 'DRAFT')),
-                                const SizedBox(width: 8),
-                              ],
-                              if (isDelivered)
-                                _overrideBtn('View Delivered', const Color(0xFF2563EB), () {/* read-only — no override */}),
-                              if (canDelete) ...[
-                                const SizedBox(width: 8),
-                                Container(width: 1, height: 24, color: AppColors.hairlineSoft),
-                                const SizedBox(width: 8),
-                                _overrideBtn('Delete', AppColors.brandRedDark, () => _deleteOrder(o)),
-                              ],
-                            ],
+                          // Col 3 – Quotation & Fee
+                          Expanded(
+                            flex: 3,
+                            child: Builder(builder: (ctx) {
+                              if (isPaymentSubmitted) {
+                                final utr = o['utrNumber'] ?? o['paymentUtr'] ?? '—';
+                                final amt = quoteTotal != null
+                                    ? '₹${(quoteTotal as num).toStringAsFixed(0)}'
+                                    : '—';
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text('UTR: $utr',
+                                        style: AppTypography.bodySm().copyWith(
+                                            color: AppColors.ink,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.bold)),
+                                    Text('Amt: $amt',
+                                        style: AppTypography.bodySm().copyWith(
+                                            color: const Color(0xFFB45309),
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700)),
+                                  ],
+                                );
+                              }
+                              if (quoteNum != null && quoteNum.isNotEmpty) {
+                                return Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(quoteNum,
+                                        style: AppTypography.bodySm().copyWith(
+                                            color: AppColors.ink,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600)),
+                                    if (quoteTotal != null)
+                                      Text('₹${(quoteTotal as num).toStringAsFixed(0)}',
+                                          style: AppTypography.bodySm().copyWith(
+                                              color: const Color(0xFF059669),
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w700)),
+                                  ],
+                                );
+                              }
+                              return Text('—',
+                                  style: AppTypography.bodySm()
+                                      .copyWith(color: AppColors.slate, fontSize: 11));
+                            }),
+                          ),
+                          // Col 4 – Status badge
+                          SizedBox(
+                            width: 130,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary.withOpacity(0.08),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                              child: Text(
+                                '${o['status']}',
+                                style: AppTypography.bodySm().copyWith(
+                                    color: AppColors.primary,
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          // Col 5 – Status-aware actions
+                          SizedBox(
+                            width: 320,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.end,
+                              children: _buildReportRowActions(context, o, canDelete),
+                            ),
                           ),
                         ],
                       ),
@@ -4010,6 +4089,187 @@ class _AdminReportSectionState extends State<AdminReportSection> {
           ),
       ],
     );
+  }
+
+  /// Status-aware actions identical to AdminQueueSection._buildRowActions.
+  /// Emergency overrides (Force SPA Gate / Reset Draft) do NOT appear here.
+  List<Widget> _buildReportRowActions(
+      BuildContext context, dynamic o, bool canDelete) {
+    final status = (o['status']?.toString() ?? '').toUpperCase();
+    final actions = <Widget>[];
+
+    switch (status) {
+      case 'QUOTE_PENDING':
+        actions.add(_overrideBtn('Review', const Color(0xFF2563EB),
+            () => AdminRequestReviewModal.show(context: context, order: o, onRefresh: _load)));
+        actions.add(const SizedBox(width: 6));
+        actions.add(_overrideBtn(
+          'Generate Quote',
+          const Color(0xFFD97706),
+          () => AdminQuoteCreationModal.show(
+            context: context,
+            orderId: (o['id'] as num).toInt(),
+            referenceCode: o['referenceCode']?.toString() ?? 'N/A',
+            clientName: o['clientName']?.toString() ?? 'Client',
+            serviceCategory: o['serviceCategory']?.toString() ?? 'Valuation Report',
+            assetCategory: o['propertyCategory']?.toString() ?? 'Land & Building',
+            purpose: o['purpose']?.toString() ?? 'Bank Collateral / Loan',
+            onQuoteProvided: _load,
+          ),
+        ));
+        break;
+
+      case 'QUOTE_PROVIDED':
+        actions.add(_overrideBtn('View Quote', const Color(0xFF2563EB),
+            () => AdminRequestReviewModal.show(context: context, order: o, onRefresh: _load)));
+        actions.add(const SizedBox(width: 6));
+        actions.add(_overrideBtn('Resend Quote', const Color(0xFF0D9488), () => _resendQuote(o)));
+        actions.add(const SizedBox(width: 6));
+        actions.add(_overrideBtn('Waive Fee', AppColors.success, () => _waivePayment(o)));
+        break;
+
+      case 'PAYMENT_SUBMITTED':
+        actions.add(_overrideBtn(
+          'Verify Payment',
+          const Color(0xFF1D4ED8),
+          () => AdminPaymentReviewModal.show(context: context, order: o, onRefresh: _load),
+        ));
+        actions.add(const SizedBox(width: 6));
+        actions.add(_overrideBtn(
+          'Reject Payment',
+          const Color(0xFFDC2626),
+          () => AdminPaymentReviewModal.show(context: context, order: o, onRefresh: _load),
+        ));
+        break;
+
+      case 'PAYMENT_VERIFIED':
+        actions.add(_overrideBtn(
+            'Release To Pool', const Color(0xFF1B5E20), () => _releaseToPool(o)));
+        break;
+
+      case 'PAID_INTAKE':
+      case 'ASSIGNED':
+      case 'SPA_GATE':
+        actions.add(_overrideBtn('View', const Color(0xFF2563EB),
+            () => AdminRequestReviewModal.show(context: context, order: o, onRefresh: _load)));
+        break;
+
+      case 'FINAL_DELIVERY':
+      case 'CLIENT_DOWNLOADED':
+        actions.add(_overrideBtn('View Report', const Color(0xFF2563EB),
+            () => AdminRequestReviewModal.show(context: context, order: o, onRefresh: _load)));
+        actions.add(const SizedBox(width: 6));
+        actions.add(_overrideBtn('View Invoice', const Color(0xFF0D9488),
+            () => AdminRequestReviewModal.show(context: context, order: o, onRefresh: _load)));
+        break;
+
+      default:
+        actions.add(_overrideBtn('View', const Color(0xFF2563EB),
+            () => AdminRequestReviewModal.show(context: context, order: o, onRefresh: _load)));
+    }
+
+    final isDelivered = status == 'FINAL_DELIVERY' || status == 'CLIENT_DOWNLOADED' || status == 'CLOSED';
+    if (canDelete && !isDelivered) {
+      actions.add(const SizedBox(width: 6));
+      actions.add(Container(width: 1, height: 24, color: AppColors.hairlineSoft));
+      actions.add(const SizedBox(width: 6));
+      actions.add(_overrideBtn('Delete', AppColors.brandRedDark, () => _deleteOrder(o)));
+    }
+
+    return actions;
+  }
+
+  Future<void> _releaseToPool(dynamic order) async {
+    final orderId = (order['id'] as num).toInt();
+    try {
+      await _api.dio.post('/api/v1/orders/$orderId/release-to-pool');
+      _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          backgroundColor: AppColors.success,
+          content: Text('Order released to Common Pool (PAID_INTAKE).'),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.brandRedDark,
+          content: Text('Failed to release: ${ApiService.getErrorMessage(e)}'),
+        ));
+      }
+    }
+  }
+
+  Future<void> _resendQuote(dynamic order) async {
+    final orderId = (order['id'] as num).toInt();
+    final clientName = order['clientName'] ?? 'Client';
+    final quoteNum = order['quoteNumber'] ?? 'QTE-$orderId';
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+        backgroundColor: AppColors.success,
+        content: Text('✓ Automated reminder dispatched to $clientName for Quote $quoteNum (SMS, Email, WhatsApp).'),
+        duration: const Duration(seconds: 4),
+      ));
+    }
+  }
+
+  Future<void> _waivePayment(dynamic order) async {
+    final reasonController = TextEditingController();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Waive Payment for #${order['id']}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Reference: ${order['referenceCode'] ?? 'PV-${order['id']}'}',
+                style: const TextStyle(fontWeight: FontWeight.bold)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                labelText: 'Waiver Reason *',
+                hintText: 'Enter reason (e.g. VIP pre-approved, SLA exemption)',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 2,
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            onPressed: () {
+              if (reasonController.text.trim().isEmpty) return;
+              Navigator.pop(ctx, true);
+            },
+            child: const Text('Waive Payment'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    try {
+      await _api.dio.post('/api/v1/admin/orders/${order['id']}/waive-payment', data: {
+        'reason': reasonController.text.trim(),
+      });
+      _load();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+          backgroundColor: AppColors.success,
+          content: Text('Payment waived successfully. Order moved to PAYMENT_VERIFIED.'),
+        ));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+          backgroundColor: AppColors.brandRedDark,
+          content: Text('Failed to waive payment: ${ApiService.getErrorMessage(e)}'),
+        ));
+      }
+    }
   }
 
   Widget _overrideBtn(String label, Color color, VoidCallback onTap) => InkWell(

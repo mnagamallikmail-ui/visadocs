@@ -9,6 +9,7 @@ import 'admin_sections.dart';
 import 'admin_seo_intelligence_section.dart';
 import 'admin_leads_crm_section.dart';
 import '../quotations/admin_release_queue_section.dart';
+import '../../utils/build_info.dart';
 
 class SuperAdminWidget extends StatefulWidget {
   final String role;
@@ -833,6 +834,9 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                     ),
                   ),
                 ),
+                const SizedBox(height: 8),
+                const Divider(height: 1, color: AppColors.hairlineSoft),
+                const BuildFooterWidget(),
               ],
             ),
           ),
