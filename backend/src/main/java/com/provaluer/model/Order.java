@@ -95,6 +95,30 @@ public class Order {
     @Transient
     private LocalDateTime paymentSubmittedAt;
 
+    @Transient
+    private Integer documentCount;
+
+    @Transient
+    private BigDecimal paymentAmount;
+
+    @Transient
+    private String paymentMethod;
+
+    @Transient
+    private Long paymentProofDocumentId;
+
+    @Transient
+    private LocalDateTime paymentVerifiedAt;
+
+    @Transient
+    private String paymentVerifiedBy;
+
+    @Transient
+    private java.util.List<String> documentCategories;
+
+    @Transient
+    private Boolean hasPaymentProof;
+
     public Boolean getAdminCreated() { return adminCreated != null && adminCreated; }
     public void setAdminCreated(Boolean adminCreated) { this.adminCreated = adminCreated; }
 
@@ -103,6 +127,30 @@ public class Order {
 
     public LocalDateTime getPaymentSubmittedAt() { return paymentSubmittedAt; }
     public void setPaymentSubmittedAt(LocalDateTime paymentSubmittedAt) { this.paymentSubmittedAt = paymentSubmittedAt; }
+
+    public Integer getDocumentCount() { return documentCount; }
+    public void setDocumentCount(Integer documentCount) { this.documentCount = documentCount; }
+
+    public BigDecimal getPaymentAmount() { return paymentAmount; }
+    public void setPaymentAmount(BigDecimal paymentAmount) { this.paymentAmount = paymentAmount; }
+
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+
+    public Long getPaymentProofDocumentId() { return paymentProofDocumentId; }
+    public void setPaymentProofDocumentId(Long paymentProofDocumentId) { this.paymentProofDocumentId = paymentProofDocumentId; }
+
+    public LocalDateTime getPaymentVerifiedAt() { return paymentVerifiedAt; }
+    public void setPaymentVerifiedAt(LocalDateTime paymentVerifiedAt) { this.paymentVerifiedAt = paymentVerifiedAt; }
+
+    public String getPaymentVerifiedBy() { return paymentVerifiedBy; }
+    public void setPaymentVerifiedBy(String paymentVerifiedBy) { this.paymentVerifiedBy = paymentVerifiedBy; }
+
+    public java.util.List<String> getDocumentCategories() { return documentCategories; }
+    public void setDocumentCategories(java.util.List<String> documentCategories) { this.documentCategories = documentCategories; }
+
+    public Boolean getHasPaymentProof() { return hasPaymentProof != null && hasPaymentProof; }
+    public void setHasPaymentProof(Boolean hasPaymentProof) { this.hasPaymentProof = hasPaymentProof; }
 
     public Order() {}
 

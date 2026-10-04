@@ -8,6 +8,7 @@ import '../../providers/auth_provider.dart';
 import '../../providers/order_provider.dart';
 import '../../theme/app_colors.dart';
 import '../quotations/client_quote_view_modal.dart';
+import 'service_taxonomy.dart';
 
 /// Sprint 1: Client-Authenticated Valuation Request Intake Flow
 /// Replaces legacy lead modal with a strict 7-screen authenticated pipeline:
@@ -58,11 +59,17 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
   // ── Screen 3: Service Category ──
   String _selectedServiceCategory = 'VALUATION'; // VALUATION, NET_WORTH_CERTIFICATE, CHARTERED_ENGINEER
 
-  // ── Screen 4: Asset Category ──
-  String _selectedPropertyCategory = 'LAND_AND_BUILDING'; // LAND_AND_BUILDING, PLANT_AND_MACHINERY, SECURITIES_FINANCIAL_ASSETS
+  // ── Screen 4: Submenu & Classification ──
+  String _selectedPropertyCategory = 'REAL_ESTATE_VALUATION';
+  String _selectedSubmenuItem = 'Residential Property';
   final _assetNameCtrl = TextEditingController();
   final _assetLocationCtrl = TextEditingController();
   final _estimatedValueCtrl = TextEditingController();
+
+  // Specialized fields for Net Worth & Technical Assessment
+  final _legalNameCtrl = TextEditingController();
+  final _panNumberCtrl = TextEditingController();
+  final _inspectionDateCtrl = TextEditingController();
 
   // ── Screen 5: Purpose ──
   String _selectedPurpose = 'BANK_COLLATERAL';
@@ -85,11 +92,15 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
   @override
   void initState() {
     super.initState();
-    final auth = Provider.of<AuthProvider>(context, listen: false);
-    if (!auth.isAuthenticated) {
-      _currentStep = 1; // Start at Registration for new visitors
-    } else {
-      _currentStep = 3; // Direct to Service Category if already authenticated
+    try {
+      final auth = Provider.of<AuthProvider>(context, listen: false);
+      if (!auth.isAuthenticated) {
+        _currentStep = 1; // Start at Registration for new visitors
+      } else {
+        _currentStep = widget.initialStep; // Direct to Service Category if already authenticated
+      }
+    } catch (_) {
+      _currentStep = widget.initialStep;
     }
   }
 
@@ -105,6 +116,9 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
     _assetNameCtrl.dispose();
     _assetLocationCtrl.dispose();
     _estimatedValueCtrl.dispose();
+    _legalNameCtrl.dispose();
+    _panNumberCtrl.dispose();
+    _inspectionDateCtrl.dispose();
     _targetBankCtrl.dispose();
     _specialNotesCtrl.dispose();
     super.dispose();
@@ -218,11 +232,16 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
 
     final inputs = <String, String>{
       'SERVICE_CATEGORY': _selectedServiceCategory,
+      'SUBMENU': _selectedPropertyCategory,
+      'SUBMENU_ITEM': _selectedSubmenuItem,
       'ASSET_NAME': assetName,
       'ASSET_LOCATION': _assetLocationCtrl.text.trim(),
       'TARGET_BANK': _targetBankCtrl.text.trim(),
       'URGENCY_SLA': _selectedUrgencySla,
       'SPECIAL_NOTES': _specialNotesCtrl.text.trim(),
+      'LEGAL_NAME': _legalNameCtrl.text.trim(),
+      'PAN_NUMBER': _panNumberCtrl.text.trim(),
+      'INSPECTION_DATE': _inspectionDateCtrl.text.trim(),
     };
 
     final result = await orderProvider.saveDraft(
@@ -312,18 +331,15 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
     if (_createdOrderId == null) return;
     _clearError();
 
-    // Check mandatory document slots
-    if (!_uploadedFiles.containsKey('TITLE_DEED')) {
-      setState(() => _errorMessage = "Title Deed / Ownership Proof is mandatory.");
-      return;
-    }
-    if (!_uploadedFiles.containsKey('SANCTION_PLAN')) {
-      setState(() => _errorMessage = "Approved Plan / Layout is mandatory.");
-      return;
-    }
-    if (!_uploadedFiles.containsKey('TAX_RECEIPT')) {
-      setState(() => _errorMessage = "Latest Property Tax Receipt is mandatory.");
-      return;
+    // Check mandatory document slots dynamically based on active service
+    final service = ServiceTaxonomy.parseService(_selectedServiceCategory);
+    final mandatorySlots = ServiceTaxonomy.getDocumentSlots(service).where((s) => s['mandatory'] == true);
+    for (final slot in mandatorySlots) {
+      final key = slot['key'] as String;
+      if (!_uploadedFiles.containsKey(key)) {
+        setState(() => _errorMessage = "${slot['label']} is mandatory.");
+        return;
+      }
     }
 
     setState(() => _isLoading = true);
@@ -441,12 +457,13 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
   }
 
   String _getHeaderTitle() {
+    final service = ServiceTaxonomy.parseService(_selectedServiceCategory);
     switch (_currentStep) {
       case 1: return "Client Registration";
       case 2: return "Client Sign In";
       case 3: return "Step 1 of 4: Service Category";
-      case 4: return "Step 2 of 4: Asset Details";
-      case 5: return "Step 3 of 4: Valuation Mandate Purpose";
+      case 4: return "Step 2 of 4: ${service.step2Label}";
+      case 5: return "Step 3 of 4: ${service.step3Label}";
       case 6: return "Step 4 of 4: Document Upload";
       case 7: return "Request Confirmed";
       default: return "Request Valuation Report";
@@ -731,21 +748,21 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
     final services = [
       {
         'id': 'VALUATION',
-        'title': '1. Valuation Report',
+        'title': '1. Asset Valuation',
         'desc': 'Formal asset appraisal conducted by an IBBI Registered Valuer / Government Approved Valuer for banks, statutory bodies, tax & courts.',
         'badge': 'IBBI Certified',
         'icon': Icons.apartment_rounded,
       },
       {
         'id': 'NET_WORTH_CERTIFICATE',
-        'title': '2. Net Worth Certificate',
+        'title': '2. Net Worth Certification',
         'desc': 'Certified family or individual asset net worth statement for Visa, Immigration, Embassy financial proof & Bank Solvency.',
         'badge': 'Embassy Standard',
         'icon': Icons.account_balance_wallet_outlined,
       },
       {
         'id': 'CHARTERED_ENGINEER',
-        'title': '3. Chartered Engineer Certificate',
+        'title': '3. Technical Assessment',
         'desc': 'Technical inspection, equipment residual life evaluation, machinery fitness & customs clearance certification by an authorized CE.',
         'badge': 'IEI Authorized',
         'icon': Icons.engineering_outlined,
@@ -831,6 +848,23 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
             ElevatedButton(
               onPressed: () {
                 _clearError();
+                final service = ServiceTaxonomy.parseService(_selectedServiceCategory);
+                final submenus = ServiceTaxonomy.getSubmenusForService(service);
+                if (submenus.isNotEmpty) {
+                  _selectedPropertyCategory = submenus.first.id;
+                  _selectedSubmenuItem = submenus.first.items.first;
+                }
+                switch (service) {
+                  case ServiceType.assetValuation:
+                    _selectedPurpose = 'BANK_COLLATERAL';
+                    break;
+                  case ServiceType.netWorthCertification:
+                    _selectedPurpose = 'VISA_IMMIGRATION';
+                    break;
+                  case ServiceType.technicalAssessment:
+                    _selectedPurpose = 'RESIDENTIAL_COMPLEX';
+                    break;
+                }
                 setState(() => _currentStep = 4);
               },
               style: ElevatedButton.styleFrom(
@@ -842,7 +876,7 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text("Continue to Asset Category", style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700)),
+                  Text("Continue to ${ServiceTaxonomy.parseService(_selectedServiceCategory).step2Label}", style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700)),
                   const SizedBox(width: 8),
                   const Icon(Icons.arrow_forward_rounded, size: 16),
                 ],
@@ -855,45 +889,70 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // SCREEN 4: Asset Category
-  // If Valuation Report: Land & Building, Plant & Machinery, Securities & Financial Assets
+  // SCREEN 4: Submenu & Classification (Frozen Taxonomy Version 1.0)
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildScreen4AssetCategory(bool isMobile) {
-    final assetOptions = [
-      {
-        'id': 'LAND_AND_BUILDING',
-        'title': 'Land & Building (Real Estate)',
-        'sub': 'Commercial office spaces, IT parks, retail malls, industrial warehouses, residential apartments, villas, and open land.',
-        'icon': Icons.business_outlined,
-      },
-      {
-        'id': 'PLANT_AND_MACHINERY',
-        'title': 'Plant & Machinery',
-        'sub': 'Industrial machinery, production lines, commercial fleets, heavy equipment, and factory plants.',
-        'icon': Icons.precision_manufacturing_outlined,
-      },
-      {
-        'id': 'SECURITIES_FINANCIAL_ASSETS',
-        'title': 'Securities & Financial Assets',
-        'sub': 'Unquoted equity shares, preference shares, debentures, partnership shares, and corporate business valuation.',
-        'icon': Icons.trending_up_rounded,
-      },
-    ];
+    final service = ServiceTaxonomy.parseService(_selectedServiceCategory);
+    final submenus = ServiceTaxonomy.getSubmenusForService(service);
+
+    Widget specializedFields;
+    switch (service) {
+      case ServiceType.assetValuation:
+        specializedFields = Column(
+          children: [
+            _buildTextField(label: "Asset / Property Name *", controller: _assetNameCtrl, hint: "e.g. Prestige Tech Cloud, Tower 2", icon: Icons.tag_outlined),
+            const SizedBox(height: 14),
+            _buildTextField(label: "Asset Location (City, State) *", controller: _assetLocationCtrl, hint: "e.g. Bengaluru, Karnataka", icon: Icons.place_outlined),
+            const SizedBox(height: 14),
+            _buildTextField(label: "Estimated Market Value (₹, optional)", controller: _estimatedValueCtrl, hint: "e.g. 4,50,00,000", icon: Icons.currency_rupee_rounded, keyboardType: TextInputType.number),
+          ],
+        );
+        break;
+      case ServiceType.netWorthCertification:
+        specializedFields = Column(
+          children: [
+            _buildTextField(label: "Applicant / Entity Legal Name *", controller: _legalNameCtrl, hint: "e.g. Ramesh Kumar Gupta / Apex Infra LLP", icon: Icons.person_outline_rounded),
+            const SizedBox(height: 14),
+            _buildTextField(label: "Permanent Account Number (PAN) / Tax ID *", controller: _panNumberCtrl, hint: "e.g. ABCDE1234F", icon: Icons.badge_outlined),
+            const SizedBox(height: 14),
+            _buildTextField(label: "City & State Jurisdiction *", controller: _assetLocationCtrl, hint: "e.g. Mumbai, Maharashtra", icon: Icons.place_outlined),
+            const SizedBox(height: 14),
+            _buildTextField(label: "Estimated Total Net Worth (₹) *", controller: _estimatedValueCtrl, hint: "e.g. 2,50,00,000", icon: Icons.currency_rupee_rounded, keyboardType: TextInputType.number),
+          ],
+        );
+        break;
+      case ServiceType.technicalAssessment:
+        specializedFields = Column(
+          children: [
+            _buildTextField(label: "Project / Facility / Site Name *", controller: _assetNameCtrl, hint: "e.g. Green Valley Solar Park & Plant", icon: Icons.business_outlined),
+            const SizedBox(height: 14),
+            _buildTextField(label: "Site Location & Landmark *", controller: _assetLocationCtrl, hint: "e.g. Survey No. 42, Bengaluru, Karnataka", icon: Icons.place_outlined),
+            const SizedBox(height: 14),
+            _buildTextField(label: "Target Inspection Date / SLA *", controller: _inspectionDateCtrl, hint: "e.g. Within 48 Hours / 12-Oct-2026", icon: Icons.calendar_today_outlined),
+          ],
+        );
+        break;
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("Select Asset Classification", style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.brandNavy)),
+        Text("Select ${service.step2Label}", style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.brandNavy)),
         const SizedBox(height: 6),
-        Text("Specify the statutory asset class for your valuation mandate.", style: GoogleFonts.inter(fontSize: 13, color: AppColors.slate)),
+        Text(service.step2Subhead, style: GoogleFonts.inter(fontSize: 13, color: AppColors.slate)),
         const SizedBox(height: 20),
 
-        ...assetOptions.map((opt) {
-          final isSelected = _selectedPropertyCategory == opt['id'];
+        ...submenus.map((opt) {
+          final isSelected = _selectedPropertyCategory == opt.id;
           return Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: InkWell(
-              onTap: () => setState(() => _selectedPropertyCategory = opt['id'] as String),
+              onTap: () => setState(() {
+                _selectedPropertyCategory = opt.id;
+                if (!opt.items.contains(_selectedSubmenuItem)) {
+                  _selectedSubmenuItem = opt.items.first;
+                }
+              }),
               borderRadius: BorderRadius.circular(12),
               child: Container(
                 padding: const EdgeInsets.all(16),
@@ -905,26 +964,69 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
                     width: isSelected ? 2 : 1,
                   ),
                 ),
-                child: Row(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(opt['icon'] as IconData, color: isSelected ? AppColors.primaryBlue : AppColors.slate, size: 22),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(opt['title'] as String, style: GoogleFonts.montserrat(fontSize: 14.5, fontWeight: FontWeight.w700, color: AppColors.brandNavy)),
-                          const SizedBox(height: 2),
-                          Text(opt['sub'] as String, style: GoogleFonts.inter(fontSize: 12, color: AppColors.slate)),
-                        ],
+                    Row(
+                      children: [
+                        Icon(opt.icon, color: isSelected ? AppColors.primaryBlue : AppColors.slate, size: 22),
+                        const SizedBox(width: 14),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(opt.title, style: GoogleFonts.montserrat(fontSize: 14.5, fontWeight: FontWeight.w700, color: AppColors.brandNavy)),
+                              const SizedBox(height: 2),
+                              Text(opt.description, style: GoogleFonts.inter(fontSize: 12, color: AppColors.slate)),
+                            ],
+                          ),
+                        ),
+                        Radio<String>(
+                          value: opt.id,
+                          groupValue: _selectedPropertyCategory,
+                          activeColor: AppColors.primaryBlue,
+                          onChanged: (val) => setState(() {
+                            _selectedPropertyCategory = val!;
+                            if (!opt.items.contains(_selectedSubmenuItem)) {
+                              _selectedSubmenuItem = opt.items.first;
+                            }
+                          }),
+                        ),
+                      ],
+                    ),
+                    if (isSelected) ...[
+                      const SizedBox(height: 12),
+                      const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                      const SizedBox(height: 10),
+                      Text("Select specific subtype:", style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.slate)),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: opt.items.map((item) {
+                          final isItemSelected = _selectedSubmenuItem == item;
+                          return InkWell(
+                            onTap: () => setState(() => _selectedSubmenuItem = item),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: isItemSelected ? AppColors.brandNavy : const Color(0xFFF1F5F9),
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                item,
+                                style: TextStyle(
+                                  fontSize: 11.5,
+                                  fontWeight: isItemSelected ? FontWeight.w700 : FontWeight.w500,
+                                  color: isItemSelected ? Colors.white : AppColors.brandNavy,
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
                       ),
-                    ),
-                    Radio<String>(
-                      value: opt['id'] as String,
-                      groupValue: _selectedPropertyCategory,
-                      activeColor: AppColors.primaryBlue,
-                      onChanged: (val) => setState(() => _selectedPropertyCategory = val!),
-                    ),
+                    ],
                   ],
                 ),
               ),
@@ -933,11 +1035,7 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
         }),
 
         const SizedBox(height: 20),
-        _buildTextField(label: "Asset / Property Name *", controller: _assetNameCtrl, hint: "e.g. Prestige Tech Cloud, Tower 2", icon: Icons.tag_outlined),
-        const SizedBox(height: 14),
-        _buildTextField(label: "Asset Location (City, State) *", controller: _assetLocationCtrl, hint: "e.g. Bengaluru, Karnataka", icon: Icons.place_outlined),
-        const SizedBox(height: 14),
-        _buildTextField(label: "Estimated Market Value (₹, optional)", controller: _estimatedValueCtrl, hint: "e.g. 4,50,00,000", icon: Icons.currency_rupee_rounded, keyboardType: TextInputType.number),
+        specializedFields,
 
         const SizedBox(height: 24),
         Row(
@@ -957,8 +1055,16 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
             ),
             ElevatedButton(
               onPressed: () {
-                if (_assetNameCtrl.text.trim().isEmpty) {
+                if (service == ServiceType.assetValuation && _assetNameCtrl.text.trim().isEmpty) {
                   setState(() => _errorMessage = "Asset / Property name is required.");
+                  return;
+                }
+                if (service == ServiceType.netWorthCertification && _legalNameCtrl.text.trim().isEmpty) {
+                  setState(() => _errorMessage = "Applicant / Entity legal name is required.");
+                  return;
+                }
+                if (service == ServiceType.technicalAssessment && _assetNameCtrl.text.trim().isEmpty) {
+                  setState(() => _errorMessage = "Project / Facility / Site name is required.");
                   return;
                 }
                 _clearError();
@@ -973,7 +1079,7 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text("Continue to Purpose", style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700)),
+                  Text("Continue to ${service.step3Label}", style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700)),
                   const SizedBox(width: 8),
                   const Icon(Icons.arrow_forward_rounded, size: 16),
                 ],
@@ -986,35 +1092,38 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // SCREEN 5: Purpose
-  // Display: Bank Collateral / Loan, Visa / Immigration, Taxation & Compliance,
-  // Corporate & Insolvency, Customs & Import Export, Dispute & Legal
+  // SCREEN 5: Purpose / Property Type
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildScreen5Purpose(bool isMobile) {
-    final purposeOptions = [
-      {'id': 'BANK_COLLATERAL', 'title': 'Bank Collateral / Loan', 'desc': 'Mortgage underwriting, commercial loans, consortium financing.'},
-      {'id': 'VISA_IMMIGRATION', 'title': 'Visa / Immigration', 'desc': 'Embassy financial net worth certificate & student/investor visa solvency.'},
-      {'id': 'TAXATION_COMPLIANCE', 'title': 'Taxation & Compliance', 'desc': 'Capital gains Section 50C, Rule 11UA unquoted share tax defense.'},
-      {'id': 'CORPORATE_INSOLVENCY', 'title': 'Corporate & Insolvency', 'desc': 'NCLT CIRP liquidation value, Ind AS balance sheet fair valuation.'},
-      {'id': 'CUSTOMS_IMPORT_EXPORT', 'title': 'Customs & Import Export', 'desc': 'Second-hand machinery appraisal, EPC / EPCG import valuation.'},
-      {'id': 'DISPUTE_LEGAL', 'title': 'Dispute & Legal', 'desc': 'High court arbitration, family partition, court receiver appraisals.'},
-    ];
+    final service = ServiceTaxonomy.parseService(_selectedServiceCategory);
+    final List<Map<String, String>> purposeOptions;
+    switch (service) {
+      case ServiceType.assetValuation:
+        purposeOptions = ServiceTaxonomy.assetValuationPurposes;
+        break;
+      case ServiceType.netWorthCertification:
+        purposeOptions = ServiceTaxonomy.netWorthPurposes;
+        break;
+      case ServiceType.technicalAssessment:
+        purposeOptions = ServiceTaxonomy.technicalPropertyTypes;
+        break;
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text("Select Valuation Mandate Purpose", style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.brandNavy)),
+        Text("Select ${service.step3Label}", style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.brandNavy)),
         const SizedBox(height: 6),
-        Text("Tell us how this valuation report will be utilized.", style: GoogleFonts.inter(fontSize: 13, color: AppColors.slate)),
+        Text("Specify requirements for your mandate.", style: GoogleFonts.inter(fontSize: 13, color: AppColors.slate)),
         const SizedBox(height: 20),
 
         Wrap(
           spacing: 12,
           runSpacing: 12,
           children: purposeOptions.map((p) {
-            final isSelected = _selectedPurpose == p['id'];
+            final isSelected = _selectedPurpose == p['key'];
             return InkWell(
-              onTap: () => setState(() => _selectedPurpose = p['id'] as String),
+              onTap: () => setState(() => _selectedPurpose = p['key'] as String),
               borderRadius: BorderRadius.circular(10),
               child: Container(
                 width: isMobile ? double.infinity : 360,
@@ -1027,7 +1136,7 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
                 child: Row(
                   children: [
                     Radio<String>(
-                      value: p['id'] as String,
+                      value: p['key'] as String,
                       groupValue: _selectedPurpose,
                       activeColor: AppColors.primaryBlue,
                       onChanged: (val) => setState(() => _selectedPurpose = val!),
@@ -1038,7 +1147,7 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
                         children: [
                           Text(p['title'] as String, style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.brandNavy)),
                           const SizedBox(height: 2),
-                          Text(p['desc'] as String, style: GoogleFonts.inter(fontSize: 11.5, color: AppColors.slate)),
+                          Text(p['sub'] as String, style: GoogleFonts.inter(fontSize: 11.5, color: AppColors.slate)),
                         ],
                       ),
                     ),
@@ -1050,7 +1159,7 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
         ),
 
         const SizedBox(height: 20),
-        _buildTextField(label: "Target Bank / Institution (e.g. SBI, US Embassy)", controller: _targetBankCtrl, hint: "State Bank of India / US Embassy", icon: Icons.account_balance_outlined),
+        _buildTextField(label: "Target Bank / Institution / Authority", controller: _targetBankCtrl, hint: "e.g. State Bank of India / US Embassy / HDFC", icon: Icons.account_balance_outlined),
         const SizedBox(height: 14),
 
         Text("Target Turnaround Priority", style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.brandNavy)),
@@ -1119,46 +1228,14 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
   }
 
   // ══════════════════════════════════════════════════════════════════════════
-  // SCREEN 6: Document Upload
-  // Mandatory: Title Deed, Plan / Layout, Tax Receipt.
+  // SCREEN 6: Document Upload (Service-Specific Slots)
   // ══════════════════════════════════════════════════════════════════════════
   Widget _buildScreen6DocumentUpload(bool isMobile) {
-    final slots = [
-      {
-        'key': 'TITLE_DEED',
-        'title': '1. Title Deed / Ownership Proof *',
-        'desc': 'Registered Sale Deed, Conveyance, or Title Certificate',
-        'mandatory': true,
-      },
-      {
-        'key': 'SANCTION_PLAN',
-        'title': '2. Approved Plan / Layout *',
-        'desc': 'Sanctioned architectural building drawing or layout plan',
-        'mandatory': true,
-      },
-      {
-        'key': 'TAX_RECEIPT',
-        'title': '3. Latest Property Tax Receipt *',
-        'desc': 'Current year municipal tax paid receipt or assessment challan',
-        'mandatory': true,
-      },
-      {
-        'key': 'UTILITY_BILL',
-        'title': '4. Electricity / Utility Bill (Optional)',
-        'desc': 'Physical address & electricity meter confirmation',
-        'mandatory': false,
-      },
-      {
-        'key': 'SITE_PHOTOS',
-        'title': '5. Site Photographs / Notes (Optional)',
-        'desc': 'Exterior building view, front elevation or premises photos',
-        'mandatory': false,
-      },
-    ];
+    final service = ServiceTaxonomy.parseService(_selectedServiceCategory);
+    final slots = ServiceTaxonomy.getDocumentSlots(service);
 
-    final bool allMandatoryDone = _uploadedFiles.containsKey('TITLE_DEED') &&
-        _uploadedFiles.containsKey('SANCTION_PLAN') &&
-        _uploadedFiles.containsKey('TAX_RECEIPT');
+    final mandatorySlots = slots.where((s) => s['mandatory'] == true);
+    final bool allMandatoryDone = mandatorySlots.every((s) => _uploadedFiles.containsKey(s['key'] as String));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1169,7 +1246,7 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Upload Valuation Documents", style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.brandNavy)),
+                Text("Upload Mandate Documents", style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.brandNavy)),
                 const SizedBox(height: 4),
                 Text("Files are securely uploaded and stored with strict role-based encryption.", style: GoogleFonts.inter(fontSize: 12.5, color: AppColors.slate)),
               ],
@@ -1181,7 +1258,7 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Text(
-                allMandatoryDone ? "✓ 3/3 Mandatory Ready" : "Mandatory Docs Required",
+                allMandatoryDone ? "✓ Mandatory Ready" : "Mandatory Docs Required",
                 style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
@@ -1193,7 +1270,6 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
         ),
         const SizedBox(height: 16),
 
-        // FIX 6: Informational Upload Dropzone Guidance
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
@@ -1213,7 +1289,7 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
                   runSpacing: 4,
                   children: [
                     Text(
-                      "Allowed formats: PDF, JPG, JPEG, PNG",
+                      "Allowed formats: PDF, JPG, JPEG, PNG, DOCX, XLSX",
                       style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.brandNavy),
                     ),
                     Text(
@@ -1230,9 +1306,9 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
 
         ...slots.map((s) {
           final key = s['key'] as String;
-          final title = s['title'] as String;
-          final desc = s['desc'] as String;
-          final mandatory = s['mandatory'] as bool;
+          final title = s['label'] as String;
+          final desc = s['hint'] as String? ?? '';
+          final mandatory = s['mandatory'] as bool? ?? false;
           final hasFile = _uploadedFiles.containsKey(key);
           final isUploading = _uploadingSlot[key] == true;
 
@@ -1266,7 +1342,15 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(title, style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.brandNavy)),
+                      Row(
+                        children: [
+                          Text(title, style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.brandNavy)),
+                          if (mandatory) ...[
+                            const SizedBox(width: 6),
+                            const Text('*', style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.bold)),
+                          ],
+                        ],
+                      ),
                       const SizedBox(height: 2),
                       if (hasFile)
                         Text(
@@ -1332,7 +1416,7 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
                   : Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        Text("Submit Valuation Request", style: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w700)),
+                        Text("Submit Mandate Request", style: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w700)),
                         const SizedBox(width: 8),
                         const Icon(Icons.send_rounded, size: 16),
                       ],

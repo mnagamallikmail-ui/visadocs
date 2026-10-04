@@ -1260,7 +1260,7 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                     return now.difference(dt).inHours >= 12;
                   }).toList();
                 } else if (_quickFilter == 'FINAL_DELIVERY') {
-                  workingOrders = workingOrders.where((o) => o['status'] == 'COMPLETED' || o['status'] == 'DELIVERED').toList();
+                  workingOrders = workingOrders.where((o) => o['status'] == 'FINAL_DELIVERY' || o['status'] == 'CLIENT_DOWNLOADED').toList();
                 }
 
                 final displayOrders = ReportListHelper.filterAndSortReports(workingOrders, _searchQuery, _sortBy);
@@ -1292,19 +1292,19 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                         child: Row(
                           children: [
                             SizedBox(
-                              width: 155,
-                              child: Text('Report # / SLA', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
+                              width: 165,
+                              child: Text('Report # / SLA / Docs', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
                             ),
                             Expanded(
-                              flex: 3,
+                              flex: 2,
                               child: Text('Client Name', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
                             ),
                             Expanded(
                               flex: 3,
-                              child: Text('Quotation & Fee', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
+                              child: Text('Quotation & Payment', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
                             ),
                             SizedBox(
-                              width: 140,
+                              width: 130,
                               child: Text('Status', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
                             ),
                             SizedBox(
@@ -1319,6 +1319,7 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                         final reportNum = o['reportNumber'] ?? 'PV-${o['id']}';
                         final dateStr = ReportListHelper.formatReportDate(o['createdAt']);
                         final isPaymentSubmitted = o['status'] == 'PAYMENT_SUBMITTED';
+                        final docCount = (o['documentCount'] as num?)?.toInt() ?? 0;
 
                         final clientDisplay = (o['clientName'] != null && o['clientName'].toString().trim().isNotEmpty)
                             ? o['clientName'].toString().trim()
@@ -1330,45 +1331,102 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
 
                         final quoteNum = o['quoteNumber']?.toString();
                         final quoteTotal = o['quoteTotal'] ?? o['quoteAmount'];
+                        final quoteBase = o['quoteAmount'];
+                        final quoteTax = o['quoteTax'];
+                        final paymentStatus = (o['paymentStatus']?.toString() ?? (isPaymentSubmitted ? 'SUBMITTED' : '')).toUpperCase();
+                        final utr = o['utrNumber'] ?? o['paymentUtr'];
+                        final hasProof = o['paymentProofDocumentId'] != null || isPaymentSubmitted;
 
                         Widget quoteFeeWidget;
-                        if (isPaymentSubmitted) {
-                          final utr = o['utrNumber'] ?? o['paymentUtr'] ?? '—';
-                          final amt = _formatCurrency(quoteTotal ?? o['estimatedValue']);
-                          final submittedAt = _formatDateTime(o['paymentSubmittedAt'] ?? o['updatedAt']);
-
+                        if (quoteNum != null && quoteNum.isNotEmpty) {
                           quoteFeeWidget = Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'UTR: $utr',
-                                style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 12, fontWeight: FontWeight.bold),
+                              Row(
+                                children: [
+                                  Text(
+                                    quoteNum,
+                                    style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 12, fontWeight: FontWeight.bold),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    quoteTotal != null ? _formatCurrency(quoteTotal) : '—',
+                                    style: AppTypography.caption(color: const Color(0xFF047857)).copyWith(fontWeight: FontWeight.w800, fontSize: 12),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Amount: $amt',
-                                style: AppTypography.caption(color: const Color(0xFFB45309)).copyWith(fontWeight: FontWeight.w700),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                'Submitted: $submittedAt',
-                                style: AppTypography.caption(color: AppColors.slate).copyWith(fontSize: 10.5),
-                              ),
-                            ],
-                          );
-                        } else if (quoteNum != null && quoteNum.isNotEmpty) {
-                          quoteFeeWidget = Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                quoteNum,
-                                style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 13, fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 2),
-                              Text(
-                                quoteTotal != null ? _formatCurrency(quoteTotal) : '—',
-                                style: AppTypography.caption(color: AppColors.success).copyWith(fontWeight: FontWeight.w700),
-                              ),
+                              if (quoteBase != null && quoteTax != null) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Base: ${_formatCurrency(quoteBase)} + GST: ${_formatCurrency(quoteTax)}',
+                                  style: AppTypography.caption(color: AppColors.slate).copyWith(fontSize: 10),
+                                ),
+                              ],
+                              const SizedBox(height: 3),
+                              // Payment indicator
+                              if (paymentStatus == 'VERIFIED') ...[
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                      decoration: BoxDecoration(color: const Color(0xFFECFDF5), borderRadius: BorderRadius.circular(3), border: Border.all(color: const Color(0xFF86EFAC))),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.check_circle, size: 9, color: Color(0xFF047857)),
+                                          SizedBox(width: 3),
+                                          Text('PAID', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF047857))),
+                                        ],
+                                      ),
+                                    ),
+                                    if (utr != null && utr.toString().isNotEmpty) ...[
+                                      const SizedBox(width: 5),
+                                      Text('UTR: $utr', style: AppTypography.caption(color: AppColors.ink).copyWith(fontSize: 10, fontWeight: FontWeight.w600)),
+                                    ],
+                                  ],
+                                ),
+                              ] else if (paymentStatus == 'SUBMITTED' || isPaymentSubmitted) ...[
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                      decoration: BoxDecoration(color: const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(3), border: Border.all(color: const Color(0xFFFCD34D))),
+                                      child: const Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Icon(Icons.hourglass_top_rounded, size: 9, color: Color(0xFFB45309)),
+                                          SizedBox(width: 3),
+                                          Text('SUBMITTED', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFB45309))),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Text('UTR: ${utr ?? "—"}', style: AppTypography.caption(color: const Color(0xFFB45309)).copyWith(fontSize: 10, fontWeight: FontWeight.bold)),
+                                    if (hasProof) ...[
+                                      const SizedBox(width: 4),
+                                      const Tooltip(
+                                        message: "Payment receipt proof attached",
+                                        child: Icon(Icons.receipt_long, size: 12, color: Color(0xFF1D4ED8)),
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Submitted: ${_formatDateTime(o['paymentSubmittedAt'] ?? o['updatedAt'])}',
+                                  style: AppTypography.caption(color: AppColors.slate).copyWith(fontSize: 9.5),
+                                ),
+                              ] else if (paymentStatus == 'REJECTED') ...[
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                                  decoration: BoxDecoration(color: const Color(0xFFFEF2F2), borderRadius: BorderRadius.circular(3)),
+                                  child: const Text('PAYMENT REJECTED', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFDC2626))),
+                                ),
+                              ] else ...[
+                                Text('Payment Pending', style: AppTypography.caption(color: AppColors.slate).copyWith(fontSize: 10, fontStyle: FontStyle.italic)),
+                              ],
                             ],
                           );
                         } else {
@@ -1438,7 +1496,7 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                           child: Row(
                             children: [
                               SizedBox(
-                                width: 155,
+                                width: 165,
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
@@ -1451,13 +1509,42 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                                       dateStr,
                                       style: AppTypography.caption(color: AppColors.slate),
                                     ),
-                                    const SizedBox(height: 4),
+                                    const SizedBox(height: 3),
                                     _buildSlaChip(o),
+                                    const SizedBox(height: 4),
+                                    // Document count & badge
+                                    InkWell(
+                                      onTap: () => AdminRequestReviewModal.show(context: context, order: o, onRefresh: _load),
+                                      borderRadius: BorderRadius.circular(4),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: docCount > 0 ? const Color(0xFFEFF6FF) : const Color(0xFFF1F5F9),
+                                          borderRadius: BorderRadius.circular(4),
+                                          border: Border.all(color: docCount > 0 ? const Color(0xFF93C5FD) : const Color(0xFFCBD5E1)),
+                                        ),
+                                        child: Row(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Icon(Icons.attach_file, size: 11, color: docCount > 0 ? const Color(0xFF1D4ED8) : const Color(0xFF64748B)),
+                                            const SizedBox(width: 3),
+                                            Text(
+                                              '$docCount doc${docCount == 1 ? '' : 's'}',
+                                              style: TextStyle(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                                color: docCount > 0 ? const Color(0xFF1D4ED8) : const Color(0xFF64748B),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                 ),
                               ),
                               Expanded(
-                                flex: 3,
+                                flex: 2,
                                 child: Text(
                                   clientDisplay,
                                   style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 13, fontWeight: FontWeight.w500),
@@ -1469,7 +1556,7 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                                 child: quoteFeeWidget,
                               ),
                               SizedBox(
-                                width: 140,
+                                width: 130,
                                 child: statusWidget,
                               ),
                               SizedBox(

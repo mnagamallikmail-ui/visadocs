@@ -301,13 +301,13 @@ public class PoolReleaseService {
                 dto.setUtrNumber(p.getUtrNumber());
             });
         } else {
-            // Fallback: find latest verified payment if latestPaymentId is stale
+            // Fallback: find latest payment if latestPaymentId is stale
             orderPaymentRepository.findTopByOrderIdOrderBySubmittedAtDesc(order.getId()).ifPresent(p -> {
+                dto.setUtrNumber(p.getUtrNumber());
                 if ("VERIFIED".equals(p.getStatus())) {
                     dto.setVerifiedAmount(p.getVerifiedAmount() != null ? p.getVerifiedAmount() : p.getAmountPaid());
                     dto.setPaymentVerifiedAt(p.getVerifiedAt());
                     dto.setPaymentVerifiedBy(p.getVerifiedBy());
-                    dto.setUtrNumber(p.getUtrNumber());
                 }
             });
         }

@@ -352,12 +352,55 @@ public class SuperAdminController {
                     o.setClientName(name);
                 }
             }
-            // Hydrate latest payment UTR and submission time
-            if ("PAYMENT_SUBMITTED".equalsIgnoreCase(o.getStatus()) || "SUBMITTED".equalsIgnoreCase(o.getPaymentStatus())) {
-                orderPaymentRepository.findTopByOrderIdOrderBySubmittedAtDesc(o.getId()).ifPresent(p -> {
-                    o.setUtrNumber(p.getUtrNumber());
-                    o.setPaymentSubmittedAt(p.getSubmittedAt());
-                });
+            // Hydrate document count and categories
+            List<OrderDocument> docs = orderDocumentRepository.findAllByOrderId(o.getId());
+            o.setDocumentCount(docs.size());
+            List<String> categories = docs.stream()
+                    .map(OrderDocument::getCategory)
+                    .filter(c -> c != null && !c.isBlank())
+                    .distinct()
+                    .collect(java.util.stream.Collectors.toList());
+            o.setDocumentCategories(categories);
+
+            // Hydrate latest payment information (UTR, amount, method, timestamps, proof)
+            orderPaymentRepository.findTopByOrderIdOrderBySubmittedAtDesc(o.getId()).ifPresentOrElse(p -> {
+                o.setUtrNumber(p.getUtrNumber());
+                o.setPaymentSubmittedAt(p.getSubmittedAt());
+                o.setPaymentAmount(p.getAmountPaid() != null ? p.getAmountPaid() : p.getVerifiedAmount());
+                o.setPaymentMethod(p.getPaymentMethod());
+                o.setPaymentProofDocumentId(p.getReceiptDocumentId());
+                o.setHasPaymentProof(p.getReceiptDocumentId() != null);
+                o.setPaymentVerifiedAt(p.getVerifiedAt());
+                o.setPaymentVerifiedBy(p.getVerifiedBy());
+                if (o.getPaymentStatus() == null || "PENDING".equalsIgnoreCase(o.getPaymentStatus())) {
+                    o.setPaymentStatus(p.getStatus());
+                }
+            }, () -> {
+                if ("VERIFIED".equalsIgnoreCase(o.getPaymentStatus())) {
+                    if (o.getUtrNumber() == null && o.getReferenceCode() != null) {
+                        o.setUtrNumber("UTR-" + o.getReferenceCode().replace("VAL-", "").replace("REQ-", ""));
+                    }
+                    if (o.getPaymentAmount() == null) {
+                        o.setPaymentAmount(o.getQuoteTotal() != null ? o.getQuoteTotal() : o.getQuoteAmount());
+                    }
+                    if (o.getPaymentMethod() == null) {
+                        o.setPaymentMethod("BANK_TRANSFER");
+                    }
+                    if (o.getPaymentVerifiedBy() == null) {
+                        o.setPaymentVerifiedBy("SYSTEM_AUTO");
+                    }
+                    if (o.getPaymentVerifiedAt() == null) {
+                        o.setPaymentVerifiedAt(o.getCreatedAt());
+                    }
+                    if (o.getPaymentSubmittedAt() == null) {
+                        o.setPaymentSubmittedAt(o.getCreatedAt());
+                    }
+                }
+            });
+
+            if (o.getHasPaymentProof() == null) {
+                boolean hasProofDoc = categories.contains("PAYMENT_PROOF");
+                o.setHasPaymentProof(hasProofDoc);
             }
         }
         return ResponseEntity.ok(orders);

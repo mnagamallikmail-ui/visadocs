@@ -6,4 +6,5 @@ import java.util.List;
 
 public interface OrderDocumentRepository extends JpaRepository<OrderDocument, Long> {
     List<OrderDocument> findAllByOrderId(Long orderId);
+    long countByOrderId(Long orderId);
 }

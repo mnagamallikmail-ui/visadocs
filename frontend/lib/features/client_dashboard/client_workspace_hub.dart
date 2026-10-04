@@ -17,6 +17,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/order_provider.dart';
 import '../../utils/build_info.dart';
+import '../request_intake/service_taxonomy.dart';
 
 // ─── Simplified Client Navigation ─────────────────────────────────────────────
 enum _ClientNav {
@@ -311,7 +312,9 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
   // ─── Flow 1: 6-Step Dedicated Wizard State ─────────────────────────────────
   int _wizardStep = 1; // 1 to 6 (7 = Success)
   String _wizardService = 'VALUATION';
-  String _wizardAsset = 'LAND_AND_BUILDING';
+  String _wizardAsset = 'REAL_ESTATE_VALUATION';
+  String _wizardSubmenu = 'REAL_ESTATE_VALUATION';
+  String _wizardSubmenuItem = 'Residential Property';
   String _wizardPurpose = 'BANK_COLLATERAL';
 
   // Step 4 Asset Controllers
@@ -320,6 +323,13 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
   final _cityCtrl = TextEditingController();
   final _stateCtrl = TextEditingController();
   final _estimatedValueCtrl = TextEditingController();
+
+  // Net Worth & Technical Assessment Specialized Step 4 Controllers
+  final _legalNameCtrl = TextEditingController();
+  final _panNumberCtrl = TextEditingController();
+  final _targetAuthorityCtrl = TextEditingController();
+  final _inspectionDateCtrl = TextEditingController();
+  final _inspectionScopeCtrl = TextEditingController();
 
   // Step 5 Document Matrix
   final Map<String, PlatformFile> _wizardDocs = {};
@@ -388,6 +398,11 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     _cityCtrl.dispose();
     _stateCtrl.dispose();
     _estimatedValueCtrl.dispose();
+    _legalNameCtrl.dispose();
+    _panNumberCtrl.dispose();
+    _targetAuthorityCtrl.dispose();
+    _inspectionDateCtrl.dispose();
+    _inspectionScopeCtrl.dispose();
     _step4ValidationDebounce?.cancel();
 
     _utrCtrl.dispose();
@@ -433,12 +448,30 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
 
   void _onStep4FieldChanged() {
     _step4ValidationDebounce?.cancel();
-    final nameValid = _assetNameCtrl.text.trim().isNotEmpty;
-    final addrValid = _propertyAddressCtrl.text.trim().isNotEmpty;
-    final cityValid = _cityCtrl.text.trim().isNotEmpty;
-    final stateValid = _stateCtrl.text.trim().isNotEmpty;
+    final service = ServiceTaxonomy.parseService(_wizardService);
+    bool valid = false;
+    switch (service) {
+      case ServiceType.assetValuation:
+        valid = _assetNameCtrl.text.trim().isNotEmpty &&
+            _propertyAddressCtrl.text.trim().isNotEmpty &&
+            _cityCtrl.text.trim().isNotEmpty &&
+            _stateCtrl.text.trim().isNotEmpty;
+        break;
+      case ServiceType.netWorthCertification:
+        valid = _legalNameCtrl.text.trim().isNotEmpty &&
+            _panNumberCtrl.text.trim().isNotEmpty &&
+            _cityCtrl.text.trim().isNotEmpty &&
+            _targetAuthorityCtrl.text.trim().isNotEmpty;
+        break;
+      case ServiceType.technicalAssessment:
+        valid = _assetNameCtrl.text.trim().isNotEmpty &&
+            _propertyAddressCtrl.text.trim().isNotEmpty &&
+            _cityCtrl.text.trim().isNotEmpty &&
+            _targetAuthorityCtrl.text.trim().isNotEmpty;
+        break;
+    }
 
-    if (nameValid && addrValid && cityValid && stateValid) {
+    if (valid) {
       setState(() => _step4AutoAdvancing = true);
       _step4ValidationDebounce = Timer(const Duration(milliseconds: 650), () {
         if (mounted && _wizardStep == 4) {
@@ -456,27 +489,23 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
   }
 
   List<Map<String, dynamic>> _getRequiredDocumentSlots() {
-    return [
-      {'key': 'TITLE_DEED', 'label': 'Title Deed / Ownership Proof', 'mandatory': true},
-      {'key': 'SANCTION_PLAN', 'label': 'Approved Plan / Layout', 'mandatory': true},
-      {'key': 'TAX_RECEIPT', 'label': 'Latest Tax Receipt', 'mandatory': true},
-    ];
+    final service = ServiceTaxonomy.parseService(_wizardService);
+    return ServiceTaxonomy.getDocumentSlots(service);
   }
 
-  List<Map<String, String>> _getMandatoryRequirementsList() {
-    return const [
-      {'key': 'TITLE_DEED', 'label': 'Title Deed / Ownership Proof'},
-      {'key': 'SANCTION_PLAN', 'label': 'Approved Plan / Layout'},
-      {'key': 'TAX_RECEIPT', 'label': 'Latest Tax Receipt'},
-    ];
+  List<Map<String, dynamic>> _getMandatoryRequirementsList() {
+    final service = ServiceTaxonomy.parseService(_wizardService);
+    return ServiceTaxonomy.getDocumentSlots(service)
+        .where((s) => s['mandatory'] == true)
+        .toList();
   }
 
   List<String> _getMissingMandatoryDocCategories() {
     final missing = <String>[];
     for (final req in _getMandatoryRequirementsList()) {
-      final key = req['key']!;
+      final key = req['key'] as String;
       if (!_wizardDocs.containsKey(key) || _wizardDocs[key] == null) {
-        missing.add(req['label']!);
+        missing.add(req['label'] as String);
       }
     }
     return missing;
@@ -608,9 +637,8 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     if (missing.isNotEmpty) {
       setState(() {
         _wizardSubmitting = false;
-        _wizardError = "Required Documents Missing:\n" +
-            missing.map((m) => "• $m").join("\n") +
-            "\nUpload all required documents before submission.";
+        _wizardError =
+            "Required Documents Missing:\n${missing.map((m) => "• $m").join("\n")}\nUpload all required documents before submission.";
       });
       return;
     }
@@ -631,6 +659,13 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
         'city': _cityCtrl.text.trim(),
         'state': _stateCtrl.text.trim(),
         'service_type': _wizardService,
+        'submenu': _wizardSubmenu,
+        'submenu_item': _wizardSubmenuItem,
+        'legal_name': _legalNameCtrl.text.trim(),
+        'pan_number': _panNumberCtrl.text.trim(),
+        'target_authority': _targetAuthorityCtrl.text.trim(),
+        'inspection_date': _inspectionDateCtrl.text.trim(),
+        'inspection_scope': _inspectionScopeCtrl.text.trim(),
       };
 
       final created = await orderProvider.saveDraft(
@@ -685,13 +720,20 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     setState(() {
       _wizardStep = 1;
       _wizardService = 'VALUATION';
-      _wizardAsset = 'LAND_AND_BUILDING';
+      _wizardAsset = 'REAL_ESTATE_VALUATION';
+      _wizardSubmenu = 'REAL_ESTATE_VALUATION';
+      _wizardSubmenuItem = 'Residential Property';
       _wizardPurpose = 'BANK_COLLATERAL';
       _assetNameCtrl.clear();
       _propertyAddressCtrl.clear();
       _cityCtrl.clear();
       _stateCtrl.clear();
       _estimatedValueCtrl.clear();
+      _legalNameCtrl.clear();
+      _panNumberCtrl.clear();
+      _targetAuthorityCtrl.clear();
+      _inspectionDateCtrl.clear();
+      _inspectionScopeCtrl.clear();
       _wizardDocs.clear();
       _wizardSubmitting = false;
       _wizardError = null;
@@ -877,37 +919,57 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     );
   }
 
-  // FIX 1 & FIX 3: Human, Advisory Step Headlines
-  String get _wizardStepHeadline => switch (_wizardStep) {
-        1 => "Let's Begin",
-        2 => "Tell us about the asset involved.",
-        3 => "What is the purpose of this engagement?",
-        4 => "Provide a few details about the subject asset.",
-        5 => "Supporting Documentation",
-        6 => "Review Your Request",
-        _ => "Valuation Request Intake",
-      };
+  // Human, Advisory Step Headlines driven by Service Taxonomy
+  String get _wizardStepHeadline {
+    final service = ServiceTaxonomy.parseService(_wizardService);
+    return switch (_wizardStep) {
+      1 => "Let's Begin",
+      2 => service.step2Headline,
+      3 => switch (service) {
+          ServiceType.assetValuation => "What is the purpose of this engagement?",
+          ServiceType.netWorthCertification => "What is the purpose of this certification?",
+          ServiceType.technicalAssessment => "Select Subject Property / Facility Type",
+        },
+      4 => switch (service) {
+          ServiceType.assetValuation => "Provide a few details about the subject asset.",
+          ServiceType.netWorthCertification => "Provide applicant financial details.",
+          ServiceType.technicalAssessment => "Provide site inspection details.",
+        },
+      5 => "Supporting Documentation",
+      6 => "Review Your Request",
+      _ => "Valuation Request Intake",
+    };
+  }
 
-  String get _wizardStepSubhead => switch (_wizardStep) {
-        1 => "Choose the service that best matches your requirement.",
-        2 => "Select the asset class so we can tailor the advisory framework and documentation checklist.",
-        3 => "Select the official requirement for your valuation report.",
-        4 => "Enter property identification and location details to establish appraisal scope.",
-        5 => "Attach relevant deeds, sanction plans, or financial statements. You may also provide these later.",
-        6 => "Confirm your engagement parameters before submitting to our valuation desk.",
-        _ => "Professional valuation advisory services.",
-      };
+  String get _wizardStepSubhead {
+    final service = ServiceTaxonomy.parseService(_wizardService);
+    return switch (_wizardStep) {
+      1 => "Choose the service that best matches your requirement.",
+      2 => service.step2Subhead,
+      3 => switch (service) {
+          ServiceType.assetValuation => "Select the official requirement for your valuation report.",
+          ServiceType.netWorthCertification => "Select how this certified net worth statement will be utilized.",
+          ServiceType.technicalAssessment => "Identify the physical structure or infrastructure classification for technical inspection.",
+        },
+      4 => switch (service) {
+          ServiceType.assetValuation => "Enter property identification and location details to establish appraisal scope.",
+          ServiceType.netWorthCertification => "Enter identification and net worth computation parameters.",
+          ServiceType.technicalAssessment => "Enter site location, authority, and inspection schedule parameters.",
+        },
+      5 => switch (service) {
+          ServiceType.assetValuation => "Attach title deeds, approved plans, and tax receipts. You may also provide these later.",
+          ServiceType.netWorthCertification => "Attach income tax returns, bank statements, and wealth proofs for certification.",
+          ServiceType.technicalAssessment => "Attach site layout, structural drawings, and inspection defect logs.",
+        },
+      6 => "Confirm your engagement parameters before submitting to our valuation desk.",
+      _ => "Professional valuation advisory services.",
+    };
+  }
 
-  // FIX 7: Named Progress Tracker: Service • Asset • Purpose • Details • Documents • Review
+  // Named Progress Tracker: Service • Submenu • Purpose/Property • Details • Documents • Review
   Widget _buildNamedProgressTracker() {
-    const steps = [
-      'Service',
-      'Asset',
-      'Purpose',
-      'Details',
-      'Documents',
-      'Review',
-    ];
+    final service = ServiceTaxonomy.parseService(_wizardService);
+    final steps = service.wizardStepLabels;
 
     return Row(
       mainAxisSize: MainAxisSize.min,
@@ -991,7 +1053,7 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     );
   }
 
-  // FIX 6: Upgraded Service Practice Area Cards
+  // Master Service Practice Area Cards
   Widget _buildWizardStep1() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1000,34 +1062,49 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _serviceCard(
-              title: 'Asset Valuation',
-              description: 'Professional valuation reports for banking, taxation, compliance and regulatory requirements.',
-              iconText: '🏛️',
-              isSelected: _wizardService == 'VALUATION',
+              title: ServiceType.assetValuation.displayName,
+              description: ServiceType.assetValuation.shortDescription,
+              iconText: ServiceType.assetValuation.iconText,
+              isSelected: _wizardService == ServiceType.assetValuation.code,
               onTap: () => setState(() {
-                _wizardService = 'VALUATION';
+                _wizardService = ServiceType.assetValuation.code;
+                _wizardSubmenu = 'REAL_ESTATE_VALUATION';
+                _wizardSubmenuItem = 'Residential Property';
+                _wizardAsset = 'REAL_ESTATE_VALUATION';
+                _wizardPurpose = 'BANK_COLLATERAL';
+                _wizardDocs.clear();
                 _wizardStep = 2;
               }),
             ),
             const SizedBox(width: 18),
             _serviceCard(
-              title: 'Net Worth Certification',
-              description: 'Certified net worth statements for immigration, banking and statutory purposes.',
-              iconText: '📜',
-              isSelected: _wizardService == 'NET_WORTH',
+              title: ServiceType.netWorthCertification.displayName,
+              description: ServiceType.netWorthCertification.shortDescription,
+              iconText: ServiceType.netWorthCertification.iconText,
+              isSelected: _wizardService == ServiceType.netWorthCertification.code,
               onTap: () => setState(() {
-                _wizardService = 'NET_WORTH';
+                _wizardService = ServiceType.netWorthCertification.code;
+                _wizardSubmenu = 'INDIVIDUAL';
+                _wizardSubmenuItem = 'Individual Net Worth';
+                _wizardAsset = 'INDIVIDUAL';
+                _wizardPurpose = 'VISA_IMMIGRATION';
+                _wizardDocs.clear();
                 _wizardStep = 2;
               }),
             ),
             const SizedBox(width: 18),
             _serviceCard(
-              title: 'Technical Assessment',
-              description: 'Independent technical inspection and certification services.',
-              iconText: '⚙️',
-              isSelected: _wizardService == 'CHARTERED_ENGINEER',
+              title: ServiceType.technicalAssessment.displayName,
+              description: ServiceType.technicalAssessment.shortDescription,
+              iconText: ServiceType.technicalAssessment.iconText,
+              isSelected: _wizardService == ServiceType.technicalAssessment.code,
               onTap: () => setState(() {
-                _wizardService = 'CHARTERED_ENGINEER';
+                _wizardService = ServiceType.technicalAssessment.code;
+                _wizardSubmenu = 'PROPERTY_INSPECTION';
+                _wizardSubmenuItem = 'Technical Due Diligence';
+                _wizardAsset = 'PROPERTY_INSPECTION';
+                _wizardPurpose = 'RESIDENTIAL_COMPLEX';
+                _wizardDocs.clear();
                 _wizardStep = 2;
               }),
             ),
@@ -1102,129 +1179,191 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     );
   }
 
-  // STEP 2: Asset Involved
+  // STEP 2: Service-Specific Submenus (Frozen Taxonomy Version 1.0)
   Widget _buildWizardStep2() {
+    final service = ServiceTaxonomy.parseService(_wizardService);
+    final submenus = ServiceTaxonomy.getSubmenusForService(service);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        ...submenus.map((submenu) {
+          final isSubmenuSelected = _wizardSubmenu == submenu.id;
+          return Container(
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: isSubmenuSelected ? _LandingDesignSystem.tealSubtle.withOpacity(0.35) : _LandingDesignSystem.cardSurface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(
+                color: isSubmenuSelected ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.cardBorder,
+                width: isSubmenuSelected ? 1.8 : 1.0,
+              ),
+              boxShadow: isSubmenuSelected ? _LandingDesignSystem.cardHoverShadow : _LandingDesignSystem.cardShadow,
+            ),
+            child: Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                initiallyExpanded: isSubmenuSelected,
+                key: PageStorageKey('submenu_${_wizardService}_${submenu.id}'),
+                onExpansionChanged: (expanded) {
+                  if (expanded) {
+                    setState(() {
+                      _wizardSubmenu = submenu.id;
+                      _wizardAsset = submenu.id;
+                      if (!submenu.items.contains(_wizardSubmenuItem)) {
+                        _wizardSubmenuItem = submenu.items.first;
+                      }
+                    });
+                  }
+                },
+                leading: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: isSubmenuSelected ? _LandingDesignSystem.tealBrand.withOpacity(0.15) : _LandingDesignSystem.bgSubtle,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(submenu.icon, color: isSubmenuSelected ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.textPrimary, size: 22),
+                ),
+                title: Row(
+                  children: [
+                    Text(
+                      submenu.title,
+                      style: GoogleFonts.montserrat(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        color: isSubmenuSelected ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.textPrimary,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: isSubmenuSelected ? _LandingDesignSystem.tealBrand : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        '${submenu.items.length} options',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                          color: isSubmenuSelected ? Colors.white : _LandingDesignSystem.textSecondary,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                subtitle: Padding(
+                  padding: const EdgeInsets.only(top: 4),
+                  child: Text(
+                    submenu.description,
+                    style: GoogleFonts.inter(fontSize: 12.5, color: _LandingDesignSystem.textSecondary),
+                  ),
+                ),
+                trailing: isSubmenuSelected
+                    ? const Icon(Icons.check_circle_rounded, color: _LandingDesignSystem.tealBrand, size: 22)
+                    : null,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const Divider(height: 1, color: _LandingDesignSystem.cardBorder),
+                        const SizedBox(height: 14),
+                        Text(
+                          'Select specific subtype:',
+                          style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textSecondary),
+                        ),
+                        const SizedBox(height: 10),
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 10,
+                          children: submenu.items.map((item) {
+                            final isItemSelected = isSubmenuSelected && _wizardSubmenuItem == item;
+                            return InkWell(
+                              onTap: () {
+                                setState(() {
+                                  _wizardSubmenu = submenu.id;
+                                  _wizardSubmenuItem = item;
+                                  _wizardAsset = submenu.id;
+                                });
+                              },
+                              borderRadius: BorderRadius.circular(10),
+                              child: AnimatedContainer(
+                                duration: const Duration(milliseconds: 150),
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+                                decoration: BoxDecoration(
+                                  color: isItemSelected ? _LandingDesignSystem.tealBrand : Colors.white,
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isItemSelected ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.cardBorder,
+                                    width: isItemSelected ? 1.5 : 1.0,
+                                  ),
+                                  boxShadow: isItemSelected
+                                      ? [BoxShadow(color: _LandingDesignSystem.tealBrand.withOpacity(0.25), blurRadius: 6, offset: const Offset(0, 2))]
+                                      : null,
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (isItemSelected) ...[
+                                      const Icon(Icons.check, size: 14, color: Colors.white),
+                                      const SizedBox(width: 6),
+                                    ],
+                                    Text(
+                                      item,
+                                      style: GoogleFonts.inter(
+                                        fontSize: 12.5,
+                                        fontWeight: isItemSelected ? FontWeight.w700 : FontWeight.w500,
+                                        color: isItemSelected ? Colors.white : _LandingDesignSystem.textPrimary,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }),
+        const SizedBox(height: 24),
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _assetCard(
-              title: 'Land & Building',
-              description: 'Commercial offices, industrial plots, flats, and developments',
-              iconText: '🏢',
-              isSelected: _wizardAsset == 'LAND_AND_BUILDING',
-              onTap: () => setState(() {
-                _wizardAsset = 'LAND_AND_BUILDING';
-                _wizardStep = 3;
-              }),
-            ),
-            const SizedBox(width: 18),
-            _assetCard(
-              title: 'Plant & Machinery',
-              description: 'Industrial equipment, machinery lines, and manufacturing units',
-              iconText: '🏭',
-              isSelected: _wizardAsset == 'PLANT_AND_MACHINERY',
-              onTap: () => setState(() {
-                _wizardAsset = 'PLANT_AND_MACHINERY';
-                _wizardStep = 3;
-              }),
-            ),
-            const SizedBox(width: 18),
-            _assetCard(
-              title: 'Financial Assets',
-              description: 'Securities, unlisted shares, and financial portfolios',
-              iconText: '📊',
-              isSelected: _wizardAsset == 'SECURITIES_FINANCIAL_ASSETS',
-              onTap: () => setState(() {
-                _wizardAsset = 'SECURITIES_FINANCIAL_ASSETS';
-                _wizardStep = 3;
-              }),
+            _secondaryButton(label: '← Back to Service', onTap: () => setState(() => _wizardStep = 1)),
+            _primaryCtaButton(
+              label: 'Continue to ${service.step3Label}',
+              onTap: () {
+                setState(() => _wizardStep = 3);
+              },
             ),
           ],
         ),
-        const SizedBox(height: 28),
-        _secondaryButton(label: '← Back to Service', onTap: () => setState(() => _wizardStep = 1)),
       ],
     );
   }
 
-  Widget _assetCard({
-    required String title,
-    required String description,
-    required String iconText,
-    required bool isSelected,
-    required VoidCallback onTap,
-  }) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.all(22),
-          decoration: BoxDecoration(
-            color: isSelected ? _LandingDesignSystem.tealSubtle : _LandingDesignSystem.cardSurface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.cardBorder,
-              width: isSelected ? 1.8 : 1.0,
-            ),
-            boxShadow: isSelected ? _LandingDesignSystem.cardHoverShadow : _LandingDesignSystem.cardShadow,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(10),
-                    decoration: BoxDecoration(
-                      color: isSelected ? Colors.white : _LandingDesignSystem.bgSubtle,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Text(iconText, style: const TextStyle(fontSize: 22)),
-                  ),
-                  if (isSelected)
-                    const Icon(Icons.check_circle_rounded, size: 20, color: _LandingDesignSystem.tealBrand),
-                ],
-              ),
-              const SizedBox(height: 16),
-              Text(
-                title,
-                style: GoogleFonts.montserrat(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: isSelected ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                description,
-                style: GoogleFonts.inter(
-                  fontSize: 12.5,
-                  height: 1.45,
-                  color: _LandingDesignSystem.textSecondary,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // STEP 3: Purpose of Engagement
+  // STEP 3: Purpose / Property Type (Service-Specific Branching)
   Widget _buildWizardStep3() {
-    final purposes = [
-      {'key': 'BANK_COLLATERAL', 'title': 'Bank Collateral', 'sub': 'Mortgage & credit facility appraisal'},
-      {'key': 'VISA_IMMIGRATION', 'title': 'Visa & Immigration', 'sub': 'Embassy verified wealth documentation'},
-      {'key': 'TAX_STATUTORY', 'title': 'Tax & Statutory', 'sub': 'Capital gains & balance sheet filing'},
-      {'key': 'INTERNAL_ACCOUNTING', 'title': 'Company Asset', 'sub': 'Corporate books & regulatory audit'},
-      {'key': 'DISPUTE_RESOLUTION', 'title': 'Legal Settlement', 'sub': 'Court proceedings & family partition'},
-      {'key': 'INSURANCE', 'title': 'Insurable Value', 'sub': 'Replacement cost & reinstatement coverage'},
-    ];
+    final service = ServiceTaxonomy.parseService(_wizardService);
+    final List<Map<String, String>> options;
+    switch (service) {
+      case ServiceType.assetValuation:
+        options = ServiceTaxonomy.assetValuationPurposes;
+        break;
+      case ServiceType.netWorthCertification:
+        options = ServiceTaxonomy.netWorthPurposes;
+        break;
+      case ServiceType.technicalAssessment:
+        options = ServiceTaxonomy.technicalPropertyTypes;
+        break;
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1232,10 +1371,10 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
         Wrap(
           spacing: 16,
           runSpacing: 16,
-          children: purposes.map((p) {
+          children: options.map((p) {
             final isSel = _wizardPurpose == p['key'];
             return SizedBox(
-              width: 310,
+              width: 320,
               child: GestureDetector(
                 onTap: () => setState(() {
                   _wizardPurpose = p['key']!;
@@ -1259,12 +1398,14 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          Text(
-                            p['title']!,
-                            style: GoogleFonts.montserrat(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: isSel ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.textPrimary,
+                          Expanded(
+                            child: Text(
+                              p['title']!,
+                              style: GoogleFonts.montserrat(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: isSel ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.textPrimary,
+                              ),
                             ),
                           ),
                           if (isSel)
@@ -1284,13 +1425,15 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
           }).toList(),
         ),
         const SizedBox(height: 28),
-        _secondaryButton(label: '← Back to Asset Involved', onTap: () => setState(() => _wizardStep = 2)),
+        _secondaryButton(label: '← Back to ${service.step2Label}', onTap: () => setState(() => _wizardStep = 2)),
       ],
     );
   }
 
-  // STEP 4: Asset Details
+  // STEP 4: Details (Asset Details / Financial Details / Inspection Details)
   Widget _buildWizardStep4() {
+    final service = ServiceTaxonomy.parseService(_wizardService);
+
     InputDecoration fieldDec(String label, String hint, {String? prefix}) {
       return InputDecoration(
         labelText: label,
@@ -1317,6 +1460,173 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
       );
     }
 
+    Widget content;
+    switch (service) {
+      case ServiceType.assetValuation:
+        content = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextFormField(
+              controller: _assetNameCtrl,
+              onChanged: (_) => _onStep4FieldChanged(),
+              style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
+              decoration: fieldDec('Subject Asset / Property Name *', 'e.g. Prestige Tech Cloud, Tower 2'),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _propertyAddressCtrl,
+              onChanged: (_) => _onStep4FieldChanged(),
+              style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
+              decoration: fieldDec('Full Property Location & Address *', 'Plot/Door No, Street, Landmark'),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _cityCtrl,
+                    onChanged: (_) => _onStep4FieldChanged(),
+                    style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
+                    decoration: fieldDec('City / District *', 'e.g. Bengaluru'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextFormField(
+                    controller: _stateCtrl,
+                    onChanged: (_) => _onStep4FieldChanged(),
+                    style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
+                    decoration: fieldDec('State *', 'e.g. Karnataka'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _estimatedValueCtrl,
+              keyboardType: TextInputType.number,
+              style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
+              decoration: fieldDec('Estimated Asset Value (₹, optional)', '45000000', prefix: '₹ '),
+            ),
+          ],
+        );
+        break;
+
+      case ServiceType.netWorthCertification:
+        content = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextFormField(
+              controller: _legalNameCtrl,
+              onChanged: (_) => _onStep4FieldChanged(),
+              style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
+              decoration: fieldDec('Applicant / Entity Legal Name *', 'e.g. Ramesh Kumar Gupta / Apex Infra LLP'),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _panNumberCtrl,
+              onChanged: (_) => _onStep4FieldChanged(),
+              style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
+              decoration: fieldDec('Permanent Account Number (PAN) / Tax ID *', 'e.g. ABCDE1234F'),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _cityCtrl,
+                    onChanged: (_) => _onStep4FieldChanged(),
+                    style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
+                    decoration: fieldDec('City & State Jurisdiction *', 'e.g. Mumbai, Maharashtra'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextFormField(
+                    controller: _targetAuthorityCtrl,
+                    onChanged: (_) => _onStep4FieldChanged(),
+                    style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
+                    decoration: fieldDec('Target Authority / Embassy / Bank *', 'e.g. US Embassy / SBI'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _estimatedValueCtrl,
+              keyboardType: TextInputType.number,
+              style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
+              decoration: fieldDec('Estimated Total Net Worth (₹) *', '25000000', prefix: '₹ '),
+            ),
+          ],
+        );
+        break;
+
+      case ServiceType.technicalAssessment:
+        content = Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextFormField(
+              controller: _assetNameCtrl,
+              onChanged: (_) => _onStep4FieldChanged(),
+              style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
+              decoration: fieldDec('Project / Facility / Site Name *', 'e.g. Green Valley Solar Park & Plant'),
+            ),
+            const SizedBox(height: 16),
+            TextFormField(
+              controller: _propertyAddressCtrl,
+              onChanged: (_) => _onStep4FieldChanged(),
+              style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
+              decoration: fieldDec('Full Site Address & Landmark *', 'Survey No. 42, Industrial Zone'),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _cityCtrl,
+                    onChanged: (_) => _onStep4FieldChanged(),
+                    style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
+                    decoration: fieldDec('City / District *', 'e.g. Bengaluru, Karnataka'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextFormField(
+                    controller: _targetAuthorityCtrl,
+                    onChanged: (_) => _onStep4FieldChanged(),
+                    style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
+                    decoration: fieldDec('Lending Institution / Client Authority *', 'e.g. HDFC Consortium / RP'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: TextFormField(
+                    controller: _inspectionDateCtrl,
+                    onChanged: (_) => _onStep4FieldChanged(),
+                    style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
+                    decoration: fieldDec('Target Inspection Date / SLA *', 'e.g. Within 48 Hours / 12-Oct-2026'),
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextFormField(
+                    controller: _inspectionScopeCtrl,
+                    style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
+                    decoration: fieldDec('Inspection Scope / Defect Remarks', 'e.g. Structural stability audit, MEP defect audit'),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        );
+        break;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1328,59 +1638,13 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
             border: Border.all(color: _LandingDesignSystem.cardBorder),
             boxShadow: _LandingDesignSystem.cardShadow,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              TextFormField(
-                controller: _assetNameCtrl,
-                onChanged: (_) => _onStep4FieldChanged(),
-                style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
-                decoration: fieldDec('Subject Asset / Property Name *', 'e.g. Apex Horizon Tower 3'),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _propertyAddressCtrl,
-                onChanged: (_) => _onStep4FieldChanged(),
-                style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
-                decoration: fieldDec('Full Property Location & Address *', 'Plot/Door No, Street, Landmark'),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextFormField(
-                      controller: _cityCtrl,
-                      onChanged: (_) => _onStep4FieldChanged(),
-                      style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
-                      decoration: fieldDec('City / District *', 'e.g. Hyderabad'),
-                    ),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: TextFormField(
-                      controller: _stateCtrl,
-                      onChanged: (_) => _onStep4FieldChanged(),
-                      style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
-                      decoration: fieldDec('State *', 'e.g. Telangana'),
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: _estimatedValueCtrl,
-                keyboardType: TextInputType.number,
-                style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
-                decoration: fieldDec('Estimated Asset Value (₹)', '15000000', prefix: '₹ '),
-              ),
-            ],
-          ),
+          child: content,
         ),
         const SizedBox(height: 28),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _secondaryButton(label: '← Back to Purpose', onTap: () => setState(() => _wizardStep = 3)),
+            _secondaryButton(label: '← Back to ${service.step3Label}', onTap: () => setState(() => _wizardStep = 3)),
             if (_step4AutoAdvancing)
               Row(
                 children: [
@@ -1397,9 +1661,27 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
               _primaryCtaButton(
                 label: 'Continue to Documents',
                 onTap: () {
-                  if (_assetNameCtrl.text.trim().isEmpty || _propertyAddressCtrl.text.trim().isEmpty || _cityCtrl.text.trim().isEmpty) {
+                  bool valid = false;
+                  switch (service) {
+                    case ServiceType.assetValuation:
+                      valid = _assetNameCtrl.text.trim().isNotEmpty &&
+                          _propertyAddressCtrl.text.trim().isNotEmpty &&
+                          _cityCtrl.text.trim().isNotEmpty;
+                      break;
+                    case ServiceType.netWorthCertification:
+                      valid = _legalNameCtrl.text.trim().isNotEmpty &&
+                          _panNumberCtrl.text.trim().isNotEmpty &&
+                          _cityCtrl.text.trim().isNotEmpty;
+                      break;
+                    case ServiceType.technicalAssessment:
+                      valid = _assetNameCtrl.text.trim().isNotEmpty &&
+                          _propertyAddressCtrl.text.trim().isNotEmpty &&
+                          _cityCtrl.text.trim().isNotEmpty;
+                      break;
+                  }
+                  if (!valid) {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please provide all mandatory property details.')),
+                      const SnackBar(content: Text('Please provide all mandatory details before continuing.')),
                     );
                     return;
                   }
@@ -1412,8 +1694,9 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     );
   }
 
-  // STEP 5: Supporting Documentation
+  // STEP 5: Supporting Documentation (Service-Specific Requirements)
   Widget _buildWizardStep5() {
+    final service = ServiceTaxonomy.parseService(_wizardService);
     final slots = _getRequiredDocumentSlots();
 
     return Column(
@@ -1433,6 +1716,8 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
               ...slots.map((slot) {
                 final key = slot['key'] as String;
                 final label = slot['label'] as String;
+                final hint = slot['hint'] as String? ?? 'PDF, JPG, PNG up to 25 MB';
+                final isMandatory = slot['mandatory'] as bool? ?? false;
                 final uploaded = _wizardDocs[key];
 
                 return Container(
@@ -1457,10 +1742,25 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(label, style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textPrimary)),
+                            Row(
+                              children: [
+                                Text(label, style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textPrimary)),
+                                if (isMandatory) ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFFEF2F2),
+                                      borderRadius: BorderRadius.circular(4),
+                                    ),
+                                    child: const Text('Mandatory', style: TextStyle(fontSize: 10, fontWeight: FontWeight.w700, color: Color(0xFFDC2626))),
+                                  ),
+                                ],
+                              ],
+                            ),
                             const SizedBox(height: 3),
                             Text(
-                              uploaded != null ? '${uploaded.name} (${(uploaded.size / 1024).toStringAsFixed(1)} KB)' : 'PDF, JPG, PNG up to 25 MB',
+                              uploaded != null ? '${uploaded.name} (${(uploaded.size / 1024).toStringAsFixed(1)} KB)' : hint,
                               style: GoogleFonts.inter(fontSize: 11.5, color: _LandingDesignSystem.textSecondary),
                             ),
                           ],
@@ -1505,7 +1805,7 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            _secondaryButton(label: '← Back to Details', onTap: () => setState(() => _wizardStep = 4)),
+            _secondaryButton(label: '← Back to ${service.step4Label}', onTap: () => setState(() => _wizardStep = 4)),
             _primaryCtaButton(
               label: 'Review Your Request',
               onTap: _areAllMandatoryDocsUploaded() ? () => setState(() => _wizardStep = 6) : null,
@@ -1516,8 +1816,75 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     );
   }
 
-  // STEP 6: Review Your Request
+  // STEP 6: Review Your Request (Dedicated Service Summary)
   Widget _buildWizardStep6() {
+    final service = ServiceTaxonomy.parseService(_wizardService);
+
+    List<Widget> summaryRows;
+    switch (service) {
+      case ServiceType.assetValuation:
+        summaryRows = [
+          _summaryRow('Service Type', service.displayName),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('Asset Category', _wizardSubmenu.replaceAll('_', ' ')),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('Specific Asset Type', _wizardSubmenuItem),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('Engagement Purpose', _wizardPurpose.replaceAll('_', ' ')),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('Subject Property', _assetNameCtrl.text.isEmpty ? '—' : _assetNameCtrl.text),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('Location', '${_cityCtrl.text}, ${_stateCtrl.text}'),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('Estimated Market Value', '₹ ${_estimatedValueCtrl.text.isEmpty ? '1,50,00,000' : _estimatedValueCtrl.text}'),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('Supporting Documents', '${_wizardDocs.length} document(s) attached'),
+        ];
+        break;
+
+      case ServiceType.netWorthCertification:
+        summaryRows = [
+          _summaryRow('Service Type', service.displayName),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('Applicant Classification', _wizardSubmenu.replaceAll('_', ' ')),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('Specific Mandate', _wizardSubmenuItem),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('Certification Purpose', _wizardPurpose.replaceAll('_', ' ')),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('Applicant / Legal Name', _legalNameCtrl.text.isEmpty ? '—' : _legalNameCtrl.text),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('PAN / Tax ID', _panNumberCtrl.text.isEmpty ? '—' : _panNumberCtrl.text),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('Jurisdiction & Authority', '${_cityCtrl.text} • ${_targetAuthorityCtrl.text}'),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('Estimated Total Net Worth', '₹ ${_estimatedValueCtrl.text.isEmpty ? '2,50,00,000' : _estimatedValueCtrl.text}'),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('Supporting Documents', '${_wizardDocs.length} document(s) attached'),
+        ];
+        break;
+
+      case ServiceType.technicalAssessment:
+        summaryRows = [
+          _summaryRow('Service Type', service.displayName),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('Assessment Scope', _wizardSubmenu.replaceAll('_', ' ')),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('Specific Item', _wizardSubmenuItem),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('Property / Asset Type', _wizardPurpose.replaceAll('_', ' ')),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('Project / Site Name', _assetNameCtrl.text.isEmpty ? '—' : _assetNameCtrl.text),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('Site Location', '${_propertyAddressCtrl.text}, ${_cityCtrl.text}'),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('Client / Authority & SLA', '${_targetAuthorityCtrl.text} • ${_inspectionDateCtrl.text}'),
+          const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+          _summaryRow('Supporting Documents', '${_wizardDocs.length} document(s) attached'),
+        ];
+        break;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -1576,21 +1943,7 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
             boxShadow: _LandingDesignSystem.cardShadow,
           ),
           child: Column(
-            children: [
-              _summaryRow('Service Type', _wizardService.replaceAll('_', ' ')),
-              const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
-              _summaryRow('Asset Category', _wizardAsset.replaceAll('_', ' ')),
-              const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
-              _summaryRow('Engagement Purpose', _wizardPurpose.replaceAll('_', ' ')),
-              const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
-              _summaryRow('Subject Property', _assetNameCtrl.text.isEmpty ? '—' : _assetNameCtrl.text),
-              const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
-              _summaryRow('Location', '${_cityCtrl.text}, ${_stateCtrl.text}'),
-              const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
-              _summaryRow('Estimated Market Value', '₹ ${_estimatedValueCtrl.text.isEmpty ? '1,50,00,000' : _estimatedValueCtrl.text}'),
-              const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
-              _summaryRow('Supporting Documents', '${_wizardDocs.length} document(s) attached'),
-            ],
+            children: summaryRows,
           ),
         ),
         const SizedBox(height: 28),
@@ -1766,15 +2119,19 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
                   children: [
                     Expanded(
                       child: _emptyServiceOption(
-                        title: 'Property Valuation',
-                        desc: 'Commercial, industrial & residential asset appraisal for bank collateral.',
+                        title: ServiceType.assetValuation.displayName,
+                        desc: 'Commercial, industrial & residential asset appraisal for bank collateral & compliance.',
                         icon: Icons.business_outlined,
                         onTap: () {
                           setState(() {
                             _activeNav = _ClientNav.createReport;
-                            _wizardAsset = 'COMMERCIAL';
-                            _wizardService = 'VALUATION';
-                            _wizardStep = 1;
+                            _wizardService = ServiceType.assetValuation.code;
+                            _wizardSubmenu = 'REAL_ESTATE_VALUATION';
+                            _wizardSubmenuItem = 'Residential Property';
+                            _wizardAsset = 'REAL_ESTATE_VALUATION';
+                            _wizardPurpose = 'BANK_COLLATERAL';
+                            _wizardDocs.clear();
+                            _wizardStep = 2;
                           });
                         },
                       ),
@@ -1782,15 +2139,19 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
                     const SizedBox(width: 14),
                     Expanded(
                       child: _emptyServiceOption(
-                        title: 'Net Worth Certificate',
+                        title: ServiceType.netWorthCertification.displayName,
                         desc: 'Certified statement of personal or enterprise net assets for visa & banking.',
                         icon: Icons.account_balance_outlined,
                         onTap: () {
                           setState(() {
                             _activeNav = _ClientNav.createReport;
-                            _wizardAsset = 'NET_WORTH';
-                            _wizardService = 'NET_WORTH';
-                            _wizardStep = 1;
+                            _wizardService = ServiceType.netWorthCertification.code;
+                            _wizardSubmenu = 'INDIVIDUAL';
+                            _wizardSubmenuItem = 'Individual Net Worth';
+                            _wizardAsset = 'INDIVIDUAL';
+                            _wizardPurpose = 'VISA_IMMIGRATION';
+                            _wizardDocs.clear();
+                            _wizardStep = 2;
                           });
                         },
                       ),
@@ -1798,15 +2159,19 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
                     const SizedBox(width: 14),
                     Expanded(
                       child: _emptyServiceOption(
-                        title: 'Plant & Machinery',
-                        desc: 'Depreciation appraisal and valuation of industrial plant & equipment.',
-                        icon: Icons.precision_manufacturing_outlined,
+                        title: ServiceType.technicalAssessment.displayName,
+                        desc: 'Chartered engineer inspection, structural audits & technical assessment.',
+                        icon: Icons.engineering_outlined,
                         onTap: () {
                           setState(() {
                             _activeNav = _ClientNav.createReport;
-                            _wizardAsset = 'PLANT_AND_MACHINERY';
-                            _wizardService = 'VALUATION';
-                            _wizardStep = 1;
+                            _wizardService = ServiceType.technicalAssessment.code;
+                            _wizardSubmenu = 'PROPERTY_INSPECTION';
+                            _wizardSubmenuItem = 'Technical Due Diligence';
+                            _wizardAsset = 'PROPERTY_INSPECTION';
+                            _wizardPurpose = 'RESIDENTIAL_COMPLEX';
+                            _wizardDocs.clear();
+                            _wizardStep = 2;
                           });
                         },
                       ),
