@@ -2973,6 +2973,86 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                                               "Date: $reportDateStr",
                                               style: DesignSystem.body(color: DesignSystem.textSecondary, fontSize: 11),
                                             ),
+                                            Builder(
+                                              builder: (_) {
+                                                DateTime? dateParsed;
+                                                final dateStrRaw = order['updatedAt'] ?? order['createdAt'];
+                                                if (dateStrRaw != null) {
+                                                  dateParsed = DateTime.tryParse(dateStrRaw.toString());
+                                                }
+                                                final int elapsedHours = dateParsed != null ? DateTime.now().difference(dateParsed).inHours : 0;
+
+                                                if (statusStr == 'SPA_GATE' || statusStr == 'ACTION_NEEDED') {
+                                                  final Color bg;
+                                                  final Color fg;
+                                                  final String label;
+                                                  if (elapsedHours < 4) {
+                                                    bg = const Color(0xFFDCFCE7);
+                                                    fg = const Color(0xFF15803D);
+                                                    label = 'SPA Review: ' + elapsedHours.toString() + 'h (On Track)';
+                                                  } else if (elapsedHours < 12) {
+                                                    bg = const Color(0xFFFEF3C7);
+                                                    fg = const Color(0xFFB45309);
+                                                    label = 'SPA Review: ' + elapsedHours.toString() + 'h (Pending)';
+                                                  } else {
+                                                    bg = const Color(0xFFFEE2E2);
+                                                    fg = const Color(0xFFB91C1C);
+                                                    label = 'SPA Review: ' + elapsedHours.toString() + 'h (OVERDUE)';
+                                                  }
+                                                  return Container(
+                                                    margin: const EdgeInsets.only(top: 4),
+                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: bg,
+                                                      borderRadius: BorderRadius.circular(4),
+                                                      border: Border.all(color: fg.withOpacity(0.3)),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Icon(Icons.schedule, size: 10, color: fg),
+                                                        const SizedBox(width: 4),
+                                                        Text(
+                                                          label,
+                                                          style: GoogleFonts.montserrat(
+                                                            color: fg,
+                                                            fontSize: 9.5,
+                                                            fontWeight: FontWeight.w700,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                                } else if (statusStr == 'PAYMENT_VERIFIED' || statusStr == 'COMMON_POOL' || title.contains("UNASSIGNED")) {
+                                                  final isPoolAging = elapsedHours >= 6;
+                                                  return Container(
+                                                    margin: const EdgeInsets.only(top: 4),
+                                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                                    decoration: BoxDecoration(
+                                                      color: isPoolAging ? const Color(0xFFFEF3C7) : const Color(0xFFEFF6FF),
+                                                      borderRadius: BorderRadius.circular(4),
+                                                      border: Border.all(color: isPoolAging ? const Color(0xFFD97706) : const Color(0xFF3B82F6)),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Icon(isPoolAging ? Icons.warning_amber_rounded : Icons.campaign_rounded, size: 10, color: isPoolAging ? const Color(0xFFB45309) : const Color(0xFF1D4ED8)),
+                                                        const SizedBox(width: 4),
+                                                        Text(
+                                                          isPoolAging ? 'PA Pool: ' + elapsedHours.toString() + 'h (Stagnant - High Priority)' : 'PA Pool: ' + elapsedHours.toString() + 'h (Available)',
+                                                          style: GoogleFonts.montserrat(
+                                                            color: isPoolAging ? const Color(0xFFB45309) : const Color(0xFF1D4ED8),
+                                                            fontSize: 9.5,
+                                                            fontWeight: FontWeight.w700,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  );
+                                                }
+                                                return const SizedBox.shrink();
+                                              },
+                                            ),
                                           ],
                                         ),
                                       ),

@@ -697,6 +697,41 @@ class _ReleaseQueueCardState extends State<_ReleaseQueueCard> {
                           fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF1565C0)),
                     ),
                   ),
+                  const SizedBox(width: 8),
+                  Builder(
+                    builder: (_) {
+                      DateTime? verifiedDt;
+                      final dtStr = o['paymentVerifiedAt'] ?? o['updatedAt'] ?? o['createdAt'];
+                      if (dtStr != null) {
+                        verifiedDt = DateTime.tryParse(dtStr.toString());
+                      }
+                      final ageHours = verifiedDt != null ? DateTime.now().difference(verifiedDt).inHours : 0;
+                      final isStagnant = ageHours >= 6;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: isStagnant ? const Color(0xFFFEE2E2) : const Color(0xFFF0FDF4),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: isStagnant ? const Color(0xFFEF4444) : const Color(0xFF22C55E)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(isStagnant ? Icons.warning_amber_rounded : Icons.timer_outlined, size: 11, color: isStagnant ? const Color(0xFFDC2626) : const Color(0xFF16A34A)),
+                            const SizedBox(width: 4),
+                            Text(
+                              isStagnant ? 'STAGNANT (${ageHours}h)' : 'CLEARANCE (${ageHours}h)',
+                              style: GoogleFonts.inter(
+                                fontSize: 9.5,
+                                fontWeight: FontWeight.w700,
+                                color: isStagnant ? const Color(0xFFDC2626) : const Color(0xFF16A34A),
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
                   const SizedBox(width: 12),
                   // Reference + client
                   Expanded(
