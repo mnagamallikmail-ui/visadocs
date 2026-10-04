@@ -3,9 +3,13 @@ package com.provaluer.repository;
 import com.provaluer.model.Order;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import java.util.List;
 
 public interface OrderRepository extends JpaRepository<Order, Long> {
+    @Query("SELECT COUNT(o) FROM Order o WHERE o.isDeleted = false AND o.status IN :statuses")
+    long countByStatusIn(@Param("statuses") List<String> statuses);
+
     @Query("SELECT o FROM Order o WHERE o.clientId = :clientId AND o.isDeleted = false ORDER BY o.createdAt DESC")
     List<Order> findAllByClientId(Long clientId);
 

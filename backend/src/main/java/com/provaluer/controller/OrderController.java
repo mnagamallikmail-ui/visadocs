@@ -449,6 +449,36 @@ public class OrderController {
     }
 
     /**
+     * GET /api/v1/orders/{id}
+     * Retrieves order by ID with strict ownership verification.
+     */
+    @GetMapping("/{id}")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> getOrderById(@PathVariable Long id) {
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
+        }
+
+        Optional<Order> orderOpt = orderRepository.findById(id);
+        if (orderOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        Order order = orderOpt.get();
+
+        boolean isAdmin = principal.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
+        boolean isOwner = order.getClientId() != null && order.getClientId().equals(principal.getId());
+
+        if (!isAdmin && !isOwner) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Map.of("error", "Access Denied: Not authorized to view order #" + id));
+        }
+
+        return ResponseEntity.ok(order);
+    }
+
+    /**
      * SPRINT 2: POST /api/v1/orders/{id}/provide-quote
      * Admin issues formal valuation quotation for orders in QUOTE_PENDING status.
      * Transitions status: QUOTE_PENDING -> QUOTE_PROVIDED.

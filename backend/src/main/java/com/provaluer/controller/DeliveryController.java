@@ -96,8 +96,11 @@ public class DeliveryController {
      */
     @GetMapping({"/client/delivery/stream", "/api/v1/client/delivery/stream"})
     public ResponseEntity<byte[]> streamDeliverable(
-            @RequestParam("token") String token,
+            @RequestParam(value = "token", required = false) String token,
             HttpServletRequest httpRequest) {
+        if (token == null || token.isBlank()) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Missing required download token");
+        }
         String ip = extractClientIp(httpRequest);
         String ua = httpRequest.getHeader(HttpHeaders.USER_AGENT);
         DeliveryService.StreamResult streamResult = deliveryService.streamDeliverable(token, ip, ua);

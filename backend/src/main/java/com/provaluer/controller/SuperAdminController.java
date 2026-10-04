@@ -650,8 +650,20 @@ public class SuperAdminController {
         Map<String, Object> stats = new HashMap<>();
         stats.put("totalUsers", userRepository.findAllActive().size());
         stats.put("totalOrders", orderRepository.count());
-        stats.put("openOrders", orderRepository.findAllByStatus("PAID_INTAKE").size()
-                + orderRepository.findAllByStatus("ASSIGNED").size());
+        List<String> openStatuses = List.of(
+                "QUOTE_PENDING",
+                "QUOTE_PROVIDED",
+                "PAYMENT_SUBMITTED",
+                "PAYMENT_VERIFIED",
+                "PAID_INTAKE",
+                "ASSIGNED",
+                "INSPECTION_SCHEDULED",
+                "INSPECTION_COMPLETED",
+                "DRAFTING",
+                "SPA_REVIEW",
+                "SPA_GATE"
+        );
+        stats.put("openOrders", orderRepository.countByStatusIn(openStatuses));
         stats.put("spaGateOrders", orderRepository.findAllByStatus("SPA_GATE").size());
         stats.put("finalDeliveryOrders", orderRepository.findAllByStatus("FINAL_DELIVERY").size());
         stats.put("activeTemplates", templateRepository.findAllByIsActive("Y").size());

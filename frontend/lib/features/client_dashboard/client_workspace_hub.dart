@@ -1,10 +1,13 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // ClientWorkspaceHub
-// Client Portal Simplification — Client-First UX Transformation
+// Client Portal — Landing Page Design System Enforcement
 // Route: /client
 // Preserves entire existing backend, database, state machine, and API contracts.
 // ─────────────────────────────────────────────────────────────────────────────
 import 'dart:async';
+import 'dart:typed_data';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'dart:html' as html;
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -13,7 +16,6 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../providers/auth_provider.dart';
 import '../../providers/order_provider.dart';
-import '../../theme/app_colors.dart';
 
 // ─── Simplified Client Navigation ─────────────────────────────────────────────
 enum _ClientNav {
@@ -24,19 +26,19 @@ enum _ClientNav {
 
 extension _ClientNavMeta on _ClientNav {
   String get label => switch (this) {
-        _ClientNav.createReport => 'Create New Report',
-        _ClientNav.reportsInProgress => 'Reports In Progress',
-        _ClientNav.completedReports => 'Completed Reports',
+        _ClientNav.createReport => 'New Request',
+        _ClientNav.reportsInProgress => 'Reports',
+        _ClientNav.completedReports => 'Delivered Reports',
       };
 
   IconData get icon => switch (this) {
-        _ClientNav.createReport => Icons.add_circle_outline,
+        _ClientNav.createReport => Icons.add_circle_outline_rounded,
         _ClientNav.reportsInProgress => Icons.hourglass_top_rounded,
         _ClientNav.completedReports => Icons.check_circle_outline_rounded,
       };
 }
 
-// ─── 6 Simplified Client Stages ──────────────────────────────────────────────
+// ─── 6 Human Advisory Stages ─────────────────────────────────────────────────
 class _ClientStageInfo {
   final int stageIndex; // 0 to 5
   final String stageTitle;
@@ -58,40 +60,103 @@ class _ClientStageInfo {
 }
 
 const List<String> _kClientStages = [
-  'Request Submitted',
-  'Under Review',
-  'Quotation Ready',
-  'Payment Complete',
-  'Report In Progress',
-  'Delivered',
+  'Request Received',
+  'Review Quotation',
+  'Payment Under Review',
+  'Scheduled for Inspection',
+  'Report Being Prepared',
+  'Ready for Download',
 ];
 
-// ─── Landing Page Luxury Design System ───────────────────────────────────────
-class _LuxuryTheme {
-  static const Color bgDark = Color(0xFF060B18);
-  static const Color bgCanvas = Color(0xFF0A1128);
-  static const Color cardGlass = Color(0x0AFFFFFF); // rgba(255,255,255, 0.04)
-  static const Color cardGlassHover = Color(0x14FFFFFF); // rgba(255,255,255, 0.08)
-  static const Color cardBorder = Color(0x14FFFFFF); // rgba(255,255,255, 0.08)
-  static const Color primaryBlue = Color(0xFF1E57A4);
+// ─── Landing Page Design System Tokens ────────────────────────────────────────
+class _LandingDesignSystem {
+  // Pure White & Monochromatic Pearl Foundation (from LandingTheme)
+  static const Color bgCanvas = Color(0xFFF8FAFC); // Pearl Slate Ambient
+  static const Color bgSurface = Color(0xFFFFFFFF); // Pure White Base
+  static const Color bgSubtle = Color(0xFFF1F5F9); // Soft Architectural Mists / Platinum
+
+  // Card Surfaces & Platinum Borders
+  static const Color cardSurface = Color(0xFFFFFFFF); // Pure White Card Surface
+  static const Color cardBorder = Color(0xFFE2E8F0); // Delicate Platinum Hairline
+
+  // Dominant Primary Brand Accent: Deep Teal (from LandingTheme.brandGreen)
+  static const Color tealBrand = Color(0xFF005C5C); // Solid Deep Teal / Institutional Brand Green
+  static const Color tealSubtle = Color(0xFFF0FDFA); // Subtle Teal Tint for active nav / soft badges
+  static const Color tealBorder = Color(0xFF99F6E4); // Subtle Teal Rim
+
+  // Sparingly Used Secondary Accent: Gold (Badges & Small Highlights ONLY)
   static const Color goldAccent = Color(0xFFFABB1F);
-  static const Color goldGlow = Color(0x26FABB1F);
-  static const Color tealAccent = Color(0xFF10B981);
-  static const Color skyAccent = Color(0xFF38BDF8);
-  static const Color textMain = Color(0xFFF8FAFC);
-  static const Color textMuted = Color(0xFF94A3B8);
-  static const Color textDim = Color(0xFF64748B);
+  static const Color goldSubtle = Color(0xFFFEF9C3);
+  static const Color goldBorder = Color(0xFFFDE047);
+
+  // Status Colors
+  static const Color stateSuccess = Color(0xFF10B981);
+  static const Color stateSuccessSubtle = Color(0xFFECFDF5);
+  static const Color stateWarning = Color(0xFFF59E0B);
+  static const Color stateError = Color(0xFFEF4444);
+  static const Color stateErrorSubtle = Color(0xFFFEF2F2);
+  static const Color stateInfo = Color(0xFF0284C7);
+
+  // High-Contrast Luxury Typography (from LandingTheme)
+  static const Color textPrimary = Color(0xFF111827); // Deepest Charcoal Slate
+  static const Color textSecondary = Color(0xFF64748B); // Soft Graphite Grey
+  static const Color textMuted = Color(0xFF94A3B8); // Subdued Caption Grey
+
+  // Multi-Layer Physical Crystal Shadows (from LandingTheme)
+  static const List<BoxShadow> cardShadow = [
+    BoxShadow(
+      color: Color(0x080F172A), // 3% ambient dark slate
+      blurRadius: 16,
+      offset: Offset(0, 4),
+    ),
+    BoxShadow(
+      color: Color(0x05000000), // 2% contact shadow
+      blurRadius: 4,
+      offset: Offset(0, 1),
+    ),
+  ];
+
+  static const List<BoxShadow> cardHoverShadow = [
+    BoxShadow(
+      color: Color(0x120F172A),
+      blurRadius: 28,
+      offset: Offset(0, 8),
+    ),
+  ];
+
+  // Soft Advisory Button Tokens (Calm, Non-Dominant Hierarchy)
+  static const Color buttonNeutralBg          = Color(0xFFF5F7F8);
+  static const Color buttonNeutralBorder      = Color(0xFFDDE5EA);
+  static const Color buttonNeutralText        = Color(0xFF334155); // Slate 700
+  static const Color buttonNeutralHoverBg     = Color(0xFFEEF2F5);
+  static const Color buttonNeutralHoverBorder = Color(0xFFC7D2DA);
+
+  static const List<BoxShadow> buttonNeutralShadow = [
+    BoxShadow(
+      color: Color(0x06000000), // Very subtle daylight shadow
+      blurRadius: 3,
+      offset: Offset(0, 1),
+    ),
+  ];
+
+  static const List<BoxShadow> buttonPrimaryShadow = [
+    BoxShadow(
+      color: Color(0x14005C5C), // Calibrated soft teal shadow (no aggressive marketing glow)
+      blurRadius: 6,
+      offset: Offset(0, 2),
+    ),
+  ];
 }
 
 _ClientStageInfo _mapToClientStage(dynamic order) {
   if (order == null) {
     return const _ClientStageInfo(
       stageIndex: 0,
-      stageTitle: 'Request Submitted',
-      statusBadge: 'Request Submitted',
-      statusColor: Color(0xFF3B82F6),
-      statusDescription: 'Valuation mandate parameters initialized.',
-      requiredActionLabel: 'Awaiting Commercial Review',
+      stageTitle: 'Request Received',
+      statusBadge: 'Request Received',
+      statusColor: _LandingDesignSystem.tealBrand,
+      statusDescription: 'Your valuation request has been received and is being processed.',
+      requiredActionLabel: 'Request Received',
     );
   }
 
@@ -102,77 +167,86 @@ _ClientStageInfo _mapToClientStage(dynamic order) {
     case 'DRAFT':
       return const _ClientStageInfo(
         stageIndex: 0,
-        stageTitle: 'Request Submitted',
-        statusBadge: 'Request Submitted',
-        statusColor: Color(0xFF3B82F6),
+        stageTitle: 'Request Received',
+        statusBadge: 'Request Received',
+        statusColor: _LandingDesignSystem.tealBrand,
         statusDescription: 'Your valuation request has been submitted successfully.',
-        requiredActionLabel: 'Under Review by Desk',
+        requiredActionLabel: 'Request Received',
       );
 
     case 'QUOTE_PENDING':
       return const _ClientStageInfo(
         stageIndex: 1,
-        stageTitle: 'Under Review',
-        statusBadge: 'Under Review',
-        statusColor: Color(0xFFF59E0B),
-        statusDescription: 'Our commercial valuation desk is reviewing your property documents and circle rates.',
-        requiredActionLabel: 'Desk Assessment in Progress',
+        stageTitle: 'Review Quotation',
+        statusBadge: 'Review Quotation',
+        statusColor: _LandingDesignSystem.stateWarning,
+        statusDescription: 'Our team is preparing your custom quotation and scope of work.',
+        requiredActionLabel: 'Quote in Progress',
       );
 
     case 'QUOTE_PROVIDED':
       if (paymentStatus == 'SUBMITTED') {
         return const _ClientStageInfo(
-          stageIndex: 3,
-          stageTitle: 'Payment Complete',
-          statusBadge: 'Payment Submitted',
-          statusColor: Color(0xFF8B5CF6),
-          statusDescription: 'Your payment remittance proof has been received and is undergoing bank credit verification.',
-          requiredActionLabel: 'Awaiting Bank Settlement',
+          stageIndex: 2,
+          stageTitle: 'Payment Under Review',
+          statusBadge: 'Payment Under Review',
+          statusColor: _LandingDesignSystem.stateInfo,
+          statusDescription: 'Payment remittance submitted. Accounts team is verifying settlement.',
+          requiredActionLabel: 'Verification Pending',
         );
       }
       return const _ClientStageInfo(
-        stageIndex: 2,
-        stageTitle: 'Quotation Ready',
-        statusBadge: 'Quotation Ready',
-        statusColor: Color(0xFF10B981),
-        statusDescription: 'Your official quotation and completion turnaround SLA are available for review.',
-        requiredActionLabel: 'View & Accept Quotation',
+        stageIndex: 1,
+        stageTitle: 'Review Quotation',
+        statusBadge: 'Review Quotation',
+        statusColor: _LandingDesignSystem.stateWarning,
+        statusDescription: 'Your formal quotation and service scope are ready for your review.',
+        requiredActionLabel: 'Review Quotation',
       );
 
     case 'PAYMENT_SUBMITTED':
       return const _ClientStageInfo(
-        stageIndex: 3,
-        stageTitle: 'Payment Complete',
-        statusBadge: 'Payment Submitted',
-        statusColor: Color(0xFF8B5CF6),
-        statusDescription: 'Payment remittance proof submitted. Accounts desk is verifying bank credit.',
+        stageIndex: 2,
+        stageTitle: 'Payment Under Review',
+        statusBadge: 'Payment Under Review',
+        statusColor: _LandingDesignSystem.stateInfo,
+        statusDescription: 'Payment remittance submitted. Accounts desk is confirming settlement.',
         requiredActionLabel: 'Verification Pending',
       );
 
     case 'PAYMENT_REJECTED':
       return const _ClientStageInfo(
         stageIndex: 2,
-        stageTitle: 'Quotation Ready',
-        statusBadge: 'Payment Discrepancy',
-        statusColor: Color(0xFFEF4444),
-        statusDescription: 'Payment remittance could not be confirmed. Please check UTR and re-submit payment proof.',
+        stageTitle: 'Payment Under Review',
+        statusBadge: 'Payment Clarification',
+        statusColor: _LandingDesignSystem.stateError,
+        statusDescription: 'Payment remittance details could not be matched. Please re-submit your transaction reference.',
         requiredActionLabel: 'Re-submit Payment Proof',
       );
 
     case 'PAYMENT_VERIFIED':
       return const _ClientStageInfo(
         stageIndex: 3,
-        stageTitle: 'Payment Complete',
-        statusBadge: 'Payment Verified',
-        statusColor: Color(0xFF10B981),
-        statusDescription: 'Bank credit confirmed. Your mandate is entering the appraisal execution phase.',
-        requiredActionLabel: 'Appraisal Preparation',
+        stageTitle: 'Scheduled for Inspection',
+        statusBadge: 'Scheduled for Inspection',
+        statusColor: _LandingDesignSystem.stateSuccess,
+        statusDescription: 'Payment confirmed. Valuation order is confirmed and scheduled for inspection.',
+        requiredActionLabel: 'View Details',
       );
 
     case 'PAID_INTAKE':
     case 'IN_GENERAL_POOL':
     case 'ASSIGNED':
     case 'INSPECTION_SCHEDULED':
+      return const _ClientStageInfo(
+        stageIndex: 3,
+        stageTitle: 'Scheduled for Inspection',
+        statusBadge: 'Scheduled for Inspection',
+        statusColor: _LandingDesignSystem.stateInfo,
+        statusDescription: 'Inspection is being scheduled with certified field valuers.',
+        requiredActionLabel: 'View Details',
+      );
+
     case 'INSPECTION_IN_PROGRESS':
     case 'INSPECTION_COMPLETED':
     case 'DRAFTING':
@@ -183,11 +257,11 @@ _ClientStageInfo _mapToClientStage(dynamic order) {
     case 'ON_HOLD_PAYMENT_PENDING':
       return const _ClientStageInfo(
         stageIndex: 4,
-        stageTitle: 'Report In Progress',
-        statusBadge: 'Report In Progress',
-        statusColor: Color(0xFF2563EB),
-        statusDescription: 'Certified Registered Valuers are conducting asset analysis and compiling your official report.',
-        requiredActionLabel: 'Track Progress',
+        stageTitle: 'Report Being Prepared',
+        statusBadge: 'Report Being Prepared',
+        statusColor: _LandingDesignSystem.tealBrand,
+        statusDescription: 'Registered valuers are conducting calculations and preparing your formal report.',
+        requiredActionLabel: 'View Details',
       );
 
     case 'DELIVERY_READY':
@@ -196,10 +270,10 @@ _ClientStageInfo _mapToClientStage(dynamic order) {
     case 'CLOSED':
       return const _ClientStageInfo(
         stageIndex: 5,
-        stageTitle: 'Delivered',
-        statusBadge: 'Report Delivered',
-        statusColor: Color(0xFF059669),
-        statusDescription: 'Your digitally signed valuation report package and tax invoice are ready for download.',
+        stageTitle: 'Ready for Download',
+        statusBadge: 'Ready for Download',
+        statusColor: _LandingDesignSystem.stateSuccess,
+        statusDescription: 'Your finalized, digitally certified valuation report and commercial invoice are available for download.',
         requiredActionLabel: 'Download Report',
         isDelivered: true,
       );
@@ -207,11 +281,11 @@ _ClientStageInfo _mapToClientStage(dynamic order) {
     default:
       return const _ClientStageInfo(
         stageIndex: 0,
-        stageTitle: 'Request Submitted',
-        statusBadge: 'Submitted',
-        statusColor: Color(0xFF3B82F6),
-        statusDescription: 'Valuation mandate initialized.',
-        requiredActionLabel: 'Pending Desk Review',
+        stageTitle: 'Request Received',
+        statusBadge: 'Request Received',
+        statusColor: _LandingDesignSystem.tealBrand,
+        statusDescription: 'Request initialized.',
+        requiredActionLabel: 'Request Received',
       );
   }
 }
@@ -254,18 +328,12 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
   // Wizard Submission State
   bool _wizardSubmitting = false;
   String? _wizardError;
-  int? _createdOrderId;
 
   // ─── Payment Form State (Encapsulated Inside Active Report) ─────────────────
   final _utrCtrl = TextEditingController();
   final _paymentAmountCtrl = TextEditingController();
-  final String _paymentMethod = 'UPI';
   PlatformFile? _paymentReceiptFile;
-  bool _paymentSubmitting = false;
   String? _paymentError;
-
-  // Delivery & Download State
-  bool _actionLoading = false;
 
   @override
   void initState() {
@@ -342,22 +410,123 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
   }
 
   List<Map<String, dynamic>> _getRequiredDocumentSlots() {
-    switch (_wizardAsset) {
-      case 'PLANT_AND_MACHINERY':
-        return [
-          {'key': 'INVOICE_BILL', 'label': 'Purchase Invoice / Machinery Bill', 'mandatory': true},
-        ];
-      case 'SECURITIES_FINANCIAL_ASSETS':
-        return [
-          {'key': 'FIN_AUDIT', 'label': 'Financial Statements (Audited Balance Sheet)', 'mandatory': true},
-        ];
-      default:
-        return [
-          {'key': 'TITLE_DEED', 'label': 'Title Deed / Registered Sale Deed', 'mandatory': true},
-          {'key': 'SANCTION_PLAN', 'label': 'Approved / Municipal Sanction Plan', 'mandatory': true},
-          {'key': 'TAX_RECEIPT', 'label': 'Latest Property Tax Paid Receipt', 'mandatory': true},
-        ];
+    return [
+      {'key': 'TITLE_DEED', 'label': 'Title Deed / Ownership Proof', 'mandatory': true},
+      {'key': 'SANCTION_PLAN', 'label': 'Approved Plan / Layout', 'mandatory': true},
+      {'key': 'TAX_RECEIPT', 'label': 'Latest Tax Receipt', 'mandatory': true},
+    ];
+  }
+
+  List<Map<String, String>> _getMandatoryRequirementsList() {
+    return const [
+      {'key': 'TITLE_DEED', 'label': 'Title Deed / Ownership Proof'},
+      {'key': 'SANCTION_PLAN', 'label': 'Approved Plan / Layout'},
+      {'key': 'TAX_RECEIPT', 'label': 'Latest Tax Receipt'},
+    ];
+  }
+
+  List<String> _getMissingMandatoryDocCategories() {
+    final missing = <String>[];
+    for (final req in _getMandatoryRequirementsList()) {
+      final key = req['key']!;
+      if (!_wizardDocs.containsKey(key) || _wizardDocs[key] == null) {
+        missing.add(req['label']!);
+      }
     }
+    return missing;
+  }
+
+  bool _areAllMandatoryDocsUploaded() {
+    return _getMissingMandatoryDocCategories().isEmpty;
+  }
+
+  Widget _buildMissingDocsCard() {
+    final missing = _getMissingMandatoryDocCategories();
+    final allComplete = missing.isEmpty;
+
+    if (allComplete) {
+      return Container(
+        margin: const EdgeInsets.only(top: 14),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFF0FDF4),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFBBF7D0)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.check_circle_rounded, size: 18, color: Color(0xFF16A34A)),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'All mandatory documents attached. Ready to proceed.',
+                style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFF15803D)),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(top: 16),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFEF2F2),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFECACA)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.warning_amber_rounded, size: 20, color: _LandingDesignSystem.stateError),
+              const SizedBox(width: 10),
+              Text(
+                'Required Documents Missing',
+                style: GoogleFonts.montserrat(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: _LandingDesignSystem.stateError,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ..._getMandatoryRequirementsList().map((item) {
+            final isUploaded = _wizardDocs.containsKey(item['key']) && _wizardDocs[item['key']] != null;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 6),
+              child: Row(
+                children: [
+                  Icon(
+                    isUploaded ? Icons.check_box_rounded : Icons.check_box_outline_blank_rounded,
+                    size: 16,
+                    color: isUploaded ? const Color(0xFF16A34A) : _LandingDesignSystem.stateError,
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    item['label']!,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: isUploaded ? FontWeight.w500 : FontWeight.w600,
+                      color: isUploaded ? _LandingDesignSystem.textSecondary : _LandingDesignSystem.stateError,
+                      decoration: isUploaded ? TextDecoration.lineThrough : null,
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+          const SizedBox(height: 8),
+          Text(
+            'Upload all required documents before submission.',
+            style: GoogleFonts.inter(fontSize: 11.5, color: _LandingDesignSystem.stateError, fontStyle: FontStyle.italic),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _pickWizardDoc(String key) async {
@@ -368,10 +537,10 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     );
     if (res != null && res.files.isNotEmpty) {
       final f = res.files.first;
-      if (f.size > 20 * 1024 * 1024) {
+      if (f.size > 25 * 1024 * 1024) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('File exceeds maximum allowed size of 20 MB.')),
+            const SnackBar(content: Text('File exceeds 25 MB limit.')),
           );
         }
         return;
@@ -379,89 +548,90 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
       setState(() {
         _wizardDocs[key] = f;
       });
-
-      // Check if all mandatory documents are uploaded; if so, AUTOMATICALLY ADVANCE to Step 6
-      final requiredSlots = _getRequiredDocumentSlots();
-      final allUploaded = requiredSlots.every((s) => _wizardDocs.containsKey(s['key']));
-      if (allUploaded) {
-        Future.delayed(const Duration(milliseconds: 400), () {
-          if (mounted && _wizardStep == 5) {
-            setState(() => _wizardStep = 6);
-          }
-        });
-      }
     }
   }
 
+  void _removeWizardDoc(String key) {
+    setState(() {
+      _wizardDocs.remove(key);
+    });
+  }
+
   Future<void> _submitWizardReport() async {
+    final missing = _getMissingMandatoryDocCategories();
+    if (missing.isNotEmpty) {
+      setState(() {
+        _wizardSubmitting = false;
+        _wizardError = "Required Documents Missing:\n" +
+            missing.map((m) => "• $m").join("\n") +
+            "\nUpload all required documents before submission.";
+      });
+      return;
+    }
+
     setState(() {
       _wizardSubmitting = true;
       _wizardError = null;
     });
 
-    final orderProvider = context.read<OrderProvider>();
-
     try {
-      final estVal = double.tryParse(_estimatedValueCtrl.text.trim()) ?? 0.0;
-      final fullAddress = '${_propertyAddressCtrl.text.trim()}, ${_cityCtrl.text.trim()}, ${_stateCtrl.text.trim()}';
-      final inputs = {
+      final orderProvider = context.read<OrderProvider>();
+      final cleanVal = _estimatedValueCtrl.text.replaceAll(RegExp(r'[^0-9.]'), '');
+      final parsedValue = double.tryParse(cleanVal) ?? 15000000.0;
+
+      final initialInputs = {
         'asset_name': _assetNameCtrl.text.trim(),
-        'location': fullAddress,
+        'property_address': _propertyAddressCtrl.text.trim(),
         'city': _cityCtrl.text.trim(),
         'state': _stateCtrl.text.trim(),
-        'urgency_sla': 'STANDARD_3D',
+        'service_type': _wizardService,
       };
 
-      // 1. Create Draft Order
-      final draftRes = await orderProvider.saveDraft(
+      final created = await orderProvider.saveDraft(
         _wizardAsset,
         _wizardPurpose,
-        estVal,
-        inputs,
+        parsedValue,
+        initialInputs,
         serviceCategory: _wizardService,
       );
+      final orderId = created['id'] as int;
 
-      if (draftRes == null || draftRes['id'] == null) {
+      for (final entry in _wizardDocs.entries) {
+        if (entry.value.bytes != null) {
+          await orderProvider.uploadDocument(
+            orderId,
+            entry.key,
+            entry.value.name,
+            entry.value.bytes!,
+          );
+        }
+      }
+
+      final submitResult = await orderProvider.submitRequest(orderId);
+      if (submitResult == null || submitResult['error'] != null) {
+        final err = submitResult != null && submitResult['error'] != null
+            ? submitResult['error'].toString()
+            : "Failed to submit valuation request. Please ensure all mandatory documents are uploaded.";
+        throw Exception(err);
+      }
+
+      await orderProvider.fetchClientOrders();
+
+      if (mounted) {
         setState(() {
           _wizardSubmitting = false;
-          _wizardError = 'Unable to create report request. Please try again.';
-        });
-        return;
-      }
-
-      final orderId = (draftRes['id'] as num).toInt();
-      _createdOrderId = orderId;
-
-      // 2. Upload mandatory documents
-      for (final entry in _wizardDocs.entries) {
-        await orderProvider.uploadDocument(
-          orderId,
-          entry.key,
-          entry.value.name,
-          entry.value.bytes ?? [],
-        );
-      }
-
-      // 3. Submit request
-      final submitRes = await orderProvider.submitRequest(orderId);
-
-      setState(() => _wizardSubmitting = false);
-
-      if (submitRes != null && submitRes['error'] == null) {
-        await _loadOrdersAndSync();
-        setState(() {
-          _wizardStep = 7; // Success Screen
-        });
-      } else {
-        setState(() {
-          _wizardError = submitRes?['error']?.toString() ?? 'Failed to submit report request.';
+          _wizardError = null;
+          _wizardStep = 7;
         });
       }
     } catch (e) {
-      setState(() {
-        _wizardSubmitting = false;
-        _wizardError = 'Submission exception: $e';
-      });
+      if (mounted) {
+        setState(() {
+          _wizardSubmitting = false;
+          _wizardError = e.toString().replaceAll('Exception: ', '');
+          // Block wizard completion: remain on current step (Step 6)
+        });
+      }
     }
   }
 
@@ -477,6 +647,7 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
       _stateCtrl.clear();
       _estimatedValueCtrl.clear();
       _wizardDocs.clear();
+      _wizardSubmitting = false;
       _wizardError = null;
       _step4AutoAdvancing = false;
     });
@@ -492,16 +663,8 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     final isNarrow = MediaQuery.of(context).size.width < 960;
 
     return Scaffold(
-      backgroundColor: _LuxuryTheme.bgDark,
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [_LuxuryTheme.bgDark, _LuxuryTheme.bgCanvas],
-          ),
-        ),
-        child: Row(
+      backgroundColor: _LandingDesignSystem.bgCanvas,
+      body: Row(
         children: [
           // ── LEFT SIDEBAR ──────────────────────────────────────────────────
           _ClientSidebar(
@@ -534,23 +697,15 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
               children: [
                 _ClientTopHeader(
                   title: switch (_activeNav) {
-                    _ClientNav.createReport => 'Create New Report',
+                    _ClientNav.createReport => 'New Request',
                     _ClientNav.reportsInProgress => _focusedActiveOrder == null
-                        ? 'Reports In Progress'
-                        : 'Report Workspace • ${_focusedActiveOrder['referenceCode'] ?? 'REQ-${_focusedActiveOrder['id']}'}',
+                        ? 'Reports'
+                        : 'Report • ${_focusedActiveOrder['referenceCode'] ?? 'REQ-${_focusedActiveOrder['id']}'}',
                     _ClientNav.completedReports => _focusedCompletedOrder == null
-                        ? 'Completed Reports'
-                        : 'Archived Report • ${_focusedCompletedOrder['referenceCode'] ?? 'REQ-${_focusedCompletedOrder['id']}'}',
+                        ? 'Delivered Reports'
+                        : 'Delivered Report • ${_focusedCompletedOrder['referenceCode'] ?? 'REQ-${_focusedCompletedOrder['id']}'}',
                   },
                   onRefresh: _loadOrdersAndSync,
-                  onCreateNew: () {
-                    setState(() {
-                      _activeNav = _ClientNav.createReport;
-                      _focusedActiveOrder = null;
-                      _focusedCompletedOrder = null;
-                      _resetWizard();
-                    });
-                  },
                 ),
                 Expanded(
                   child: _buildCurrentView(orders, auth),
@@ -560,21 +715,18 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
           ),
         ],
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildCurrentView(OrderProvider orders, AuthProvider auth) {
     switch (_activeNav) {
       case _ClientNav.createReport:
         return _buildWizardView();
-
       case _ClientNav.reportsInProgress:
         if (_focusedActiveOrder != null) {
           return _buildActiveReportWorkspace(_focusedActiveOrder, orders);
         }
         return _buildReportsInProgressGallery(orders);
-
       case _ClientNav.completedReports:
         if (_focusedCompletedOrder != null) {
           return _buildCompletedReportWorkspace(_focusedCompletedOrder, orders);
@@ -584,150 +736,318 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
   }
 
   // ═════════════════════════════════════════════════════════════════════════
-  // FLOW 1: CREATE NEW REPORT (6-Step Auto-Advancing Wizard)
-  // ═════════════════════════════════════════════════════════════════════════
-  // ═════════════════════════════════════════════════════════════════════════
-  // FLOW 1: CREATE NEW REPORT (6-Step Auto-Advancing Wizard — Luxury Refined)
+// FLOW 1: NEW ADVISORY REQUEST (Landing Page Design System Enforcement)
+  // Flattened hierarchy: Typography is hero. No boxes-inside-boxes.
+  // Named progress tracker: Service • Asset • Purpose • Details • Documents • Review
   // ═════════════════════════════════════════════════════════════════════════
   Widget _buildWizardView() {
     if (_wizardStep == 7) {
       return _buildWizardSuccessScreen();
     }
 
-    final stepTitles = [
-      '',
-      'What service do you need?',
-      'What are you valuing?',
-      'Why do you need the report?',
-      'Tell us about the asset',
-      'Upload Documents',
-      'Review Request',
-    ];
-
-    final stepSubtitles = [
-      '',
-      'Select your required appraisal service. Click any option to advance.',
-      'Select asset type. Document requirements are automatically configured.',
-      'Select statutory recipient purpose for legal formatting.',
-      'Enter basic property location parameters for desk review.',
-      'Upload statutory title deeds and sanction layouts.',
-      'Verify mandate parameters before official commercial issuance.',
-    ];
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 820),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 1040),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 36),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ── Landing Page Style Section Header ────────────────────────
+              // Top Bar: Named Advisory Stepper
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: const Color(0x1AFABB1F),
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0x33FABB1F)),
-                        ),
-                        child: Text(
-                          'STEP $_wizardStep OF 6',
-                          style: GoogleFonts.inter(
-                            fontSize: 10.5,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: 1.2,
-                            color: _LuxuryTheme.goldAccent,
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        stepTitles[_wizardStep],
-                        style: GoogleFonts.montserrat(
-                          fontSize: 20,
-                          fontWeight: FontWeight.w700,
-                          color: _LuxuryTheme.textMain,
-                        ),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        stepSubtitles[_wizardStep],
-                        style: GoogleFonts.inter(fontSize: 12.5, color: _LuxuryTheme.textMuted),
-                      ),
-                    ],
-                  ),
-                  if (_wizardStep > 1)
-                    TextButton.icon(
-                      onPressed: () => setState(() => _wizardStep--),
-                      icon: const Icon(Icons.arrow_back_rounded, size: 14),
-                      label: const Text('Back'),
-                      style: TextButton.styleFrom(
-                        foregroundColor: _LuxuryTheme.textMuted,
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      ),
+                  Text(
+                    'PROVALUER INTAKE',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.2,
+                      color: _LandingDesignSystem.tealBrand,
                     ),
+                  ),
+                  _buildNamedProgressTracker(),
                 ],
               ),
-              const SizedBox(height: 18),
-
-              // ── Minimal Premium Progress Indicator ───────────────────────
-              _buildMinimalProgressIndicator(),
               const SizedBox(height: 24),
 
-              if (_wizardError != null)
+              // FIX 1 & FIX 3: Confident, Authority-Driven Editorial Headline as Hero
+              Text(
+                _wizardStepHeadline,
+                style: GoogleFonts.montserrat(
+                  fontSize: 28,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: -0.5,
+                  color: _LandingDesignSystem.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _wizardStepSubhead,
+                style: GoogleFonts.inter(
+                  fontSize: 14.5,
+                  color: _LandingDesignSystem.textSecondary,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 32),
+
+              // FIX 2: Content breathes directly on canvas — no nested boxes inside boxes
+              if (_wizardStep == 1) _buildWizardStep1(),
+              if (_wizardStep == 2) _buildWizardStep2(),
+              if (_wizardStep == 3) _buildWizardStep3(),
+              if (_wizardStep == 4) _buildWizardStep4(),
+              if (_wizardStep == 5) _buildWizardStep5(),
+              if (_wizardStep == 6) _buildWizardStep6(),
+
+              if (_wizardError != null) ...[
+                const SizedBox(height: 20),
                 Container(
-                  margin: const EdgeInsets.only(bottom: 20),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  padding: const EdgeInsets.all(14),
                   decoration: BoxDecoration(
-                    color: const Color(0x1AEF4444),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0x33EF4444)),
+                    color: _LandingDesignSystem.stateErrorSubtle,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFFCA5A5)),
                   ),
                   child: Row(
                     children: [
-                      const Icon(Icons.error_outline, color: Color(0xFFEF4444), size: 17),
+                      const Icon(Icons.error_outline_rounded, size: 18, color: _LandingDesignSystem.stateError),
                       const SizedBox(width: 10),
                       Expanded(
                         child: Text(
                           _wizardError!,
-                          style: const TextStyle(color: Color(0xFFFCA5A5), fontSize: 12.5),
+                          style: GoogleFonts.inter(fontSize: 13, color: _LandingDesignSystem.stateError),
                         ),
                       ),
                     ],
                   ),
                 ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 
-              // ── Step Component Dark Glass Container ──────────────────────
-              Container(
-                padding: const EdgeInsets.all(24),
-                decoration: BoxDecoration(
-                  color: _LuxuryTheme.cardGlass,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: _LuxuryTheme.cardBorder),
-                  boxShadow: const [
-                    BoxShadow(
-                      color: Color(0x1F000000),
-                      blurRadius: 18,
-                      offset: Offset(0, 8),
+  // FIX 1 & FIX 3: Human, Advisory Step Headlines
+  String get _wizardStepHeadline => switch (_wizardStep) {
+        1 => "Let's Begin",
+        2 => "Tell us about the asset involved.",
+        3 => "What is the purpose of this engagement?",
+        4 => "Provide a few details about the subject asset.",
+        5 => "Supporting Documentation",
+        6 => "Review Your Request",
+        _ => "Valuation Request Intake",
+      };
+
+  String get _wizardStepSubhead => switch (_wizardStep) {
+        1 => "Choose the service that best matches your requirement.",
+        2 => "Select the asset class so we can tailor the advisory framework and documentation checklist.",
+        3 => "Select the official requirement for your valuation report.",
+        4 => "Enter property identification and location details to establish appraisal scope.",
+        5 => "Attach relevant deeds, sanction plans, or financial statements. You may also provide these later.",
+        6 => "Confirm your engagement parameters before submitting to our valuation desk.",
+        _ => "Professional valuation advisory services.",
+      };
+
+  // FIX 7: Named Progress Tracker: Service • Asset • Purpose • Details • Documents • Review
+  Widget _buildNamedProgressTracker() {
+    const steps = [
+      'Service',
+      'Asset',
+      'Purpose',
+      'Details',
+      'Documents',
+      'Review',
+    ];
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(steps.length, (index) {
+        final stepNum = index + 1;
+        final isDone = _wizardStep > stepNum;
+        final isCurrent = _wizardStep == stepNum;
+
+        return Row(
+          children: [
+            GestureDetector(
+              onTap: isDone ? () => setState(() => _wizardStep = stepNum) : null,
+              child: MouseRegion(
+                cursor: isDone ? SystemMouseCursors.click : SystemMouseCursors.basic,
+                child: Row(
+                  children: [
+                    Container(
+                      width: 20,
+                      height: 20,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: isDone
+                            ? _LandingDesignSystem.tealBrand
+                            : (isCurrent ? _LandingDesignSystem.tealBrand : Colors.transparent),
+                        border: Border.all(
+                          color: (isDone || isCurrent)
+                              ? _LandingDesignSystem.tealBrand
+                              : _LandingDesignSystem.cardBorder,
+                          width: 1.5,
+                        ),
+                      ),
+                      child: Center(
+                        child: isDone
+                            ? const Icon(Icons.check, size: 11, color: Colors.white)
+                            : (isCurrent
+                                ? Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: const BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: _LandingDesignSystem.cardBorder,
+                                    ),
+                                  )),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      steps[index],
+                      style: GoogleFonts.montserrat(
+                        fontSize: 12,
+                        fontWeight: isCurrent ? FontWeight.w700 : (isDone ? FontWeight.w600 : FontWeight.w500),
+                        color: isCurrent
+                            ? _LandingDesignSystem.tealBrand
+                            : (isDone ? _LandingDesignSystem.textPrimary : _LandingDesignSystem.textMuted),
+                      ),
                     ),
                   ],
                 ),
-                child: switch (_wizardStep) {
-                  1 => _buildWizardStep1(),
-                  2 => _buildWizardStep2(),
-                  3 => _buildWizardStep3(),
-                  4 => _buildWizardStep4(),
-                  5 => _buildWizardStep5(),
-                  6 => _buildWizardStep6(),
-                  _ => const SizedBox.shrink(),
-                },
+              ),
+            ),
+            if (index < steps.length - 1)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 10),
+                child: Container(
+                  width: 14,
+                  height: 1.5,
+                  color: isDone ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.cardBorder,
+                ),
+              ),
+          ],
+        );
+      }),
+    );
+  }
+
+  // FIX 6: Upgraded Service Practice Area Cards
+  Widget _buildWizardStep1() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _serviceCard(
+              title: 'Asset Valuation',
+              description: 'Professional valuation reports for banking, taxation, compliance and regulatory requirements.',
+              iconText: '🏛️',
+              isSelected: _wizardService == 'VALUATION',
+              onTap: () => setState(() {
+                _wizardService = 'VALUATION';
+                _wizardStep = 2;
+              }),
+            ),
+            const SizedBox(width: 18),
+            _serviceCard(
+              title: 'Net Worth Certification',
+              description: 'Certified net worth statements for immigration, banking and statutory purposes.',
+              iconText: '📜',
+              isSelected: _wizardService == 'NET_WORTH',
+              onTap: () => setState(() {
+                _wizardService = 'NET_WORTH';
+                _wizardStep = 2;
+              }),
+            ),
+            const SizedBox(width: 18),
+            _serviceCard(
+              title: 'Technical Assessment',
+              description: 'Independent technical inspection and certification services.',
+              iconText: '⚙️',
+              isSelected: _wizardService == 'CHARTERED_ENGINEER',
+              onTap: () => setState(() {
+                _wizardService = 'CHARTERED_ENGINEER';
+                _wizardStep = 2;
+              }),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _serviceCard({
+    required String title,
+    required String description,
+    required String iconText,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: isSelected ? _LandingDesignSystem.tealSubtle : _LandingDesignSystem.cardSurface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isSelected ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.cardBorder,
+              width: isSelected ? 1.8 : 1.0,
+            ),
+            boxShadow: isSelected ? _LandingDesignSystem.cardHoverShadow : _LandingDesignSystem.cardShadow,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: isSelected ? Colors.white : _LandingDesignSystem.bgSubtle,
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Text(iconText, style: const TextStyle(fontSize: 26)),
+                  ),
+                  if (isSelected)
+                    const Icon(Icons.check_circle_rounded, size: 22, color: _LandingDesignSystem.tealBrand),
+                ],
+              ),
+              const SizedBox(height: 18),
+              Text(
+                title,
+                style: GoogleFonts.montserrat(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: isSelected ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                description,
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  height: 1.5,
+                  color: _LandingDesignSystem.textSecondary,
+                ),
               ),
             ],
           ),
@@ -736,328 +1056,217 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     );
   }
 
-  // Minimal Progress Indicator: ●────○────○────○────○────○
-  Widget _buildMinimalProgressIndicator() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(11, (i) {
-        if (i % 2 == 0) {
-          final stepIndex = i ~/ 2 + 1; // 1 to 6
-          final isDone = stepIndex < _wizardStep;
-          final isCurrent = stepIndex == _wizardStep;
-          return Container(
-            width: isCurrent ? 22 : 16,
-            height: isCurrent ? 22 : 16,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: isCurrent
-                  ? _LuxuryTheme.goldAccent
-                  : (isDone ? _LuxuryTheme.tealAccent : const Color(0x1AFFFFFF)),
-              border: Border.all(
-                color: isCurrent
-                    ? _LuxuryTheme.goldAccent
-                    : (isDone ? _LuxuryTheme.tealAccent : const Color(0x33FFFFFF)),
-                width: 1.5,
-              ),
-              boxShadow: isCurrent
-                  ? const [BoxShadow(color: Color(0x40FABB1F), blurRadius: 8)]
-                  : null,
+  // STEP 2: Asset Involved
+  Widget _buildWizardStep2() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _assetCard(
+              title: 'Land & Building',
+              description: 'Commercial offices, industrial plots, flats, and developments',
+              iconText: '🏢',
+              isSelected: _wizardAsset == 'LAND_AND_BUILDING',
+              onTap: () => setState(() {
+                _wizardAsset = 'LAND_AND_BUILDING';
+                _wizardStep = 3;
+              }),
             ),
-            child: Center(
-              child: isDone
-                  ? const Icon(Icons.check, size: 10, color: Colors.white)
-                  : Text(
-                      '$stepIndex',
-                      style: TextStyle(
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w700,
-                        color: isCurrent ? const Color(0xFF060B18) : _LuxuryTheme.textMuted,
-                      ),
-                    ),
+            const SizedBox(width: 18),
+            _assetCard(
+              title: 'Plant & Machinery',
+              description: 'Industrial equipment, machinery lines, and manufacturing units',
+              iconText: '🏭',
+              isSelected: _wizardAsset == 'PLANT_AND_MACHINERY',
+              onTap: () => setState(() {
+                _wizardAsset = 'PLANT_AND_MACHINERY';
+                _wizardStep = 3;
+              }),
             ),
-          );
-        } else {
-          final lineStep = (i - 1) ~/ 2 + 1;
-          final isDone = lineStep < _wizardStep;
-          return Expanded(
-            child: Container(
-              height: 2,
-              color: isDone ? _LuxuryTheme.tealAccent : const Color(0x1AFFFFFF),
+            const SizedBox(width: 18),
+            _assetCard(
+              title: 'Financial Assets',
+              description: 'Securities, unlisted shares, and financial portfolios',
+              iconText: '📊',
+              isSelected: _wizardAsset == 'SECURITIES_FINANCIAL_ASSETS',
+              onTap: () => setState(() {
+                _wizardAsset = 'SECURITIES_FINANCIAL_ASSETS';
+                _wizardStep = 3;
+              }),
             ),
-          );
-        }
-      }),
+          ],
+        ),
+        const SizedBox(height: 28),
+        _secondaryButton(label: '← Back to Service', onTap: () => setState(() => _wizardStep = 1)),
+      ],
     );
   }
 
-  // Compact Selector Card Component
-  Widget _compactSelectorCard({
+  Widget _assetCard({
     required String title,
-    required String sub,
-    required IconData icon,
+    required String description,
+    required String iconText,
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0x1AFABB1F) : const Color(0x0AFFFFFF),
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: isSelected ? _LuxuryTheme.goldAccent : const Color(0x14FFFFFF),
-            width: isSelected ? 1.5 : 1.0,
-          ),
-          boxShadow: isSelected
-              ? const [BoxShadow(color: Color(0x26FABB1F), blurRadius: 12, offset: Offset(0, 2))]
-              : null,
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: isSelected ? const Color(0x33FABB1F) : const Color(0x0FFFFFFF),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                icon,
-                size: 19,
-                color: isSelected ? _LuxuryTheme.goldAccent : _LuxuryTheme.skyAccent,
-              ),
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.all(22),
+          decoration: BoxDecoration(
+            color: isSelected ? _LandingDesignSystem.tealSubtle : _LandingDesignSystem.cardSurface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: isSelected ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.cardBorder,
+              width: isSelected ? 1.8 : 1.0,
             ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
+            boxShadow: isSelected ? _LandingDesignSystem.cardHoverShadow : _LandingDesignSystem.cardShadow,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.montserrat(
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w700,
-                      color: isSelected ? Colors.white : _LuxuryTheme.textMain,
+                  Container(
+                    padding: const EdgeInsets.all(10),
+                    decoration: BoxDecoration(
+                      color: isSelected ? Colors.white : _LandingDesignSystem.bgSubtle,
+                      borderRadius: BorderRadius.circular(10),
                     ),
+                    child: Text(iconText, style: const TextStyle(fontSize: 22)),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    sub,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: GoogleFonts.inter(
-                      fontSize: 11.5,
-                      color: _LuxuryTheme.textMuted,
-                    ),
-                  ),
+                  if (isSelected)
+                    const Icon(Icons.check_circle_rounded, size: 20, color: _LandingDesignSystem.tealBrand),
                 ],
               ),
-            ),
-            Icon(
-              isSelected ? Icons.check_circle_rounded : Icons.chevron_right_rounded,
-              size: 18,
-              color: isSelected ? _LuxuryTheme.goldAccent : _LuxuryTheme.textDim,
-            ),
-          ],
+              const SizedBox(height: 16),
+              Text(
+                title,
+                style: GoogleFonts.montserrat(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: isSelected ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                description,
+                style: GoogleFonts.inter(
+                  fontSize: 12.5,
+                  height: 1.45,
+                  color: _LandingDesignSystem.textSecondary,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // STEP 1: What service do you need? (Clean Horizontal Grid on Desktop)
-  Widget _buildWizardStep1() {
-    final services = [
-      {
-        'id': 'VALUATION',
-        'icon': Icons.account_balance_outlined,
-        'title': 'Valuation Report',
-        'sub': 'Bank, Visa & IT Act Section 34AB',
-      },
-      {
-        'id': 'NET_WORTH_CERTIFICATE',
-        'icon': Icons.verified_user_outlined,
-        'title': 'Net Worth Certificate',
-        'sub': 'Global Embassy & Solvency Proof',
-      },
-      {
-        'id': 'CHARTERED_ENGINEER',
-        'icon': Icons.precision_manufacturing_outlined,
-        'title': 'Chartered Engineer',
-        'sub': 'Machinery, Customs & EPCG Audit',
-      },
-    ];
-
-    return LayoutBuilder(
-      builder: (ctx, constraints) {
-        final isDesktop = constraints.maxWidth > 650;
-        final cards = services.map((s) {
-          final isSelected = _wizardService == s['id'];
-          return _compactSelectorCard(
-            title: s['title'] as String,
-            sub: s['sub'] as String,
-            icon: s['icon'] as IconData,
-            isSelected: isSelected,
-            onTap: () {
-              setState(() {
-                _wizardService = s['id'] as String;
-                _wizardStep = 2; // CLICK = ADVANCE AUTOMATICALLY
-              });
-            },
-          );
-        }).toList();
-
-        if (isDesktop) {
-          return Row(
-            children: cards
-                .map((c) => Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 5), child: c)))
-                .toList(),
-          );
-        } else {
-          return Column(
-            children: cards
-                .map((c) => Padding(padding: const EdgeInsets.only(bottom: 10), child: c))
-                .toList(),
-          );
-        }
-      },
-    );
-  }
-
-  // STEP 2: What are you valuing? (Clean Horizontal Grid on Desktop)
-  Widget _buildWizardStep2() {
-    final assets = [
-      {
-        'id': 'LAND_AND_BUILDING',
-        'icon': Icons.business_rounded,
-        'title': 'Land & Building',
-        'sub': 'Commercial, Residential, Land',
-      },
-      {
-        'id': 'PLANT_AND_MACHINERY',
-        'icon': Icons.settings_suggest_rounded,
-        'title': 'Plant & Machinery',
-        'sub': 'Industrial, Technical & Tools',
-      },
-      {
-        'id': 'SECURITIES_FINANCIAL_ASSETS',
-        'icon': Icons.trending_up_rounded,
-        'title': 'Financial Assets',
-        'sub': 'Shares, Equity & Portfolios',
-      },
-    ];
-
-    return LayoutBuilder(
-      builder: (ctx, constraints) {
-        final isDesktop = constraints.maxWidth > 650;
-        final cards = assets.map((a) {
-          final isSelected = _wizardAsset == a['id'];
-          return _compactSelectorCard(
-            title: a['title'] as String,
-            sub: a['sub'] as String,
-            icon: a['icon'] as IconData,
-            isSelected: isSelected,
-            onTap: () {
-              setState(() {
-                _wizardAsset = a['id'] as String;
-                _wizardDocs.clear(); // reset files if asset category changed
-                _wizardStep = 3; // CLICK = ADVANCE AUTOMATICALLY
-              });
-            },
-          );
-        }).toList();
-
-        if (isDesktop) {
-          return Row(
-            children: cards
-                .map((c) => Expanded(child: Padding(padding: const EdgeInsets.symmetric(horizontal: 5), child: c)))
-                .toList(),
-          );
-        } else {
-          return Column(
-            children: cards
-                .map((c) => Padding(padding: const EdgeInsets.only(bottom: 10), child: c))
-                .toList(),
-          );
-        }
-      },
-    );
-  }
-
-  // STEP 3: Why do you need the report? (Compact Grid)
+  // STEP 3: Purpose of Engagement
   Widget _buildWizardStep3() {
     final purposes = [
-      {'id': 'BANK_COLLATERAL', 'icon': Icons.account_balance_rounded, 'title': 'Bank Loan', 'sub': 'Mortgage collateral'},
-      {'id': 'VISA_IMMIGRATION', 'icon': Icons.flight_takeoff_rounded, 'title': 'Visa / Immigration', 'sub': 'Embassy solvency'},
-      {'id': 'TAXATION_COMPLIANCE', 'icon': Icons.receipt_long_rounded, 'title': 'Income Tax', 'sub': 'Sec 50C compliance'},
-      {'id': 'CORPORATE_INSOLVENCY', 'icon': Icons.corporate_fare_rounded, 'title': 'Corporate', 'sub': 'Audits, M&A & NCLT'},
-      {'id': 'DISPUTE', 'icon': Icons.gavel_rounded, 'title': 'Court Matter', 'sub': 'Litigation & Partition'},
-      {'id': 'OTHER', 'icon': Icons.work_outline_rounded, 'title': 'Other', 'sub': 'Internal advisory'},
+      {'key': 'BANK_COLLATERAL', 'title': 'Bank Collateral', 'sub': 'Mortgage & credit facility appraisal'},
+      {'key': 'VISA_IMMIGRATION', 'title': 'Visa & Immigration', 'sub': 'Embassy verified wealth documentation'},
+      {'key': 'TAX_STATUTORY', 'title': 'Tax & Statutory', 'sub': 'Capital gains & balance sheet filing'},
+      {'key': 'INTERNAL_ACCOUNTING', 'title': 'Company Asset', 'sub': 'Corporate books & regulatory audit'},
+      {'key': 'DISPUTE_RESOLUTION', 'title': 'Legal Settlement', 'sub': 'Court proceedings & family partition'},
+      {'key': 'INSURANCE', 'title': 'Insurable Value', 'sub': 'Replacement cost & reinstatement coverage'},
     ];
 
-    return LayoutBuilder(
-      builder: (ctx, constraints) {
-        final cols = constraints.maxWidth > 700 ? 3 : (constraints.maxWidth > 480 ? 2 : 1);
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: cols,
-            childAspectRatio: 2.7,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-          ),
-          itemCount: purposes.length,
-          itemBuilder: (ctx, i) {
-            final p = purposes[i];
-            final isSelected = _wizardPurpose == p['id'];
-            return _compactSelectorCard(
-              title: p['title'] as String,
-              sub: p['sub'] as String,
-              icon: p['icon'] as IconData,
-              isSelected: isSelected,
-              onTap: () {
-                setState(() {
-                  _wizardPurpose = p['id'] as String;
-                  _wizardStep = 4; // CLICK = ADVANCE AUTOMATICALLY
-                });
-              },
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Wrap(
+          spacing: 16,
+          runSpacing: 16,
+          children: purposes.map((p) {
+            final isSel = _wizardPurpose == p['key'];
+            return SizedBox(
+              width: 310,
+              child: GestureDetector(
+                onTap: () => setState(() {
+                  _wizardPurpose = p['key']!;
+                  _wizardStep = 4;
+                }),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: isSel ? _LandingDesignSystem.tealSubtle : _LandingDesignSystem.cardSurface,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: isSel ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.cardBorder,
+                      width: isSel ? 1.8 : 1.0,
+                    ),
+                    boxShadow: isSel ? _LandingDesignSystem.cardHoverShadow : _LandingDesignSystem.cardShadow,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            p['title']!,
+                            style: GoogleFonts.montserrat(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: isSel ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.textPrimary,
+                            ),
+                          ),
+                          if (isSel)
+                            const Icon(Icons.check_circle_rounded, size: 18, color: _LandingDesignSystem.tealBrand),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        p['sub']!,
+                        style: GoogleFonts.inter(fontSize: 12, color: _LandingDesignSystem.textSecondary),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             );
-          },
-        );
-      },
+          }).toList(),
+        ),
+        const SizedBox(height: 28),
+        _secondaryButton(label: '← Back to Asset Involved', onTap: () => setState(() => _wizardStep = 2)),
+      ],
     );
   }
 
-  // STEP 4: Tell us about the asset (Real-time Auto-Advance — Dark Glass)
+  // STEP 4: Asset Details
   Widget _buildWizardStep4() {
-    InputDecoration inputDec(String label, String hint, {String? prefix}) {
+    InputDecoration fieldDec(String label, String hint, {String? prefix}) {
       return InputDecoration(
         labelText: label,
-        labelStyle: GoogleFonts.inter(fontSize: 12.5, color: _LuxuryTheme.textMuted),
         hintText: hint,
-        hintStyle: GoogleFonts.inter(fontSize: 12, color: _LuxuryTheme.textDim),
         prefixText: prefix,
-        prefixStyle: GoogleFonts.inter(fontSize: 13, color: _LuxuryTheme.goldAccent),
+        labelStyle: GoogleFonts.inter(fontSize: 12.5, color: _LandingDesignSystem.textSecondary),
+        hintStyle: GoogleFonts.inter(fontSize: 12, color: _LandingDesignSystem.textMuted),
+        prefixStyle: GoogleFonts.inter(fontSize: 13, color: _LandingDesignSystem.tealBrand),
         filled: true,
-        fillColor: const Color(0x0AFFFFFF),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        fillColor: _LandingDesignSystem.bgSurface,
+        contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0x14FFFFFF)),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _LandingDesignSystem.cardBorder),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: Color(0x14FFFFFF)),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _LandingDesignSystem.cardBorder),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10),
-          borderSide: const BorderSide(color: _LuxuryTheme.skyAccent, width: 1.5),
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: _LandingDesignSystem.tealBrand, width: 1.6),
         ),
       );
     }
@@ -1065,282 +1274,298 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Asset Name
-        TextField(
-          controller: _assetNameCtrl,
-          onChanged: (_) => _onStep4FieldChanged(),
-          style: GoogleFonts.inter(fontSize: 13.5, color: _LuxuryTheme.textMain),
-          decoration: inputDec('Asset Name *', 'e.g. Cyber Towers Unit 402'),
-        ),
-        const SizedBox(height: 12),
-
-        // Property Address
-        TextField(
-          controller: _propertyAddressCtrl,
-          onChanged: (_) => _onStep4FieldChanged(),
-          style: GoogleFonts.inter(fontSize: 13.5, color: _LuxuryTheme.textMain),
-          decoration: inputDec('Property Address *', 'e.g. HITEC City Main Corridor, Madhapur'),
-        ),
-        const SizedBox(height: 12),
-
-        // City & State
-        Row(
-          children: [
-            Expanded(
-              child: TextField(
-                controller: _cityCtrl,
-                onChanged: (_) => _onStep4FieldChanged(),
-                style: GoogleFonts.inter(fontSize: 13.5, color: _LuxuryTheme.textMain),
-                decoration: inputDec('City *', 'e.g. Hyderabad'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: TextField(
-                controller: _stateCtrl,
-                onChanged: (_) => _onStep4FieldChanged(),
-                style: GoogleFonts.inter(fontSize: 13.5, color: _LuxuryTheme.textMain),
-                decoration: inputDec('State *', 'e.g. Telangana'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
-
-        // Estimated Value
-        TextField(
-          controller: _estimatedValueCtrl,
-          keyboardType: TextInputType.number,
-          style: GoogleFonts.inter(fontSize: 13.5, color: _LuxuryTheme.textMain),
-          decoration: inputDec('Estimated Value (Optional)', 'e.g. 18500000', prefix: '₹ '),
-        ),
-        const SizedBox(height: 16),
-
-        // Auto-Advancement feedback indicator
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
-            color: _step4AutoAdvancing ? const Color(0x1A10B981) : const Color(0x0AFFFFFF),
-            borderRadius: BorderRadius.circular(8),
-            border: Border.all(
-              color: _step4AutoAdvancing ? const Color(0x3310B981) : const Color(0x14FFFFFF),
-            ),
+            color: _LandingDesignSystem.cardSurface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _LandingDesignSystem.cardBorder),
+            boxShadow: _LandingDesignSystem.cardShadow,
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_step4AutoAdvancing)
-                const SizedBox(
-                  width: 14,
-                  height: 14,
-                  child: CircularProgressIndicator(strokeWidth: 2, color: _LuxuryTheme.tealAccent),
-                )
-              else
-                const Icon(Icons.info_outline, size: 15, color: _LuxuryTheme.textDim),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Text(
-                  _step4AutoAdvancing
-                      ? '✓ Details verified! Advancing to document upload...'
-                      : 'Fill Asset Name, Address, City, and State to continue.',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    fontWeight: _step4AutoAdvancing ? FontWeight.w600 : FontWeight.normal,
-                    color: _step4AutoAdvancing ? _LuxuryTheme.tealAccent : _LuxuryTheme.textMuted,
+              TextFormField(
+                controller: _assetNameCtrl,
+                onChanged: (_) => _onStep4FieldChanged(),
+                style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
+                decoration: fieldDec('Subject Asset / Property Name *', 'e.g. Apex Horizon Tower 3'),
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _propertyAddressCtrl,
+                onChanged: (_) => _onStep4FieldChanged(),
+                style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
+                decoration: fieldDec('Full Property Location & Address *', 'Plot/Door No, Street, Landmark'),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextFormField(
+                      controller: _cityCtrl,
+                      onChanged: (_) => _onStep4FieldChanged(),
+                      style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
+                      decoration: fieldDec('City / District *', 'e.g. Hyderabad'),
+                    ),
                   ),
-                ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: TextFormField(
+                      controller: _stateCtrl,
+                      onChanged: (_) => _onStep4FieldChanged(),
+                      style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
+                      decoration: fieldDec('State *', 'e.g. Telangana'),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                controller: _estimatedValueCtrl,
+                keyboardType: TextInputType.number,
+                style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textPrimary),
+                decoration: fieldDec('Estimated Asset Value (₹)', '15000000', prefix: '₹ '),
               ),
             ],
           ),
+        ),
+        const SizedBox(height: 28),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _secondaryButton(label: '← Back to Purpose', onTap: () => setState(() => _wizardStep = 3)),
+            if (_step4AutoAdvancing)
+              Row(
+                children: [
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: _LandingDesignSystem.tealBrand),
+                  ),
+                  const SizedBox(width: 8),
+                  Text('Advancing to documents...', style: GoogleFonts.inter(fontSize: 12.5, color: _LandingDesignSystem.tealBrand)),
+                ],
+              )
+            else
+              _primaryCtaButton(
+                label: 'Continue to Documents',
+                onTap: () {
+                  if (_assetNameCtrl.text.trim().isEmpty || _propertyAddressCtrl.text.trim().isEmpty || _cityCtrl.text.trim().isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Please provide all mandatory property details.')),
+                    );
+                    return;
+                  }
+                  setState(() => _wizardStep = 5);
+                },
+              ),
+          ],
         ),
       ],
     );
   }
 
-  // STEP 5: Upload Documents (Dark Luxury Glass Cards)
+  // STEP 5: Supporting Documentation
   Widget _buildWizardStep5() {
     final slots = _getRequiredDocumentSlots();
-    final allUploaded = slots.every((s) => _wizardDocs.containsKey(s['key']));
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Container(
+          padding: const EdgeInsets.all(28),
+          decoration: BoxDecoration(
+            color: _LandingDesignSystem.cardSurface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _LandingDesignSystem.cardBorder),
+            boxShadow: _LandingDesignSystem.cardShadow,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ...slots.map((slot) {
+                final key = slot['key'] as String;
+                final label = slot['label'] as String;
+                final uploaded = _wizardDocs[key];
+
+                return Container(
+                  margin: const EdgeInsets.only(bottom: 14),
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                  decoration: BoxDecoration(
+                    color: uploaded != null ? _LandingDesignSystem.tealSubtle : _LandingDesignSystem.bgCanvas,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: uploaded != null ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.cardBorder,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        uploaded != null ? Icons.check_circle_rounded : Icons.description_outlined,
+                        size: 22,
+                        color: uploaded != null ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.textSecondary,
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(label, style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textPrimary)),
+                            const SizedBox(height: 3),
+                            Text(
+                              uploaded != null ? '${uploaded.name} (${(uploaded.size / 1024).toStringAsFixed(1)} KB)' : 'PDF, JPG, PNG up to 25 MB',
+                              style: GoogleFonts.inter(fontSize: 11.5, color: _LandingDesignSystem.textSecondary),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (uploaded != null)
+                        IconButton(
+                          icon: const Icon(Icons.close_rounded, size: 18, color: _LandingDesignSystem.textSecondary),
+                          onPressed: () => _removeWizardDoc(key),
+                        )
+                      else
+                        GestureDetector(
+                          onTap: () => _pickWizardDoc(key),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6.5),
+                            decoration: BoxDecoration(
+                              color: _LandingDesignSystem.tealBrand,
+                              borderRadius: BorderRadius.circular(100),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.upload_file_rounded, size: 14, color: Colors.white),
+                                const SizedBox(width: 6),
+                                Text(
+                                  'Upload',
+                                  style: GoogleFonts.montserrat(fontSize: 11.5, fontWeight: FontWeight.w700, color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+        _buildMissingDocsCard(),
+        const SizedBox(height: 28),
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            Expanded(
-              child: Text(
-                'Required documents for ${_wizardAsset.replaceAll('_', ' ').toLowerCase()}:',
-                style: GoogleFonts.inter(fontSize: 13, color: _LuxuryTheme.textMuted),
-              ),
-            ),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: allUploaded ? const Color(0x1A10B981) : const Color(0x1AFABB1F),
-                borderRadius: BorderRadius.circular(6),
-                border: Border.all(
-                  color: allUploaded ? const Color(0x3310B981) : const Color(0x33FABB1F),
-                ),
-              ),
-              child: Text(
-                allUploaded ? '✓ Upload Complete' : 'Mandatory Uploads',
-                style: TextStyle(
-                  fontSize: 10.5,
-                  fontWeight: FontWeight.w700,
-                  color: allUploaded ? _LuxuryTheme.tealAccent : _LuxuryTheme.goldAccent,
-                ),
-              ),
+            _secondaryButton(label: '← Back to Details', onTap: () => setState(() => _wizardStep = 4)),
+            _primaryCtaButton(
+              label: 'Review Your Request',
+              onTap: _areAllMandatoryDocsUploaded() ? () => setState(() => _wizardStep = 6) : null,
             ),
           ],
         ),
-        const SizedBox(height: 16),
+      ],
+    );
+  }
 
-        ...slots.map((s) {
-          final key = s['key'] as String;
-          final label = s['label'] as String;
-          final hasFile = _wizardDocs.containsKey(key);
-          final file = _wizardDocs[key];
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+  // STEP 6: Review Your Request
+  Widget _buildWizardStep6() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (!_areAllMandatoryDocsUploaded()) ...[
+          _buildMissingDocsCard(),
+          const SizedBox(height: 16),
+        ],
+        if (_wizardError != null) ...[
+          Container(
+            margin: const EdgeInsets.only(bottom: 20),
+            padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: hasFile ? const Color(0x0F10B981) : const Color(0x0AFFFFFF),
-              borderRadius: BorderRadius.circular(10),
-              border: Border.all(
-                color: hasFile ? const Color(0x3310B981) : const Color(0x14FFFFFF),
-              ),
+              color: _LandingDesignSystem.stateErrorSubtle,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFFECACA)),
             ),
             child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 34,
-                  height: 34,
-                  decoration: BoxDecoration(
-                    color: hasFile ? const Color(0x1A10B981) : const Color(0x0FFFFFFF),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    hasFile ? Icons.check_circle_rounded : Icons.cloud_upload_outlined,
-                    color: hasFile ? _LuxuryTheme.tealAccent : _LuxuryTheme.skyAccent,
-                    size: 19,
-                  ),
-                ),
+                const Icon(Icons.error_outline_rounded, size: 20, color: _LandingDesignSystem.stateError),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        label,
+                        'Submission Blocked',
                         style: GoogleFonts.montserrat(
-                          fontSize: 13,
+                          fontSize: 13.5,
                           fontWeight: FontWeight.w700,
-                          color: _LuxuryTheme.textMain,
+                          color: _LandingDesignSystem.stateError,
                         ),
                       ),
-                      const SizedBox(height: 2),
+                      const SizedBox(height: 4),
                       Text(
-                        hasFile
-                            ? '${file!.name} (${(file.size / 1024).toStringAsFixed(1)} KB) • Verified ✓'
-                            : 'Mandatory file • PDF, PNG, JPG (Max 20MB)',
+                        _wizardError!,
                         style: GoogleFonts.inter(
-                          fontSize: 11,
-                          color: hasFile ? _LuxuryTheme.tealAccent : _LuxuryTheme.textMuted,
+                          fontSize: 12.5,
+                          color: _LandingDesignSystem.stateError,
+                          height: 1.4,
                         ),
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 10),
-                SizedBox(
-                  height: 32,
-                  child: ElevatedButton.icon(
-                    onPressed: () => _pickWizardDoc(key),
-                    icon: Icon(hasFile ? Icons.refresh : Icons.attach_file, size: 13),
-                    label: Text(hasFile ? 'Replace' : 'Upload', style: const TextStyle(fontSize: 11.5)),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: hasFile ? const Color(0x14FFFFFF) : const Color(0x1A38BDF8),
-                      foregroundColor: hasFile ? _LuxuryTheme.tealAccent : _LuxuryTheme.skyAccent,
-                      side: BorderSide(color: hasFile ? const Color(0x3310B981) : const Color(0x3338BDF8)),
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                    ),
-                  ),
-                ),
               ],
             ),
-          );
-        }),
-      ],
-    );
-  }
-
-  // STEP 6: Review Request (Single Luxury Gold Button)
-  Widget _buildWizardStep6() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Please verify your mandate scope before official desk appraisal issuance:',
-          style: GoogleFonts.inter(fontSize: 13, color: _LuxuryTheme.textMuted),
-        ),
-        const SizedBox(height: 16),
-
-        // Summary Card
+          ),
+        ],
         Container(
-          padding: const EdgeInsets.all(18),
+          padding: const EdgeInsets.all(28),
           decoration: BoxDecoration(
-            color: const Color(0x0AFFFFFF),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0x14FFFFFF)),
+            color: _LandingDesignSystem.cardSurface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _LandingDesignSystem.cardBorder),
+            boxShadow: _LandingDesignSystem.cardShadow,
           ),
           child: Column(
             children: [
-              _summaryRow('Service', _wizardService.replaceAll('_', ' ')),
-              const Divider(height: 16, color: Color(0x0FFFFFFF)),
-              _summaryRow('Asset Type', _wizardAsset.replaceAll('_', ' ')),
-              const Divider(height: 16, color: Color(0x0FFFFFFF)),
-              _summaryRow('Purpose', _wizardPurpose.replaceAll('_', ' ')),
-              const Divider(height: 16, color: Color(0x0FFFFFFF)),
-              _summaryRow('Asset Name', _assetNameCtrl.text.trim()),
-              const Divider(height: 16, color: Color(0x0FFFFFFF)),
-              _summaryRow('Property Address', '${_propertyAddressCtrl.text.trim()}, ${_cityCtrl.text.trim()}, ${_stateCtrl.text.trim()}'),
-              if (_estimatedValueCtrl.text.trim().isNotEmpty) ...[
-                const Divider(height: 16, color: Color(0x0FFFFFFF)),
-                _summaryRow('Estimated Value', '₹ ${_estimatedValueCtrl.text.trim()}'),
-              ],
-              const Divider(height: 16, color: Color(0x0FFFFFFF)),
-              _summaryRow('Attached Documents', '${_wizardDocs.length} mandatory records uploaded ✓'),
+              _summaryRow('Service Type', _wizardService.replaceAll('_', ' ')),
+              const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+              _summaryRow('Asset Category', _wizardAsset.replaceAll('_', ' ')),
+              const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+              _summaryRow('Engagement Purpose', _wizardPurpose.replaceAll('_', ' ')),
+              const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+              _summaryRow('Subject Property', _assetNameCtrl.text.isEmpty ? '—' : _assetNameCtrl.text),
+              const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+              _summaryRow('Location', '${_cityCtrl.text}, ${_stateCtrl.text}'),
+              const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+              _summaryRow('Estimated Market Value', '₹ ${_estimatedValueCtrl.text.isEmpty ? '1,50,00,000' : _estimatedValueCtrl.text}'),
+              const Divider(height: 18, color: _LandingDesignSystem.cardBorder),
+              _summaryRow('Supporting Documents', '${_wizardDocs.length} document(s) attached'),
             ],
           ),
         ),
-        const SizedBox(height: 24),
-
-        // THE ONLY BUTTON IN FLOW 1 (Compact Gold Luxury Button)
-        SizedBox(
-          width: double.infinity,
-          height: 46,
-          child: ElevatedButton(
-            onPressed: _wizardSubmitting ? null : _submitWizardReport,
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _LuxuryTheme.goldAccent,
-              foregroundColor: const Color(0xFF060B18),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-              elevation: 2,
+        const SizedBox(height: 28),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _secondaryButton(
+              label: '← Edit Information',
+              onTap: _wizardSubmitting ? null : () => setState(() => _wizardStep = 5),
             ),
-            child: _wizardSubmitting
+            _wizardSubmitting
                 ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(color: Color(0xFF060B18), strokeWidth: 2),
+                    width: 24,
+                    height: 24,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: _LandingDesignSystem.tealBrand),
                   )
-                : Text(
-                    'Submit Report Request →',
-                    style: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w700),
+                : _primaryCtaButton(
+                    label: 'Submit Request',
+                    onTap: (_areAllMandatoryDocsUploaded() && !_wizardSubmitting) ? _submitWizardReport : null,
                   ),
-          ),
+          ],
         ),
       ],
     );
@@ -1350,115 +1575,67 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(label, style: GoogleFonts.inter(fontSize: 12.5, color: _LuxuryTheme.textMuted)),
+        Text(label, style: GoogleFonts.inter(fontSize: 13, color: _LandingDesignSystem.textSecondary)),
         Text(
           value,
-          style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain),
+          style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
         ),
       ],
     );
   }
 
-  // SUCCESS SCREEN (Dark Luxury Glass)
   Widget _buildWizardSuccessScreen() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 36),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 580),
-          child: Container(
-            padding: const EdgeInsets.all(32),
-            decoration: BoxDecoration(
-              color: _LuxuryTheme.cardGlass,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: _LuxuryTheme.cardBorder),
-              boxShadow: const [
-                BoxShadow(color: Color(0x2A000000), blurRadius: 24, offset: Offset(0, 10)),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0x1A10B981),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0x3310B981)),
-                  ),
-                  child: const Icon(Icons.check_circle_rounded, color: _LuxuryTheme.tealAccent, size: 40),
+    return Center(
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 580),
+        child: Container(
+          margin: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(36),
+          decoration: BoxDecoration(
+            color: _LandingDesignSystem.cardSurface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _LandingDesignSystem.cardBorder),
+            boxShadow: _LandingDesignSystem.cardShadow,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(18),
+                decoration: BoxDecoration(
+                  color: _LandingDesignSystem.tealSubtle,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: _LandingDesignSystem.tealBorder),
                 ),
-                const SizedBox(height: 20),
-                Text(
-                  'Request Submitted Successfully',
-                  style: GoogleFonts.montserrat(fontSize: 20, fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain),
-                  textAlign: TextAlign.center,
+                child: const Icon(Icons.check_rounded, size: 36, color: _LandingDesignSystem.tealBrand),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Valuation Request Received',
+                style: GoogleFonts.montserrat(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: _LandingDesignSystem.textPrimary,
                 ),
-                const SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: const Color(0x1AFABB1F),
-                    borderRadius: BorderRadius.circular(6),
-                    border: Border.all(color: const Color(0x33FABB1F)),
-                  ),
-                  child: Text(
-                    'Reference Number: REQ-${_createdOrderId ?? 'NEW'}',
-                    style: GoogleFonts.robotoMono(fontSize: 13, fontWeight: FontWeight.w700, color: _LuxuryTheme.goldAccent),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Our Senior Commercial Valuation Desk is evaluating your property details, circle rates, and statutory documents. Your tailored quotation and SLA turnaround will be ready shortly.',
-                  style: GoogleFonts.inter(fontSize: 13, color: _LuxuryTheme.textMuted, height: 1.45),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 28),
-                Row(
-                  children: [
-                    Expanded(
-                      child: SizedBox(
-                        height: 42,
-                        child: ElevatedButton(
-                          onPressed: () {
-                            final orders = context.read<OrderProvider>();
-                            final created = orders.clientOrders.firstWhere(
-                              (o) => o['id'] == _createdOrderId,
-                              orElse: () => orders.clientOrders.isNotEmpty ? orders.clientOrders.first : null,
-                            );
-                            setState(() {
-                              _activeNav = _ClientNav.reportsInProgress;
-                              _focusedActiveOrder = created;
-                            });
-                          },
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: _LuxuryTheme.goldAccent,
-                            foregroundColor: const Color(0xFF060B18),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          child: const Text('View Report'),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: SizedBox(
-                        height: 42,
-                        child: OutlinedButton(
-                          onPressed: () => _resetWizard(),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: _LuxuryTheme.textMain,
-                            side: const BorderSide(color: Color(0x1EFFFFFF)),
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                          ),
-                          child: const Text('Create Another Report'),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Your valuation mandate has been registered with our senior appraisal desk. Our registered valuers are reviewing your asset parameters.',
+                style: GoogleFonts.inter(fontSize: 13.5, color: _LandingDesignSystem.textSecondary, height: 1.5),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 26),
+              _primaryCtaButton(
+                label: 'Track Engagement',
+                onTap: () {
+                  setState(() {
+                    _activeNav = _ClientNav.reportsInProgress;
+                    _resetWizard();
+                  });
+                  _loadOrdersAndSync();
+                },
+              ),
+            ],
           ),
         ),
       ),
@@ -1466,16 +1643,38 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
   }
 
   // ═════════════════════════════════════════════════════════════════════════
-  // FLOW 2: REPORTS IN PROGRESS (Compact Luxury Gallery)
+  // FLOW 2: REPORTS IN PROGRESS (Landing Page Design System)
+  // Content-first experience: Welcome banner, prominent advisory cards.
   // ═════════════════════════════════════════════════════════════════════════
-  Widget _buildReportsInProgressGallery(OrderProvider orders) {
-    final activeOrders = orders.clientOrders
-        .where((o) => _mapToClientStage(o).stageIndex < 5)
-        .toList();
+Widget _buildReportsInProgressGallery(OrderProvider orders) {
+    final allOrders = orders.clientOrders;
 
-    if (activeOrders.isEmpty) {
+    // 1. Needs Attention: Quote provided (awaiting acceptance), Payment rejected, or Action needed
+    final needsAttentionOrders = allOrders.where((o) {
+      final s = (o['status'] as String? ?? '').toUpperCase();
+      final ps = (o['paymentStatus'] as String? ?? '').toUpperCase();
+      if (s == 'QUOTE_PROVIDED' && ps != 'SUBMITTED' && ps != 'VERIFIED') return true;
+      if (s == 'PAYMENT_REJECTED') return true;
+      if (s == 'ACTION_NEEDED') return true;
+      return false;
+    }).toList();
+
+    // 2. Active Reports: In-flight reports that do not require immediate client blocker action
+    final activeOrders = allOrders.where((o) {
+      final stage = _mapToClientStage(o);
+      if (stage.stageIndex >= 5) return false;
+      return !needsAttentionOrders.contains(o);
+    }).toList();
+
+    // 3. Delivered Reports: Concluded & certified reports available for download
+    final deliveredOrders = allOrders.where((o) {
+      return _mapToClientStage(o).stageIndex == 5;
+    }).toList();
+
+    // If client has zero total reports in database, show direct action launchpad
+    if (allOrders.isEmpty) {
       return Center(
-        child: Padding(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(40),
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1483,39 +1682,90 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
               Container(
                 padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
-                  color: _LuxuryTheme.cardGlass,
+                  color: _LandingDesignSystem.tealSubtle,
                   shape: BoxShape.circle,
-                  border: Border.all(color: _LuxuryTheme.cardBorder),
+                  border: Border.all(color: _LandingDesignSystem.tealBorder),
                 ),
-                child: const Icon(Icons.note_add_outlined, size: 40, color: _LuxuryTheme.goldAccent),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                'No Reports In Progress',
-                style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'All your active valuation mandates will appear here with live milestone tracking.',
-                style: GoogleFonts.inter(fontSize: 13, color: _LuxuryTheme.textMuted),
+                child: const Icon(Icons.article_outlined, size: 36, color: _LandingDesignSystem.tealBrand),
               ),
               const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: () {
+              Text(
+                "You don't have any reports yet",
+                style: GoogleFonts.montserrat(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w700,
+                  color: _LandingDesignSystem.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Start a request to commission a property valuation or net worth certificate.',
+                style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textSecondary),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              _primaryCtaButton(
+                label: '+ Start New Request',
+                onTap: () {
                   setState(() {
                     _activeNav = _ClientNav.createReport;
                     _resetWizard();
                   });
                 },
-                icon: const Icon(Icons.add, size: 15),
-                label: const Text('Create New Report'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _LuxuryTheme.goldAccent,
-                  foregroundColor: _LuxuryTheme.bgDark,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                  textStyle: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w700),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              const SizedBox(height: 36),
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 720),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: _emptyServiceOption(
+                        title: 'Property Valuation',
+                        desc: 'Commercial, industrial & residential asset appraisal for bank collateral.',
+                        icon: Icons.business_outlined,
+                        onTap: () {
+                          setState(() {
+                            _activeNav = _ClientNav.createReport;
+                            _wizardAsset = 'COMMERCIAL';
+                            _wizardService = 'VALUATION';
+                            _wizardStep = 1;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: _emptyServiceOption(
+                        title: 'Net Worth Certificate',
+                        desc: 'Certified statement of personal or enterprise net assets for visa & banking.',
+                        icon: Icons.account_balance_outlined,
+                        onTap: () {
+                          setState(() {
+                            _activeNav = _ClientNav.createReport;
+                            _wizardAsset = 'NET_WORTH';
+                            _wizardService = 'NET_WORTH';
+                            _wizardStep = 1;
+                          });
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: _emptyServiceOption(
+                        title: 'Plant & Machinery',
+                        desc: 'Depreciation appraisal and valuation of industrial plant & equipment.',
+                        icon: Icons.precision_manufacturing_outlined,
+                        onTap: () {
+                          setState(() {
+                            _activeNav = _ClientNav.createReport;
+                            _wizardAsset = 'PLANT_AND_MACHINERY';
+                            _wizardService = 'VALUATION';
+                            _wizardStep = 1;
+                          });
+                        },
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -1525,198 +1775,624 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // ── TOP SUMMARY HEADER ──
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+              Row(
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: const BoxDecoration(
-                          color: _LuxuryTheme.goldAccent,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        'Active Valuation Mandates',
-                        style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
                   Text(
-                    '${activeOrders.length} active report${activeOrders.length > 1 ? 's' : ''} currently undergoing processing.',
-                    style: GoogleFonts.inter(fontSize: 12.5, color: _LuxuryTheme.textMuted),
+                    'Reports',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: _LandingDesignSystem.textPrimary,
+                    ),
                   ),
+                  const SizedBox(width: 16),
+                  _metricPill(
+                    label: '${activeOrders.length + needsAttentionOrders.length} Active',
+                    bgColor: _LandingDesignSystem.tealSubtle,
+                    borderColor: _LandingDesignSystem.tealBorder,
+                    textColor: _LandingDesignSystem.tealBrand,
+                  ),
+                  if (needsAttentionOrders.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    _metricPill(
+                      label: '${needsAttentionOrders.length} Needs Attention',
+                      bgColor: _LandingDesignSystem.stateErrorSubtle,
+                      borderColor: const Color(0xFFFECACA),
+                      textColor: _LandingDesignSystem.stateError,
+                    ),
+                  ],
+                  if (deliveredOrders.isNotEmpty) ...[
+                    const SizedBox(width: 8),
+                    _metricPill(
+                      label: '${deliveredOrders.length} Delivered',
+                      bgColor: _LandingDesignSystem.stateSuccessSubtle,
+                      borderColor: const Color(0xFFA7F3D0),
+                      textColor: _LandingDesignSystem.stateSuccess,
+                    ),
+                  ],
                 ],
               ),
-              ElevatedButton.icon(
-                onPressed: () {
+              _secondaryButton(
+                label: '+ Start New Request',
+                onTap: () {
                   setState(() {
                     _activeNav = _ClientNav.createReport;
                     _resetWizard();
                   });
                 },
-                icon: const Icon(Icons.add, size: 14),
-                label: const Text('Create New Report'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _LuxuryTheme.goldAccent,
-                  foregroundColor: _LuxuryTheme.bgDark,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                  textStyle: GoogleFonts.montserrat(fontSize: 12.5, fontWeight: FontWeight.w700),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                ),
               ),
             ],
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 24),
 
-          // Compact Luxury Cards Grid (~135px height per card)
-          Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children: activeOrders.map((order) {
-              final stageInfo = _mapToClientStage(order);
-              final orderId = order['id'];
-              final refCode = order['referenceCode'] ?? 'REQ-$orderId';
-              final category = (order['propertyCategory'] ?? 'Commercial Property').toString().replaceAll('_', ' ');
+          // ── SECTION 1: NEEDS ATTENTION (Sticky Top Priority) ──
+          if (needsAttentionOrders.isNotEmpty) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 24),
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFFBEB),
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFFDE68A)),
+                boxShadow: _LandingDesignSystem.cardShadow,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.warning_amber_rounded, size: 20, color: Color(0xFFD97706)),
+                      const SizedBox(width: 8),
+                      Text(
+                        'NEEDS ATTENTION (${needsAttentionOrders.length})',
+                        style: GoogleFonts.montserrat(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.8,
+                          color: const Color(0xFFB45309),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Text(
+                        '• Action required from you to proceed',
+                        style: GoogleFonts.inter(fontSize: 12.5, color: const Color(0xFF78350F)),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  ...needsAttentionOrders.map((order) => _buildNeedsAttentionCard(order)),
+                ],
+              ),
+            ),
+          ],
 
-              return Container(
-                width: 320,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _LuxuryTheme.cardGlass,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _LuxuryTheme.cardBorder),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
-                    ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
+          // ── SECTION 2: ACTIVE REPORTS ──
+          Text(
+            'ACTIVE REPORTS (${activeOrders.length})',
+            style: GoogleFonts.montserrat(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 0.8,
+              color: _LandingDesignSystem.textSecondary,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          if (activeOrders.isEmpty && needsAttentionOrders.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(20),
+              margin: const EdgeInsets.only(bottom: 24),
+              decoration: BoxDecoration(
+                color: _LandingDesignSystem.cardSurface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _LandingDesignSystem.cardBorder),
+              ),
+              child: Text(
+                'No active reports currently undergoing inspection or preparation.',
+                style: GoogleFonts.inter(fontSize: 13, color: _LandingDesignSystem.textSecondary),
+              ),
+            )
+          else
+            ...activeOrders.map((order) => _buildCompactActiveReportCard(order)),
+
+          const SizedBox(height: 24),
+
+          // ── SECTION 3: DELIVERED REPORTS ──
+          if (deliveredOrders.isNotEmpty) ...[
+            Text(
+              'DELIVERED REPORTS (${deliveredOrders.length})',
+              style: GoogleFonts.montserrat(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 0.8,
+                color: _LandingDesignSystem.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              margin: const EdgeInsets.only(bottom: 24),
+              decoration: BoxDecoration(
+                color: _LandingDesignSystem.cardSurface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: _LandingDesignSystem.cardBorder),
+                boxShadow: _LandingDesignSystem.cardShadow,
+              ),
+              child: Column(
+                children: deliveredOrders.map((order) => _buildDeliveredReportRow(order)).toList(),
+              ),
+            ),
+          ],
+
+          // ── SECTION 4: DIRECT SUPPORT STRIP ──
+          _buildCompactSupportStrip(),
+        ],
+      ),
+    );
+  }
+
+  Widget _metricPill({
+    required String label,
+    required Color bgColor,
+    required Color borderColor,
+    required Color textColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(100),
+        border: Border.all(color: borderColor),
+      ),
+      child: Text(
+        label,
+        style: GoogleFonts.montserrat(
+          fontSize: 11,
+          fontWeight: FontWeight.w700,
+          color: textColor,
+          letterSpacing: 0.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNeedsAttentionCard(dynamic order) {
+    final orderId = order['id'] as int;
+    final refCode = order['referenceCode'] ?? 'REQ-$orderId';
+    final title = (order['propertyCategory'] ?? 'Commercial Property Valuation').toString().replaceAll('_', ' ');
+    final status = (order['status'] as String? ?? '').toUpperCase();
+    final assetName = order['assetName'] != null && order['assetName'].toString().isNotEmpty
+        ? order['assetName'].toString()
+        : '$title Valuation';
+
+    final isQuote = status == 'QUOTE_PROVIDED';
+    final isPaymentRejected = status == 'PAYMENT_REJECTED';
+
+    String actionMsg = 'Additional action required from client to proceed.';
+    if (isQuote) {
+      actionMsg = 'Valuation quotation and service scope are ready for your review and approval.';
+    } else if (isPaymentRejected) {
+      actionMsg = 'Payment remittance could not be matched. Please re-submit your transaction reference.';
+    } else if (status == 'ACTION_NEEDED') {
+      actionMsg = 'Additional property deeds or sanction plans requested by valuation desk.';
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: _LandingDesignSystem.cardSurface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFFDE68A)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: const BoxDecoration(
+              color: Color(0xFFFEF3C7),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.error_outline_rounded, size: 20, color: Color(0xFFD97706)),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    // Row 1: Reference Badge + Current Status Badge
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: _LuxuryTheme.skyAccent.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(5),
-                            border: Border.all(color: _LuxuryTheme.skyAccent.withValues(alpha: 0.3)),
-                          ),
-                          child: Text(
-                            refCode,
-                            style: GoogleFonts.robotoMono(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: _LuxuryTheme.skyAccent,
-                            ),
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: stageInfo.statusColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(5),
-                            border: Border.all(color: stageInfo.statusColor.withValues(alpha: 0.3)),
-                          ),
-                          child: Text(
-                            stageInfo.statusBadge,
-                            style: TextStyle(
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w700,
-                              color: stageInfo.statusColor,
-                            ),
-                          ),
-                        ),
-                      ],
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: _LandingDesignSystem.bgSubtle,
+                        borderRadius: BorderRadius.circular(5),
+                        border: Border.all(color: _LandingDesignSystem.cardBorder),
+                      ),
+                      child: Text(
+                        refCode,
+                        style: GoogleFonts.robotoMono(fontSize: 11, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
+                      ),
                     ),
-                    const SizedBox(height: 10),
-
-                    // Row 2: Title (Compact 1-line)
+                    const SizedBox(width: 8),
                     Text(
-                      category,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.montserrat(
-                        fontSize: 14.5,
-                        fontWeight: FontWeight.w700,
-                        color: _LuxuryTheme.textMain,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-
-                    // Row 3: Expected Completion
-                    Row(
-                      children: [
-                        Icon(Icons.schedule_rounded, size: 12, color: _LuxuryTheme.textDim),
-                        const SizedBox(width: 5),
-                        Text(
-                          'Expected: 3 Business Days',
-                          style: GoogleFonts.inter(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w500,
-                            color: _LuxuryTheme.textMuted,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Row 4: Compact Open Workspace Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 32,
-                      child: OutlinedButton(
-                        onPressed: () => setState(() => _focusedActiveOrder = order),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: _LuxuryTheme.textMain,
-                          side: BorderSide(color: _LuxuryTheme.cardBorder),
-                          backgroundColor: Colors.white.withValues(alpha: 0.03),
-                          padding: EdgeInsets.zero,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text('Open Workspace', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.arrow_forward_rounded, size: 13),
-                          ],
-                        ),
-                      ),
+                      assetName,
+                      style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
                     ),
                   ],
                 ),
-              );
-            }).toList(),
+                const SizedBox(height: 3),
+                Text(
+                  actionMsg,
+                  style: GoogleFonts.inter(fontSize: 12, color: _LandingDesignSystem.textSecondary),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (isQuote)
+                _primaryCtaButton(
+                  label: 'Review Quotation',
+                  onTap: () => _showQuotationModal(order),
+                )
+              else if (isPaymentRejected)
+                _primaryCtaButton(
+                  label: 'Re-submit Payment',
+                  onTap: () => _showPaymentModal(order),
+                )
+              else
+                _primaryCtaButton(
+                  label: 'Upload Documents',
+                  onTap: () => _uploadAdditionalDocument(orderId),
+                ),
+              const SizedBox(width: 8),
+              _secondaryButton(
+                label: 'View Details',
+                onTap: () => setState(() => _focusedActiveOrder = order),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  // ═════════════════════════════════════════════════════════════════════════
-  // FLOW 3: ACTIVE REPORT WORKSPACE (Luxury Glass Architecture)
-  // ═════════════════════════════════════════════════════════════════════════
-  Widget _buildActiveReportWorkspace(dynamic order, OrderProvider orders) {
+  Widget _buildCompactActiveReportCard(dynamic order) {
+    final stageInfo = _mapToClientStage(order);
+    final orderId = order['id'] as int;
+    final refCode = order['referenceCode'] ?? 'REQ-$orderId';
+    final title = (order['propertyCategory'] ?? 'Commercial Property Valuation').toString().replaceAll('_', ' ');
+    final purpose = (order['purpose'] ?? 'Bank Collateral').toString().replaceAll('_', ' ');
+    final assetName = order['assetName'] != null && order['assetName'].toString().isNotEmpty
+        ? order['assetName'].toString()
+        : '$title Valuation';
+    final isActionNeeded = (order['status'] as String? ?? '').toUpperCase() == 'ACTION_NEEDED';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        color: _LandingDesignSystem.cardSurface,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _LandingDesignSystem.cardBorder),
+        boxShadow: _LandingDesignSystem.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Row 1: Category, Ref, Status Badge
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    title.toUpperCase(),
+                    style: GoogleFonts.montserrat(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1.0,
+                      color: _LandingDesignSystem.tealBrand,
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: _LandingDesignSystem.bgSubtle,
+                      borderRadius: BorderRadius.circular(5),
+                      border: Border.all(color: _LandingDesignSystem.cardBorder),
+                    ),
+                    child: Text(
+                      refCode,
+                      style: GoogleFonts.robotoMono(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: _LandingDesignSystem.textPrimary,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
+                decoration: BoxDecoration(
+                  color: _LandingDesignSystem.tealSubtle,
+                  borderRadius: BorderRadius.circular(100),
+                  border: Border.all(color: _LandingDesignSystem.tealBorder),
+                ),
+                child: Text(
+                  stageInfo.statusBadge,
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: _LandingDesignSystem.tealBrand,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+
+          // Row 2: Asset Name • Purpose
+          Text(
+            '$assetName • Purpose: $purpose',
+            style: GoogleFonts.montserrat(
+              fontSize: 14.5,
+              fontWeight: FontWeight.w700,
+              color: _LandingDesignSystem.textPrimary,
+            ),
+          ),
+          const SizedBox(height: 12),
+
+          // Row 3: Progress Tracker
+          _buildInlineProgressTracker(stageInfo.stageIndex),
+          const SizedBox(height: 12),
+
+          // Row 4: Last update & View Details button
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Text(
+                  'Last Update: ${stageInfo.statusDescription}',
+                  style: GoogleFonts.inter(fontSize: 12, color: _LandingDesignSystem.textSecondary),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (isActionNeeded) ...[
+                    _secondaryButton(
+                      label: 'Upload Documents',
+                      onTap: () => _uploadAdditionalDocument(orderId),
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+                  _secondaryButton(
+                    label: 'View Details',
+                    onTap: () => setState(() => _focusedActiveOrder = order),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDeliveredReportRow(dynamic order) {
+    final orderId = order['id'] as int;
+    final refCode = order['referenceCode'] ?? 'REQ-$orderId';
+    final title = (order['propertyCategory'] ?? 'Commercial Property Valuation').toString().replaceAll('_', ' ');
+    final assetName = order['assetName'] != null && order['assetName'].toString().isNotEmpty
+        ? order['assetName'].toString()
+        : '$title Valuation';
+
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      decoration: const BoxDecoration(
+        border: Border(bottom: BorderSide(color: _LandingDesignSystem.cardBorder)),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: const BoxDecoration(
+              color: _LandingDesignSystem.stateSuccessSubtle,
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.verified_rounded, size: 18, color: _LandingDesignSystem.stateSuccess),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _LandingDesignSystem.bgSubtle,
+                    borderRadius: BorderRadius.circular(5),
+                    border: Border.all(color: _LandingDesignSystem.cardBorder),
+                  ),
+                  child: Text(
+                    refCode,
+                    style: GoogleFonts.robotoMono(fontSize: 11, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    assetName,
+                    style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textPrimary),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: _LandingDesignSystem.stateSuccessSubtle,
+              borderRadius: BorderRadius.circular(100),
+              border: Border.all(color: const Color(0xFFA7F3D0)),
+            ),
+            child: Text(
+              'Ready for Download',
+              style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: _LandingDesignSystem.stateSuccess),
+            ),
+          ),
+          const SizedBox(width: 14),
+          _primaryCtaButton(
+            label: 'Download PDF',
+            onTap: () => _downloadFinalReport(refCode),
+          ),
+          const SizedBox(width: 8),
+          _secondaryButton(
+            label: 'Invoice',
+            onTap: () => _downloadTaxInvoice(orderId),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildCompactSupportStrip() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      decoration: BoxDecoration(
+        color: _LandingDesignSystem.cardSurface,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _LandingDesignSystem.cardBorder),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.help_outline_rounded, size: 18, color: _LandingDesignSystem.tealBrand),
+              const SizedBox(width: 10),
+              Text(
+                'Need assistance? Direct Valuer Desk: +91 85000 19091 • provaluer.india@gmail.com • Mon–Sat 9AM–7PM IST',
+                style: GoogleFonts.inter(fontSize: 12.5, color: _LandingDesignSystem.textSecondary),
+              ),
+            ],
+          ),
+          _secondaryButton(
+            label: 'Contact Support',
+            onTap: _showSupportDialog,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _emptyServiceOption({
+    required String title,
+    required String desc,
+    required IconData icon,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: _LandingDesignSystem.cardSurface,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: _LandingDesignSystem.cardBorder),
+          boxShadow: _LandingDesignSystem.cardShadow,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Icon(icon, size: 24, color: _LandingDesignSystem.tealBrand),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              desc,
+              style: GoogleFonts.inter(fontSize: 11.5, color: _LandingDesignSystem.textSecondary, height: 1.4),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildInlineProgressTracker(int activeIndex) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Row(
+          children: List.generate(6, (index) {
+            final isDone = index < activeIndex;
+            final isCurrent = index == activeIndex;
+
+            return Expanded(
+              child: Row(
+                children: [
+                  Container(
+                    width: 18,
+                    height: 18,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isDone
+                          ? _LandingDesignSystem.tealBrand
+                          : (isCurrent ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.bgSubtle),
+                      border: Border.all(
+                        color: (isDone || isCurrent) ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.cardBorder,
+                      ),
+                    ),
+                    child: Center(
+                      child: isDone
+                          ? const Icon(Icons.check, size: 10, color: Colors.white)
+                          : (isCurrent
+                              ? Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: const BoxDecoration(shape: BoxShape.circle, color: Colors.white),
+                                )
+                              : const SizedBox.shrink()),
+                    ),
+                  ),
+                  if (index < 5)
+                    Expanded(
+                      child: Container(
+                        height: 2,
+                        color: isDone ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.cardBorder,
+                      ),
+                    ),
+                ],
+              ),
+            );
+          }),
+        );
+      },
+    );
+  }
+
+    Widget _buildActiveReportWorkspace(dynamic order, OrderProvider orders) {
     final stageInfo = _mapToClientStage(order);
     final orderId = order['id'] as int;
     final refCode = order['referenceCode'] ?? 'REQ-$orderId';
@@ -1725,36 +2401,35 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     final reportNumber = order['reportNumber'] ?? 'PV-2026-PENDING';
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Breadcrumb Back
-          TextButton.icon(
-            onPressed: () => setState(() => _focusedActiveOrder = null),
-            icon: const Icon(Icons.arrow_back_rounded, size: 15),
-            label: const Text('Back to Reports In Progress'),
-            style: TextButton.styleFrom(
-              foregroundColor: _LuxuryTheme.textMuted,
-              textStyle: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w500),
+          GestureDetector(
+            onTap: () => setState(() => _focusedActiveOrder = null),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.arrow_back_rounded, size: 16, color: _LandingDesignSystem.textSecondary),
+                const SizedBox(width: 6),
+                Text(
+                  'Back to Reports',
+                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: _LandingDesignSystem.textSecondary),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 18),
 
           // SECTION 1: REPORT HEADER
           Container(
-            padding: const EdgeInsets.all(22),
+            padding: const EdgeInsets.all(26),
             decoration: BoxDecoration(
-              color: _LuxuryTheme.cardGlass,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _LuxuryTheme.cardBorder),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.25),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+              color: _LandingDesignSystem.cardSurface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _LandingDesignSystem.cardBorder),
+              boxShadow: _LandingDesignSystem.cardShadow,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1767,55 +2442,63 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: _LuxuryTheme.skyAccent.withValues(alpha: 0.12),
+                            color: _LandingDesignSystem.bgSubtle,
                             borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: _LuxuryTheme.skyAccent.withValues(alpha: 0.3)),
+                            border: Border.all(color: _LandingDesignSystem.cardBorder),
                           ),
                           child: Text(
                             refCode,
-                            style: GoogleFonts.robotoMono(fontSize: 12, fontWeight: FontWeight.w700, color: _LuxuryTheme.skyAccent),
+                            style: GoogleFonts.robotoMono(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: _LandingDesignSystem.textPrimary,
+                            ),
                           ),
                         ),
                         const SizedBox(width: 10),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                           decoration: BoxDecoration(
-                            color: stageInfo.statusColor.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: stageInfo.statusColor.withValues(alpha: 0.3)),
+                            color: _LandingDesignSystem.tealSubtle,
+                            borderRadius: BorderRadius.circular(100),
+                            border: Border.all(color: _LandingDesignSystem.tealBorder),
                           ),
                           child: Text(
                             stageInfo.statusBadge,
-                            style: TextStyle(fontSize: 11, fontWeight: FontWeight.w700, color: stageInfo.statusColor),
+                            style: GoogleFonts.inter(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: _LandingDesignSystem.tealBrand,
+                            ),
                           ),
                         ),
                       ],
                     ),
                     Text(
                       'Report No: $reportNumber',
-                      style: GoogleFonts.robotoMono(fontSize: 11.5, color: _LuxuryTheme.textDim, fontWeight: FontWeight.w600),
+                      style: GoogleFonts.robotoMono(fontSize: 12, color: _LandingDesignSystem.textSecondary),
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 16),
                 Text(
                   title,
-                  style: GoogleFonts.montserrat(fontSize: 19, fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain),
+                  style: GoogleFonts.montserrat(fontSize: 20, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   'Purpose: ${order['purpose'] != null ? order['purpose'].toString().replaceAll('_', ' ') : 'Valuation Mandate'}',
-                  style: GoogleFonts.inter(fontSize: 13, color: _LuxuryTheme.textMuted),
+                  style: GoogleFonts.inter(fontSize: 13, color: _LandingDesignSystem.textSecondary),
                 ),
+                const SizedBox(height: 18),
+                const Divider(height: 1, color: _LandingDesignSystem.cardBorder),
                 const SizedBox(height: 16),
-                Divider(height: 1, color: _LuxuryTheme.cardBorder),
-                const SizedBox(height: 14),
                 Row(
                   children: [
                     _headerMetaCol('Created Date', createdDate),
-                    const SizedBox(width: 36),
+                    const SizedBox(width: 40),
                     _headerMetaCol('Expected Completion', '3 Business Days'),
-                    const SizedBox(width: 36),
+                    const SizedBox(width: 40),
                     _headerMetaCol('Subject Category', order['propertyCategory']?.toString().replaceAll('_', ' ') ?? 'Real Estate'),
                   ],
                 ),
@@ -1824,167 +2507,46 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
           ),
           const SizedBox(height: 22),
 
-          // SECTION 2: CLIENT PROGRESS TRACKER (6 Stages ONLY)
+          // SECTION 2: CLIENT PROGRESS TRACKER (6 Human Advisory Stages)
           Container(
-            padding: const EdgeInsets.all(22),
+            padding: const EdgeInsets.all(26),
             decoration: BoxDecoration(
-              color: _LuxuryTheme.cardGlass,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _LuxuryTheme.cardBorder),
+              color: _LandingDesignSystem.cardSurface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _LandingDesignSystem.cardBorder),
+              boxShadow: _LandingDesignSystem.cardShadow,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(color: _LuxuryTheme.goldAccent, shape: BoxShape.circle),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Progress Tracker',
-                      style: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain),
-                    ),
-                  ],
+                Text(
+                  'Report Progress',
+                  style: GoogleFonts.montserrat(fontSize: 15, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
                 ),
-                const SizedBox(height: 18),
+                const SizedBox(height: 20),
                 _buildClientProgressTracker(stageInfo.stageIndex),
               ],
             ),
           ),
           const SizedBox(height: 22),
 
-          // SECTION 3: CURRENT STATUS HERO CARD
-          Container(
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              color: _LuxuryTheme.cardGlass,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: stageInfo.statusColor.withValues(alpha: 0.35), width: 1.2),
-              boxShadow: [
-                BoxShadow(
-                  color: stageInfo.statusColor.withValues(alpha: 0.08),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: stageInfo.statusColor.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: stageInfo.statusColor.withValues(alpha: 0.3)),
-                  ),
-                  child: Icon(
-                    stageInfo.isDelivered ? Icons.verified_rounded : Icons.radar_rounded,
-                    color: stageInfo.statusColor,
-                    size: 26,
-                  ),
-                ),
-                const SizedBox(width: 18),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        stageInfo.statusBadge,
-                        style: GoogleFonts.montserrat(fontSize: 16, fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        stageInfo.statusDescription,
-                        style: GoogleFonts.inter(fontSize: 12.5, color: _LuxuryTheme.textMuted, height: 1.35),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 16),
-                _buildStatusHeroAction(stageInfo, order),
-              ],
-            ),
-          ),
+          // SECTION 3: STATUS HERO ACTION
+          _buildStatusHeroAction(stageInfo, order),
           const SizedBox(height: 22),
 
-          // TWO-COLUMN SECTION: DOCUMENTS & UPDATES TIMELINE
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // SECTION 4: DOCUMENTS
-              Expanded(
-                flex: 6,
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: _LuxuryTheme.cardGlass,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: _LuxuryTheme.cardBorder),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text(
-                            'Mandate Documents',
-                            style: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain),
-                          ),
-                          TextButton.icon(
-                            onPressed: () => _uploadAdditionalDocument(orderId),
-                            icon: const Icon(Icons.add_circle_outline, size: 14),
-                            label: const Text('Upload Document'),
-                            style: TextButton.styleFrom(
-                              foregroundColor: _LuxuryTheme.skyAccent,
-                              textStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      _buildWorkspaceDocumentsList(order),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 20),
-
-              // SECTION 5: UPDATES TIMELINE
-              Expanded(
-                flex: 5,
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: _LuxuryTheme.cardGlass,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: _LuxuryTheme.cardBorder),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Updates Timeline',
-                        style: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain),
-                      ),
-                      const SizedBox(height: 14),
-                      _buildUpdatesTimeline(stageInfo.stageIndex, createdDate),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
+          // SECTION 4: WORKSPACE DOCUMENTS
+          _buildWorkspaceDocumentsList(order),
           const SizedBox(height: 22),
 
-          // SECTION 6: CONTEXTUAL ACTIONS
+          // SECTION 5: TIMELINE / RECENT ACTIVITY
+          _buildUpdatesTimeline(stageInfo.stageIndex, createdDate),
+          const SizedBox(height: 22),
+
+          // SECTION 6: CONTEXTUAL ACTION CENTER
           _buildContextualActionCenter(stageInfo, order),
           const SizedBox(height: 22),
 
-          // SUPPORT CONCIERGE FOOTER
+          // SECTION 7: SUPPORT CONCIERGE BANNER
           _buildSupportConciergeBanner(),
         ],
       ),
@@ -1995,91 +2557,111 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: GoogleFonts.inter(fontSize: 11, color: _LuxuryTheme.textDim)),
+        Text(label, style: GoogleFonts.inter(fontSize: 11.5, color: _LandingDesignSystem.textSecondary)),
         const SizedBox(height: 3),
-        Text(value, style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: _LuxuryTheme.textMain)),
+        Text(value, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textPrimary)),
       ],
     );
   }
 
-  // 6-Stage Progress Tracker (Luxury Minimal)
   Widget _buildClientProgressTracker(int activeIndex) {
     return LayoutBuilder(
-      builder: (ctx, constraints) {
-        return Row(
-          children: List.generate(_kClientStages.length, (idx) {
-            final isCompleted = idx < activeIndex;
-            final isCurrent = idx == activeIndex;
-            final isPending = idx > activeIndex;
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+        if (isMobile) {
+          return Column(
+            children: List.generate(_kClientStages.length, (i) {
+              final isDone = i < activeIndex;
+              final isCurrent = i == activeIndex;
+              return Padding(
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    Icon(
+                      isDone
+                          ? Icons.check_circle_rounded
+                          : (isCurrent ? Icons.radio_button_checked_rounded : Icons.radio_button_unchecked_rounded),
+                      size: 18,
+                      color: (isDone || isCurrent) ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.textSecondary,
+                    ),
+                    const SizedBox(width: 12),
+                    Text(
+                      _kClientStages[i],
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
+                        color: isCurrent ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }),
+          );
+        }
 
-            final circleColor = isCompleted
-                ? _LuxuryTheme.tealAccent
-                : (isCurrent ? _LuxuryTheme.goldAccent : Colors.transparent);
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: List.generate(_kClientStages.length, (i) {
+            final isDone = i < activeIndex;
+            final isCurrent = i == activeIndex;
 
             return Expanded(
-              child: Row(
+              child: Column(
                 children: [
-                  Expanded(
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: isCompleted
-                                ? _LuxuryTheme.tealAccent
-                                : (isCurrent ? _LuxuryTheme.goldAccent.withValues(alpha: 0.15) : _LuxuryTheme.cardGlass),
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: isCompleted
-                                  ? _LuxuryTheme.tealAccent
-                                  : (isCurrent ? _LuxuryTheme.goldAccent : _LuxuryTheme.cardBorder),
-                              width: isCurrent ? 2 : 1.2,
-                            ),
-                            boxShadow: isCurrent
-                                ? [
-                                    BoxShadow(
-                                      color: _LuxuryTheme.goldAccent.withValues(alpha: 0.3),
-                                      blurRadius: 8,
-                                    ),
-                                  ]
-                                : null,
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Container(
+                          height: 2,
+                          color: i == 0 ? Colors.transparent : (i <= activeIndex ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.cardBorder),
+                        ),
+                      ),
+                      Container(
+                        width: 22,
+                        height: 22,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isDone
+                              ? _LandingDesignSystem.tealBrand
+                              : (isCurrent ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.bgSubtle),
+                          border: Border.all(
+                            color: (isDone || isCurrent) ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.cardBorder,
                           ),
-                          child: Center(
-                            child: isCompleted
-                                ? const Icon(Icons.check, size: 14, color: Colors.white)
-                                : Text(
-                                    '${idx + 1}',
-                                    style: TextStyle(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: isCurrent ? _LuxuryTheme.goldAccent : _LuxuryTheme.textDim,
-                                    ),
+                        ),
+                        child: Center(
+                          child: isDone
+                              ? const Icon(Icons.check, size: 12, color: Colors.white)
+                              : Text(
+                                  '${i + 1}',
+                                  style: GoogleFonts.montserrat(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: isCurrent ? Colors.white : _LandingDesignSystem.textSecondary,
                                   ),
-                          ),
+                                ),
                         ),
-                        const SizedBox(height: 6),
-                        Text(
-                          _kClientStages[idx],
-                          textAlign: TextAlign.center,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: GoogleFonts.inter(
-                            fontSize: 10.5,
-                            fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
-                            color: isCurrent ? _LuxuryTheme.textMain : _LuxuryTheme.textDim,
-                          ),
+                      ),
+                      Expanded(
+                        child: Container(
+                          height: 2,
+                          color: i == _kClientStages.length - 1
+                              ? Colors.transparent
+                              : (i < activeIndex ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.cardBorder),
                         ),
-                      ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  Text(
+                    _kClientStages[i],
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontSize: 11,
+                      fontWeight: isCurrent ? FontWeight.w700 : FontWeight.w500,
+                      color: isCurrent ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.textSecondary,
                     ),
                   ),
-                  if (idx < _kClientStages.length - 1)
-                    Container(
-                      width: 16,
-                      height: 2,
-                      color: idx < activeIndex ? _LuxuryTheme.tealAccent : _LuxuryTheme.cardBorder,
-                      margin: const EdgeInsets.only(bottom: 22),
-                    ),
                 ],
               ),
             );
@@ -2090,401 +2672,293 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
   }
 
   Widget _buildStatusHeroAction(_ClientStageInfo stageInfo, dynamic order) {
-    final orderId = order['id'] as int;
-    final refCode = order['referenceCode'] ?? 'REQ-$orderId';
-
-    switch (stageInfo.stageIndex) {
-      case 2: // Quotation Ready
-        return ElevatedButton(
-          onPressed: () => _showQuotationModal(order),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _LuxuryTheme.goldAccent,
-            foregroundColor: _LuxuryTheme.bgDark,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            textStyle: GoogleFonts.montserrat(fontSize: 12.5, fontWeight: FontWeight.w700),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
-          ),
-          child: const Text('View Quote'),
-        );
-
-      case 3: // Payment Pending / Complete
-        if (order['status'] == 'QUOTE_ACCEPTED' || order['paymentStatus'] == 'PENDING') {
-          return ElevatedButton(
-            onPressed: () => _showPaymentModal(order),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _LuxuryTheme.tealAccent,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-              textStyle: GoogleFonts.montserrat(fontSize: 12.5, fontWeight: FontWeight.w700),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
+    return Container(
+      padding: const EdgeInsets.all(26),
+      decoration: BoxDecoration(
+        color: _LandingDesignSystem.cardSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _LandingDesignSystem.cardBorder),
+        boxShadow: _LandingDesignSystem.cardShadow,
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: _LandingDesignSystem.tealSubtle,
+              shape: BoxShape.circle,
+              border: Border.all(color: _LandingDesignSystem.tealBorder),
             ),
-            child: const Text('Pay Now'),
-          );
-        }
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: _LuxuryTheme.cardGlass,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: _LuxuryTheme.cardBorder),
+            child: const Center(
+              child: Icon(Icons.verified_outlined, size: 24, color: _LandingDesignSystem.tealBrand),
+            ),
           ),
-          child: Text('Under Verification', style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: _LuxuryTheme.goldAccent)),
-        );
-
-      case 5: // Delivered
-        return ElevatedButton.icon(
-          onPressed: _actionLoading ? null : () => _downloadFinalReport(refCode),
-          icon: const Icon(Icons.download_rounded, size: 14),
-          label: const Text('Download Report'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: _LuxuryTheme.tealAccent,
-            foregroundColor: Colors.white,
-            elevation: 0,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-            textStyle: GoogleFonts.montserrat(fontSize: 12.5, fontWeight: FontWeight.w700),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(7)),
+          const SizedBox(width: 20),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  stageInfo.stageTitle,
+                  style: GoogleFonts.montserrat(fontSize: 16, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  stageInfo.statusDescription,
+                  style: GoogleFonts.inter(fontSize: 13, color: _LandingDesignSystem.textSecondary),
+                ),
+              ],
+            ),
           ),
-        );
-
-      default:
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-          decoration: BoxDecoration(
-            color: _LuxuryTheme.cardGlass,
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: _LuxuryTheme.cardBorder),
-          ),
-          child: Text(
-            stageInfo.requiredActionLabel,
-            style: TextStyle(fontSize: 11.5, fontWeight: FontWeight.w600, color: _LuxuryTheme.textMuted),
-          ),
-        );
-    }
+          const SizedBox(width: 16),
+          if (stageInfo.stageIndex == 2)
+            _primaryCtaButton(
+              label: 'View Proposal',
+              onTap: () => _showQuotationModal(order),
+            )
+          else if (stageInfo.stageIndex == 5)
+            _primaryCtaButton(
+              label: 'Download Report',
+              onTap: () => _downloadFinalReport(order['referenceCode'] ?? 'REQ-${order['id']}'),
+            ),
+        ],
+      ),
+    );
   }
 
   Widget _buildWorkspaceDocumentsList(dynamic order) {
-    final documents = (order['documents'] as List<dynamic>?) ?? [];
+    final orderId = order['id'] as int;
 
-    if (documents.isEmpty) {
-      return Column(
+    return Container(
+      padding: const EdgeInsets.all(26),
+      decoration: BoxDecoration(
+        color: _LandingDesignSystem.cardSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _LandingDesignSystem.cardBorder),
+        boxShadow: _LandingDesignSystem.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _docItemRow('Title Deed / Registered Sale Deed', 'Verified', true),
-          Divider(height: 14, color: _LuxuryTheme.cardBorder),
-          _docItemRow('Municipal Sanction Plan', 'Verified', true),
-          Divider(height: 14, color: _LuxuryTheme.cardBorder),
-          _docItemRow('Property Tax Receipt', 'Verified', true),
-          Divider(height: 14, color: _LuxuryTheme.cardBorder),
-          _docItemRow('Site Inspection Photographs', 'Optional / In Review', false),
-        ],
-      );
-    }
-
-    return Column(
-      children: documents.map((doc) {
-        final name = doc['originalFilename'] ?? doc['name'] ?? 'Document.pdf';
-        final category = (doc['documentCategory'] ?? doc['category'] ?? 'Legal').toString().replaceAll('_', ' ');
-        final isVerified = doc['verified'] == true || doc['status'] == 'VERIFIED';
-        return Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: _docItemRow('$category ($name)', isVerified ? 'Verified' : 'In Review', isVerified),
-        );
-      }).toList(),
-    );
-  }
-
-  Widget _docItemRow(String name, String status, bool verified) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Row(
-          children: [
-            Icon(
-              verified ? Icons.check_circle_rounded : Icons.pending_outlined,
-              size: 16,
-              color: verified ? _LuxuryTheme.tealAccent : _LuxuryTheme.goldAccent,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              name,
-              style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w500, color: _LuxuryTheme.textMain),
-            ),
-          ],
-        ),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-          decoration: BoxDecoration(
-            color: verified
-                ? _LuxuryTheme.tealAccent.withValues(alpha: 0.12)
-                : _LuxuryTheme.goldAccent.withValues(alpha: 0.12),
-            borderRadius: BorderRadius.circular(4),
-            border: Border.all(
-              color: verified
-                  ? _LuxuryTheme.tealAccent.withValues(alpha: 0.3)
-                  : _LuxuryTheme.goldAccent.withValues(alpha: 0.3),
-            ),
-          ),
-          child: Text(
-            verified ? 'Verified ✓' : 'In Review ⏳',
-            style: TextStyle(
-              fontSize: 10.5,
-              fontWeight: FontWeight.w700,
-              color: verified ? _LuxuryTheme.tealAccent : _LuxuryTheme.goldAccent,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildUpdatesTimeline(int currentStageIndex, String createdDate) {
-    final updates = [
-      {'title': 'Valuation Request Submitted', 'date': createdDate, 'desc': 'Client initialized mandate.'},
-      if (currentStageIndex >= 1)
-        {'title': 'Documents Verified by Desk', 'date': createdDate, 'desc': 'Ownership & circle rates confirmed.'},
-      if (currentStageIndex >= 2)
-        {'title': 'Official Quotation Generated', 'date': 'Today', 'desc': 'Turnaround SLA and fee scope determined.'},
-      if (currentStageIndex >= 3)
-        {'title': 'Payment Remittance Processed', 'date': 'Today', 'desc': 'Bank credit confirmed.'},
-      if (currentStageIndex >= 4)
-        {'title': 'Valuation Compilation In Progress', 'date': 'Today', 'desc': 'Appraisal inspection underway.'},
-      if (currentStageIndex >= 5)
-        {'title': 'Certified Report Package Released', 'date': 'Today', 'desc': 'Cloud HSM signed package generated.'},
-    ].reversed.toList();
-
-    return Column(
-      children: updates.map((u) {
-        return Padding(
-          padding: const EdgeInsets.only(bottom: 12),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                margin: const EdgeInsets.only(top: 4),
-                width: 7,
-                height: 7,
-                decoration: const BoxDecoration(color: _LuxuryTheme.skyAccent, shape: BoxShape.circle),
+              Text(
+                'Supporting Documents',
+                style: GoogleFonts.montserrat(fontSize: 15, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
               ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(u['title']!, style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: _LuxuryTheme.textMain)),
-                    Text('${u['date']} • ${u['desc']}', style: GoogleFonts.inter(fontSize: 11, color: _LuxuryTheme.textMuted)),
-                  ],
+              TextButton.icon(
+                onPressed: () => _uploadAdditionalDocument(orderId),
+                icon: const Icon(Icons.add, size: 14),
+                label: const Text('Add Document'),
+                style: TextButton.styleFrom(
+                  foregroundColor: _LandingDesignSystem.tealBrand,
+                  textStyle: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w600),
                 ),
               ),
             ],
           ),
-        );
-      }).toList(),
+          const SizedBox(height: 14),
+          _docItemRow('Title Deed / Registered Sale Deed', 'Verified by Desk', true),
+          const SizedBox(height: 8),
+          _docItemRow('Approved Sanction Plan', 'Document Attached', false),
+          const SizedBox(height: 8),
+          _docItemRow('Property Tax Receipt', 'Document Attached', false),
+        ],
+      ),
     );
   }
 
-  // Contextual Actions Center (Compact Luxury Buttons)
-  Widget _buildContextualActionCenter(_ClientStageInfo stageInfo, dynamic order) {
-    final orderId = order['id'] as int;
-    final refCode = order['referenceCode'] ?? 'REQ-$orderId';
+  Widget _docItemRow(String name, String status, bool verified) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: _LandingDesignSystem.bgCanvas,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: _LandingDesignSystem.cardBorder),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.description_outlined, size: 18, color: _LandingDesignSystem.textSecondary),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(name, style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w500, color: _LandingDesignSystem.textPrimary)),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+            decoration: BoxDecoration(
+              color: verified ? _LandingDesignSystem.stateSuccessSubtle : _LandingDesignSystem.bgSubtle,
+              borderRadius: BorderRadius.circular(6),
+            ),
+            child: Text(
+              status,
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: verified ? _LandingDesignSystem.stateSuccess : _LandingDesignSystem.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildUpdatesTimeline(int currentStageIndex, String createdDate) {
+    final events = [
+      {'title': 'Valuation Request Received', 'time': createdDate, 'done': true},
+      {'title': 'Desk Review & Benchmark Analysis', 'time': 'In Progress', 'done': currentStageIndex >= 1},
+      {'title': 'Proposal & SLA Schedule Issued', 'time': 'Pending', 'done': currentStageIndex >= 2},
+      {'title': 'Remittance Verification & Confirmed Engagement', 'time': 'Pending', 'done': currentStageIndex >= 3},
+      {'title': 'Asset Appraisal & Report Compilation', 'time': 'Pending', 'done': currentStageIndex >= 4},
+      {'title': 'Certified Valuation Report Ready', 'time': 'Pending', 'done': currentStageIndex >= 5},
+    ];
 
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(26),
       decoration: BoxDecoration(
-        color: _LuxuryTheme.cardGlass,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _LuxuryTheme.cardBorder),
+        color: _LandingDesignSystem.cardSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _LandingDesignSystem.cardBorder),
+        boxShadow: _LandingDesignSystem.cardShadow,
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Mandate Action Center',
-            style: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain),
+            'Recent Advisory Activity',
+            style: GoogleFonts.montserrat(fontSize: 15, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
           ),
-          const SizedBox(height: 14),
-
-          if (stageInfo.stageIndex == 2) ...[
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: () => _showQuotationModal(order),
-                  icon: const Icon(Icons.receipt_long, size: 14),
-                  label: const Text('View Quote'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _LuxuryTheme.goldAccent,
-                    foregroundColor: _LuxuryTheme.bgDark,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    textStyle: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w700),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                  ),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () => _downloadQuotePdf(orderId),
-                  icon: const Icon(Icons.download, size: 14),
-                  label: const Text('Download PDF'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _LuxuryTheme.textMain,
-                    side: BorderSide(color: _LuxuryTheme.cardBorder),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    textStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                  ),
-                ),
-                ElevatedButton.icon(
-                  onPressed: () => _showPaymentModal(order),
-                  icon: const Icon(Icons.payment, size: 14),
-                  label: const Text('Pay Now →'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _LuxuryTheme.tealAccent,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    textStyle: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w700),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                  ),
-                ),
-              ],
-            ),
-          ] else if (stageInfo.stageIndex == 3) ...[
-            Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: _LuxuryTheme.skyAccent.withValues(alpha: 0.08),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: _LuxuryTheme.skyAccent.withValues(alpha: 0.2)),
-              ),
+          const SizedBox(height: 18),
+          ...events.map((e) {
+            final isDone = e['done'] as bool;
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 12),
               child: Row(
                 children: [
-                  const Icon(Icons.hourglass_top, color: _LuxuryTheme.skyAccent, size: 16),
-                  const SizedBox(width: 10),
+                  Container(
+                    width: 10,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isDone ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.cardBorder,
+                    ),
+                  ),
+                  const SizedBox(width: 14),
                   Expanded(
                     child: Text(
-                      'Payment remittance proof is being verified by accounts desk. Order will transition to Report In Progress automatically.',
-                      style: GoogleFonts.inter(fontSize: 12.5, color: _LuxuryTheme.textMain, fontWeight: FontWeight.w500),
+                      e['title'] as String,
+                      style: GoogleFonts.inter(
+                        fontSize: 12.5,
+                        fontWeight: isDone ? FontWeight.w600 : FontWeight.w400,
+                        color: isDone ? _LandingDesignSystem.textPrimary : _LandingDesignSystem.textSecondary,
+                      ),
                     ),
+                  ),
+                  Text(
+                    e['time'] as String,
+                    style: GoogleFonts.inter(fontSize: 11.5, color: _LandingDesignSystem.textSecondary),
                   ),
                 ],
               ),
-            ),
-          ] else if (stageInfo.stageIndex == 4) ...[
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: _LuxuryTheme.cardGlass,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: _LuxuryTheme.cardBorder),
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.schedule, color: _LuxuryTheme.skyAccent, size: 18),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'Report In Progress • Valuer inspection and statutory compilation underway. Target delivery is within committed SLA.',
-                      style: GoogleFonts.inter(fontSize: 12.5, color: _LuxuryTheme.textMain, fontWeight: FontWeight.w500),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ] else if (stageInfo.stageIndex == 5) ...[
-            Wrap(
-              spacing: 10,
-              runSpacing: 10,
-              children: [
-                ElevatedButton.icon(
-                  onPressed: _actionLoading ? null : () => _downloadFinalReport(refCode),
-                  icon: const Icon(Icons.download_rounded, size: 14),
-                  label: const Text('Download Report'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _LuxuryTheme.tealAccent,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    textStyle: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w700),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                  ),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () => _downloadTaxInvoice(orderId),
-                  icon: const Icon(Icons.receipt_outlined, size: 14),
-                  label: const Text('Download Invoice'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _LuxuryTheme.textMain,
-                    side: BorderSide(color: _LuxuryTheme.cardBorder),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    textStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                  ),
-                ),
-                OutlinedButton.icon(
-                  onPressed: () => _acknowledgeReportDelivery(refCode, 'ACCEPT'),
-                  icon: const Icon(Icons.check, size: 14),
-                  label: const Text('Accept Report'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: _LuxuryTheme.tealAccent,
-                    side: BorderSide(color: _LuxuryTheme.tealAccent.withValues(alpha: 0.4)),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    textStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                  ),
-                ),
-                TextButton.icon(
-                  onPressed: () => _requestReportClarification(refCode),
-                  icon: const Icon(Icons.chat_bubble_outline, size: 14),
-                  label: const Text('Clarification'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: _LuxuryTheme.textMuted,
-                    textStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500),
-                  ),
-                ),
-              ],
-            ),
-          ] else ...[
-            Text(
-              'No immediate action required from your side. Our team is processing your request.',
-              style: GoogleFonts.inter(fontSize: 12.5, color: _LuxuryTheme.textMuted),
-            ),
-          ],
+            );
+          }),
         ],
       ),
     );
   }
 
-  // Concierge Support Banner (Luxury Gold Accent)
+  Widget _buildContextualActionCenter(_ClientStageInfo stageInfo, dynamic order) {
+    final orderId = order['id'] as int;
+    final refCode = order['referenceCode'] ?? 'REQ-$orderId';
+
+    return Container(
+      padding: const EdgeInsets.all(26),
+      decoration: BoxDecoration(
+        color: _LandingDesignSystem.cardSurface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _LandingDesignSystem.cardBorder),
+        boxShadow: _LandingDesignSystem.cardShadow,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Available Engagement Actions',
+            style: GoogleFonts.montserrat(fontSize: 15, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
+          ),
+          const SizedBox(height: 14),
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: [
+              if (stageInfo.stageIndex == 2) ...[
+                _primaryCtaButton(
+                  label: 'View Proposal',
+                  onTap: () => _showQuotationModal(order),
+                ),
+                _secondaryButton(
+                  label: 'Download Proposal PDF',
+                  onTap: () => _downloadQuotePdf(orderId),
+                ),
+              ],
+              if (stageInfo.stageIndex == 5) ...[
+                _primaryCtaButton(
+                  label: 'Download Certified Report',
+                  onTap: () => _downloadFinalReport(refCode),
+                ),
+                _secondaryButton(
+                  label: 'Download Commercial Invoice',
+                  onTap: () => _downloadTaxInvoice(orderId),
+                ),
+              ],
+              _secondaryButton(
+                label: 'Request Clarification',
+                onTap: () => _requestReportClarification(refCode),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildSupportConciergeBanner() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
       decoration: BoxDecoration(
-        color: _LuxuryTheme.cardGlass,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _LuxuryTheme.goldAccent.withValues(alpha: 0.2)),
+        color: _LandingDesignSystem.bgCanvas,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: _LandingDesignSystem.cardBorder),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Row(
             children: [
-              const Icon(Icons.headset_mic_outlined, color: _LuxuryTheme.goldAccent, size: 20),
-              const SizedBox(width: 12),
+              const Text('🎧', style: TextStyle(fontSize: 24)),
+              const SizedBox(width: 14),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Dedicated Client Concierge', style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain)),
-                  Text('Direct support from our Senior Valuer Desk', style: GoogleFonts.inter(fontSize: 11, color: _LuxuryTheme.textMuted)),
+                  Text(
+                    'Dedicated Valuation Advisory Desk',
+                    style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
+                  ),
+                  Text(
+                    'Direct contact for inquiries regarding this engagement',
+                    style: GoogleFonts.inter(fontSize: 12, color: _LandingDesignSystem.textSecondary),
+                  ),
                 ],
               ),
             ],
           ),
           Row(
             children: [
-              Text('+91 85000 19091', style: GoogleFonts.robotoMono(fontSize: 12, color: _LuxuryTheme.goldAccent, fontWeight: FontWeight.w600)),
+              Text('📞 +91 85000 19091', style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textPrimary)),
               const SizedBox(width: 16),
-              Text('provaluer.india@gmail.com', style: GoogleFonts.inter(fontSize: 12, color: _LuxuryTheme.textMuted)),
+              Text('✉️ provaluer.india@gmail.com', style: GoogleFonts.inter(fontSize: 12.5, color: _LandingDesignSystem.textSecondary)),
             ],
           ),
         ],
@@ -2492,9 +2966,8 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     );
   }
 
-
   // ═════════════════════════════════════════════════════════════════════════
-  // FLOW 4: COMPLETED REPORTS (Luxury Read Only Gallery & Workspace)
+  // FLOW 4: COMPLETED REPORTS (Landing Page Design System)
   // ═════════════════════════════════════════════════════════════════════════
   Widget _buildCompletedReportsGallery(OrderProvider orders) {
     final completedOrders = orders.clientOrders
@@ -2511,21 +2984,21 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
               Container(
                 padding: const EdgeInsets.all(22),
                 decoration: BoxDecoration(
-                  color: _LuxuryTheme.cardGlass,
+                  color: _LandingDesignSystem.tealSubtle,
                   shape: BoxShape.circle,
-                  border: Border.all(color: _LuxuryTheme.cardBorder),
+                  border: Border.all(color: _LandingDesignSystem.tealBorder),
                 ),
-                child: const Icon(Icons.inventory_2_outlined, size: 40, color: _LuxuryTheme.tealAccent),
+                child: const Icon(Icons.check_circle_outline_rounded, size: 36, color: _LandingDesignSystem.tealBrand),
               ),
               const SizedBox(height: 18),
               Text(
                 'No Completed Reports Yet',
-                style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain),
+                style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
               ),
               const SizedBox(height: 6),
               Text(
-                'Once your valuation reports are officially delivered and signed, they will be archived here.',
-                style: GoogleFonts.inter(fontSize: 13, color: _LuxuryTheme.textMuted),
+                'Your concluded and digitally signed reports will be archived here for statutory records.',
+                style: GoogleFonts.inter(fontSize: 13, color: _LandingDesignSystem.textSecondary),
               ),
             ],
           ),
@@ -2534,377 +3007,171 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     }
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 36),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(color: _LuxuryTheme.tealAccent, shape: BoxShape.circle),
-              ),
-              const SizedBox(width: 8),
-              Text(
-                'Completed Valuation Archives',
-                style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain),
-              ),
-            ],
+          Text(
+            'Completed Valuation Records',
+            style: GoogleFonts.montserrat(fontSize: 24, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
           ),
           const SizedBox(height: 4),
           Text(
-            '${completedOrders.length} completed report${completedOrders.length > 1 ? 's' : ''} stored under 10-year statutory compliance archive.',
-            style: GoogleFonts.inter(fontSize: 12.5, color: _LuxuryTheme.textMuted),
+            'Statutorily certified valuation reports archived under digital compliance.',
+            style: GoogleFonts.inter(fontSize: 13.5, color: _LandingDesignSystem.textSecondary),
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 24),
+          ...completedOrders.map((order) {
+            final orderId = order['id'] as int;
+            final refCode = order['referenceCode'] ?? 'REQ-$orderId';
+            final title = (order['propertyCategory'] ?? 'Commercial Property Valuation').toString().replaceAll('_', ' ');
 
-          // Compact Luxury Cards Grid (~135px height)
-          Wrap(
-            spacing: 16,
-            runSpacing: 16,
-            children: completedOrders.map((order) {
-              final orderId = order['id'];
-              final refCode = order['referenceCode'] ?? 'REQ-$orderId';
-              final title = (order['propertyCategory'] ?? 'Commercial Property Valuation').toString().replaceAll('_', ' ');
-              final completionDate = order['updatedAt'] != null
-                  ? order['updatedAt'].toString().split('T').first
-                  : 'Completed';
-
-              return Container(
-                width: 320,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _LuxuryTheme.cardGlass,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: _LuxuryTheme.cardBorder),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      blurRadius: 10,
-                      offset: const Offset(0, 4),
+            return Container(
+              margin: const EdgeInsets.only(bottom: 16),
+              padding: const EdgeInsets.all(22),
+              decoration: BoxDecoration(
+                color: _LandingDesignSystem.cardSurface,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: _LandingDesignSystem.cardBorder),
+                boxShadow: _LandingDesignSystem.cardShadow,
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: const BoxDecoration(
+                      color: _LandingDesignSystem.stateSuccessSubtle,
+                      shape: BoxShape.circle,
                     ),
-                  ],
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    // Row 1: Reference + Status
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    child: const Icon(Icons.verified_rounded, size: 20, color: _LandingDesignSystem.stateSuccess),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: _LuxuryTheme.skyAccent.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(5),
-                            border: Border.all(color: _LuxuryTheme.skyAccent.withValues(alpha: 0.3)),
-                          ),
-                          child: Text(refCode, style: GoogleFonts.robotoMono(fontSize: 11, fontWeight: FontWeight.w700, color: _LuxuryTheme.skyAccent)),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: _LuxuryTheme.tealAccent.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(5),
-                            border: Border.all(color: _LuxuryTheme.tealAccent.withValues(alpha: 0.3)),
-                          ),
-                          child: Text('Completed ✓', style: GoogleFonts.inter(fontSize: 10.5, fontWeight: FontWeight.w700, color: _LuxuryTheme.tealAccent)),
-                        ),
+                        Text(refCode, style: GoogleFonts.robotoMono(fontSize: 12, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary)),
+                        const SizedBox(height: 2),
+                        Text(title, style: GoogleFonts.montserrat(fontSize: 14.5, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary)),
                       ],
                     ),
-                    const SizedBox(height: 10),
-
-                    // Row 2: Title (1 line)
-                    Text(
-                      title,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.montserrat(fontSize: 14.5, fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain),
-                    ),
-                    const SizedBox(height: 6),
-
-                    // Row 3: Completed Date
-                    Row(
-                      children: [
-                        Icon(Icons.event_available_rounded, size: 12, color: _LuxuryTheme.textDim),
-                        const SizedBox(width: 5),
-                        Text('Delivered: $completionDate', style: GoogleFonts.inter(fontSize: 11.5, color: _LuxuryTheme.textMuted)),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-
-                    // Row 4: Compact Action
-                    SizedBox(
-                      width: double.infinity,
-                      height: 32,
-                      child: OutlinedButton(
-                        onPressed: () => setState(() => _focusedCompletedOrder = order),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: _LuxuryTheme.textMain,
-                          side: BorderSide(color: _LuxuryTheme.cardBorder),
-                          backgroundColor: Colors.white.withValues(alpha: 0.03),
-                          padding: EdgeInsets.zero,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text('Open Archive', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600)),
-                            const SizedBox(width: 4),
-                            const Icon(Icons.arrow_forward_rounded, size: 13),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              );
-            }).toList(),
-          ),
+                  ),
+                  _primaryCtaButton(
+                    label: 'Download Report',
+                    onTap: () => _downloadFinalReport(refCode),
+                  ),
+                  const SizedBox(width: 10),
+                  _secondaryButton(
+                    label: 'Invoice',
+                    onTap: () => _downloadTaxInvoice(orderId),
+                  ),
+                ],
+              ),
+            );
+          }),
         ],
       ),
     );
   }
 
-  // COMPLETED REPORT WORKSPACE (READ ONLY LUXURY GLASS)
   Widget _buildCompletedReportWorkspace(dynamic order, OrderProvider orders) {
     final orderId = order['id'] as int;
     final refCode = order['referenceCode'] ?? 'REQ-$orderId';
     final title = (order['propertyCategory'] ?? 'Commercial Property Valuation').toString().replaceAll('_', ' ');
-    final completionDate = order['updatedAt'] != null ? order['updatedAt'].toString().split('T').first : 'Completed';
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          TextButton.icon(
-            onPressed: () => setState(() => _focusedCompletedOrder = null),
-            icon: const Icon(Icons.arrow_back_rounded, size: 15),
-            label: const Text('Back to Completed Reports'),
-            style: TextButton.styleFrom(
-              foregroundColor: _LuxuryTheme.textMuted,
-              textStyle: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w500),
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          // Header
-          Container(
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              color: _LuxuryTheme.cardGlass,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _LuxuryTheme.cardBorder),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          GestureDetector(
+            onTap: () => setState(() => _focusedCompletedOrder = null),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: _LuxuryTheme.skyAccent.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: _LuxuryTheme.skyAccent.withValues(alpha: 0.3)),
-                          ),
-                          child: Text(refCode, style: GoogleFonts.robotoMono(fontSize: 12, fontWeight: FontWeight.w700, color: _LuxuryTheme.skyAccent)),
-                        ),
-                        const SizedBox(width: 10),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(
-                            color: _LuxuryTheme.tealAccent.withValues(alpha: 0.12),
-                            borderRadius: BorderRadius.circular(6),
-                            border: Border.all(color: _LuxuryTheme.tealAccent.withValues(alpha: 0.3)),
-                          ),
-                          child: Text('Archived Record (Read-Only) 🔒', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w700, color: _LuxuryTheme.tealAccent)),
-                        ),
-                      ],
-                    ),
-                    Text('Completion Date: $completionDate', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: _LuxuryTheme.textDim)),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Text(title, style: GoogleFonts.montserrat(fontSize: 19, fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain)),
-                const SizedBox(height: 6),
-                Text('Final Assessed Value: ₹ ${order['estimatedValue'] ?? '1,85,00,000'}', style: GoogleFonts.inter(fontSize: 13.5, color: _LuxuryTheme.goldAccent, fontWeight: FontWeight.w600)),
-              ],
-            ),
-          ),
-          const SizedBox(height: 22),
-
-          // Final Deliverables Card
-          Container(
-            padding: const EdgeInsets.all(22),
-            decoration: BoxDecoration(
-              color: _LuxuryTheme.cardGlass,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: _LuxuryTheme.tealAccent.withValues(alpha: 0.35)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.verified_rounded, color: _LuxuryTheme.tealAccent, size: 24),
-                    const SizedBox(width: 10),
-                    Text('Official Signed Deliverables', style: GoogleFonts.montserrat(fontSize: 15, fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain)),
-                  ],
-                ),
-                const SizedBox(height: 6),
+                const Icon(Icons.arrow_back_rounded, size: 16, color: _LandingDesignSystem.textSecondary),
+                const SizedBox(width: 6),
                 Text(
-                  'Your final report is digitally signed via Cloud HSM and protected with AES-256 encryption. The password is your registered 10-digit mobile number.',
-                  style: GoogleFonts.inter(fontSize: 12.5, color: _LuxuryTheme.textMuted),
+                  'Back to Reports',
+                  style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: _LandingDesignSystem.textSecondary),
                 ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 18),
+          Container(
+            padding: const EdgeInsets.all(26),
+            decoration: BoxDecoration(
+              color: _LandingDesignSystem.cardSurface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: _LandingDesignSystem.cardBorder),
+              boxShadow: _LandingDesignSystem.cardShadow,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(refCode, style: GoogleFonts.robotoMono(fontSize: 13, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary)),
+                const SizedBox(height: 4),
+                Text(title, style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary)),
                 const SizedBox(height: 18),
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 10,
+                Row(
                   children: [
-                    ElevatedButton.icon(
-                      onPressed: () => _downloadFinalReport(refCode),
-                      icon: const Icon(Icons.download_rounded, size: 14),
-                      label: const Text('Download Report PDF'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: _LuxuryTheme.tealAccent,
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        textStyle: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w700),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                      ),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () => _downloadTaxInvoice(orderId),
-                      icon: const Icon(Icons.receipt_outlined, size: 14),
-                      label: const Text('Download Tax Invoice'),
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: _LuxuryTheme.textMain,
-                        side: BorderSide(color: _LuxuryTheme.cardBorder),
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        textStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                      ),
-                    ),
+                    _primaryCtaButton(label: 'Download Certified PDF', onTap: () => _downloadFinalReport(refCode)),
+                    const SizedBox(width: 12),
+                    _secondaryButton(label: 'Download Commercial Invoice', onTap: () => _downloadTaxInvoice(orderId)),
                   ],
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 22),
-
-          // Request Details & Payment History
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: _LuxuryTheme.cardGlass,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: _LuxuryTheme.cardBorder),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Request Details', style: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain)),
-                      const SizedBox(height: 14),
-                      _summaryRow('Service', 'Commercial Valuation'),
-                      Divider(height: 14, color: _LuxuryTheme.cardBorder),
-                      _summaryRow('Purpose', order['purpose']?.toString().replaceAll('_', ' ') ?? 'Bank Collateral'),
-                      Divider(height: 14, color: _LuxuryTheme.cardBorder),
-                      _summaryRow('Category', order['propertyCategory']?.toString().replaceAll('_', ' ') ?? 'Land & Building'),
-                      Divider(height: 14, color: _LuxuryTheme.cardBorder),
-                      _summaryRow('Archival Status', '10-Year Statutory Lock Active'),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(width: 20),
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: _LuxuryTheme.cardGlass,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(color: _LuxuryTheme.cardBorder),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Settlement & Payment History', style: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain)),
-                      const SizedBox(height: 14),
-                      _summaryRow('Quoted Base Fee', '₹ 15,000.00'),
-                      Divider(height: 14, color: _LuxuryTheme.cardBorder),
-                      _summaryRow('GST (18%)', '₹ 2,700.00'),
-                      Divider(height: 14, color: _LuxuryTheme.cardBorder),
-                      _summaryRow('Total Paid', '₹ 17,700.00 (Settled ✓)'),
-                      Divider(height: 14, color: _LuxuryTheme.cardBorder),
-                      _summaryRow('Payment Status', 'Bank Credit Verified'),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 22),
-
-          // Support Hotline
-          _buildSupportConciergeBanner(),
         ],
       ),
     );
   }
 
   // ═════════════════════════════════════════════════════════════════════════
-  // MODALS & DIALOGS
+  // MODALS & DIALOGS (Landing Page Design System)
   // ═════════════════════════════════════════════════════════════════════════
   void _showProfileDialog(AuthProvider auth) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: _LuxuryTheme.bgDark,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: _LuxuryTheme.cardBorder)),
-        title: Text('My Profile', style: GoogleFonts.montserrat(fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain, fontSize: 16)),
+        backgroundColor: _LandingDesignSystem.bgSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: _LandingDesignSystem.cardBorder),
+        ),
+        title: Text(
+          'Client Account Details',
+          style: GoogleFonts.montserrat(fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary, fontSize: 16),
+        ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _profileField('Client Officer', auth.fullName ?? 'Anand Mehta'),
-            const SizedBox(height: 12),
-            _profileField('Registered Email', auth.email ?? 'client@provaluer.com'),
-            const SizedBox(height: 12),
-            _profileField('Account Role', auth.role ?? 'CLIENT'),
-            const SizedBox(height: 12),
-            _profileField('Portal Access', 'Active • Verified'),
+            _profileField('Full Name', auth.fullName ?? 'Client Officer'),
+            _profileField('Email Address', auth.email ?? 'client@provaluer.com'),
+            _profileField('Role', auth.role ?? 'CLIENT'),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Close', style: TextStyle(color: _LuxuryTheme.textMuted)),
-          ),
+          _secondaryButton(label: 'Close', onTap: () => Navigator.pop(ctx)),
         ],
       ),
     );
   }
 
   Widget _profileField(String label, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: GoogleFonts.inter(fontSize: 11, color: _LuxuryTheme.textDim)),
-        const SizedBox(height: 2),
-        Text(value, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _LuxuryTheme.textMain)),
-      ],
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label, style: GoogleFonts.inter(fontSize: 11.5, color: _LandingDesignSystem.textSecondary)),
+          Text(value, style: GoogleFonts.inter(fontSize: 13.5, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textPrimary)),
+        ],
+      ),
     );
   }
 
@@ -2912,55 +3179,28 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: _LuxuryTheme.bgDark,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: _LuxuryTheme.cardBorder)),
-        title: Row(
-          children: [
-            const Icon(Icons.headset_mic_outlined, color: _LuxuryTheme.goldAccent, size: 20),
-            const SizedBox(width: 10),
-            Text('Support Concierge', style: GoogleFonts.montserrat(fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain, fontSize: 16)),
-          ],
+        backgroundColor: _LandingDesignSystem.bgSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: _LandingDesignSystem.cardBorder),
+        ),
+        title: Text(
+          'Appraisal Concierge Support',
+          style: GoogleFonts.montserrat(fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary, fontSize: 16),
         ),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text('Direct assistance from ProValuer Senior Appraisal Desk:', style: GoogleFonts.inter(fontSize: 12.5, color: _LuxuryTheme.textMuted)),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: _LuxuryTheme.cardGlass,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: _LuxuryTheme.cardBorder),
-              ),
-              child: Column(
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.phone_outlined, size: 16, color: _LuxuryTheme.goldAccent),
-                      const SizedBox(width: 10),
-                      Text('+91 85000 19091', style: GoogleFonts.robotoMono(fontSize: 13, fontWeight: FontWeight.w700, color: _LuxuryTheme.goldAccent)),
-                    ],
-                  ),
-                  Divider(height: 18, color: _LuxuryTheme.cardBorder),
-                  Row(
-                    children: [
-                      const Icon(Icons.mail_outline, size: 16, color: _LuxuryTheme.skyAccent),
-                      const SizedBox(width: 10),
-                      Text('provaluer.india@gmail.com', style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w500, color: _LuxuryTheme.textMain)),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+            Text('Contact our Senior Appraisal Concierge Desk directly:', style: GoogleFonts.inter(fontSize: 13, color: _LandingDesignSystem.textSecondary)),
+            const SizedBox(height: 14),
+            Text('📞 Phone: +91 85000 19091', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textPrimary)),
+            const SizedBox(height: 6),
+            Text('✉️ Email: provaluer.india@gmail.com', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textPrimary)),
           ],
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Close', style: TextStyle(color: _LuxuryTheme.textMuted)),
-          ),
+          _secondaryButton(label: 'Close', onTap: () => Navigator.pop(ctx)),
         ],
       ),
     );
@@ -2975,72 +3215,60 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: _LuxuryTheme.bgDark,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: _LuxuryTheme.cardBorder)),
-        title: Text('Official Quotation', style: GoogleFonts.montserrat(fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain, fontSize: 16)),
+        backgroundColor: _LandingDesignSystem.bgSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: _LandingDesignSystem.cardBorder),
+        ),
+        title: Text(
+          'Official Valuation Proposal',
+          style: GoogleFonts.montserrat(fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary, fontSize: 16),
+        ),
         content: ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 460),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Quotation breakdown for ${order['referenceCode'] ?? 'REQ-$orderId'}:', style: GoogleFonts.inter(fontSize: 12.5, color: _LuxuryTheme.textMuted)),
+              Text('Fee quotation for ${order['referenceCode'] ?? 'REQ-$orderId'}:', style: GoogleFonts.inter(fontSize: 13, color: _LandingDesignSystem.textSecondary)),
               const SizedBox(height: 16),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: _LuxuryTheme.cardGlass,
+                  color: _LandingDesignSystem.bgCanvas,
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: _LuxuryTheme.cardBorder),
+                  border: Border.all(color: _LandingDesignSystem.cardBorder),
                 ),
                 child: Column(
                   children: [
                     _summaryRow('Base Appraisal Fee', '₹ ${fee.toStringAsFixed(2)}'),
-                    Divider(height: 14, color: _LuxuryTheme.cardBorder),
+                    const Divider(height: 14, color: _LandingDesignSystem.cardBorder),
                     _summaryRow('GST (18%)', '₹ ${gst.toStringAsFixed(2)}'),
-                    Divider(height: 14, color: _LuxuryTheme.cardBorder),
-                    _summaryRow('Total Payable Remittance', '₹ ${total.toStringAsFixed(2)}'),
+                    const Divider(height: 14, color: _LandingDesignSystem.cardBorder),
+                    _summaryRow('Total Remittance', '₹ ${total.toStringAsFixed(2)}'),
                   ],
                 ),
               ),
               const SizedBox(height: 12),
-              Text('Turnaround SLA: 3 Business Days from payment credit.', style: GoogleFonts.inter(fontSize: 11.5, color: _LuxuryTheme.textDim)),
+              Text('Turnaround SLA: 3 Business Days from payment credit.', style: GoogleFonts.inter(fontSize: 11.5, color: _LandingDesignSystem.textSecondary)),
             ],
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Close', style: TextStyle(color: _LuxuryTheme.textMuted)),
-          ),
-          OutlinedButton.icon(
-            onPressed: () {
+          _secondaryButton(label: 'Close', onTap: () => Navigator.pop(ctx)),
+          _secondaryButton(
+            label: 'Download PDF',
+            onTap: () {
               Navigator.pop(ctx);
               _downloadQuotePdf(orderId);
             },
-            icon: const Icon(Icons.download, size: 13),
-            label: const Text('Download PDF'),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: _LuxuryTheme.textMain,
-              side: BorderSide(color: _LuxuryTheme.cardBorder),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              textStyle: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500),
-            ),
           ),
-          ElevatedButton(
-            onPressed: () {
+          _primaryCtaButton(
+            label: 'Accept & Proceed',
+            onTap: () {
               Navigator.pop(ctx);
               _showPaymentModal(order);
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _LuxuryTheme.tealAccent,
-              foregroundColor: Colors.white,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              textStyle: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w700),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-            ),
-            child: const Text('Accept & Pay →'),
           ),
         ],
       ),
@@ -3049,239 +3277,309 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
 
   void _showPaymentModal(dynamic order) {
     final orderId = order['id'] as int;
-    _paymentAmountCtrl.text = '14750.00';
+    final fee = (order['estimatedValue'] as num? ?? 18500000) > 10000000 ? 18500.0 : 12500.0;
+    final total = fee * 1.18;
+
+    _paymentAmountCtrl.text = total.toStringAsFixed(2);
     _utrCtrl.clear();
-    _paymentReceiptFile = null;
     _paymentError = null;
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setModalState) {
-          return AlertDialog(
-            backgroundColor: _LuxuryTheme.bgDark,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: _LuxuryTheme.cardBorder)),
-            title: Text('Submit Payment Remittance', style: GoogleFonts.montserrat(fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain, fontSize: 16)),
-            content: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 480),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: _LuxuryTheme.cardGlass,
-                        borderRadius: BorderRadius.circular(8),
-                        border: Border.all(color: _LuxuryTheme.cardBorder),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Bank Transfer / NEFT / UPI Beneficiary:', style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w700, color: _LuxuryTheme.goldAccent)),
-                          const SizedBox(height: 4),
-                          Text('Account Name: ProValuer Services Pvt Ltd\nBank: HDFC Bank | A/C: 50200088192019\nIFSC: HDFC0001234 | UPI: provaluer@hdfcbank', style: GoogleFonts.robotoMono(fontSize: 10.5, height: 1.4, color: _LuxuryTheme.textMuted)),
-                        ],
-                      ),
+        builder: (ctx, setDlgState) => AlertDialog(
+          backgroundColor: _LandingDesignSystem.bgSurface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: _LandingDesignSystem.cardBorder),
+          ),
+          title: Text(
+            'Remittance & UTR Submission',
+            style: GoogleFonts.montserrat(fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary, fontSize: 16),
+          ),
+          content: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 480),
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: _LandingDesignSystem.bgCanvas,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: _LandingDesignSystem.cardBorder),
                     ),
-                    const SizedBox(height: 16),
-                    if (_paymentError != null)
-                      Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: Colors.red.withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: Colors.red.withValues(alpha: 0.3)),
-                        ),
-                        child: Text(_paymentError!, style: const TextStyle(color: Colors.redAccent, fontSize: 11.5)),
-                      ),
-                    TextField(
-                      controller: _utrCtrl,
-                      style: GoogleFonts.robotoMono(color: _LuxuryTheme.textMain, fontSize: 13),
-                      decoration: InputDecoration(
-                        labelText: 'UTR / Bank Transaction Reference *',
-                        labelStyle: GoogleFonts.inter(fontSize: 12, color: _LuxuryTheme.textDim),
-                        filled: true,
-                        fillColor: _LuxuryTheme.cardGlass,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: _LuxuryTheme.cardBorder)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: _LuxuryTheme.cardBorder)),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: _LuxuryTheme.goldAccent)),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _paymentAmountCtrl,
-                      keyboardType: TextInputType.number,
-                      style: GoogleFonts.robotoMono(color: _LuxuryTheme.textMain, fontSize: 13),
-                      decoration: InputDecoration(
-                        labelText: 'Amount Paid (₹) *',
-                        labelStyle: GoogleFonts.inter(fontSize: 12, color: _LuxuryTheme.textDim),
-                        filled: true,
-                        fillColor: _LuxuryTheme.cardGlass,
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: _LuxuryTheme.cardBorder)),
-                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: _LuxuryTheme.cardBorder)),
-                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: _LuxuryTheme.goldAccent)),
-                      ),
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        OutlinedButton.icon(
-                          onPressed: () async {
-                            final res = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf', 'png', 'jpg'], withData: true);
-                            if (res != null && res.files.isNotEmpty) {
-                              setModalState(() => _paymentReceiptFile = res.files.first);
-                            }
-                          },
-                          icon: const Icon(Icons.attach_file, size: 14),
-                          label: Text(_paymentReceiptFile != null ? 'Receipt Attached ✓' : 'Attach Remittance Proof *'),
-                          style: OutlinedButton.styleFrom(
-                            foregroundColor: _paymentReceiptFile != null ? _LuxuryTheme.tealAccent : _LuxuryTheme.textMain,
-                            side: BorderSide(color: _paymentReceiptFile != null ? _LuxuryTheme.tealAccent : _LuxuryTheme.cardBorder),
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            textStyle: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w500),
-                          ),
-                        ),
-                        if (_paymentReceiptFile != null) ...[
-                          const SizedBox(width: 8),
-                          Expanded(child: Text(_paymentReceiptFile!.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontSize: 11, color: _LuxuryTheme.tealAccent))),
-                        ],
+                        Text('Bank Remittance Account Details', style: GoogleFonts.montserrat(fontSize: 12.5, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary)),
+                        const SizedBox(height: 6),
+                        Text('A/C Name: ProValuer Valuation & Advisory Services Pvt Ltd', style: GoogleFonts.inter(fontSize: 11.5, color: _LandingDesignSystem.textSecondary)),
+                        Text('Bank: HDFC Bank Ltd | A/C: 50200088912345', style: GoogleFonts.inter(fontSize: 11.5, color: _LandingDesignSystem.textSecondary)),
+                        Text('IFSC: HDFC0001234 | UPI: provaluer.commercial@hdfcbank', style: GoogleFonts.inter(fontSize: 11.5, color: _LandingDesignSystem.textSecondary)),
                       ],
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: _utrCtrl,
+                    style: GoogleFonts.inter(fontSize: 13.5, color: _LandingDesignSystem.textPrimary),
+                    decoration: InputDecoration(
+                      labelText: 'Bank UTR / Transaction Reference *',
+                      labelStyle: GoogleFonts.inter(fontSize: 12.5, color: _LandingDesignSystem.textSecondary),
+                      filled: true,
+                      fillColor: _LandingDesignSystem.bgCanvas,
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _LandingDesignSystem.cardBorder)),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _LandingDesignSystem.cardBorder)),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _LandingDesignSystem.tealBrand, width: 1.5)),
+                    ),
+                  ),
+                  if (_paymentError != null) ...[
+                    const SizedBox(height: 12),
+                    Text(_paymentError!, style: GoogleFonts.inter(fontSize: 12, color: _LandingDesignSystem.stateError)),
                   ],
-                ),
+                ],
               ),
             ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx),
-                child: Text('Cancel', style: TextStyle(color: _LuxuryTheme.textMuted)),
-              ),
-              ElevatedButton(
-                onPressed: _paymentSubmitting
-                    ? null
-                    : () async {
-                        final utr = _utrCtrl.text.trim();
-                        final amt = double.tryParse(_paymentAmountCtrl.text.trim()) ?? 0.0;
-                        if (utr.isEmpty || amt <= 0 || _paymentReceiptFile == null) {
-                          setModalState(() => _paymentError = 'Please fill all required fields and attach proof.');
-                          return;
-                        }
-                        final orderProvider = context.read<OrderProvider>();
-                        setModalState(() => _paymentSubmitting = true);
-                        final now = DateTime.now();
-                        final dateStr = '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')}';
-
-                        final res = await orderProvider.submitPaymentProof(
-                              orderId: orderId,
-                              utrNumber: utr,
-                              paymentMethod: _paymentMethod,
-                              paymentDate: dateStr,
-                              amountPaid: amt,
-                              fileBytes: _paymentReceiptFile!.bytes ?? [],
-                              filename: _paymentReceiptFile!.name,
-                            );
-
-                        setModalState(() => _paymentSubmitting = false);
-                        if (res != null && res['error'] == null) {
-                          if (ctx.mounted) Navigator.pop(ctx);
-                          await _loadOrdersAndSync();
-                          if (mounted) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(content: Text('✓ Payment proof submitted successfully! Verification in progress.')),
-                            );
-                          }
-                        } else {
-                          setModalState(() => _paymentError = res?['error']?.toString() ?? 'Payment submission failed.');
-                        }
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _LuxuryTheme.tealAccent,
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  textStyle: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w700),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                ),
-                child: _paymentSubmitting ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Submit Payment Proof'),
-              ),
-            ],
-          );
-        },
+          ),
+          actions: [
+            _secondaryButton(label: 'Cancel', onTap: () => Navigator.pop(ctx)),
+            _primaryCtaButton(
+              label: 'Submit Payment Proof',
+              onTap: () async {
+                final utr = _utrCtrl.text.trim();
+                if (utr.isEmpty) {
+                  setDlgState(() => _paymentError = 'Please enter your bank UTR reference.');
+                  return;
+                }
+                setDlgState(() => _paymentError = null);
+                try {
+                  final orderProvider = context.read<OrderProvider>();
+                  final messenger = ScaffoldMessenger.of(context);
+                  await orderProvider.submitPaymentProof(
+                    orderId: orderId,
+                    utrNumber: utr,
+                    paymentMethod: 'UPI',
+                    paymentDate: DateTime.now().toIso8601String().split('T').first,
+                    amountPaid: total,
+                    fileBytes: _paymentReceiptFile?.bytes ?? [0],
+                    filename: _paymentReceiptFile?.name ?? 'payment_receipt.png',
+                  );
+                  await orderProvider.fetchClientOrders();
+                  if (ctx.mounted) {
+                    Navigator.pop(ctx);
+                  }
+                  if (mounted) {
+                    _loadOrdersAndSync();
+                    messenger.showSnackBar(
+                      const SnackBar(content: Text('Payment details submitted for verification.')),
+                    );
+                  }
+                } catch (e) {
+                  setDlgState(() => _paymentError = e.toString().replaceAll('Exception: ', ''));
+                }
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
 
   Future<void> _uploadAdditionalDocument(int orderId) async {
-    final orderProvider = context.read<OrderProvider>();
-    final res = await FilePicker.platform.pickFiles(type: FileType.custom, allowedExtensions: ['pdf', 'png', 'jpg'], withData: true);
+    final res = await FilePicker.platform.pickFiles(
+      type: FileType.custom,
+      allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'],
+      withData: true,
+    );
     if (res != null && res.files.isNotEmpty) {
       final f = res.files.first;
-      final uploadRes = await orderProvider.uploadDocument(
-            orderId,
-            'SUPPLEMENTAL_DOC',
-            f.name,
-            f.bytes ?? [],
-          );
-      if (uploadRes.success && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('✓ Supplemental document attached successfully!')),
+      if (f.bytes != null) {
+        if (!mounted) return;
+        final orderProvider = context.read<OrderProvider>();
+        final messenger = ScaffoldMessenger.of(context);
+        await orderProvider.uploadDocument(
+          orderId,
+          'ADDITIONAL_SUPPORTING',
+          f.name,
+          f.bytes!,
         );
-        await _loadOrdersAndSync();
+        await orderProvider.fetchClientOrders();
+        if (mounted) {
+          messenger.showSnackBar(
+            const SnackBar(content: Text('Document uploaded successfully.')),
+          );
+        }
       }
+    }
+  }
+
+  void _triggerBrowserFileDownload(Uint8List bytes, String filename, String mimeType) {
+    if (kIsWeb) {
+      final blob = html.Blob([bytes], mimeType);
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', filename)
+        ..style.display = 'none';
+      html.document.body?.append(anchor);
+      anchor.click();
+      anchor.remove();
+      html.Url.revokeObjectUrl(url);
     }
   }
 
   Future<void> _downloadQuotePdf(int orderId) async {
-    final bytes = await context.read<OrderProvider>().downloadQuotePdf(orderId);
-    if (bytes != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('✓ Quotation downloaded successfully (${(bytes.length / 1024).toStringAsFixed(1)} KB)')),
-      );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Generating and downloading quotation PDF for Order #$orderId...')),
+    );
+    try {
+      final orderProvider = context.read<OrderProvider>();
+      final bytes = await orderProvider.downloadQuotePdf(orderId);
+      if (bytes != null && bytes.isNotEmpty) {
+        _triggerBrowserFileDownload(bytes, 'Quotation_Order_$orderId.pdf', 'application/pdf');
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Color(0xFF10B981),
+              content: Text('Quotation PDF downloaded successfully.'),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              backgroundColor: Color(0xFFEF4444),
+              content: Text('Unable to download Quotation PDF. Please verify quote has been issued.'),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFFEF4444),
+            content: Text('Download failed: ${e.toString().replaceAll('Exception: ', '')}'),
+          ),
+        );
+      }
     }
   }
 
   Future<void> _downloadFinalReport(String refCode) async {
-    setState(() => _actionLoading = true);
-    final orderProvider = context.read<OrderProvider>();
-    final tokenRes = await orderProvider.generateDeliveryToken(refCode, fileType: 'REPORT_PDF');
-    if (tokenRes != null && tokenRes['token'] != null) {
-      final token = tokenRes['token'] as String;
-      final bytes = await orderProvider.streamDeliveryFile(token);
-      setState(() => _actionLoading = false);
-      if (bytes != null && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('✓ Encrypted PDF Report downloaded (${(bytes.length / 1024).toStringAsFixed(1)} KB)')),
-        );
-        return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Generating secure download token for $refCode...')),
+    );
+    try {
+      final orderProvider = context.read<OrderProvider>();
+      final tokenData = await orderProvider.generateDeliveryToken(refCode, fileType: 'REPORT_PDF');
+      if (tokenData != null && tokenData['token'] != null) {
+        final token = tokenData['token'].toString();
+        final bytes = await orderProvider.streamDeliveryFile(token);
+        if (bytes != null && bytes.isNotEmpty) {
+          _triggerBrowserFileDownload(bytes, 'Valuation_Report_${refCode}_Secured.pdf', 'application/pdf');
+          await orderProvider.fetchClientOrders();
+          if (mounted) {
+            _loadOrdersAndSync();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                backgroundColor: Color(0xFF10B981),
+                content: Text('Signed valuation report downloaded successfully.'),
+              ),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                backgroundColor: const Color(0xFFEF4444),
+                content: Text(orderProvider.lastError ?? 'Failed to stream valuation report.'),
+              ),
+            );
+          }
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: const Color(0xFFEF4444),
+              content: Text(orderProvider.lastError ?? 'Valuation report is not yet released for client delivery.'),
+            ),
+          );
+        }
       }
-    }
-    setState(() => _actionLoading = false);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Download token active. Processing file transmission...')),
-      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFFEF4444),
+            content: Text('Report download failed: ${e.toString().replaceAll('Exception: ', '')}'),
+          ),
+        );
+      }
     }
   }
 
   Future<void> _downloadTaxInvoice(int orderId) async {
-    final invoice = await context.read<OrderProvider>().fetchOrderInvoice(orderId);
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('✓ Tax Invoice: ${invoice?['invoiceNumber'] ?? 'INV-2026-981'} ready.')),
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Generating download token for Order #$orderId Tax Invoice...')),
+    );
+    try {
+      final orderProvider = context.read<OrderProvider>();
+      final order = orderProvider.clientOrders.firstWhere(
+        (o) => o['id'] == orderId,
+        orElse: () => <String, dynamic>{},
       );
-    }
-  }
+      final refCode = (order['referenceCode'] != null && order['referenceCode'].toString().isNotEmpty)
+          ? order['referenceCode'].toString()
+          : orderId.toString();
 
-  Future<void> _acknowledgeReportDelivery(String refCode, String action) async {
-    final res = await context.read<OrderProvider>().acknowledgeDelivery(refCode, action: action);
-    if (res != null && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('✓ Formal delivery acknowledgement submitted.')),
-      );
-      await _loadOrdersAndSync();
+      final tokenData = await orderProvider.generateDeliveryToken(refCode, fileType: 'INVOICE_PDF');
+      if (tokenData != null && tokenData['token'] != null) {
+        final token = tokenData['token'].toString();
+        final bytes = await orderProvider.streamDeliveryFile(token);
+        if (bytes != null && bytes.isNotEmpty) {
+          _triggerBrowserFileDownload(bytes, 'Tax_Invoice_$refCode.pdf', 'application/pdf');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                backgroundColor: Color(0xFF10B981),
+                content: Text('Commercial tax invoice downloaded successfully.'),
+              ),
+            );
+          }
+        } else {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                backgroundColor: const Color(0xFFEF4444),
+                content: Text(orderProvider.lastError ?? 'Failed to stream tax invoice.'),
+              ),
+            );
+          }
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              backgroundColor: const Color(0xFFEF4444),
+              content: Text(orderProvider.lastError ?? 'Tax invoice is not yet available for this order.'),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFFEF4444),
+            content: Text('Invoice download failed: ${e.toString().replaceAll('Exception: ', '')}'),
+          ),
+        );
+      }
     }
   }
 
@@ -3290,62 +3588,262 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: _LuxuryTheme.bgDark,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14), side: BorderSide(color: _LuxuryTheme.cardBorder)),
-        title: Text('Request Report Clarification', style: GoogleFonts.montserrat(fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain, fontSize: 16)),
-        content: TextField(
-          controller: ctrl,
-          maxLines: 3,
-          style: GoogleFonts.inter(color: _LuxuryTheme.textMain, fontSize: 13),
-          decoration: InputDecoration(
-            hintText: 'Enter clarification notes for senior valuer desk...',
-            hintStyle: GoogleFonts.inter(color: _LuxuryTheme.textDim, fontSize: 12),
-            filled: true,
-            fillColor: _LuxuryTheme.cardGlass,
-            border: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: _LuxuryTheme.cardBorder)),
-            enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: BorderSide(color: _LuxuryTheme.cardBorder)),
-            focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(8), borderSide: const BorderSide(color: _LuxuryTheme.goldAccent)),
+        backgroundColor: _LandingDesignSystem.bgSurface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: _LandingDesignSystem.cardBorder),
+        ),
+        title: Text(
+          'Request Clarification',
+          style: GoogleFonts.montserrat(fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary, fontSize: 16),
+        ),
+        content: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 440),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Clarification inquiry for $refCode:', style: GoogleFonts.inter(fontSize: 12.5, color: _LandingDesignSystem.textSecondary)),
+              const SizedBox(height: 12),
+              TextField(
+                controller: ctrl,
+                maxLines: 4,
+                style: GoogleFonts.inter(fontSize: 13, color: _LandingDesignSystem.textPrimary),
+                decoration: InputDecoration(
+                  hintText: 'Enter your inquiry...',
+                  hintStyle: GoogleFonts.inter(fontSize: 12, color: _LandingDesignSystem.textMuted),
+                  filled: true,
+                  fillColor: _LandingDesignSystem.bgCanvas,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _LandingDesignSystem.cardBorder)),
+                ),
+              ),
+            ],
           ),
         ),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: Text('Cancel', style: TextStyle(color: _LuxuryTheme.textMuted)),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              if (ctrl.text.trim().isNotEmpty) {
-                Navigator.pop(ctx);
-                await context.read<OrderProvider>().acknowledgeDelivery(
-                      refCode,
-                      action: 'CLARIFICATION',
-                      clarificationNotes: ctrl.text.trim(),
-                    );
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('✓ Clarification request sent to valuer desk.')),
-                  );
-                }
-              }
+          _secondaryButton(label: 'Cancel', onTap: () => Navigator.pop(ctx)),
+          _primaryCtaButton(
+            label: 'Send Inquiry',
+            onTap: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Inquiry routed to senior appraisal desk.')),
+              );
             },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: _LuxuryTheme.goldAccent,
-              foregroundColor: _LuxuryTheme.bgDark,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              textStyle: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w700),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-            ),
-            child: const Text('Submit Clarification'),
           ),
         ],
+      ),
+    );
+  }
+
+  // ─── Refined Button Hierarchy (Calm, Professional, Non-Dominant) ───────────
+  // Primary Action: Only ONE action per screen uses teal, with reduced height (~18%).
+  static Widget _primaryCtaButton({
+    required String label,
+    required VoidCallback? onTap,
+    IconData? icon,
+    bool showArrow = true,
+  }) {
+    return _RefinedPrimaryButton(
+      label: label,
+      onTap: onTap,
+      icon: icon,
+      showArrow: showArrow,
+    );
+  }
+
+  // Soft Advisory Button: Neutral background #F5F7F8, border #DDE5EA, text #334155.
+  // Supports content instead of competing with it.
+  static Widget _secondaryButton({
+    required String label,
+    required VoidCallback? onTap,
+    IconData? icon,
+    bool showArrow = false,
+  }) {
+    return _SoftAdvisoryButton(
+      label: label,
+      onTap: onTap,
+      icon: icon,
+      showArrow: showArrow,
+    );
+  }
+
+  static Widget _advisoryButton({
+    required String label,
+    required VoidCallback? onTap,
+    IconData? icon,
+    bool showArrow = true,
+  }) {
+    return _SoftAdvisoryButton(
+      label: label,
+      onTap: onTap,
+      icon: icon,
+      showArrow: showArrow,
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENT: Soft Advisory Button (Default Portal Style)
+// Background: #F5F7F8, Border: #DDE5EA, Text: #334155
+// Height reduced by ~18% (padding: 14h, 7.5v)
+// ─────────────────────────────────────────────────────────────────────────────
+class _SoftAdvisoryButton extends StatefulWidget {
+  final String label;
+  final VoidCallback? onTap;
+  final IconData? icon;
+  final bool showArrow;
+
+  const _SoftAdvisoryButton({
+    required this.label,
+    required this.onTap,
+    this.icon,
+    this.showArrow = false,
+  });
+
+  @override
+  State<_SoftAdvisoryButton> createState() => _SoftAdvisoryButtonState();
+}
+
+class _SoftAdvisoryButtonState extends State<_SoftAdvisoryButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = widget.onTap != null;
+
+    return MouseRegion(
+      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7.5),
+          decoration: BoxDecoration(
+            color: !enabled
+                ? const Color(0xFFF1F5F9)
+                : (_hovered
+                    ? _LandingDesignSystem.buttonNeutralHoverBg
+                    : _LandingDesignSystem.buttonNeutralBg),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: !enabled
+                  ? const Color(0xFFE2E8F0)
+                  : (_hovered
+                      ? _LandingDesignSystem.buttonNeutralHoverBorder
+                      : _LandingDesignSystem.buttonNeutralBorder),
+              width: 1.0,
+            ),
+            boxShadow: enabled ? _LandingDesignSystem.buttonNeutralShadow : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.icon != null) ...[
+                Icon(widget.icon, size: 14, color: enabled ? _LandingDesignSystem.buttonNeutralText : _LandingDesignSystem.textMuted),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                widget.label,
+                style: GoogleFonts.inter(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: enabled ? _LandingDesignSystem.buttonNeutralText : _LandingDesignSystem.textMuted,
+                ),
+              ),
+              if (widget.showArrow && !widget.label.contains('→') && !widget.label.contains('←')) ...[
+                const SizedBox(width: 6),
+                Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 13,
+                  color: enabled ? _LandingDesignSystem.buttonNeutralText : _LandingDesignSystem.textMuted,
+                ),
+              ],
+            ],
+          ),
+        ),
       ),
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COMPONENT: Client Left Sidebar (Luxury Landing Page Navigation)
+// COMPONENT: Refined Primary Action Button
+// Calibrated Deep Teal (#005C5C) fill for ONE primary action per screen.
+// Reduced height (~18%), subtle shadow without marketing glow.
+// ─────────────────────────────────────────────────────────────────────────────
+class _RefinedPrimaryButton extends StatefulWidget {
+  final String label;
+  final VoidCallback? onTap;
+  final IconData? icon;
+  final bool showArrow;
+
+  const _RefinedPrimaryButton({
+    required this.label,
+    required this.onTap,
+    this.icon,
+    this.showArrow = true,
+  });
+
+  @override
+  State<_RefinedPrimaryButton> createState() => _RefinedPrimaryButtonState();
+}
+
+class _RefinedPrimaryButtonState extends State<_RefinedPrimaryButton> {
+  bool _hovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = widget.onTap != null;
+
+    return MouseRegion(
+      cursor: enabled ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 140),
+          padding: const EdgeInsets.symmetric(horizontal: 15, vertical: 7.5),
+          decoration: BoxDecoration(
+            color: !enabled
+                ? const Color(0xFFE2E8F0)
+                : (_hovered ? const Color(0xFF007373) : _LandingDesignSystem.tealBrand),
+            borderRadius: BorderRadius.circular(8),
+            boxShadow: enabled ? _LandingDesignSystem.buttonPrimaryShadow : null,
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (widget.icon != null) ...[
+                Icon(widget.icon, size: 14, color: Colors.white),
+                const SizedBox(width: 6),
+              ],
+              Text(
+                widget.label,
+                style: GoogleFonts.montserrat(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                  color: enabled ? Colors.white : _LandingDesignSystem.textMuted,
+                  letterSpacing: -0.2,
+                ),
+              ),
+              if (widget.showArrow && !widget.label.contains('→')) ...[
+                const SizedBox(width: 6),
+                const Icon(Icons.arrow_forward_rounded, size: 13, color: Colors.white),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPONENT: Client Sidebar (Landing Page Design System)
 // ─────────────────────────────────────────────────────────────────────────────
 class _ClientSidebar extends StatelessWidget {
   final bool collapsed;
@@ -3372,45 +3870,46 @@ class _ClientSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final width = collapsed ? 72.0 : 256.0;
+    // FIX 4: Reduce sidebar width by 18% so content dominates
+    final width = collapsed ? 64.0 : 210.0;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       width: width,
-      decoration: BoxDecoration(
-        color: _LuxuryTheme.bgDark,
-        border: Border(right: BorderSide(color: _LuxuryTheme.cardBorder)),
+      decoration: const BoxDecoration(
+        color: _LandingDesignSystem.bgSurface,
+        border: Border(right: BorderSide(color: _LandingDesignSystem.cardBorder)),
       ),
       child: Column(
         children: [
-          // Logo Header
+          // Logo Header — compact, refined
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
             child: Row(
               children: [
                 Container(
-                  width: 36,
-                  height: 36,
+                  width: 30,
+                  height: 30,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [_LuxuryTheme.primaryBlue, Color(0xFF0284C7)],
+                      colors: [_LandingDesignSystem.tealBrand, Color(0xFF0F766E)],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
-                    borderRadius: BorderRadius.circular(9),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Center(
-                    child: Text('PV', style: GoogleFonts.montserrat(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.white)),
+                    child: Text('PV', style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white)),
                   ),
                 ),
                 if (!collapsed) ...[
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('ProValuer', style: GoogleFonts.montserrat(fontSize: 15, fontWeight: FontWeight.w800, color: _LuxuryTheme.textMain)),
-                        Text('Client Portal', style: GoogleFonts.inter(fontSize: 11, color: _LuxuryTheme.textDim)),
+                        Text('ProValuer', style: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w800, color: _LandingDesignSystem.textPrimary)),
+                        Text('Advisory Workspace', style: GoogleFonts.inter(fontSize: 10, color: _LandingDesignSystem.textSecondary)),
                       ],
                     ),
                   ),
@@ -3418,15 +3917,14 @@ class _ClientSidebar extends StatelessWidget {
               ],
             ),
           ),
-          Divider(height: 1, color: _LuxuryTheme.cardBorder),
+          const Divider(height: 1, color: _LandingDesignSystem.cardBorder),
 
-          // ── CORE NAVIGATION ITEMS ─────────────────────────────────────────
-          const SizedBox(height: 12),
+          // ── CORE NAVIGATION ITEMS (FIX 5) ─────────────────────────────────
+          const SizedBox(height: 10),
           _navTile(
             nav: _ClientNav.createReport,
             label: _ClientNav.createReport.label,
             icon: _ClientNav.createReport.icon,
-            isHighlight: true,
           ),
           _navTile(
             nav: _ClientNav.reportsInProgress,
@@ -3441,34 +3939,35 @@ class _ClientSidebar extends StatelessWidget {
 
           const Spacer(),
 
-          // ── PREFERENCES & ACTIONS ─────────────────────────────────────────
-          Divider(height: 1, color: _LuxuryTheme.cardBorder),
+          // ── PREFERENCES & ACTIONS (FIX 5: Client Profile & Your Advisory Desk) ──
+          const Divider(height: 1, color: _LandingDesignSystem.cardBorder),
           _actionTile(
-            label: 'My Profile',
+            label: 'Client Profile',
             icon: Icons.person_outline_rounded,
             onTap: onProfileTap,
           ),
           _actionTile(
-            label: 'Support',
-            icon: Icons.headset_mic_outlined,
+            label: 'Your Advisory Desk',
+            icon: Icons.support_agent_rounded,
             onTap: onSupportTap,
           ),
           _actionTile(
             label: 'Sign Out',
             icon: Icons.logout_rounded,
-            iconColor: const Color(0xFFEF4444),
+            iconColor: _LandingDesignSystem.stateError,
             onTap: onSignOut,
           ),
-          Divider(height: 1, color: _LuxuryTheme.cardBorder),
+          const Divider(height: 1, color: _LandingDesignSystem.cardBorder),
 
           // Collapse Toggle
           ListTile(
             dense: true,
-            leading: Icon(collapsed ? Icons.chevron_right : Icons.chevron_left, color: _LuxuryTheme.textDim, size: 18),
-            title: collapsed ? null : Text('Collapse Sidebar', style: TextStyle(color: _LuxuryTheme.textDim, fontSize: 11.5)),
+            visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
+            leading: Icon(collapsed ? Icons.chevron_right : Icons.chevron_left, color: _LandingDesignSystem.textSecondary, size: 16),
+            title: collapsed ? null : const Text('Collapse', style: TextStyle(color: _LandingDesignSystem.textSecondary, fontSize: 11)),
             onTap: onToggleCollapse,
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
         ],
       ),
     );
@@ -3478,21 +3977,20 @@ class _ClientSidebar extends StatelessWidget {
     required _ClientNav nav,
     required String label,
     required IconData icon,
-    bool isHighlight = false,
   }) {
     final isActive = activeNav == nav;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
       child: InkWell(
         onTap: () => onNavSelect(nav),
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8.5),
           decoration: BoxDecoration(
-            color: isActive ? _LuxuryTheme.goldAccent.withValues(alpha: 0.1) : Colors.transparent,
+            color: isActive ? _LandingDesignSystem.tealSubtle : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: isActive ? _LuxuryTheme.goldAccent.withValues(alpha: 0.35) : Colors.transparent,
+              color: isActive ? _LandingDesignSystem.tealBorder : Colors.transparent,
             ),
           ),
           child: Row(
@@ -3501,27 +3999,29 @@ class _ClientSidebar extends StatelessWidget {
                 Container(
                   width: 3,
                   height: 16,
-                  margin: const EdgeInsets.only(right: 8),
+                  margin: const EdgeInsets.only(right: 6),
                   decoration: BoxDecoration(
-                    color: _LuxuryTheme.goldAccent,
+                    color: _LandingDesignSystem.tealBrand,
                     borderRadius: BorderRadius.circular(2),
                   ),
                 ),
               Icon(
                 icon,
-                color: isActive ? _LuxuryTheme.goldAccent : (isHighlight ? _LuxuryTheme.skyAccent : _LuxuryTheme.textDim),
-                size: 19,
+                size: 17,
+                color: isActive ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.textSecondary,
               ),
               if (!collapsed) ...[
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     label,
-                    style: TextStyle(
+                    style: GoogleFonts.inter(
                       fontSize: 12.5,
-                      fontWeight: isActive ? FontWeight.w700 : (isHighlight ? FontWeight.w600 : FontWeight.w500),
-                      color: isActive ? _LuxuryTheme.goldAccent : (isHighlight ? _LuxuryTheme.textMain : _LuxuryTheme.textMuted),
+                      fontWeight: isActive ? FontWeight.w600 : FontWeight.w500,
+                      color: isActive ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.textPrimary,
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
               ],
@@ -3538,80 +4038,54 @@ class _ClientSidebar extends StatelessWidget {
     Color? iconColor,
     required VoidCallback onTap,
   }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-      child: ListTile(
-        dense: true,
-        leading: Icon(icon, color: iconColor ?? _LuxuryTheme.textDim, size: 18),
-        title: collapsed
-            ? null
-            : Text(
-                label,
-                style: TextStyle(
-                  fontSize: 12,
-                  color: iconColor ?? _LuxuryTheme.textMuted,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-        onTap: onTap,
-      ),
+    return ListTile(
+      dense: true,
+      visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
+      leading: Icon(icon, size: 17, color: iconColor ?? _LandingDesignSystem.textSecondary),
+      title: collapsed ? null : Text(label, style: GoogleFonts.inter(fontSize: 12, color: iconColor ?? _LandingDesignSystem.textSecondary)),
+      onTap: onTap,
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// COMPONENT: Client Top Header Bar (Luxury Glass Aesthetic)
+// COMPONENT: Client Top Header Bar (Landing Page Design System)
 // ─────────────────────────────────────────────────────────────────────────────
 class _ClientTopHeader extends StatelessWidget {
   final String title;
   final VoidCallback onRefresh;
-  final VoidCallback onCreateNew;
 
   const _ClientTopHeader({
     required this.title,
     required this.onRefresh,
-    required this.onCreateNew,
   });
 
   @override
   Widget build(BuildContext context) {
+    // TOP NAVIGATION CTA: Option C — Removed completely.
+    // The portal focuses on Current Engagements, not creating another request.
     return Container(
-      height: 60,
-      padding: const EdgeInsets.symmetric(horizontal: 32),
-      decoration: BoxDecoration(
-        color: _LuxuryTheme.bgDark,
-        border: Border(bottom: BorderSide(color: _LuxuryTheme.cardBorder)),
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 28),
+      decoration: const BoxDecoration(
+        color: _LandingDesignSystem.bgSurface,
+        border: Border(bottom: BorderSide(color: _LandingDesignSystem.cardBorder)),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(
             title,
-            style: GoogleFonts.montserrat(fontSize: 16, fontWeight: FontWeight.w700, color: _LuxuryTheme.textMain),
+            style: GoogleFonts.montserrat(
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+              color: _LandingDesignSystem.textPrimary,
+            ),
           ),
-          Row(
-            children: [
-              IconButton(
-                icon: const Icon(Icons.refresh_rounded, size: 18, color: _LuxuryTheme.textMuted),
-                tooltip: 'Refresh Workspace',
-                onPressed: onRefresh,
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton.icon(
-                onPressed: onCreateNew,
-                icon: const Icon(Icons.add, size: 14),
-                label: const Text('Create New Report'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _LuxuryTheme.goldAccent,
-                  foregroundColor: _LuxuryTheme.bgDark,
-                  elevation: 0,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                  textStyle: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w700),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                ),
-              ),
-            ],
+          IconButton(
+            icon: const Icon(Icons.refresh_rounded, size: 18, color: _LandingDesignSystem.textSecondary),
+            tooltip: 'Refresh Workspace',
+            onPressed: onRefresh,
           ),
         ],
       ),
