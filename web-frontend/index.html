@@ -384,212 +384,314 @@
   <!-- =====================================================================
        VIEW 4: CLIENT DASHBOARD (CORE WORKFLOW)
        ===================================================================== -->
+  <!-- =====================================================================
+       VIEW 4: CLIENT DASHBOARD (SIMPLIFIED CLIENT-FIRST ARCHITECTURE)
+       ===================================================================== -->
   <main id="viewDashboard" class="view-section">
-    <div class="dashboard-container">
+    <div class="client-portal-layout">
       
-      <!-- Dashboard Top Header Bar -->
-      <div class="dashboard-topbar">
-        <div class="order-headline">
-          <div>
-            <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 4px;">
-              <span class="order-badge-id" id="displayReportId">ORDER PV-2026-9842</span>
-              <span class="badge" style="background: rgba(14, 165, 233, 0.15); color: #38BDF8; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 4px;" id="orderCategoryBadge">COMMERCIAL VALUATION</span>
-            </div>
-            <h1 style="font-family: var(--font-heading); font-size: 22px; font-weight: 700; margin: 0;" id="propertyHeading">Cyber Towers Unit 402, HITEC City</h1>
+      <!-- Left Sidebar -->
+      <aside class="client-sidebar">
+        <div class="client-sidebar-brand">
+          <div class="brand-logo-icon">PV</div>
+          <div class="brand-info">
+            <h2 style="font-family: var(--font-heading); font-size: 15px; font-weight: 700; margin: 0; color: #fff;">ProValuer</h2>
+            <p style="font-size: 11px; color: var(--text-muted); margin: 0;">Client Portal</p>
           </div>
         </div>
 
-        <div style="display: flex; align-items: center; gap: 12px;">
-          <div style="text-align: right;">
-            <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Valuation Purpose</div>
-            <div style="font-size: 13px; font-weight: 600; color: var(--text-main);">Visa / Immigration Compliance</div>
+        <nav class="client-sidebar-menu">
+          <button class="client-nav-item active" id="clientNavBtnCreate" onclick="openCreateReportWizard()">
+            <span class="client-nav-icon">➕</span>
+            <span class="client-nav-label">Create New Report</span>
+          </button>
+          <button class="client-nav-item" id="clientNavBtnActive" onclick="showClientSection('inProgress')">
+            <span class="client-nav-icon">⏳</span>
+            <span class="client-nav-label">Reports In Progress</span>
+          </button>
+          <button class="client-nav-item" id="clientNavBtnCompleted" onclick="showClientSection('completed')">
+            <span class="client-nav-icon">✅</span>
+            <span class="client-nav-label">Completed Reports</span>
+          </button>
+        </nav>
+
+        <div class="client-sidebar-footer">
+          <div class="client-user-card" onclick="openProfileModal()">
+            <div class="client-user-avatar">AM</div>
+            <div class="client-user-meta">
+              <div class="client-user-name">Anand Mehta</div>
+              <div class="client-user-role">Client Officer</div>
+            </div>
           </div>
-          <button class="btn btn-secondary btn-sm" onclick="switchView('request')">
-            + New Request
+          <button class="client-footer-btn" onclick="openSupportModal()">
+            <span>🎧</span> Support
+          </button>
+          <button class="client-footer-btn logout" onclick="switchView('landing')">
+            <span>🚪</span> Sign Out
           </button>
         </div>
-      </div>
+      </aside>
 
-      <!-- Quick Interactive Stage Simulator (Test every workflow stage) -->
-      <div class="simulator-strip">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <span style="color: #38BDF8; font-weight: 700;">🔄 Interactive Stage Simulator:</span>
-          <span style="color: var(--text-muted);">Jump directly to any phase to inspect the dynamic Next Valid Action:</span>
-        </div>
-        <div class="sim-buttons-group" id="simulatorButtons">
-          <!-- Dynamically populated via script -->
-        </div>
-      </div>
+      <!-- Main Client Content Area -->
+      <section class="client-main-content">
+        
+        <!-- SECTION A: REPORTS IN PROGRESS GALLERY & WORKSPACE -->
+        <div id="sectionReportsInProgress">
+          <!-- Active Orders Gallery View -->
+          <div id="inProgressGalleryView">
+            <div class="client-view-header">
+              <div>
+                <h1 style="font-family: var(--font-heading); font-size: 22px; font-weight: 700; margin: 0 0 4px;">Reports In Progress</h1>
+                <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Active commercial and visa property valuation mandates.</p>
+              </div>
+              <button class="btn btn-gold btn-sm" onclick="openCreateReportWizard()">
+                + Create New Report
+              </button>
+            </div>
 
-      <!-- -----------------------------------------------------------------
-           TOP OF PAGE: PROGRESS TRACKER (11 Sequential Stages)
-           REQUEST -> QUOTE -> PAYMENT -> VERIFICATION -> POOL -> ASSIGNMENT ->
-           INSPECTION -> DRAFTING -> REVIEW -> DELIVERY -> CLOSED
-           ----------------------------------------------------------------- -->
-      <section class="progress-tracker-panel">
-        <div class="tracker-title-row">
-          <h3>
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-            Valuation Progress Tracker
-          </h3>
-          <div class="tracker-sla-status" id="trackerSlaStatus">
-            Active Stage: <strong id="currentStageName">REQUEST</strong> • SLA: <span id="slaCountdown">48h Remaining</span>
+            <!-- Active Report Cards Grid -->
+            <div class="client-cards-grid" id="activeReportsGrid">
+              <!-- Rendered via script.js -->
+            </div>
+          </div>
+
+          <!-- Active Dedicated Report Workspace View -->
+          <div id="activeReportWorkspaceView" style="display: none;">
+            <div style="margin-bottom: 16px;">
+              <button class="btn btn-secondary btn-sm" onclick="closeReportWorkspace()">
+                ← Back to Reports In Progress
+              </button>
+            </div>
+
+            <!-- SECTION 1: REPORT HEADER -->
+            <div class="report-header-card">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px;">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                    <span class="order-badge-id" id="wsReportRef">REQ-89</span>
+                    <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10B981; font-weight: 700; font-size: 11px;" id="wsStatusBadge">Quotation Ready</span>
+                  </div>
+                  <h2 style="font-family: var(--font-heading); font-size: 20px; font-weight: 700; margin: 0 0 4px;" id="wsReportTitle">Commercial Building Valuation</h2>
+                  <p style="font-size: 13px; color: var(--text-muted); margin: 0;" id="wsAssetSummary">Cyber Towers Unit 402, HITEC City, Hyderabad</p>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Official Report Number</div>
+                  <div style="font-family: var(--font-mono); font-size: 13px; font-weight: 600; color: #38BDF8;" id="wsReportNumber">PV-2026-9842</div>
+                </div>
+              </div>
+              <div class="report-meta-row">
+                <div><span class="meta-lbl">Created:</span> <strong id="wsCreatedDate">20 Sep 2026</strong></div>
+                <div><span class="meta-lbl">Expected Completion:</span> <strong id="wsExpectedDate">25 Sep 2026</strong></div>
+                <div><span class="meta-lbl">Purpose:</span> <strong id="wsPurpose">Visa / Immigration</strong></div>
+              </div>
+            </div>
+
+            <!-- SECTION 2: CLIENT PROGRESS TRACKER (6 STAGES ONLY) -->
+            <div class="client-tracker-panel">
+              <h3 style="font-family: var(--font-heading); font-size: 15px; margin: 0 0 20px; display: flex; align-items: center; gap: 8px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+                Progress Tracker
+              </h3>
+              <div class="client-stages-chain" id="clientStagesChain">
+                <!-- 6 Stages dynamically rendered -->
+              </div>
+            </div>
+
+            <!-- SECTION 3: CURRENT STATUS HERO CARD -->
+            <div class="status-hero-card" id="statusHeroCard">
+              <div style="display: flex; align-items: center; gap: 16px;">
+                <div class="status-hero-icon" id="statusHeroIcon">🟡</div>
+                <div>
+                  <h3 style="font-family: var(--font-heading); font-size: 17px; margin: 0 0 4px;" id="statusHeroTitle">Quotation Ready</h3>
+                  <p style="font-size: 13px; color: var(--text-muted); margin: 0;" id="statusHeroDesc">Your official quotation is available for review and commercial acceptance.</p>
+                </div>
+              </div>
+              <div id="statusHeroActionArea">
+                <button class="btn btn-primary" onclick="openQuotationModal()">View Quotation</button>
+              </div>
+            </div>
+
+            <!-- TWO COLUMN: SECTION 4 (DOCUMENTS) & SECTION 5 (UPDATES) -->
+            <div class="dashboard-grid-two-col">
+              <!-- SECTION 4: DOCUMENTS -->
+              <div class="detail-card">
+                <div class="detail-card-head">
+                  <h4>Documents In This Report</h4>
+                  <button class="btn btn-secondary btn-sm" onclick="openUploadMoreModal()">+ Upload Document</button>
+                </div>
+                <div class="report-docs-list" id="reportDocsList">
+                  <div class="report-doc-row">
+                    <span>Title Deed / Sale Deed</span>
+                    <span class="doc-badge verified">Verified ✓</span>
+                  </div>
+                  <div class="report-doc-row">
+                    <span>Approved Sanction Plan</span>
+                    <span class="doc-badge verified">Verified ✓</span>
+                  </div>
+                  <div class="report-doc-row">
+                    <span>Property Tax Receipt</span>
+                    <span class="doc-badge verified">Verified ✓</span>
+                  </div>
+                  <div class="report-doc-row">
+                    <span>Site Photographs</span>
+                    <span class="doc-badge pending">In Review ⏳</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- SECTION 5: UPDATES TIMELINE -->
+              <div class="detail-card">
+                <div class="detail-card-head">
+                  <h4>Updates Timeline</h4>
+                  <span style="font-size: 11px; color: #10B981; font-weight: 600;">● Live Updates</span>
+                </div>
+                <div class="timeline-stream" id="clientUpdatesTimeline">
+                  <div class="timeline-entry">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                      <div style="font-weight: 600;">Official Quotation Issued</div>
+                      <div style="font-size: 12px; color: var(--text-muted);">Pricing desk compiled formal quotation with committed 3-day turnaround SLA.</div>
+                      <div class="timeline-time">Today, 10:45 AM</div>
+                    </div>
+                  </div>
+                  <div class="timeline-entry">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                      <div style="font-weight: 600;">Documents Verified by Desk</div>
+                      <div style="font-size: 12px; color: var(--text-muted);">Ownership deed and sanction layout verified against circle rates.</div>
+                      <div class="timeline-time">Yesterday, 04:30 PM</div>
+                    </div>
+                  </div>
+                  <div class="timeline-entry">
+                    <div class="timeline-dot"></div>
+                    <div class="timeline-content">
+                      <div style="font-weight: 600;">Valuation Request Submitted</div>
+                      <div style="font-size: 12px; color: var(--text-muted);">Mandate initialized via Client Portal wizard.</div>
+                      <div class="timeline-time">20 Sep 2026, 02:15 PM</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- SECTION 6: CONTEXTUAL ACTIONS -->
+            <div class="contextual-action-box" id="contextualActionBox">
+              <h4 style="font-family: var(--font-heading); font-size: 14px; margin: 0 0 12px;">Available Report Actions</h4>
+              <div style="display: flex; gap: 12px; flex-wrap: wrap;" id="contextualButtons">
+                <button class="btn btn-secondary btn-sm" onclick="openQuotationModal()">View Quotation</button>
+                <button class="btn btn-secondary btn-sm" onclick="downloadSamplePdf('Quotation_REQ89.pdf')">Download Quotation PDF</button>
+                <button class="btn btn-gold btn-sm" onclick="openPaymentModal()">Accept & Pay Online →</button>
+              </div>
+            </div>
+
+            <!-- SUPPORT CONCIERGE -->
+            <div class="support-concierge-strip">
+              <div style="display: flex; align-items: center; gap: 12px;">
+                <span style="font-size: 20px;">🎧</span>
+                <div>
+                  <strong style="color: #fff;">Need Assistance With This Report?</strong>
+                  <div style="font-size: 12px; color: var(--text-muted);">Contact our Senior Appraisal Concierge Desk directly:</div>
+                </div>
+              </div>
+              <div style="display: flex; gap: 20px; font-size: 13px;">
+                <div>📞 <a href="tel:+918500019091" style="color: #38BDF8; text-decoration: none;">+91 85000 19091</a></div>
+                <div>✉️ <a href="mailto:provaluer.india@gmail.com" style="color: #F8FAFC; text-decoration: none;">provaluer.india@gmail.com</a></div>
+              </div>
+            </div>
+
           </div>
         </div>
 
-        <!-- 11 Stages Chain -->
-        <div class="stages-chain-container" id="stagesChainContainer">
-          <div class="chain-line-bg"></div>
-          <div class="chain-line-fill" id="chainLineFill" style="width: 5%;"></div>
+        <!-- SECTION B: COMPLETED REPORTS GALLERY & READ-ONLY WORKSPACE -->
+        <div id="sectionCompletedReports" style="display: none;">
+          <!-- Completed Archive Gallery View -->
+          <div id="completedGalleryView">
+            <div class="client-view-header">
+              <div>
+                <h1 style="font-family: var(--font-heading); font-size: 22px; font-weight: 700; margin: 0 0 4px;">Completed Reports</h1>
+                <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Officially concluded and sealed valuation reports preserved under statutory compliance.</p>
+              </div>
+            </div>
 
-          <!-- 11 Nodes will be rendered here by script.js -->
-        </div>
-      </section>
-
-      <!-- -----------------------------------------------------------------
-           MIDDLE OF PAGE: ONLY NEXT VALID ACTION SPOTLIGHT
-           Intelligently displays ONLY the single valid next action based on state:
-           [ Select Service ]
-           [ Select Property Type ]
-           [ Upload Documents ]
-           [ View Quote ]
-           [ Submit Payment ]
-           [ Track Progress ]
-           [ Download Report ]
-           ----------------------------------------------------------------- -->
-      <section class="next-action-hero-container">
-        <div class="next-action-card" id="nextActionCard">
-          <div class="next-action-badge-row">
-            <span class="pill-next-action">
-              <span class="pulse-dot" style="background: #FABB1F; width: 6px; height: 6px; border-radius: 50%; display: inline-block;"></span>
-              Only Next Valid Action
-            </span>
-            <span style="font-size: 12px; color: var(--text-muted); font-family: var(--font-mono);" id="actionRequirementNotice">Required to advance order to next stage</span>
+            <div class="client-cards-grid" id="completedReportsGrid">
+              <!-- Rendered via script.js -->
+            </div>
           </div>
 
-          <div class="next-action-content">
-            <!-- Left: Action Guidance and Big Action Button -->
-            <div class="action-guidance">
-              <h2 class="action-title" id="actionTitleText">Select Service & Property Scope</h2>
-              <p class="action-instructions" id="actionDescText">
-                Configure your valuation requirement and verify property ownership details so our assessment algorithms can calculate the precise intake fee and assign a certified surveyor.
+          <!-- Completed Read-Only Workspace -->
+          <div id="completedReportWorkspaceView" style="display: none;">
+            <div style="margin-bottom: 16px;">
+              <button class="btn btn-secondary btn-sm" onclick="closeCompletedWorkspace()">
+                ← Back to Completed Reports
+              </button>
+            </div>
+
+            <div class="report-header-card">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px;">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 6px;">
+                    <span class="order-badge-id" id="compReportRef">REQ-45</span>
+                    <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10B981; font-weight: 700; font-size: 11px;">Archived Record (Read-Only) 🔒</span>
+                  </div>
+                  <h2 style="font-family: var(--font-heading); font-size: 20px; font-weight: 700; margin: 0 0 4px;" id="compReportTitle">Commercial Building Valuation</h2>
+                  <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Final Assessed Value: ₹ 2,10,00,000</p>
+                </div>
+                <div style="text-align: right;">
+                  <div style="font-size: 11px; color: var(--text-dim); text-transform: uppercase;">Completion Date</div>
+                  <div style="font-size: 13px; font-weight: 600; color: #10B981;" id="compCompletionDate">15 Sep 2026</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Deliverables Card -->
+            <div class="detail-card" style="margin-top: 20px;">
+              <div class="detail-card-head">
+                <h4>Official Final Deliverables</h4>
+                <span style="font-size: 11px; color: #10B981; font-weight: 600;">✓ Cloud HSM Signed</span>
+              </div>
+              <p style="font-size: 13px; color: var(--text-muted);">
+                Your digitally signed valuation report package and GST tax invoice are archived for statutory compliance.
               </p>
-              
-              <div class="action-interactive-area" id="actionButtonWrapper">
-                <!-- Dynamically updated main button: e.g. [ Select Service ], [ View Quote ], [ Submit Payment ], etc. -->
-                <button class="big-action-trigger-btn" id="primaryNextActionBtn" onclick="handleCurrentNextAction()">
-                  [ Select Service ]
+              <div style="display: flex; gap: 14px; margin-top: 16px;">
+                <button class="btn btn-primary" onclick="downloadSamplePdf('Valuation_Report_Signed.pdf')">
+                  Download Report PDF (14.2 MB)
+                </button>
+                <button class="btn btn-secondary" onclick="downloadSamplePdf('GST_Tax_Invoice.pdf')">
+                  Download Tax Invoice
                 </button>
               </div>
             </div>
 
-            <!-- Right: Dynamic Context & Stage Meta Info Panel -->
-            <div class="action-context-panel" id="actionContextBox">
-              <div class="context-row">
-                <span class="context-label">Current Stage:</span>
-                <span class="context-val" id="ctxCurrentStage" style="color: #38BDF8;">1. REQUEST</span>
+            <!-- Read-only Details Grid -->
+            <div class="dashboard-grid-two-col" style="margin-top: 20px;">
+              <div class="detail-card">
+                <h4>Request Details</h4>
+                <div class="read-only-meta-list" style="margin-top: 14px; font-size: 13px;">
+                  <div><strong>Service:</strong> Valuation Report</div>
+                  <div><strong>Asset Category:</strong> Land & Building</div>
+                  <div><strong>Purpose:</strong> Bank Collateral</div>
+                  <div><strong>Archival Lock:</strong> Active (10-Year Statutory Compliance)</div>
+                </div>
               </div>
-              <div class="context-row">
-                <span class="context-label">Next Milestone:</span>
-                <span class="context-val" id="ctxNextMilestone">2. QUOTE (Instant Estimation)</span>
+
+              <div class="detail-card">
+                <h4>Payment & Settlement Record</h4>
+                <div class="read-only-meta-list" style="margin-top: 14px; font-size: 13px;">
+                  <div><strong>Quoted Fee:</strong> ₹ 18,000 + 18% GST</div>
+                  <div><strong>Total Paid:</strong> ₹ 21,240 (Settled ✓)</div>
+                  <div><strong>Payment Method:</strong> Net Banking / UPI</div>
+                  <div><strong>UTR Reference:</strong> HDFC202609159982</div>
+                </div>
               </div>
-              <div class="context-row">
-                <span class="context-label">Assigned Valuer:</span>
-                <span class="context-val" id="ctxAssignedPerson">Queued for Operational Pool</span>
-              </div>
-              <div class="context-row">
-                <span class="context-label">Stage Status:</span>
-                <span class="context-val" id="ctxStageStatus" style="color: #FABB1F;">Action Required</span>
-              </div>
+            </div>
+
+            <div class="support-concierge-strip" style="margin-top: 24px;">
+              <div>📞 +91 85000 19091 • ✉️ provaluer.india@gmail.com</div>
             </div>
           </div>
         </div>
+
       </section>
-
-      <!-- Bottom Supporting Panels: Documents Vault & Operational Telemetry Log -->
-      <div class="dashboard-grid-two-col">
-        <!-- Order Documents Vault -->
-        <div class="detail-card">
-          <div class="detail-card-head">
-            <h4>Uploaded Legal Documents</h4>
-            <button class="btn btn-secondary btn-sm" onclick="openModal('uploadDocsModal')">
-              + Upload More
-            </button>
-          </div>
-          <table class="docs-table">
-            <thead>
-              <tr>
-                <th>Document Name</th>
-                <th>Category</th>
-                <th>Status</th>
-                <th style="text-align: right;">Action</th>
-              </tr>
-            </thead>
-            <tbody id="documentsTableBody">
-              <tr>
-                <td>
-                  <strong>Sale_Deed_CyberTowers_Unit402.pdf</strong>
-                  <div style="font-size: 11px; color: var(--text-dim);">4.8 MB • SHA-256 Verified</div>
-                </td>
-                <td>Title Deed</td>
-                <td><span style="color: #10B981; font-weight: 600; font-size: 11px;">✓ Verified</span></td>
-                <td style="text-align: right;">
-                  <button class="btn btn-secondary btn-sm" onclick="alert('Viewing document preview...')">View</button>
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  <strong>Property_Tax_Paid_Receipt_2025_26.pdf</strong>
-                  <div style="font-size: 11px; color: var(--text-dim);">1.2 MB • Municipal Stamp</div>
-                </td>
-                <td>Tax Receipt</td>
-                <td><span style="color: #10B981; font-weight: 600; font-size: 11px;">✓ Verified</span></td>
-                <td style="text-align: right;">
-                  <button class="btn btn-secondary btn-sm" onclick="alert('Viewing document preview...')">View</button>
-                </td>
-              </tr>
-              <tr>
-                <td>
-                  <strong>Approved_Floor_Layout_GHMC.pdf</strong>
-                  <div style="font-size: 11px; color: var(--text-dim);">3.1 MB • Sanction Plan</div>
-                </td>
-                <td>Architectural</td>
-                <td><span style="color: #F59E0B; font-weight: 600; font-size: 11px;">⏳ Pending QA</span></td>
-                <td style="text-align: right;">
-                  <button class="btn btn-secondary btn-sm" onclick="alert('Viewing document preview...')">View</button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <!-- Telemetry & Operational Activity Log -->
-        <div class="detail-card">
-          <div class="detail-card-head">
-            <h4>Order Audit & Telemetry Log</h4>
-            <span style="font-size: 11px; font-family: var(--font-mono); color: #10B981;">● Heartbeat Live</span>
-          </div>
-          <div class="timeline-stream" id="auditTimelineStream">
-            <div class="timeline-entry">
-              <div class="timeline-dot"></div>
-              <div class="timeline-content">
-                <div style="font-weight: 600;">Valuation Intake Order Initiated</div>
-                <div style="font-size: 12px; color: var(--text-muted);">Client submitted basic property parameters and preliminary records.</div>
-                <div class="timeline-time">Today, 10:15 AM • Client Portal</div>
-              </div>
-            </div>
-            <div class="timeline-entry">
-              <div class="timeline-dot" style="background: #10B981;"></div>
-              <div class="timeline-content">
-                <div style="font-weight: 600;">System Generated Automated Quote</div>
-                <div style="font-size: 12px; color: var(--text-muted);">Calculated standard fee ₹ 9,500 under Visa Tier A schedule.</div>
-                <div class="timeline-time">Today, 10:16 AM • Pricing Engine</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
     </div>
   </main>
 
@@ -808,48 +910,228 @@
     </div>
   </div>
 
-  <!-- Modal: Download Report -->
-  <div class="modal-overlay" id="downloadReportModal">
+  <!-- Modal: Create New Report Wizard (6-Step Auto-Advancing) -->
+  <div class="modal-overlay" id="createReportWizardModal">
+    <div class="modal-dialog" style="max-width: 720px;">
+      <div class="modal-header">
+        <div>
+          <span style="font-size: 11px; font-weight: 700; color: #38BDF8; letter-spacing: 1px;" id="wizardStepIndicator">STEP 1 OF 6</span>
+          <h3 style="font-family: var(--font-heading); font-size: 18px; margin: 2px 0 0;" id="wizardStepTitle">What service do you need?</h3>
+        </div>
+        <button class="icon-btn" onclick="closeModal('createReportWizardModal')">✕</button>
+      </div>
+      <div class="modal-body" style="padding: 24px;">
+        
+        <!-- STEP 1: SERVICE -->
+        <div id="wzStep1" class="wizard-step-pane">
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Select the required appraisal category. Click any card to advance automatically.</p>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="select-card-option" onclick="wizardPickService('Valuation Report')">
+              <div style="font-weight: 700; font-size: 15px;">🏛️ Valuation Report</div>
+              <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;">Comprehensive real estate and asset valuation for banks, visa embassies, tax, and court filings.</div>
+            </div>
+            <div class="select-card-option" onclick="wizardPickService('Net Worth Certificate')">
+              <div style="font-weight: 700; font-size: 15px;">📜 Net Worth Certificate</div>
+              <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;">Certified wealth summary and liquid solvency statement for global embassy student & PR visas.</div>
+            </div>
+            <div class="select-card-option" onclick="wizardPickService('Chartered Engineer Certificate')">
+              <div style="font-weight: 700; font-size: 15px;">⚙️ Chartered Engineer Certificate</div>
+              <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;">Technical machinery installation audit, customs EPCG depreciation, and residual life appraisals.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 2: ASSET -->
+        <div id="wzStep2" class="wizard-step-pane" style="display: none;">
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">What are you valuing? Selection automatically builds your document checklist.</p>
+          <div style="display: flex; flex-direction: column; gap: 12px;">
+            <div class="select-card-option" onclick="wizardPickAsset('Land & Building')">
+              <div style="font-weight: 700; font-size: 15px;">🏢 Land & Building</div>
+              <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;">Commercial office suites, retail shops, warehouses, residential apartments, plots.</div>
+            </div>
+            <div class="select-card-option" onclick="wizardPickAsset('Plant & Machinery')">
+              <div style="font-weight: 700; font-size: 15px;">🏭 Plant & Machinery</div>
+              <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;">Heavy machinery, industrial production lines, technical tools, and transport equipment.</div>
+            </div>
+            <div class="select-card-option" onclick="wizardPickAsset('Financial Assets')">
+              <div style="font-weight: 700; font-size: 15px;">📈 Financial Assets</div>
+              <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;">Unquoted private shares, partnership equity, corporate securities, business enterprise.</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3: PURPOSE -->
+        <div id="wzStep3" class="wizard-step-pane" style="display: none;">
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Why do you need the report? Statutory formatting depends on the recipient authority.</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <div class="select-card-option" onclick="wizardPickPurpose('Bank Loan')">
+              <div style="font-weight: 700; font-size: 14px;">🏦 Bank Loan</div>
+              <div style="font-size: 11.5px; color: var(--text-muted);">Mortgage collateral</div>
+            </div>
+            <div class="select-card-option" onclick="wizardPickPurpose('Visa / Immigration')">
+              <div style="font-weight: 700; font-size: 14px;">✈️ Visa / Immigration</div>
+              <div style="font-size: 11.5px; color: var(--text-muted);">Embassy financial proof</div>
+            </div>
+            <div class="select-card-option" onclick="wizardPickPurpose('Income Tax')">
+              <div style="font-weight: 700; font-size: 14px;">📑 Income Tax</div>
+              <div style="font-size: 11.5px; color: var(--text-muted);">Capital gains Sec 50C</div>
+            </div>
+            <div class="select-card-option" onclick="wizardPickPurpose('Corporate Purpose')">
+              <div style="font-weight: 700; font-size: 14px;">🏢 Corporate Purpose</div>
+              <div style="font-size: 11.5px; color: var(--text-muted);">Audit, M&A, NCLT</div>
+            </div>
+            <div class="select-card-option" onclick="wizardPickPurpose('Court Matter')">
+              <div style="font-weight: 700; font-size: 14px;">⚖️ Court Matter</div>
+              <div style="font-size: 11.5px; color: var(--text-muted);">Litigation & dispute</div>
+            </div>
+            <div class="select-card-option" onclick="wizardPickPurpose('Other')">
+              <div style="font-weight: 700; font-size: 14px;">💼 Other</div>
+              <div style="font-size: 11.5px; color: var(--text-muted);">Internal advisory</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 4: ASSET DETAILS (Real-Time Auto-Advance) -->
+        <div id="wzStep4" class="wizard-step-pane" style="display: none;">
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Tell us about the asset. Filling required fields automatically advances to documents.</p>
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label style="font-size: 12px; font-weight: 600;">Asset Name *</label>
+            <input type="text" id="wzAssetName" class="form-control" placeholder="e.g. Cyber Towers Unit 402" oninput="wizardCheckStep4()">
+          </div>
+          <div class="form-group" style="margin-bottom: 12px;">
+            <label style="font-size: 12px; font-weight: 600;">Property Address *</label>
+            <input type="text" id="wzPropertyAddress" class="form-control" placeholder="e.g. HITEC City, Madhapur" oninput="wizardCheckStep4()">
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+            <div class="form-group">
+              <label style="font-size: 12px; font-weight: 600;">City *</label>
+              <input type="text" id="wzCity" class="form-control" placeholder="e.g. Hyderabad" oninput="wizardCheckStep4()">
+            </div>
+            <div class="form-group">
+              <label style="font-size: 12px; font-weight: 600;">State *</label>
+              <input type="text" id="wzState" class="form-control" placeholder="e.g. Telangana" oninput="wizardCheckStep4()">
+            </div>
+          </div>
+          <div class="form-group">
+            <label style="font-size: 12px; font-weight: 600;">Estimated Value (INR, Optional)</label>
+            <input type="text" id="wzEstimatedValue" class="form-control" placeholder="e.g. 18500000">
+          </div>
+          <div id="wzStep4Indicator" style="margin-top: 14px; font-size: 12px; color: var(--text-dim);">
+            Fill Asset Name, Property Address, City, and State to continue.
+          </div>
+        </div>
+
+        <!-- STEP 5: UPLOAD DOCUMENTS (Auto-Advancing) -->
+        <div id="wzStep5" class="wizard-step-pane" style="display: none;">
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;" id="wzDocsInstructions">Upload mandatory verification records. Uploading all required items advances automatically.</p>
+          <div id="wzDocsSlotsContainer" style="display: flex; flex-direction: column; gap: 12px;">
+            <!-- Dynamically populated based on asset category -->
+          </div>
+        </div>
+
+        <!-- STEP 6: REVIEW REQUEST (THE ONLY BUTTON) -->
+        <div id="wzStep6" class="wizard-step-pane" style="display: none;">
+          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Verify your mandate scope before commercial desk appraisal issuance.</p>
+          <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 18px; margin-bottom: 24px; font-size: 13px;">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span>Service:</span> <strong id="rvService" style="color: #fff;">Valuation Report</strong></div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span>Asset Type:</span> <strong id="rvAsset" style="color: #fff;">Land & Building</strong></div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span>Purpose:</span> <strong id="rvPurpose" style="color: #fff;">Bank Loan</strong></div>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;"><span>Asset:</span> <strong id="rvAssetName" style="color: #fff;">Commercial Office</strong></div>
+            <div style="display: flex; justify-content: space-between;"><span>Documents:</span> <strong id="rvDocsCount" style="color: #10B981;">3 Attached ✓</strong></div>
+          </div>
+          <button class="btn btn-primary btn-lg" style="width: 100%; justify-content: center;" onclick="submitWizardRequest()">
+            Submit Report Request →
+          </button>
+        </div>
+
+        <!-- SUCCESS SCREEN -->
+        <div id="wzSuccessScreen" class="wizard-step-pane" style="display: none; text-align: center; padding: 20px 0;">
+          <div style="font-size: 48px; margin-bottom: 12px;">🎉</div>
+          <h3 style="font-family: var(--font-heading); font-size: 20px; color: #fff; margin-bottom: 8px;">Request Submitted Successfully</h3>
+          <div style="display: inline-block; background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 6px; padding: 4px 12px; font-family: var(--font-mono); color: #38BDF8; font-weight: 700; margin-bottom: 16px;" id="wzSuccessRef">
+            REQ-92
+          </div>
+          <p style="font-size: 13.5px; color: var(--text-muted); max-width: 480px; margin: 0 auto 24px; line-height: 1.5;">
+            Our Senior Commercial Appraisal Desk is evaluating circle rates and statutory documents. Your official quotation and turnaround SLA will be ready in under 4 hours.
+          </p>
+          <div style="display: flex; justify-content: center; gap: 14px;">
+            <button class="btn btn-primary" onclick="closeModal('createReportWizardModal'); showClientSection('inProgress');">
+              View Report
+            </button>
+            <button class="btn btn-secondary" onclick="resetWizard()">
+              Create Another Report
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Profile Modal -->
+  <div class="modal-overlay" id="profileModal">
     <div class="modal-dialog">
       <div class="modal-header">
-        <h3 style="font-family: var(--font-heading); font-size: 18px; color: #10B981;">[ Download Certified Valuation Report ]</h3>
-        <button class="icon-btn" onclick="closeModal('downloadReportModal')">✕</button>
+        <h3 style="font-family: var(--font-heading); font-size: 18px;">Client Profile</h3>
+        <button class="icon-btn" onclick="closeModal('profileModal')">✕</button>
       </div>
-      <div class="modal-body">
-        <div style="text-align: center; margin-bottom: 24px;">
-          <div style="font-size: 44px; margin-bottom: 8px;">📜</div>
-          <h4 style="font-size: 18px; margin-bottom: 4px;">Valuation Report PV-2026-9842 Ready</h4>
-          <p style="font-size: 13px; color: var(--text-muted);">Digitally Signed by Senior Property Analyst & Cloud HSM Sealed</p>
-        </div>
+      <div class="modal-body" style="font-size: 13px;">
+        <div style="margin-bottom: 12px;"><span style="color: var(--text-dim);">Full Name:</span> <strong style="color: #fff; display: block; margin-top: 2px;">Anand Mehta</strong></div>
+        <div style="margin-bottom: 12px;"><span style="color: var(--text-dim);">Registered Email:</span> <strong style="color: #fff; display: block; margin-top: 2px;">anand.mehta@enterprise.in</strong></div>
+        <div style="margin-bottom: 12px;"><span style="color: var(--text-dim);">Phone:</span> <strong style="color: #fff; display: block; margin-top: 2px;">+91 98490 12345</strong></div>
+        <div><span style="color: var(--text-dim);">Account Type:</span> <strong style="color: #10B981; display: block; margin-top: 2px;">Corporate Client • Verified</strong></div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('profileModal')">Close</button>
+      </div>
+    </div>
+  </div>
 
-        <div style="background: rgba(16, 185, 129, 0.08); border: 1px solid rgba(16, 185, 129, 0.3); border-radius: 12px; padding: 18px; margin-bottom: 20px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 13px;">
-            <span style="color: var(--text-muted);">Certified Valuation:</span>
-            <strong style="color: #10B981; font-size: 16px;">₹ 1,92,40,000 INR</strong>
+  <!-- Modal: Support Concierge -->
+  <div class="modal-overlay" id="supportModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 style="font-family: var(--font-heading); font-size: 18px;">Support Concierge</h3>
+        <button class="icon-btn" onclick="closeModal('supportModal')">✕</button>
+      </div>
+      <div class="modal-body" style="font-size: 13.5px; line-height: 1.6;">
+        <p style="color: var(--text-muted); margin-bottom: 16px;">Connect directly with our Senior Valuers and support officers for any queries regarding your reports.</p>
+        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 16px;">
+          <div style="margin-bottom: 10px;">
+            <strong style="color: #38BDF8;">Direct Advisory Hotline:</strong>
+            <div style="font-family: var(--font-mono); font-size: 15px; margin-top: 4px;"><a href="tel:+918500019091" style="color: #fff; text-decoration: none;">+91 85000 19091</a></div>
           </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; font-size: 12px;">
-            <span style="color: var(--text-muted);">Digital Signature Seal:</span>
-            <span style="font-family: var(--font-mono); color: #38BDF8;">Class 3 e-Mudhra (Verified)</span>
+          <div>
+            <strong style="color: #38BDF8;">Concierge Email:</strong>
+            <div style="font-size: 14px; margin-top: 4px;"><a href="mailto:provaluer.india@gmail.com" style="color: #fff; text-decoration: none;">provaluer.india@gmail.com</a></div>
           </div>
-          <div style="display: flex; justify-content: space-between; font-size: 12px;">
-            <span style="color: var(--text-muted);">SHA-256 Hash:</span>
-            <span style="font-family: var(--font-mono); color: var(--text-dim);">e3b0c44298fc1c149afb...</span>
-          </div>
-        </div>
-
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
-          <button class="btn btn-primary" onclick="simulateFileDownload('PDF')">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Download PDF Report
-          </button>
-          <button class="btn btn-secondary" onclick="simulateFileDownload('DOCX')">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            Download Editable DOCX
-          </button>
         </div>
       </div>
       <div class="modal-footer">
-        <button class="btn btn-secondary" onclick="closeModal('downloadReportModal')">Close</button>
+        <button class="btn btn-secondary" onclick="closeModal('supportModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Upload Missing / Supplemental Document -->
+  <div class="modal-overlay" id="uploadMoreModal">
+    <div class="modal-dialog">
+      <div class="modal-header">
+        <h3 style="font-family: var(--font-heading); font-size: 18px;">Upload Document</h3>
+        <button class="icon-btn" onclick="closeModal('uploadMoreModal')">✕</button>
+      </div>
+      <div class="modal-body">
+        <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Upload additional or revised deeds to attach directly to this report:</p>
+        <div class="upload-dropzone" onclick="document.getElementById('supplementalFileInput').click()">
+          <input type="file" id="supplementalFileInput" style="display: none;" onchange="handleSupplementalUpload(event)">
+          <div style="font-size: 28px; margin-bottom: 8px;">📂</div>
+          <div style="font-weight: 600; font-size: 14px;">Select property file</div>
+          <div style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">PDF, PNG, JPG (Max 20MB)</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('uploadMoreModal')">Cancel</button>
+        <button class="btn btn-primary" onclick="confirmSupplementalUpload()">Upload to Report</button>
       </div>
     </div>
   </div>

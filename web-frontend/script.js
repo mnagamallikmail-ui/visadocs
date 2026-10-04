@@ -581,7 +581,7 @@ function performDemoLogin() {
   showToast('Demo Client Verified. Redirecting to Client Dashboard...');
   setTimeout(() => {
     switchView('dashboard');
-    setWorkflowStage(0); // Start at REQUEST stage
+    showClientSection('inProgress');
   }, 400);
 }
 
@@ -593,7 +593,7 @@ function handleAuthSubmit() {
   }
   showToast('Authentication successful!');
   switchView('dashboard');
-  setWorkflowStage(0);
+  showClientSection('inProgress');
 }
 
 // -----------------------------------------------------------------------------
@@ -621,3 +621,739 @@ function showToast(message) {
     toast.style.display = 'none';
   }, 3200);
 }
+
+// =============================================================================
+// CLIENT PORTAL SIMPLIFICATION CONTROLLERS & DATA STORE
+// =============================================================================
+
+// 6 Simplified Client Milestones
+const CLIENT_STAGES = [
+  'Request Submitted',
+  'Under Review',
+  'Quotation Ready',
+  'Payment Complete',
+  'Report In Progress',
+  'Delivered'
+];
+
+// Active Client Orders
+let activeReportsData = [
+  {
+    id: 'REQ-89',
+    reportNumber: 'PV-2026-9842',
+    title: 'Commercial Office Valuation',
+    service: 'Valuation Report',
+    assetType: 'Land & Building',
+    purpose: 'Bank Loan',
+    assetSummary: 'Cyber Towers Unit 402, HITEC City, Hyderabad',
+    createdDate: '20 Sep 2026',
+    expectedDate: '25 Sep 2026',
+    status: 'Quotation Ready',
+    stageIndex: 2, // Quotation Ready
+    statusDesc: 'Your official quotation has been prepared with transparent breakdown and 48h turnaround SLA.',
+    requiredAction: 'View Quotation & Approve Payment',
+    actionType: 'QUOTE_READY',
+    docs: [
+      { name: 'Title Deed / Sale Deed', status: 'verified', statusText: 'Verified ✓' },
+      { name: 'Approved Sanction Plan', status: 'verified', statusText: 'Verified ✓' },
+      { name: 'Property Tax Receipt', status: 'verified', statusText: 'Verified ✓' },
+      { name: 'Site Photographs', status: 'pending', statusText: 'In Review ⏳' }
+    ],
+    timeline: [
+      { title: 'Official Quotation Issued', desc: 'Pricing desk compiled formal quotation with committed 3-day turnaround SLA.', time: 'Today, 10:45 AM' },
+      { title: 'Documents Verified by Desk', desc: 'Ownership deed and sanction layout verified against circle rates.', time: 'Yesterday, 04:30 PM' },
+      { title: 'Valuation Request Submitted', desc: 'Mandate initialized via Client Portal wizard.', time: '20 Sep 2026, 02:15 PM' }
+    ]
+  },
+  {
+    id: 'REQ-90',
+    reportNumber: 'PV-2026-9910',
+    title: 'Industrial Machine Appraisal',
+    service: 'Chartered Engineer Certificate',
+    assetType: 'Plant & Machinery',
+    purpose: 'Corporate Purpose',
+    assetSummary: 'CNC 5-Axis Milling Unit, Sanathnagar Industrial Estate',
+    createdDate: '22 Sep 2026',
+    expectedDate: '28 Sep 2026',
+    status: 'Report In Progress',
+    stageIndex: 4, // Report In Progress
+    statusDesc: 'Field inspection completed and report is currently being sealed by Senior Valuer.',
+    requiredAction: 'None (Processing SLA active)',
+    actionType: 'IN_PROGRESS',
+    docs: [
+      { name: 'Purchase Invoice / Bill of Entry', status: 'verified', statusText: 'Verified ✓' },
+      { name: 'Machine OEM Technical Specs', status: 'verified', statusText: 'Verified ✓' },
+      { name: 'Customs Duty Clearance Certificate', status: 'verified', statusText: 'Verified ✓' }
+    ],
+    timeline: [
+      { title: 'Physical Field Inspection Completed', desc: 'Surveyor validated serial numbers, calibration records, and run-hours.', time: 'Today, 02:30 PM' },
+      { title: 'Advance Remittance Received', desc: 'UTR verified by finance desk; assignment released.', time: '23 Sep 2026, 11:00 AM' },
+      { title: 'Quotation Approved', desc: 'Client accepted formal quotation online.', time: '22 Sep 2026, 05:40 PM' }
+    ]
+  },
+  {
+    id: 'REQ-91',
+    reportNumber: 'PV-2026-9934',
+    title: 'Residential Villa Valuation',
+    service: 'Net Worth Certificate',
+    assetType: 'Land & Building',
+    purpose: 'Visa / Immigration',
+    assetSummary: 'Villa 14, Palm Meadows, Jubilee Hills, Hyderabad',
+    createdDate: '25 Sep 2026',
+    expectedDate: '01 Oct 2026',
+    status: 'Under Review',
+    stageIndex: 1, // Under Review
+    statusDesc: 'Our appraisal cell is reviewing the title chain and municipal layout approvals.',
+    requiredAction: 'Pending appraisal desk review',
+    actionType: 'UNDER_REVIEW',
+    docs: [
+      { name: 'Registered Sale Deed', status: 'verified', statusText: 'Verified ✓' },
+      { name: 'GHMC Approved Layout Plan', status: 'pending', statusText: 'Under Verification ⏳' }
+    ],
+    timeline: [
+      { title: 'Mandate Documents Uploaded', desc: 'Client submitted ownership records via intake wizard.', time: '25 Sep 2026, 09:30 AM' },
+      { title: 'Order Intake Initialized', desc: 'Case assigned reference REQ-91.', time: '25 Sep 2026, 09:15 AM' }
+    ]
+  }
+];
+
+// Completed Client Orders
+const completedReportsData = [
+  {
+    id: 'REQ-45',
+    reportNumber: 'PV-2026-8812',
+    title: 'Commercial Complex Valuation',
+    service: 'Valuation Report',
+    assetType: 'Land & Building',
+    purpose: 'Bank Loan (Consortium Refinancing)',
+    assetSummary: 'Apex Business Park, Sector 62, Noida',
+    createdDate: '10 Aug 2026',
+    completionDate: '15 Aug 2026',
+    finalValue: '₹ 2,10,00,000',
+    reportPdf: 'Final_Valuation_Report_REQ45.pdf',
+    invoicePdf: 'Tax_Invoice_REQ45.pdf',
+    docs: [
+      { name: 'Registered Title Deed (Vol 423)', statusText: 'Verified & Sealed ✓' },
+      { name: 'Sanction Plan & Occupancy Certificate', statusText: 'Verified & Sealed ✓' },
+      { name: 'Property Tax Challan 2025-26', statusText: 'Verified & Sealed ✓' }
+    ]
+  },
+  {
+    id: 'REQ-52',
+    reportNumber: 'PV-2026-8940',
+    title: 'Liquid Solvency & Net Worth Certificate',
+    service: 'Net Worth Certificate',
+    assetType: 'Financial Assets',
+    purpose: 'Visa / Immigration (Canada Study Permit)',
+    assetSummary: 'Equity Holdings & Mutual Fund Portfolios, HDFC Securities',
+    createdDate: '28 Jun 2026',
+    completionDate: '04 Jul 2026',
+    finalValue: '₹ 4,80,00,000',
+    reportPdf: 'Final_NetWorth_Certificate_REQ52.pdf',
+    invoicePdf: 'Tax_Invoice_REQ52.pdf',
+    docs: [
+      { name: 'Audited CA Net Worth Statement', statusText: 'Verified & Sealed ✓' },
+      { name: 'Demat Holding Statements', statusText: 'Verified & Sealed ✓' }
+    ]
+  }
+];
+
+let selectedActiveOrderId = 'REQ-89';
+let selectedCompletedOrderId = 'REQ-45';
+
+// Sidebar Navigation
+function showClientSection(section) {
+  const navActive = document.getElementById('clientNavBtnActive');
+  const navComp = document.getElementById('clientNavBtnCompleted');
+  const secActive = document.getElementById('sectionReportsInProgress');
+  const secComp = document.getElementById('sectionCompletedReports');
+
+  if (section === 'inProgress') {
+    if (navActive) navActive.classList.add('active');
+    if (navComp) navComp.classList.remove('active');
+    if (secActive) secActive.style.display = 'block';
+    if (secComp) secComp.style.display = 'none';
+    closeReportWorkspace();
+    renderActiveReportsGrid();
+  } else if (section === 'completed') {
+    if (navActive) navActive.classList.remove('active');
+    if (navComp) navComp.classList.add('active');
+    if (secActive) secActive.style.display = 'none';
+    if (secComp) secComp.style.display = 'block';
+    closeCompletedWorkspace();
+    renderCompletedReportsGrid();
+  }
+}
+
+// Render Active Reports Gallery Grid
+function renderActiveReportsGrid() {
+  const grid = document.getElementById('activeReportsGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  activeReportsData.forEach(rep => {
+    const card = document.createElement('div');
+    card.className = 'client-report-card';
+    card.onclick = () => openReportWorkspace(rep.id);
+
+    card.innerHTML = `
+      <div class="report-card-top">
+        <span class="report-ref-badge">${rep.id}</span>
+        <span class="report-status-pill">${rep.status}</span>
+      </div>
+      <div class="report-card-title">${rep.title}</div>
+      <div class="report-card-meta-line">
+        <span class="meta-label">Created:</span>
+        <span class="meta-val">${rep.createdDate}</span>
+      </div>
+      <div class="report-card-meta-line">
+        <span class="meta-label">Expected Completion:</span>
+        <span class="meta-val">${rep.expectedDate}</span>
+      </div>
+      <div class="report-card-cta">
+        <span>Open Report Workspace →</span>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+// Open Active Report Workspace
+function openReportWorkspace(orderId) {
+  selectedActiveOrderId = orderId;
+  const rep = activeReportsData.find(r => r.id === orderId) || activeReportsData[0];
+
+  const gallery = document.getElementById('inProgressGalleryView');
+  const ws = document.getElementById('activeReportWorkspaceView');
+  if (gallery) gallery.style.display = 'none';
+  if (ws) ws.style.display = 'block';
+
+  // SECTION 1: REPORT HEADER
+  const elRef = document.getElementById('wsReportRef');
+  const elBadge = document.getElementById('wsStatusBadge');
+  const elTitle = document.getElementById('wsReportTitle');
+  const elSummary = document.getElementById('wsAssetSummary');
+  const elNum = document.getElementById('wsReportNumber');
+  const elCreated = document.getElementById('wsCreatedDate');
+  const elExpected = document.getElementById('wsExpectedDate');
+  const elPurpose = document.getElementById('wsPurpose');
+
+  if (elRef) elRef.textContent = rep.id;
+  if (elBadge) elBadge.textContent = rep.status;
+  if (elTitle) elTitle.textContent = rep.title;
+  if (elSummary) elSummary.textContent = rep.assetSummary;
+  if (elNum) elNum.textContent = rep.reportNumber;
+  if (elCreated) elCreated.textContent = rep.createdDate;
+  if (elExpected) elExpected.textContent = rep.expectedDate;
+  if (elPurpose) elPurpose.textContent = rep.purpose;
+
+  // SECTION 2: CLIENT PROGRESS TRACKER (6 STAGES ONLY)
+  renderWorkspaceStages(rep.stageIndex);
+
+  // SECTION 3: STATUS HERO CARD
+  renderStatusHeroCard(rep);
+
+  // SECTION 4: DOCUMENTS
+  renderWorkspaceDocs(rep.docs);
+
+  // SECTION 5: UPDATES TIMELINE
+  renderWorkspaceTimeline(rep.timeline);
+
+  // SECTION 6: CONTEXTUAL ACTIONS
+  renderContextualActions(rep);
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function closeReportWorkspace() {
+  const gallery = document.getElementById('inProgressGalleryView');
+  const ws = document.getElementById('activeReportWorkspaceView');
+  if (gallery) gallery.style.display = 'block';
+  if (ws) ws.style.display = 'none';
+}
+
+function renderWorkspaceStages(activeIdx) {
+  const chain = document.getElementById('clientStagesChain');
+  if (!chain) return;
+  chain.innerHTML = '';
+
+  CLIENT_STAGES.forEach((stage, idx) => {
+    const isDone = idx < activeIdx;
+    const isCurrent = idx === activeIdx;
+
+    const item = document.createElement('div');
+    item.className = `client-stage-step ${isDone ? 'done' : ''} ${isCurrent ? 'current' : ''}`;
+
+    const num = idx + 1;
+    const checkIcon = isDone ? '✓' : `${num}`;
+
+    item.innerHTML = `
+      <div class="stage-step-circle">${checkIcon}</div>
+      <div class="stage-step-name">${stage}</div>
+    `;
+    chain.appendChild(item);
+  });
+}
+
+function renderStatusHeroCard(rep) {
+  const title = document.getElementById('statusHeroTitle');
+  const desc = document.getElementById('statusHeroDesc');
+  const actionArea = document.getElementById('statusHeroActionArea');
+  const icon = document.getElementById('statusHeroIcon');
+
+  if (title) title.textContent = rep.status;
+  if (desc) desc.textContent = rep.statusDesc;
+
+  if (actionArea) {
+    actionArea.innerHTML = '';
+    if (rep.status === 'Quotation Ready') {
+      if (icon) icon.textContent = '📑';
+      actionArea.innerHTML = `<button class="btn btn-primary" onclick="openQuotationModal()">View Quotation & Pay →</button>`;
+    } else if (rep.status === 'Under Review') {
+      if (icon) icon.textContent = '🔍';
+      actionArea.innerHTML = `<button class="btn btn-secondary btn-sm" onclick="openUploadMoreModal()">Upload Additional Records</button>`;
+    } else if (rep.status === 'Report In Progress') {
+      if (icon) icon.textContent = '⚙️';
+      actionArea.innerHTML = `<span style="font-size: 12.5px; color: #10B981; font-weight: 600;">● Guaranteed SLA 48h active</span>`;
+    } else if (rep.status === 'Delivered') {
+      if (icon) icon.textContent = '🏆';
+      actionArea.innerHTML = `<button class="btn btn-gold" onclick="downloadSamplePdf('Valuation_Report.pdf')">Download Final Report</button>`;
+    } else {
+      if (icon) icon.textContent = 'ℹ️';
+      actionArea.innerHTML = `<button class="btn btn-secondary btn-sm" onclick="openSupportModal()">Contact Concierge</button>`;
+    }
+  }
+}
+
+function renderWorkspaceDocs(docs) {
+  const list = document.getElementById('reportDocsList');
+  if (!list) return;
+  list.innerHTML = '';
+
+  (docs || []).forEach(doc => {
+    const row = document.createElement('div');
+    row.className = 'report-doc-row';
+    const isVerified = doc.status === 'verified';
+    row.innerHTML = `
+      <span>${doc.name}</span>
+      <span class="doc-badge ${isVerified ? 'verified' : 'pending'}">${doc.statusText}</span>
+    `;
+    list.appendChild(row);
+  });
+}
+
+function renderWorkspaceTimeline(timeline) {
+  const el = document.getElementById('clientUpdatesTimeline');
+  if (!el) return;
+  el.innerHTML = '';
+
+  (timeline || []).forEach(item => {
+    const entry = document.createElement('div');
+    entry.className = 'timeline-entry';
+    entry.innerHTML = `
+      <div class="timeline-dot"></div>
+      <div class="timeline-content">
+        <div style="font-weight: 600; color: #fff;">${item.title}</div>
+        <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">${item.desc}</div>
+        <div class="timeline-time">${item.time}</div>
+      </div>
+    `;
+    el.appendChild(entry);
+  });
+}
+
+function renderContextualActions(rep) {
+  const box = document.getElementById('contextualButtons');
+  if (!box) return;
+  box.innerHTML = '';
+
+  if (rep.status === 'Quotation Ready') {
+    box.innerHTML = `
+      <button class="btn btn-secondary btn-sm" onclick="openQuotationModal()">View Quotation</button>
+      <button class="btn btn-secondary btn-sm" onclick="downloadSamplePdf('Quotation_${rep.id}.pdf')">Download Quotation PDF</button>
+      <button class="btn btn-gold btn-sm" onclick="openPaymentModal()">Accept & Pay Online →</button>
+    `;
+  } else if (rep.status === 'Payment Pending') {
+    box.innerHTML = `
+      <button class="btn btn-gold btn-sm" onclick="openPaymentModal()">Submit Payment</button>
+    `;
+  } else if (rep.status === 'Under Review') {
+    box.innerHTML = `
+      <button class="btn btn-secondary btn-sm" onclick="openUploadMoreModal()">Upload Missing Documents</button>
+      <button class="btn btn-secondary btn-sm" onclick="openSupportModal()">Ask Valuation Desk</button>
+    `;
+  } else if (rep.status === 'Report In Progress') {
+    box.innerHTML = `
+      <div style="font-size: 13px; color: var(--text-muted); display: flex; align-items: center; gap: 8px;">
+        <span style="color: #38BDF8;">⏳</span>
+        <span>Expected Completion Date: <strong style="color: #fff;">${rep.expectedDate}</strong></span>
+      </div>
+      <button class="btn btn-secondary btn-sm" onclick="openSupportModal()">Request Status Update</button>
+    `;
+  } else if (rep.status === 'Delivered') {
+    box.innerHTML = `
+      <button class="btn btn-gold btn-sm" onclick="downloadSamplePdf('Valuation_Report_${rep.id}.pdf')">Download Report</button>
+      <button class="btn btn-secondary btn-sm" onclick="downloadSamplePdf('Tax_Invoice_${rep.id}.pdf')">Download Invoice</button>
+      <button class="btn btn-primary btn-sm" onclick="showToast('Report accepted successfully.')">Accept Report</button>
+      <button class="btn btn-secondary btn-sm" onclick="openSupportModal()">Request Clarification</button>
+    `;
+  }
+}
+
+// Completed Reports Gallery & Read-Only Workspace
+function renderCompletedReportsGrid() {
+  const grid = document.getElementById('completedReportsGrid');
+  if (!grid) return;
+  grid.innerHTML = '';
+
+  completedReportsData.forEach(rep => {
+    const card = document.createElement('div');
+    card.className = 'client-report-card';
+    card.onclick = () => openCompletedWorkspace(rep.id);
+
+    card.innerHTML = `
+      <div class="report-card-top">
+        <span class="report-ref-badge">${rep.id}</span>
+        <span class="report-status-pill" style="border-color: #10B981; color: #10B981;">Concluded ✓</span>
+      </div>
+      <div class="report-card-title">${rep.title}</div>
+      <div class="report-card-meta-line">
+        <span class="meta-label">Completion Date:</span>
+        <span class="meta-val" style="color: #10B981; font-weight: 600;">${rep.completionDate}</span>
+      </div>
+      <div class="report-card-meta-line">
+        <span class="meta-label">Assessed Value:</span>
+        <span class="meta-val">${rep.finalValue}</span>
+      </div>
+      <div class="report-card-cta">
+        <span>View Archived Record (Read-Only) →</span>
+      </div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+function openCompletedWorkspace(orderId) {
+  selectedCompletedOrderId = orderId;
+  const rep = completedReportsData.find(r => r.id === orderId) || completedReportsData[0];
+
+  const gallery = document.getElementById('completedGalleryView');
+  const ws = document.getElementById('completedReportWorkspaceView');
+  if (gallery) gallery.style.display = 'none';
+  if (ws) ws.style.display = 'block';
+
+  const ref = document.getElementById('compReportRef');
+  const title = document.getElementById('compReportTitle');
+  const date = document.getElementById('compCompletionDate');
+
+  if (ref) ref.textContent = rep.id;
+  if (title) title.textContent = rep.title;
+  if (date) date.textContent = rep.completionDate;
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function closeCompletedWorkspace() {
+  const gallery = document.getElementById('completedGalleryView');
+  const ws = document.getElementById('completedReportWorkspaceView');
+  if (gallery) gallery.style.display = 'block';
+  if (ws) ws.style.display = 'none';
+}
+
+// -----------------------------------------------------------------------------
+// FLOW 1: 6-STEP AUTO-ADVANCING CREATE REPORT WIZARD
+// -----------------------------------------------------------------------------
+let wizardState = {
+  currentStep: 1,
+  service: '',
+  assetType: '',
+  purpose: '',
+  assetName: '',
+  propertyAddress: '',
+  city: '',
+  state: '',
+  estimatedValue: '',
+  requiredDocs: [],
+  uploadedDocs: {}
+};
+
+function openCreateReportWizard() {
+  resetWizard();
+  openModal('createReportWizardModal');
+}
+
+function resetWizard() {
+  wizardState = {
+    currentStep: 1,
+    service: '',
+    assetType: '',
+    purpose: '',
+    assetName: '',
+    propertyAddress: '',
+    city: '',
+    state: '',
+    estimatedValue: '',
+    requiredDocs: [],
+    uploadedDocs: {}
+  };
+
+  const nameInput = document.getElementById('wzAssetName');
+  const addrInput = document.getElementById('wzPropertyAddress');
+  const cityInput = document.getElementById('wzCity');
+  const stateInput = document.getElementById('wzState');
+  const valInput = document.getElementById('wzEstimatedValue');
+
+  if (nameInput) nameInput.value = '';
+  if (addrInput) addrInput.value = '';
+  if (cityInput) cityInput.value = '';
+  if (stateInput) stateInput.value = '';
+  if (valInput) valInput.value = '';
+
+  goToWizardStep(1);
+}
+
+function goToWizardStep(stepNum) {
+  wizardState.currentStep = stepNum;
+
+  for (let s = 1; s <= 6; s++) {
+    const pane = document.getElementById(`wzStep${s}`);
+    if (pane) pane.style.display = (s === stepNum) ? 'block' : 'none';
+  }
+  const succ = document.getElementById('wzSuccessScreen');
+  if (succ) succ.style.display = 'none';
+
+  const indicator = document.getElementById('wizardStepIndicator');
+  const title = document.getElementById('wizardStepTitle');
+
+  const titles = [
+    '',
+    'What service do you need?',
+    'What are you valuing?',
+    'Why do you need the report?',
+    'Tell us about the asset',
+    'Upload Documents',
+    'Review Request'
+  ];
+
+  if (indicator) indicator.textContent = `STEP ${stepNum} OF 6`;
+  if (title) title.textContent = titles[stepNum] || '';
+}
+
+// STEP 1: Click Card = Advance
+function wizardPickService(serviceName) {
+  wizardState.service = serviceName;
+  showToast(`Selected Service: ${serviceName}`);
+  setTimeout(() => {
+    goToWizardStep(2);
+  }, 220);
+}
+
+// STEP 2: Click Card = Advance
+function wizardPickAsset(assetType) {
+  wizardState.assetType = assetType;
+  showToast(`Selected Asset: ${assetType}`);
+
+  // Dynamic mandatory documents by asset type
+  if (assetType === 'Land & Building') {
+    wizardState.requiredDocs = ['Title Deed', 'Approved Plan', 'Tax Receipt'];
+  } else if (assetType === 'Plant & Machinery') {
+    wizardState.requiredDocs = ['Purchase Invoice'];
+  } else {
+    wizardState.requiredDocs = ['Financial Statements'];
+  }
+  wizardState.uploadedDocs = {};
+
+  setTimeout(() => {
+    goToWizardStep(3);
+  }, 220);
+}
+
+// STEP 3: Click Card = Advance
+function wizardPickPurpose(purpose) {
+  wizardState.purpose = purpose;
+  showToast(`Purpose: ${purpose}`);
+  setTimeout(() => {
+    goToWizardStep(4);
+  }, 220);
+}
+
+// STEP 4: Real-Time Validation = Auto-Advance to Step 5
+let step4ValidationTimer = null;
+function wizardCheckStep4() {
+  const name = document.getElementById('wzAssetName')?.value.trim() || '';
+  const addr = document.getElementById('wzPropertyAddress')?.value.trim() || '';
+  const city = document.getElementById('wzCity')?.value.trim() || '';
+  const st = document.getElementById('wzState')?.value.trim() || '';
+  const est = document.getElementById('wzEstimatedValue')?.value.trim() || '';
+
+  const indicator = document.getElementById('wzStep4Indicator');
+
+  const allValid = name.length >= 3 && addr.length >= 5 && city.length >= 2 && st.length >= 2;
+
+  if (allValid) {
+    if (indicator) {
+      indicator.innerHTML = '<span style="color: #10B981; font-weight: 600;">✓ Details verified! Advancing to documents...</span>';
+    }
+    clearTimeout(step4ValidationTimer);
+    step4ValidationTimer = setTimeout(() => {
+      wizardState.assetName = name;
+      wizardState.propertyAddress = addr;
+      wizardState.city = city;
+      wizardState.state = st;
+      wizardState.estimatedValue = est;
+      renderWizardStep5Slots();
+      goToWizardStep(5);
+    }, 450);
+  } else {
+    if (indicator) {
+      indicator.innerHTML = '<span style="color: var(--text-dim);">Fill Asset Name, Property Address, City, and State to continue.</span>';
+    }
+  }
+}
+
+// STEP 5: Render Upload Slots & Auto-Advance on Complete
+function renderWizardStep5Slots() {
+  const container = document.getElementById('wzDocsSlotsContainer');
+  if (!container) return;
+  container.innerHTML = '';
+
+  wizardState.requiredDocs.forEach(docName => {
+    const isDone = !!wizardState.uploadedDocs[docName];
+    const slot = document.createElement('div');
+    slot.className = 'select-card-option';
+    slot.style.display = 'flex';
+    slot.style.justifyContent = 'space-between';
+    slot.style.alignItems = 'center';
+    slot.onclick = () => wizardUploadDoc(docName);
+
+    slot.innerHTML = `
+      <div>
+        <div style="font-weight: 600; font-size: 14px;">📄 ${docName} *</div>
+        <div style="font-size: 11.5px; color: var(--text-muted);">Required verification document</div>
+      </div>
+      <div>
+        ${isDone 
+          ? '<span class="doc-badge verified">Uploaded ✓</span>' 
+          : '<button class="btn btn-secondary btn-sm" type="button">Upload File</button>'}
+      </div>
+    `;
+    container.appendChild(slot);
+  });
+}
+
+function wizardUploadDoc(docName) {
+  wizardState.uploadedDocs[docName] = true;
+  showToast(`Uploaded: ${docName}`);
+  renderWizardStep5Slots();
+
+  // Check if all mandatory uploaded
+  const allUploaded = wizardState.requiredDocs.every(d => !!wizardState.uploadedDocs[d]);
+  if (allUploaded) {
+    setTimeout(() => {
+      populateReviewStep6();
+      goToWizardStep(6);
+    }, 500);
+  }
+}
+
+// STEP 6: Review & Only Button
+function populateReviewStep6() {
+  const s = document.getElementById('rvService');
+  const a = document.getElementById('rvAsset');
+  const p = document.getElementById('rvPurpose');
+  const n = document.getElementById('rvAssetName');
+  const d = document.getElementById('rvDocsCount');
+
+  if (s) s.textContent = wizardState.service;
+  if (a) a.textContent = wizardState.assetType;
+  if (p) p.textContent = wizardState.purpose;
+  if (n) n.textContent = `${wizardState.assetName}, ${wizardState.city}`;
+  if (d) d.textContent = `${wizardState.requiredDocs.length} Mandatory Records Uploaded ✓`;
+}
+
+function submitWizardRequest() {
+  const newRef = `REQ-${Math.floor(100 + Math.random() * 899)}`;
+  const now = new Date();
+  const dateStr = `${now.getDate()} ${now.toLocaleString('default', { month: 'short' })} ${now.getFullYear()}`;
+
+  const newOrder = {
+    id: newRef,
+    reportNumber: `PV-2026-${Math.floor(1000 + Math.random() * 8999)}`,
+    title: `${wizardState.assetName} Valuation`,
+    service: wizardState.service,
+    assetType: wizardState.assetType,
+    purpose: wizardState.purpose,
+    assetSummary: `${wizardState.propertyAddress}, ${wizardState.city}, ${wizardState.state}`,
+    createdDate: dateStr,
+    expectedDate: '3 Business Days',
+    status: 'Under Review',
+    stageIndex: 1, // Under Review
+    statusDesc: 'Your request has been submitted. Senior desk is reviewing documents and compiling official quotation.',
+    requiredAction: 'Quotation compilation in progress',
+    actionType: 'UNDER_REVIEW',
+    docs: wizardState.requiredDocs.map(d => ({ name: d, status: 'verified', statusText: 'Uploaded ✓' })),
+    timeline: [
+      { title: 'Valuation Request Submitted', desc: 'Mandate submitted through simplified client intake wizard.', time: 'Just now' }
+    ]
+  };
+
+  activeReportsData.unshift(newOrder);
+
+  // Show Success Screen
+  for (let s = 1; s <= 6; s++) {
+    const pane = document.getElementById(`wzStep${s}`);
+    if (pane) pane.style.display = 'none';
+  }
+  const succ = document.getElementById('wzSuccessScreen');
+  if (succ) succ.style.display = 'block';
+
+  const refEl = document.getElementById('wzSuccessRef');
+  if (refEl) refEl.textContent = newRef;
+
+  const indicator = document.getElementById('wizardStepIndicator');
+  const title = document.getElementById('wizardStepTitle');
+  if (indicator) indicator.textContent = 'MANDATE CREATED';
+  if (title) title.textContent = 'Request Submitted';
+}
+
+// User Profile & Support Modals
+function openProfileModal() {
+  openModal('profileModal');
+}
+
+function openSupportModal() {
+  openModal('supportModal');
+}
+
+function openUploadMoreModal() {
+  openModal('uploadMoreModal');
+}
+
+function openQuotationModal() {
+  openModal('viewQuoteModal');
+}
+
+function openPaymentModal() {
+  closeModal('viewQuoteModal');
+  openModal('paymentModal');
+}
+
+function handleSupplementalUpload(event) {
+  showToast('Supplemental document attached to active report.');
+}
+
+function confirmSupplementalUpload() {
+  closeModal('uploadMoreModal');
+  showToast('File verified and appended to report dossier.');
+}
+
+function downloadSamplePdf(filename) {
+  showToast(`Downloading: ${filename}`);
+}
+
+// Set initial screen
+document.addEventListener('DOMContentLoaded', () => {
+  renderActiveReportsGrid();
+  renderCompletedReportsGrid();
+});
+
