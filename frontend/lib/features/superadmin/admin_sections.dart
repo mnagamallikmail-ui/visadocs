@@ -3895,6 +3895,7 @@ class _AdminReportSectionState extends State<AdminReportSection> {
                   itemBuilder: (_, i) {
                     final o = displayOrders[i];
                     final hasLock = o['status'] == 'PAYMENT_LOCK';
+                    final isDelivered = o['status'] == 'FINAL_DELIVERY' || o['status'] == 'CLIENT_DOWNLOADED' || o['status'] == 'CLOSED';
                     final canDelete = ReportListHelper.canDeleteReport(o, authProvider);
                     final reportNum = o['reportNumber'] ?? 'PV-${o['id']}';
                     final dateStr = ReportListHelper.formatReportDate(o['createdAt']);
@@ -3950,7 +3951,7 @@ class _AdminReportSectionState extends State<AdminReportSection> {
                                       ),
                                       const SizedBox(height: 4),
                                       Text(
-                                        'Bank: ${o['bankName'] ?? '—'}',
+                                        o['referenceCode'] != null ? '${o['referenceCode']}' : 'Ref: —',
                                         style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 12),
                                         overflow: TextOverflow.ellipsis,
                                       ),
@@ -3983,9 +3984,14 @@ class _AdminReportSectionState extends State<AdminReportSection> {
                                 _overrideBtn('Release Delivery', AppColors.success, () => _forceStatus(o, 'FINAL_DELIVERY')),
                                 const SizedBox(width: 8),
                               ],
-                              _overrideBtn('Force SPA Gate', AppColors.brandBlue, () => _forceStatus(o, 'SPA_GATE')),
-                              const SizedBox(width: 8),
-                              _overrideBtn('Reset Draft', AppColors.slate, () => _forceStatus(o, 'DRAFT')),
+                              if (!isDelivered) ...[
+                                _overrideBtn('Force SPA Gate', AppColors.brandBlue, () => _forceStatus(o, 'SPA_GATE')),
+                                const SizedBox(width: 8),
+                                _overrideBtn('Reset Draft', AppColors.slate, () => _forceStatus(o, 'DRAFT')),
+                                const SizedBox(width: 8),
+                              ],
+                              if (isDelivered)
+                                _overrideBtn('View Delivered', const Color(0xFF2563EB), () {/* read-only — no override */}),
                               if (canDelete) ...[
                                 const SizedBox(width: 8),
                                 Container(width: 1, height: 24, color: AppColors.hairlineSoft),
