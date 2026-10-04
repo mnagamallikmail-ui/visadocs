@@ -89,8 +89,20 @@ public class Order {
     @Transient
     private Boolean adminCreated = false;
 
+    @Transient
+    private String utrNumber;
+
+    @Transient
+    private LocalDateTime paymentSubmittedAt;
+
     public Boolean getAdminCreated() { return adminCreated != null && adminCreated; }
     public void setAdminCreated(Boolean adminCreated) { this.adminCreated = adminCreated; }
+
+    public String getUtrNumber() { return utrNumber; }
+    public void setUtrNumber(String utrNumber) { this.utrNumber = utrNumber; }
+
+    public LocalDateTime getPaymentSubmittedAt() { return paymentSubmittedAt; }
+    public void setPaymentSubmittedAt(LocalDateTime paymentSubmittedAt) { this.paymentSubmittedAt = paymentSubmittedAt; }
 
     public Order() {}
 

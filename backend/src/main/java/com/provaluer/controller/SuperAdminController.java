@@ -341,6 +341,25 @@ public class SuperAdminController {
         List<Order> orders = (status != null && !status.isBlank())
                 ? orderRepository.findAllByStatus(status)
                 : orderRepository.findAllOrderedByCreatedAt();
+
+        Map<Long, User> userCache = new HashMap<>();
+        for (Order o : orders) {
+            // Hydrate clientName from User table if missing
+            if ((o.getClientName() == null || o.getClientName().isBlank()) && o.getClientId() != null) {
+                User u = userCache.computeIfAbsent(o.getClientId(), id -> userRepository.findById(id).orElse(null));
+                if (u != null) {
+                    String name = u.getFullName() != null && !u.getFullName().isBlank() ? u.getFullName() : u.getUsername();
+                    o.setClientName(name);
+                }
+            }
+            // Hydrate latest payment UTR and submission time
+            if ("PAYMENT_SUBMITTED".equalsIgnoreCase(o.getStatus()) || "SUBMITTED".equalsIgnoreCase(o.getPaymentStatus())) {
+                orderPaymentRepository.findTopByOrderIdOrderBySubmittedAtDesc(o.getId()).ifPresent(p -> {
+                    o.setUtrNumber(p.getUtrNumber());
+                    o.setPaymentSubmittedAt(p.getSubmittedAt());
+                });
+            }
+        }
         return ResponseEntity.ok(orders);
     }
 

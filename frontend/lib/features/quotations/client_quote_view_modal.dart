@@ -399,6 +399,31 @@ class _ClientQuoteViewModalState extends State<ClientQuoteViewModal> {
           ),
           const SizedBox(height: 20),
 
+          // Bank Remittance Account Details card
+          Text("Bank Remittance Account Details (NEFT / RTGS / IMPS / UPI)", style: GoogleFonts.montserrat(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A))),
+          const SizedBox(height: 10),
+          Container(
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Column(
+              children: [
+                _buildFeeRow("Beneficiary Name", "ProValuer Valuation & Advisory Services Pvt Ltd"),
+                const Divider(height: 1),
+                _buildFeeRow("Bank Name & Branch", "HDFC Bank Ltd, Nariman Point, Mumbai"),
+                const Divider(height: 1),
+                _buildFeeRow("Account Number", "50200088912345 (Current Account)"),
+                const Divider(height: 1),
+                _buildFeeRow("IFSC Code", "HDFC0001234"),
+                const Divider(height: 1),
+                _buildFeeRow("UPI ID", "provaluer.commercial@hdfcbank"),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+
           // Turnaround & Service card
           Row(
             children: [

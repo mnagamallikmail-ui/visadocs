@@ -236,8 +236,26 @@ public class QuotePdfGeneratorService {
                 cs.showText(terms);
                 cs.endText();
 
+                // Bank Remittance Details Box
+                y -= 35;
+                cs.setNonStrokingColor(241 / 255f, 245 / 255f, 249 / 255f);
+                cs.addRect(40, y - 40, width - 80, 48);
+                cs.fill();
+
+                cs.setNonStrokingColor(15 / 255f, 23 / 255f, 42 / 255f);
+                cs.beginText();
+                cs.setFont(fontBold, 8.5f);
+                cs.newLineAtOffset(50, y - 5);
+                cs.showText("BANK REMITTANCE & NEFT/RTGS ACCOUNT DETAILS:");
+                cs.setFont(fontRegular, 8f);
+                cs.newLineAtOffset(0, -12);
+                cs.showText("Beneficiary: ProValuer Valuation & Advisory Services Pvt Ltd   |   Bank: HDFC Bank Ltd");
+                cs.newLineAtOffset(0, -11);
+                cs.showText("A/C No: 50200088912345 (Current)   |   IFSC: HDFC0001234   |   UPI: provaluer.commercial@hdfcbank");
+                cs.endText();
+
                 // Signatory
-                y -= 55;
+                y -= 60;
                 cs.beginText();
                 cs.setFont(fontBold, 9.5f);
                 cs.newLineAtOffset(width - 240, y);

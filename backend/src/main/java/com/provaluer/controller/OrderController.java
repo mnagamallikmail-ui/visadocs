@@ -124,6 +124,12 @@ public class OrderController {
                 : new Order();
         
         order.setClientId(principal.getId());
+        if (order.getClientName() == null || order.getClientName().isBlank()) {
+            User u = userRepository.findById(principal.getId()).orElse(null);
+            if (u != null) {
+                order.setClientName(u.getFullName() != null && !u.getFullName().isBlank() ? u.getFullName() : u.getUsername());
+            }
+        }
         if (request.getPropertyCategory() != null && !request.getPropertyCategory().isBlank()) {
             order.setPropertyCategory(request.getPropertyCategory());
         } else if (order.getPropertyCategory() == null) {

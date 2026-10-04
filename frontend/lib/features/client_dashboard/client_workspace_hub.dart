@@ -3208,9 +3208,12 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
 
   void _showQuotationModal(dynamic order) {
     final orderId = order['id'] as int;
-    final fee = (order['estimatedValue'] as num? ?? 18500000) > 10000000 ? 18500.0 : 12500.0;
-    final gst = fee * 0.18;
-    final total = fee + gst;
+    final double fee = (order['quoteAmount'] as num?)?.toDouble() ??
+        ((order['estimatedValue'] as num? ?? 18500000) > 10000000 ? 18500.0 : 12500.0);
+    final double gst = (order['quoteTax'] as num?)?.toDouble() ?? (fee * 0.18);
+    final double total = (order['quoteTotal'] as num?)?.toDouble() ?? (fee + gst);
+    final String quoteNum = order['quoteNumber']?.toString() ?? 'QTE-$orderId';
+    final String turnaround = order['quoteTurnaround']?.toString() ?? '3 Business Days from payment credit.';
 
     showDialog(
       context: context,
@@ -3225,33 +3228,60 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
           style: GoogleFonts.montserrat(fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary, fontSize: 16),
         ),
         content: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 460),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Fee quotation for ${order['referenceCode'] ?? 'REQ-$orderId'}:', style: GoogleFonts.inter(fontSize: 13, color: _LandingDesignSystem.textSecondary)),
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: _LandingDesignSystem.bgCanvas,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: _LandingDesignSystem.cardBorder),
-                ),
-                child: Column(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    _summaryRow('Base Appraisal Fee', '₹ ${fee.toStringAsFixed(2)}'),
-                    const Divider(height: 14, color: _LandingDesignSystem.cardBorder),
-                    _summaryRow('GST (18%)', '₹ ${gst.toStringAsFixed(2)}'),
-                    const Divider(height: 14, color: _LandingDesignSystem.cardBorder),
-                    _summaryRow('Total Remittance', '₹ ${total.toStringAsFixed(2)}'),
+                    Text('Mandate: ${order['referenceCode'] ?? 'REQ-$orderId'}', style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textSecondary)),
+                    Text(quoteNum, style: GoogleFonts.montserrat(fontSize: 12.5, fontWeight: FontWeight.w700, color: _LandingDesignSystem.tealBrand)),
                   ],
                 ),
-              ),
-              const SizedBox(height: 12),
-              Text('Turnaround SLA: 3 Business Days from payment credit.', style: GoogleFonts.inter(fontSize: 11.5, color: _LandingDesignSystem.textSecondary)),
-            ],
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: _LandingDesignSystem.bgCanvas,
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: _LandingDesignSystem.cardBorder),
+                  ),
+                  child: Column(
+                    children: [
+                      _summaryRow('Base Appraisal Fee', '₹ ${fee.toStringAsFixed(2)}'),
+                      const Divider(height: 14, color: _LandingDesignSystem.cardBorder),
+                      _summaryRow('GST (18%)', '₹ ${gst.toStringAsFixed(2)}'),
+                      const Divider(height: 14, color: _LandingDesignSystem.cardBorder),
+                      _summaryRow('Total Remittance', '₹ ${total.toStringAsFixed(2)}'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 14),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: _LandingDesignSystem.bgCanvas,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: _LandingDesignSystem.cardBorder),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Bank Remittance Account Details', style: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary)),
+                      const SizedBox(height: 4),
+                      Text('Beneficiary: ProValuer Valuation & Advisory Services Pvt Ltd', style: GoogleFonts.inter(fontSize: 11, color: _LandingDesignSystem.textSecondary)),
+                      Text('Bank: HDFC Bank Ltd | A/C: 50200088912345 (Current)', style: GoogleFonts.inter(fontSize: 11, color: _LandingDesignSystem.textSecondary)),
+                      Text('IFSC: HDFC0001234 | UPI: provaluer.commercial@hdfcbank', style: GoogleFonts.inter(fontSize: 11, color: _LandingDesignSystem.textSecondary)),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Text('Turnaround SLA: $turnaround', style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w500, color: _LandingDesignSystem.textSecondary)),
+              ],
+            ),
           ),
         ),
         actions: [
@@ -3277,8 +3307,9 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
 
   void _showPaymentModal(dynamic order) {
     final orderId = order['id'] as int;
-    final fee = (order['estimatedValue'] as num? ?? 18500000) > 10000000 ? 18500.0 : 12500.0;
-    final total = fee * 1.18;
+    final double fee = (order['quoteAmount'] as num?)?.toDouble() ??
+        ((order['estimatedValue'] as num? ?? 18500000) > 10000000 ? 18500.0 : 12500.0);
+    final double total = (order['quoteTotal'] as num?)?.toDouble() ?? (fee * 1.18);
 
     _paymentAmountCtrl.text = total.toStringAsFixed(2);
     _utrCtrl.clear();
