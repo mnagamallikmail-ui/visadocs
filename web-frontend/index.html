@@ -912,81 +912,81 @@
 
   <!-- Modal: Create New Report Wizard (6-Step Auto-Advancing) -->
   <div class="modal-overlay" id="createReportWizardModal">
-    <div class="modal-dialog" style="max-width: 720px;">
-      <div class="modal-header">
+    <div class="modal-dialog" style="max-width: 680px; background: #0A1128; border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px;">
+      <div class="modal-header" style="border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding: 18px 24px;">
         <div>
-          <span style="font-size: 11px; font-weight: 700; color: #38BDF8; letter-spacing: 1px;" id="wizardStepIndicator">STEP 1 OF 6</span>
-          <h3 style="font-family: var(--font-heading); font-size: 18px; margin: 2px 0 0;" id="wizardStepTitle">What service do you need?</h3>
+          <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; background: rgba(250, 187, 31, 0.12); border: 1px solid rgba(250, 187, 31, 0.3); font-size: 10px; font-weight: 700; color: #FABB1F; letter-spacing: 1px; margin-bottom: 4px;" id="wizardStepIndicator">STEP 1 OF 6</span>
+          <h3 style="font-family: var(--font-heading); font-size: 17px; margin: 0; color: #F8FAFC;" id="wizardStepTitle">What service do you need?</h3>
         </div>
-        <button class="icon-btn" onclick="closeModal('createReportWizardModal')">✕</button>
+        <button class="icon-btn" onclick="closeModal('createReportWizardModal')" style="color: #94A3B8;">✕</button>
       </div>
-      <div class="modal-body" style="padding: 24px;">
+      <div class="modal-body" style="padding: 22px 24px;">
         
-        <!-- STEP 1: SERVICE -->
+        <!-- STEP 1: SERVICE (Compact Desktop Horizontal Grid, Mobile Stack) -->
         <div id="wzStep1" class="wizard-step-pane">
-          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Select the required appraisal category. Click any card to advance automatically.</p>
-          <div style="display: flex; flex-direction: column; gap: 12px;">
+          <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px;">Select your required appraisal service. Click any card to advance automatically.</p>
+          <div class="wizard-compact-row">
             <div class="select-card-option" onclick="wizardPickService('Valuation Report')">
-              <div style="font-weight: 700; font-size: 15px;">🏛️ Valuation Report</div>
-              <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;">Comprehensive real estate and asset valuation for banks, visa embassies, tax, and court filings.</div>
+              <div class="option-title">🏛️ Valuation</div>
+              <div class="option-sub">Asset appraisal & filing</div>
             </div>
             <div class="select-card-option" onclick="wizardPickService('Net Worth Certificate')">
-              <div style="font-weight: 700; font-size: 15px;">📜 Net Worth Certificate</div>
-              <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;">Certified wealth summary and liquid solvency statement for global embassy student & PR visas.</div>
+              <div class="option-title">📜 Net Worth</div>
+              <div class="option-sub">Visa & solvency proof</div>
             </div>
             <div class="select-card-option" onclick="wizardPickService('Chartered Engineer Certificate')">
-              <div style="font-weight: 700; font-size: 15px;">⚙️ Chartered Engineer Certificate</div>
-              <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;">Technical machinery installation audit, customs EPCG depreciation, and residual life appraisals.</div>
+              <div class="option-title">⚙️ Engineer</div>
+              <div class="option-sub">Machinery & EPCG audit</div>
             </div>
           </div>
         </div>
 
-        <!-- STEP 2: ASSET -->
+        <!-- STEP 2: ASSET (Compact Desktop Horizontal Grid, Mobile Stack) -->
         <div id="wzStep2" class="wizard-step-pane" style="display: none;">
-          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">What are you valuing? Selection automatically builds your document checklist.</p>
-          <div style="display: flex; flex-direction: column; gap: 12px;">
+          <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px;">What are you valuing? Selection automatically builds your document checklist.</p>
+          <div class="wizard-compact-row">
             <div class="select-card-option" onclick="wizardPickAsset('Land & Building')">
-              <div style="font-weight: 700; font-size: 15px;">🏢 Land & Building</div>
-              <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;">Commercial office suites, retail shops, warehouses, residential apartments, plots.</div>
+              <div class="option-title">🏢 Land & Building</div>
+              <div class="option-sub">Offices, plots, flats</div>
             </div>
             <div class="select-card-option" onclick="wizardPickAsset('Plant & Machinery')">
-              <div style="font-weight: 700; font-size: 15px;">🏭 Plant & Machinery</div>
-              <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;">Heavy machinery, industrial production lines, technical tools, and transport equipment.</div>
+              <div class="option-title">🏭 Machinery</div>
+              <div class="option-sub">Industrial lines & tools</div>
             </div>
             <div class="select-card-option" onclick="wizardPickAsset('Financial Assets')">
-              <div style="font-weight: 700; font-size: 15px;">📈 Financial Assets</div>
-              <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 4px;">Unquoted private shares, partnership equity, corporate securities, business enterprise.</div>
+              <div class="option-title">📈 Financial</div>
+              <div class="option-sub">Securities & equity</div>
             </div>
           </div>
         </div>
 
-        <!-- STEP 3: PURPOSE -->
+        <!-- STEP 3: PURPOSE (Compact 3x2 Grid) -->
         <div id="wzStep3" class="wizard-step-pane" style="display: none;">
-          <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Why do you need the report? Statutory formatting depends on the recipient authority.</p>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+          <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 14px;">Why do you need the report? Statutory formatting depends on authority.</p>
+          <div class="wizard-compact-grid">
             <div class="select-card-option" onclick="wizardPickPurpose('Bank Loan')">
-              <div style="font-weight: 700; font-size: 14px;">🏦 Bank Loan</div>
-              <div style="font-size: 11.5px; color: var(--text-muted);">Mortgage collateral</div>
+              <div class="option-title">🏦 Bank Loan</div>
+              <div class="option-sub">Collateral</div>
             </div>
             <div class="select-card-option" onclick="wizardPickPurpose('Visa / Immigration')">
-              <div style="font-weight: 700; font-size: 14px;">✈️ Visa / Immigration</div>
-              <div style="font-size: 11.5px; color: var(--text-muted);">Embassy financial proof</div>
+              <div class="option-title">✈️ Visa / Immig.</div>
+              <div class="option-sub">Embassy proof</div>
             </div>
             <div class="select-card-option" onclick="wizardPickPurpose('Income Tax')">
-              <div style="font-weight: 700; font-size: 14px;">📑 Income Tax</div>
-              <div style="font-size: 11.5px; color: var(--text-muted);">Capital gains Sec 50C</div>
+              <div class="option-title">📑 Income Tax</div>
+              <div class="option-sub">Capital gains</div>
             </div>
             <div class="select-card-option" onclick="wizardPickPurpose('Corporate Purpose')">
-              <div style="font-weight: 700; font-size: 14px;">🏢 Corporate Purpose</div>
-              <div style="font-size: 11.5px; color: var(--text-muted);">Audit, M&A, NCLT</div>
+              <div class="option-title">🏢 Corporate</div>
+              <div class="option-sub">Audit & M&A</div>
             </div>
             <div class="select-card-option" onclick="wizardPickPurpose('Court Matter')">
-              <div style="font-weight: 700; font-size: 14px;">⚖️ Court Matter</div>
-              <div style="font-size: 11.5px; color: var(--text-muted);">Litigation & dispute</div>
+              <div class="option-title">⚖️ Court Matter</div>
+              <div class="option-sub">Litigation</div>
             </div>
             <div class="select-card-option" onclick="wizardPickPurpose('Other')">
-              <div style="font-weight: 700; font-size: 14px;">💼 Other</div>
-              <div style="font-size: 11.5px; color: var(--text-muted);">Internal advisory</div>
+              <div class="option-title">💼 Other</div>
+              <div class="option-sub">Advisory</div>
             </div>
           </div>
         </div>
