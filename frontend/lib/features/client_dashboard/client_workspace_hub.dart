@@ -2717,10 +2717,10 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
               label: 'View Proposal',
               onTap: () => _showQuotationModal(order),
             )
-          else if (stageInfo.stageIndex == 5)
+          else if (stageInfo.stageIndex == 5 && order['referenceCode'] != null)
             _primaryCtaButton(
               label: 'Download Report',
-              onTap: () => _downloadFinalReport(order['referenceCode'] ?? 'REQ-${order['id']}'),
+              onTap: () => _downloadFinalReport(order['referenceCode'].toString()),
             ),
         ],
       ),
