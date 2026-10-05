@@ -960,8 +960,10 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
         break;
     }
 
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final isSuperAdmin = authProvider.isSuperAdmin || authProvider.role == 'SUPER_ADMIN';
     final isDelivered = status == 'FINAL_DELIVERY' || status == 'CLIENT_DOWNLOADED' || status == 'CLOSED';
-    if (canDelete && !isDelivered) {
+    if (isSuperAdmin || (canDelete && !isDelivered)) {
       actions.add(const SizedBox(width: 6));
       actions.add(_queueBtn(
         'Delete',
@@ -1037,14 +1039,82 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Move Order to Trash?'),
-        content: Text('Are you sure you want to soft-delete order #${order['id']}? It can be restored from the Trash Bin.'),
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: AppColors.hairlineSoft),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.errorBg,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.warning_amber_rounded, color: AppColors.brandRedDark, size: 20),
+            ),
+            const SizedBox(width: 12),
+            Text(
+              'WARNING',
+              style: AppTypography.heading4().copyWith(
+                color: AppColors.brandRedDark,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'This action permanently deletes:\n\n'
+              'Order\n'
+              'Quote\n'
+              'Invoice\n'
+              'Documents\n'
+              'Workflow History\n\n'
+              'Continue?',
+              style: AppTypography.bodySm().copyWith(
+                color: AppColors.ink,
+                fontSize: 13.5,
+                height: 1.6,
+              ),
+            ),
+          ],
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(
+              'Cancel',
+              style: AppTypography.bodySm().copyWith(
+                color: AppColors.slate,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: AppColors.brandRedDark),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.brandRedDark,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
             onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('DELETE', style: TextStyle(color: Colors.white)),
+            child: Text(
+              'Delete Permanently',
+              style: AppTypography.bodySm().copyWith(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
           ),
         ],
       ),
@@ -3839,7 +3909,7 @@ class _AdminReportSectionState extends State<AdminReportSection> {
     final confirm = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.canvas,
+        backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(16),
@@ -3853,27 +3923,49 @@ class _AdminReportSectionState extends State<AdminReportSection> {
                 color: AppColors.errorBg,
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.delete_outline_rounded, color: AppColors.brandRedDark, size: 18),
+              child: const Icon(Icons.warning_amber_rounded, color: AppColors.brandRedDark, size: 20),
             ),
             const SizedBox(width: 12),
-            Expanded(
-              child: Text(
-                'Delete Report',
-                style: AppTypography.heading4().copyWith(color: AppColors.brandRedDark),
+            Text(
+              'WARNING',
+              style: AppTypography.heading4().copyWith(
+                color: AppColors.brandRedDark,
+                fontWeight: FontWeight.w800,
+                letterSpacing: 0.5,
               ),
             ),
           ],
         ),
-        content: Text(
-          'Are you sure you want to move this report to the Trash Bin?\n\nThis action can be reversed from the Trash Bin.',
-          style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13, height: 1.6),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'This action permanently deletes:\n\n'
+              'Order\n'
+              'Quote\n'
+              'Invoice\n'
+              'Documents\n'
+              'Workflow History\n\n'
+              'Continue?',
+              style: AppTypography.bodySm().copyWith(
+                color: AppColors.ink,
+                fontSize: 13.5,
+                height: 1.6,
+              ),
+            ),
+          ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(
               'Cancel',
-              style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13, fontWeight: FontWeight.w600),
+              style: AppTypography.bodySm().copyWith(
+                color: AppColors.slate,
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
           ElevatedButton(
@@ -3886,8 +3978,12 @@ class _AdminReportSectionState extends State<AdminReportSection> {
             ),
             onPressed: () => Navigator.pop(ctx, true),
             child: Text(
-              'Delete',
-              style: AppTypography.bodySm().copyWith(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w600),
+              'Delete Permanently',
+              style: AppTypography.bodySm().copyWith(
+                color: Colors.white,
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
         ],
@@ -4255,8 +4351,10 @@ class _AdminReportSectionState extends State<AdminReportSection> {
             () => AdminRequestReviewModal.show(context: context, order: o, onRefresh: _load)));
     }
 
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final isSuperAdmin = authProvider.isSuperAdmin || authProvider.role == 'SUPER_ADMIN';
     final isDelivered = status == 'FINAL_DELIVERY' || status == 'CLIENT_DOWNLOADED' || status == 'CLOSED';
-    if (canDelete && !isDelivered) {
+    if (isSuperAdmin || (canDelete && !isDelivered)) {
       actions.add(const SizedBox(width: 6));
       actions.add(Container(width: 1, height: 24, color: AppColors.hairlineSoft));
       actions.add(const SizedBox(width: 6));

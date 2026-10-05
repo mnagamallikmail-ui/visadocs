@@ -17,10 +17,12 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/order_provider.dart';
 import '../../utils/build_info.dart';
+import '../../utils/report_list_helper.dart';
 import '../request_intake/service_taxonomy.dart';
 
 // ─── Simplified Client Navigation ─────────────────────────────────────────────
 enum _ClientNav {
+  welcome,
   createReport,
   reportsInProgress,
   completedReports,
@@ -28,12 +30,14 @@ enum _ClientNav {
 
 extension _ClientNavMeta on _ClientNav {
   String get label => switch (this) {
+        _ClientNav.welcome => 'Dashboard',
         _ClientNav.createReport => 'New Request',
         _ClientNav.reportsInProgress => 'Reports',
         _ClientNav.completedReports => 'Delivered Reports',
       };
 
   IconData get icon => switch (this) {
+        _ClientNav.welcome => Icons.dashboard_outlined,
         _ClientNav.createReport => Icons.add_circle_outline_rounded,
         _ClientNav.reportsInProgress => Icons.hourglass_top_rounded,
         _ClientNav.completedReports => Icons.check_circle_outline_rounded,
@@ -303,8 +307,9 @@ class ClientWorkspaceHub extends StatefulWidget {
 }
 
 class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
-  // Navigation State — DEFAULT SCREEN IS REPORTS IN PROGRESS
-  _ClientNav _activeNav = _ClientNav.reportsInProgress;
+  // Navigation State — DEFAULT SCREEN IS WELCOME DASHBOARD
+  _ClientNav _activeNav = _ClientNav.welcome;
+  final Set<int> _expandedOrderIds = {};
   dynamic _focusedActiveOrder;
   dynamic _focusedCompletedOrder;
   bool _sidebarCollapsed = false;
@@ -386,9 +391,7 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      _loadOrdersAndSync();
-    });
+    // Menu-based loading: Welcome Dashboard starts immediately without preloading report lists
   }
 
   @override
@@ -767,6 +770,8 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
                 _focusedCompletedOrder = null;
                 if (nav == _ClientNav.createReport) {
                   _resetWizard();
+                } else if (nav == _ClientNav.reportsInProgress || nav == _ClientNav.completedReports) {
+                  _loadOrdersAndSync();
                 }
               });
             },
@@ -785,6 +790,7 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
               children: [
                 _ClientTopHeader(
                   title: switch (_activeNav) {
+                    _ClientNav.welcome => 'Welcome Dashboard',
                     _ClientNav.createReport => 'New Request',
                     _ClientNav.reportsInProgress => _focusedActiveOrder == null
                         ? 'Reports'
@@ -808,6 +814,8 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
 
   Widget _buildCurrentView(OrderProvider orders, AuthProvider auth) {
     switch (_activeNav) {
+      case _ClientNav.welcome:
+        return _buildWelcomeDashboard();
       case _ClientNav.createReport:
         return _buildWizardView();
       case _ClientNav.reportsInProgress:
@@ -841,18 +849,44 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Bar: Named Advisory Stepper
+              // Top Bar: PART 8 Global Back Button (Header Area above all cards/selectors/forms)
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  Text(
-                    'PROVALUER INTAKE',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.2,
-                      color: _LandingDesignSystem.tealBrand,
+                  InkWell(
+                    onTap: () {
+                      setState(() {
+                        if (_wizardStep > 1) {
+                          _wizardStep--;
+                        } else {
+                          _activeNav = _ClientNav.welcome;
+                        }
+                      });
+                    },
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: _LandingDesignSystem.bgSubtle,
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: _LandingDesignSystem.cardBorder),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.arrow_back_rounded, size: 16, color: _LandingDesignSystem.tealBrand),
+                          const SizedBox(width: 6),
+                          Text(
+                            '← Back',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w700,
+                              color: _LandingDesignSystem.tealBrand,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                   _buildNamedProgressTracker(),
@@ -1286,6 +1320,7 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
                                   _wizardSubmenu = submenu.id;
                                   _wizardSubmenuItem = item;
                                   _wizardAsset = submenu.id;
+                                  _wizardStep = 3; // PART 7 & 9: Auto-advancing immediately to Purpose!
                                 });
                               },
                               borderRadius: BorderRadius.circular(10),
@@ -1332,19 +1367,6 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
             ),
           );
         }),
-        const SizedBox(height: 24),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _secondaryButton(label: '← Back to Service', onTap: () => setState(() => _wizardStep = 1)),
-            _primaryCtaButton(
-              label: 'Continue to ${service.step3Label}',
-              onTap: () {
-                setState(() => _wizardStep = 3);
-              },
-            ),
-          ],
-        ),
       ],
     );
   }
@@ -1424,8 +1446,6 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
             );
           }).toList(),
         ),
-        const SizedBox(height: 28),
-        _secondaryButton(label: '← Back to ${service.step2Label}', onTap: () => setState(() => _wizardStep = 2)),
       ],
     );
   }
@@ -2045,135 +2065,202 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
   // FLOW 2: REPORTS IN PROGRESS (Landing Page Design System)
   // Content-first experience: Welcome banner, prominent advisory cards.
   // ═════════════════════════════════════════════════════════════════════════
-Widget _buildReportsInProgressGallery(OrderProvider orders) {
-    final allOrders = orders.clientOrders;
-
-    // 1. Needs Attention: Quote provided (awaiting acceptance), Payment rejected, or Action needed
-    final needsAttentionOrders = allOrders.where((o) {
-      final s = (o['status'] as String? ?? '').toUpperCase();
-      final ps = (o['paymentStatus'] as String? ?? '').toUpperCase();
-      if (s == 'QUOTE_PROVIDED' && ps != 'SUBMITTED' && ps != 'VERIFIED') return true;
-      if (s == 'PAYMENT_REJECTED') return true;
-      if (s == 'ACTION_NEEDED') return true;
-      return false;
-    }).toList();
-
-    // 2. Active Reports: In-flight reports that do not require immediate client blocker action
-    final activeOrders = allOrders.where((o) {
-      final stage = _mapToClientStage(o);
-      if (stage.stageIndex >= 5) return false;
-      return !needsAttentionOrders.contains(o);
-    }).toList();
-
-    // 3. Delivered Reports: Concluded & certified reports available for download
-    final deliveredOrders = allOrders.where((o) {
-      return _mapToClientStage(o).stageIndex == 5;
-    }).toList();
-
-    // If client has zero total reports in database, show direct action launchpad
-    if (allOrders.isEmpty) {
-      return Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(40),
+  // ═════════════════════════════════════════════════════════════════════════
+  // PART 2: WELCOME DASHBOARD (Landing Page Design System)
+  // Client always starts on Welcome Dashboard. No report list on login.
+  // ═════════════════════════════════════════════════════════════════════════
+  Widget _buildWelcomeDashboard() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 36),
+      child: Center(
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 1040),
           child: Column(
-            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Hero Welcome Section
               Container(
-                padding: const EdgeInsets.all(22),
+                width: double.infinity,
+                padding: const EdgeInsets.all(32),
                 decoration: BoxDecoration(
-                  color: _LandingDesignSystem.tealSubtle,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: _LandingDesignSystem.tealBorder),
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF003838), Color(0xFF005C5C)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF005C5C).withOpacity(0.18),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
                 ),
-                child: const Icon(Icons.article_outlined, size: 36, color: _LandingDesignSystem.tealBrand),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                "You don't have any reports yet",
-                style: GoogleFonts.montserrat(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w700,
-                  color: _LandingDesignSystem.textPrimary,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.15),
+                            borderRadius: BorderRadius.circular(100),
+                            border: Border.all(color: Colors.white.withOpacity(0.2)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.verified_user_outlined, size: 14, color: Colors.white),
+                              const SizedBox(width: 6),
+                              Text(
+                                'GOVERNMENT REGISTERED VALUATION DESK',
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                  letterSpacing: 0.8,
+                                  color: Colors.white,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 18),
+                    Text(
+                      'Welcome to ProValuer',
+                      style: GoogleFonts.montserrat(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Choose what you would like to do',
+                      style: GoogleFonts.inter(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.white.withOpacity(0.85),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 8),
-              Text(
-                'Start a request to commission a property valuation or net worth certificate.',
-                style: GoogleFonts.inter(fontSize: 14, color: _LandingDesignSystem.textSecondary),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              _primaryCtaButton(
-                label: '+ Start New Request',
-                onTap: () {
-                  setState(() {
-                    _activeNav = _ClientNav.createReport;
-                    _resetWizard();
-                  });
+              const SizedBox(height: 32),
+
+              // 4 Action Cards
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final isWide = constraints.maxWidth > 650;
+                  final cardWidth = isWide ? (constraints.maxWidth - 20) / 2 : constraints.maxWidth;
+
+                  return Wrap(
+                    spacing: 20,
+                    runSpacing: 20,
+                    children: [
+                      SizedBox(
+                        width: cardWidth,
+                        child: _welcomeActionCard(
+                          icon: Icons.add_circle_outline_rounded,
+                          title: 'Create New Request',
+                          subtitle: 'Initiate asset valuation, net worth certification, or technical assessment wizard.',
+                          buttonLabel: 'Create Request →',
+                          primary: true,
+                          onTap: () {
+                            setState(() {
+                              _activeNav = _ClientNav.createReport;
+                              _resetWizard();
+                            });
+                          },
+                        ),
+                      ),
+                      SizedBox(
+                        width: cardWidth,
+                        child: _welcomeActionCard(
+                          icon: Icons.hourglass_top_rounded,
+                          title: 'View Active Requests',
+                          subtitle: 'Track in-flight requests, quote approvals, payments, and valuation inspections.',
+                          buttonLabel: 'Active Requests →',
+                          primary: false,
+                          onTap: () {
+                            setState(() {
+                              _activeNav = _ClientNav.reportsInProgress;
+                              _loadOrdersAndSync();
+                            });
+                          },
+                        ),
+                      ),
+                      SizedBox(
+                        width: cardWidth,
+                        child: _welcomeActionCard(
+                          icon: Icons.check_circle_outline_rounded,
+                          title: 'View Delivered Reports',
+                          subtitle: 'Access completed, certified valuation reports, digital sign-offs, and statutory invoices.',
+                          buttonLabel: 'Delivered Reports →',
+                          primary: false,
+                          onTap: () {
+                            setState(() {
+                              _activeNav = _ClientNav.completedReports;
+                              _loadOrdersAndSync();
+                            });
+                          },
+                        ),
+                      ),
+                      SizedBox(
+                        width: cardWidth,
+                        child: _welcomeActionCard(
+                          icon: Icons.headset_mic_outlined,
+                          title: 'Contact Advisory Desk',
+                          subtitle: 'Connect with certified government valuers and client desk for urgent consultations.',
+                          buttonLabel: 'Contact Support →',
+                          primary: false,
+                          onTap: _showSupportDialog,
+                        ),
+                      ),
+                    ],
+                  );
                 },
               ),
-              const SizedBox(height: 36),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 720),
+              const SizedBox(height: 32),
+
+              // Direct Assistance Strip
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 16),
+                decoration: BoxDecoration(
+                  color: _LandingDesignSystem.cardSurface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: _LandingDesignSystem.cardBorder),
+                ),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Expanded(
-                      child: _emptyServiceOption(
-                        title: ServiceType.assetValuation.displayName,
-                        desc: 'Commercial, industrial & residential asset appraisal for bank collateral & compliance.',
-                        icon: Icons.business_outlined,
-                        onTap: () {
-                          setState(() {
-                            _activeNav = _ClientNav.createReport;
-                            _wizardService = ServiceType.assetValuation.code;
-                            _wizardSubmenu = 'REAL_ESTATE_VALUATION';
-                            _wizardSubmenuItem = 'Residential Property';
-                            _wizardAsset = 'REAL_ESTATE_VALUATION';
-                            _wizardPurpose = 'BANK_COLLATERAL';
-                            _wizardDocs.clear();
-                            _wizardStep = 2;
-                          });
-                        },
-                      ),
+                    Row(
+                      children: [
+                        const Icon(Icons.help_outline_rounded, size: 20, color: _LandingDesignSystem.tealBrand),
+                        const SizedBox(width: 12),
+                        Text(
+                          'Direct Valuer Desk: +91 85000 19091 • provaluer.india@gmail.com • Mon–Sat 9AM–7PM IST',
+                          style: GoogleFonts.inter(fontSize: 13, color: _LandingDesignSystem.textSecondary),
+                        ),
+                      ],
                     ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: _emptyServiceOption(
-                        title: ServiceType.netWorthCertification.displayName,
-                        desc: 'Certified statement of personal or enterprise net assets for visa & banking.',
-                        icon: Icons.account_balance_outlined,
-                        onTap: () {
-                          setState(() {
-                            _activeNav = _ClientNav.createReport;
-                            _wizardService = ServiceType.netWorthCertification.code;
-                            _wizardSubmenu = 'INDIVIDUAL';
-                            _wizardSubmenuItem = 'Individual Net Worth';
-                            _wizardAsset = 'INDIVIDUAL';
-                            _wizardPurpose = 'VISA_IMMIGRATION';
-                            _wizardDocs.clear();
-                            _wizardStep = 2;
-                          });
-                        },
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: _emptyServiceOption(
-                        title: ServiceType.technicalAssessment.displayName,
-                        desc: 'Chartered engineer inspection, structural audits & technical assessment.',
-                        icon: Icons.engineering_outlined,
-                        onTap: () {
-                          setState(() {
-                            _activeNav = _ClientNav.createReport;
-                            _wizardService = ServiceType.technicalAssessment.code;
-                            _wizardSubmenu = 'PROPERTY_INSPECTION';
-                            _wizardSubmenuItem = 'Technical Due Diligence';
-                            _wizardAsset = 'PROPERTY_INSPECTION';
-                            _wizardPurpose = 'RESIDENTIAL_COMPLEX';
-                            _wizardDocs.clear();
-                            _wizardStep = 2;
-                          });
-                        },
+                    InkWell(
+                      onTap: _showSupportDialog,
+                      borderRadius: BorderRadius.circular(8),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        child: Text(
+                          'Advisory Help',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: _LandingDesignSystem.tealBrand,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -2182,57 +2269,124 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
             ],
           ),
         ),
-      );
-    }
+      ),
+    );
+  }
+
+  Widget _welcomeActionCard({
+    required IconData icon,
+    required String title,
+    required String subtitle,
+    required String buttonLabel,
+    required bool primary,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: _LandingDesignSystem.cardSurface,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(
+            color: primary ? _LandingDesignSystem.tealBrand.withOpacity(0.4) : _LandingDesignSystem.cardBorder,
+            width: primary ? 1.5 : 1,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: primary ? _LandingDesignSystem.tealSubtle : _LandingDesignSystem.bgSubtle,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, size: 26, color: _LandingDesignSystem.tealBrand),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              title,
+              style: GoogleFonts.montserrat(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: _LandingDesignSystem.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              subtitle,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: _LandingDesignSystem.textSecondary,
+                height: 1.45,
+              ),
+            ),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Text(
+                  buttonLabel,
+                  style: GoogleFonts.inter(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    color: _LandingDesignSystem.tealBrand,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ═════════════════════════════════════════════════════════════════════════
+  // PART 3 & 4: REPORTS VIEW (Menu-Based Content Loading & Compact Layout)
+  // Shows Active Requests only when 'Reports' is clicked.
+  // ═════════════════════════════════════════════════════════════════════════
+  Widget _buildReportsInProgressGallery(OrderProvider orders) {
+    final activeOrders = orders.clientOrders
+        .where((o) => _mapToClientStage(o).stageIndex < 5)
+        .toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // ── TOP SUMMARY HEADER ──
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Row(
                 children: [
                   Text(
-                    'Reports',
+                    'Active Requests',
                     style: GoogleFonts.montserrat(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
                       color: _LandingDesignSystem.textPrimary,
                     ),
                   ),
-                  const SizedBox(width: 16),
+                  const SizedBox(width: 14),
                   _metricPill(
-                    label: '${activeOrders.length + needsAttentionOrders.length} Active',
+                    label: '${activeOrders.length} In Progress',
                     bgColor: _LandingDesignSystem.tealSubtle,
                     borderColor: _LandingDesignSystem.tealBorder,
                     textColor: _LandingDesignSystem.tealBrand,
                   ),
-                  if (needsAttentionOrders.isNotEmpty) ...[
-                    const SizedBox(width: 8),
-                    _metricPill(
-                      label: '${needsAttentionOrders.length} Needs Attention',
-                      bgColor: _LandingDesignSystem.stateErrorSubtle,
-                      borderColor: const Color(0xFFFECACA),
-                      textColor: _LandingDesignSystem.stateError,
-                    ),
-                  ],
-                  if (deliveredOrders.isNotEmpty) ...[
-                    const SizedBox(width: 8),
-                    _metricPill(
-                      label: '${deliveredOrders.length} Delivered',
-                      bgColor: _LandingDesignSystem.stateSuccessSubtle,
-                      borderColor: const Color(0xFFA7F3D0),
-                      textColor: _LandingDesignSystem.stateSuccess,
-                    ),
-                  ],
                 ],
               ),
               _secondaryButton(
-                label: '+ Start New Request',
+                label: 'Create New Request',
                 onTap: () {
                   setState(() {
                     _activeNav = _ClientNav.createReport;
@@ -2242,108 +2396,386 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
               ),
             ],
           ),
-          const SizedBox(height: 24),
-
-          // ── SECTION 1: NEEDS ATTENTION (Sticky Top Priority) ──
-          if (needsAttentionOrders.isNotEmpty) ...[
+          const SizedBox(height: 20),
+          if (activeOrders.isEmpty)
             Container(
-              margin: const EdgeInsets.only(bottom: 24),
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFFFBEB),
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: const Color(0xFFFDE68A)),
-                boxShadow: _LandingDesignSystem.cardShadow,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.warning_amber_rounded, size: 20, color: Color(0xFFD97706)),
-                      const SizedBox(width: 8),
-                      Text(
-                        'NEEDS ATTENTION (${needsAttentionOrders.length})',
-                        style: GoogleFonts.montserrat(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.8,
-                          color: const Color(0xFFB45309),
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-                      Text(
-                        '• Action required from you to proceed',
-                        style: GoogleFonts.inter(fontSize: 12.5, color: const Color(0xFF78350F)),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  ...needsAttentionOrders.map((order) => _buildNeedsAttentionCard(order)),
-                ],
-              ),
-            ),
-          ],
-
-          // ── SECTION 2: ACTIVE REPORTS ──
-          Text(
-            'ACTIVE REPORTS (${activeOrders.length})',
-            style: GoogleFonts.montserrat(
-              fontSize: 13,
-              fontWeight: FontWeight.w700,
-              letterSpacing: 0.8,
-              color: _LandingDesignSystem.textSecondary,
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          if (activeOrders.isEmpty && needsAttentionOrders.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(20),
-              margin: const EdgeInsets.only(bottom: 24),
+              padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
                 color: _LandingDesignSystem.cardSurface,
                 borderRadius: BorderRadius.circular(12),
                 border: Border.all(color: _LandingDesignSystem.cardBorder),
               ),
-              child: Text(
-                'No active reports currently undergoing inspection or preparation.',
-                style: GoogleFonts.inter(fontSize: 13, color: _LandingDesignSystem.textSecondary),
+              child: Center(
+                child: Column(
+                  children: [
+                    const Icon(Icons.inbox_outlined, size: 40, color: _LandingDesignSystem.textSecondary),
+                    const SizedBox(height: 12),
+                    Text(
+                      'No active requests currently in progress.',
+                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textPrimary),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Start a new valuation request to engage our advisory desk.',
+                      style: GoogleFonts.inter(fontSize: 12.5, color: _LandingDesignSystem.textSecondary),
+                    ),
+                    const SizedBox(height: 16),
+                    _primaryCtaButton(
+                      label: 'Create Request Now',
+                      onTap: () {
+                        setState(() {
+                          _activeNav = _ClientNav.createReport;
+                          _resetWizard();
+                        });
+                      },
+                    ),
+                  ],
+                ),
               ),
             )
           else
-            ...activeOrders.map((order) => _buildCompactActiveReportCard(order)),
+            ...activeOrders.map((order) => _buildCompactAccordionReportCard(order, isDeliveredList: false)),
+        ],
+      ),
+    );
+  }
 
-          const SizedBox(height: 24),
+  // ═════════════════════════════════════════════════════════════════════════
+  // PART 4, 5, 6: COMPACT ACCORDION REPORT CARD (Status inside card)
+  // Collapsed by default. Tightly packed.
+  // Expands on click to reveal Quote, Payment, Documents, Timeline, Invoice, Report.
+  // ═════════════════════════════════════════════════════════════════════════
+  Widget _buildCompactAccordionReportCard(dynamic order, {required bool isDeliveredList}) {
+    final orderId = (order['id'] as num?)?.toInt() ?? 0;
+    final refCode = order['referenceCode']?.toString() ?? 'REQ-$orderId';
+    final rawDate = order['createdAt'];
+    final dateStr = ReportListHelper.formatReportDate(rawDate);
+    final statusStr = (order['status'] as String? ?? 'DRAFT').toUpperCase();
+    final stage = _mapToClientStage(order);
+    final isExpanded = _expandedOrderIds.contains(orderId);
+    final quoteAmount = order['quoteAmount'] != null ? '₹${order['quoteAmount']}' : 'Pending Valuation Desk';
+    final paymentStatus = (order['paymentStatus'] as String? ?? 'UNPAID').toUpperCase();
 
-          // ── SECTION 3: DELIVERED REPORTS ──
-          if (deliveredOrders.isNotEmpty) ...[
-            Text(
-              'DELIVERED REPORTS (${deliveredOrders.length})',
-              style: GoogleFonts.montserrat(
-                fontSize: 13,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 0.8,
-                color: _LandingDesignSystem.textSecondary,
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      decoration: BoxDecoration(
+        color: _LandingDesignSystem.cardSurface,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: isExpanded ? _LandingDesignSystem.tealBrand.withOpacity(0.5) : _LandingDesignSystem.cardBorder,
+          width: isExpanded ? 1.5 : 1,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.02),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // ── Compact Row Header (Always Visible, Click to Toggle) ────────
+          InkWell(
+            onTap: () {
+              setState(() {
+                if (isExpanded) {
+                  _expandedOrderIds.remove(orderId);
+                } else {
+                  _expandedOrderIds.add(orderId);
+                }
+              });
+            },
+            borderRadius: BorderRadius.circular(10),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+              child: Row(
+                children: [
+                  // Reference Number
+                  Expanded(
+                    flex: 3,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          refCode,
+                          style: GoogleFonts.montserrat(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                            color: _LandingDesignSystem.textPrimary,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          (order['propertyCategory'] ?? order['serviceType'] ?? 'Asset Valuation').toString().replaceAll('_', ' '),
+                          style: GoogleFonts.inter(
+                            fontSize: 11.5,
+                            color: _LandingDesignSystem.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Date
+                  Expanded(
+                    flex: 2,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.calendar_today_outlined, size: 13, color: _LandingDesignSystem.textSecondary),
+                        const SizedBox(width: 6),
+                        Text(
+                          dateStr,
+                          style: GoogleFonts.inter(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w500,
+                            color: _LandingDesignSystem.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // Status Badge strictly inside the card
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: _getStatusBadgeBg(statusStr),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(color: _getStatusBadgeBorder(statusStr)),
+                    ),
+                    child: Text(
+                      statusStr,
+                      style: GoogleFonts.montserrat(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: _getStatusBadgeFg(statusStr),
+                        letterSpacing: 0.4,
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(width: 14),
+
+                  // Expand/Collapse Chevron Indicator
+                  Icon(
+                    isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                    size: 20,
+                    color: _LandingDesignSystem.textSecondary,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(height: 12),
-            Container(
-              margin: const EdgeInsets.only(bottom: 24),
-              decoration: BoxDecoration(
-                color: _LandingDesignSystem.cardSurface,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: _LandingDesignSystem.cardBorder),
-                boxShadow: _LandingDesignSystem.cardShadow,
-              ),
+          ),
+
+          // ── Expanded Accordion Details (Part 5) ─────────────────────────
+          if (isExpanded) ...[
+            const Divider(height: 1, color: _LandingDesignSystem.cardBorder),
+            Padding(
+              padding: const EdgeInsets.all(20),
               child: Column(
-                children: deliveredOrders.map((order) => _buildDeliveredReportRow(order)).toList(),
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 1. Timeline Tracker
+                  Text(
+                    'WORKFLOW TIMELINE',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.8,
+                      color: _LandingDesignSystem.textSecondary,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildInlineProgressTracker(stage.stageIndex),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Current Stage: ${stage.stageTitle}',
+                        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: _LandingDesignSystem.tealBrand),
+                      ),
+                      Text(
+                        stage.statusDescription,
+                        style: GoogleFonts.inter(fontSize: 11.5, color: _LandingDesignSystem.textSecondary),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+
+                  // 2. 5 Information Grids: Quote, Payment, Documents, Invoice, Report
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final isWide = constraints.maxWidth > 700;
+                      final colWidth = isWide ? (constraints.maxWidth - 20) / 2 : constraints.maxWidth;
+
+                      return Wrap(
+                        spacing: 20,
+                        runSpacing: 16,
+                        children: [
+                          // Quote Information
+                          SizedBox(
+                            width: colWidth,
+                            child: _buildAccordionSection(
+                              title: 'Quote Information',
+                              icon: Icons.receipt_long_outlined,
+                              content: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Quote Value: $quoteAmount', style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                                  const SizedBox(height: 4),
+                                  Text('Status: ${statusStr == 'QUOTE_PROVIDED' ? 'Awaiting Client Review' : statusStr}',
+                                      style: GoogleFonts.inter(fontSize: 12, color: _LandingDesignSystem.textSecondary)),
+                                  if (statusStr == 'QUOTE_PROVIDED' && paymentStatus != 'SUBMITTED' && paymentStatus != 'VERIFIED') ...[
+                                    const SizedBox(height: 8),
+                                    _primaryCtaButton(
+                                      label: 'Review & Accept Quote',
+                                      onTap: () => _showQuotationModal(order),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          // Payment Information
+                          SizedBox(
+                            width: colWidth,
+                            child: _buildAccordionSection(
+                              title: 'Payment Information',
+                              icon: Icons.payment_outlined,
+                              content: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Payment Settlement: $paymentStatus',
+                                      style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    order['paymentReference'] != null ? 'UTR: ${order['paymentReference']}' : 'Reference: Pending Submission',
+                                    style: GoogleFonts.inter(fontSize: 12, color: _LandingDesignSystem.textSecondary),
+                                  ),
+                                  if (statusStr == 'QUOTE_ACCEPTED' || (statusStr == 'QUOTE_PROVIDED' && paymentStatus == 'UNPAID')) ...[
+                                    const SizedBox(height: 8),
+                                    _secondaryButton(
+                                      label: 'Submit Payment Proof',
+                                      onTap: () => _showPaymentModal(order),
+                                    ),
+                                  ],
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          // Documents
+                          SizedBox(
+                            width: colWidth,
+                            child: _buildAccordionSection(
+                              title: 'Documents & Evidence',
+                              icon: Icons.folder_open_outlined,
+                              content: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Attached Files: ${(order['documents'] is List) ? (order['documents'] as List).length : 0} items',
+                                    style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600),
+                                  ),
+                                  const SizedBox(height: 4),
+                                  Text('Mandatory asset documents verified by intake gate.',
+                                      style: GoogleFonts.inter(fontSize: 12, color: _LandingDesignSystem.textSecondary)),
+                                  const SizedBox(height: 8),
+                                  _secondaryButton(
+                                    label: '+ Upload Document',
+                                    onTap: () => _uploadAdditionalDocument(orderId),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          // Invoice & Report
+                          SizedBox(
+                            width: colWidth,
+                            child: _buildAccordionSection(
+                              title: 'Deliverables & Statutory Invoice',
+                              icon: Icons.verified_outlined,
+                              content: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      if (stage.isDelivered) ...[
+                                        _primaryCtaButton(
+                                          label: 'Download Report PDF',
+                                          onTap: () => _downloadFinalReport(refCode),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        _secondaryButton(
+                                          label: 'Tax Invoice',
+                                          onTap: () => _downloadTaxInvoice(orderId),
+                                        ),
+                                      ] else ...[
+                                        Text(
+                                          'Report: In Preparation',
+                                          style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFFB45309)),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        _secondaryButton(
+                                          label: 'Tax Invoice',
+                                          onTap: () => _downloadTaxInvoice(orderId),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    },
+                  ),
+                ],
               ),
             ),
           ],
+        ],
+      ),
+    );
+  }
 
-          // ── SECTION 4: DIRECT SUPPORT STRIP ──
-          _buildCompactSupportStrip(),
+  Widget _buildAccordionSection({
+    required String title,
+    required IconData icon,
+    required Widget content,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: _LandingDesignSystem.bgSubtle,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: _LandingDesignSystem.cardBorder),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: _LandingDesignSystem.tealBrand),
+              const SizedBox(width: 8),
+              Text(
+                title,
+                style: GoogleFonts.montserrat(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: _LandingDesignSystem.textPrimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          content,
         ],
       ),
     );
@@ -2374,411 +2806,73 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
     );
   }
 
-  Widget _buildNeedsAttentionCard(dynamic order) {
-    final orderId = order['id'] as int;
-    final refCode = order['referenceCode']?.toString() ?? 'PV-$orderId';
-    final title = (order['propertyCategory'] ?? 'Commercial Property Valuation').toString().replaceAll('_', ' ');
-    final status = (order['status'] as String? ?? '').toUpperCase();
-    final assetName = order['assetName'] != null && order['assetName'].toString().isNotEmpty
-        ? order['assetName'].toString()
-        : '$title Valuation';
-
-    final isQuote = status == 'QUOTE_PROVIDED';
-    final isPaymentRejected = status == 'PAYMENT_REJECTED';
-
-    String actionMsg = 'Additional action required from client to proceed.';
-    if (isQuote) {
-      actionMsg = 'Valuation quotation and service scope are ready for your review and approval.';
-    } else if (isPaymentRejected) {
-      actionMsg = 'Payment remittance could not be matched. Please re-submit your transaction reference.';
-    } else if (status == 'ACTION_NEEDED') {
-      actionMsg = 'Additional property deeds or sanction plans requested by valuation desk.';
+  Color _getStatusBadgeBg(String status) {
+    switch (status) {
+      case 'DELIVERED':
+      case 'CLIENT_DOWNLOADED':
+      case 'PAYMENT_VERIFIED':
+        return const Color(0xFFECFDF5);
+      case 'IN_PROGRESS':
+      case 'ASSIGNED':
+      case 'DRAFTING':
+      case 'SPA_REVIEW':
+      case 'SPA_GATE':
+        return const Color(0xFFEFF6FF);
+      case 'PAYMENT_SUBMITTED':
+      case 'QUOTE_PROVIDED':
+        return const Color(0xFFFEF3C7);
+      case 'PAYMENT_REJECTED':
+      case 'CANCELLED':
+        return const Color(0xFFFEF2F2);
+      default:
+        return const Color(0xFFF1F5F9);
     }
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: _LandingDesignSystem.cardSurface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFFDE68A)),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: const BoxDecoration(
-              color: Color(0xFFFEF3C7),
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.error_outline_rounded, size: 20, color: Color(0xFFD97706)),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: _LandingDesignSystem.bgSubtle,
-                        borderRadius: BorderRadius.circular(5),
-                        border: Border.all(color: _LandingDesignSystem.cardBorder),
-                      ),
-                      child: Text(
-                        refCode,
-                        style: GoogleFonts.robotoMono(fontSize: 11, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Text(
-                      assetName,
-                      style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  actionMsg,
-                  style: GoogleFonts.inter(fontSize: 12, color: _LandingDesignSystem.textSecondary),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 16),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (isQuote)
-                _primaryCtaButton(
-                  label: 'Review Quotation',
-                  onTap: () => _showQuotationModal(order),
-                )
-              else if (isPaymentRejected)
-                _primaryCtaButton(
-                  label: 'Re-submit Payment',
-                  onTap: () => _showPaymentModal(order),
-                )
-              else
-                _primaryCtaButton(
-                  label: 'Upload Documents',
-                  onTap: () => _uploadAdditionalDocument(orderId),
-                ),
-              const SizedBox(width: 8),
-              _secondaryButton(
-                label: 'View Details',
-                onTap: () => setState(() => _focusedActiveOrder = order),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
   }
 
-  Widget _buildCompactActiveReportCard(dynamic order) {
-    final stageInfo = _mapToClientStage(order);
-    final orderId = order['id'] as int;
-    final refCode = order['referenceCode']?.toString() ?? 'PV-$orderId';
-    final title = (order['propertyCategory'] ?? 'Commercial Property Valuation').toString().replaceAll('_', ' ');
-    final purpose = (order['purpose'] ?? 'Bank Collateral').toString().replaceAll('_', ' ');
-    final assetName = order['assetName'] != null && order['assetName'].toString().isNotEmpty
-        ? order['assetName'].toString()
-        : '$title Valuation';
-    final isActionNeeded = (order['status'] as String? ?? '').toUpperCase() == 'ACTION_NEEDED';
-
-    return Container(
-      margin: const EdgeInsets.only(bottom: 14),
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        color: _LandingDesignSystem.cardSurface,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: _LandingDesignSystem.cardBorder),
-        boxShadow: _LandingDesignSystem.cardShadow,
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Row 1: Category, Ref, Status Badge
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Text(
-                    title.toUpperCase(),
-                    style: GoogleFonts.montserrat(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1.0,
-                      color: _LandingDesignSystem.tealBrand,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: _LandingDesignSystem.bgSubtle,
-                      borderRadius: BorderRadius.circular(5),
-                      border: Border.all(color: _LandingDesignSystem.cardBorder),
-                    ),
-                    child: Text(
-                      refCode,
-                      style: GoogleFonts.robotoMono(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: _LandingDesignSystem.textPrimary,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 3),
-                decoration: BoxDecoration(
-                  color: _LandingDesignSystem.tealSubtle,
-                  borderRadius: BorderRadius.circular(100),
-                  border: Border.all(color: _LandingDesignSystem.tealBorder),
-                ),
-                child: Text(
-                  stageInfo.statusBadge,
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: _LandingDesignSystem.tealBrand,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-
-          // Row 2: Asset Name • Purpose
-          Text(
-            '$assetName • Purpose: $purpose',
-            style: GoogleFonts.montserrat(
-              fontSize: 14.5,
-              fontWeight: FontWeight.w700,
-              color: _LandingDesignSystem.textPrimary,
-            ),
-          ),
-          const SizedBox(height: 12),
-
-          // Row 3: Progress Tracker
-          _buildInlineProgressTracker(stageInfo.stageIndex),
-          const SizedBox(height: 12),
-
-          // Row 4: Last update & View Details button
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Expanded(
-                child: Text(
-                  'Last Update: ${stageInfo.statusDescription}',
-                  style: GoogleFonts.inter(fontSize: 12, color: _LandingDesignSystem.textSecondary),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (isActionNeeded) ...[
-                    _secondaryButton(
-                      label: 'Upload Documents',
-                      onTap: () => _uploadAdditionalDocument(orderId),
-                    ),
-                    const SizedBox(width: 8),
-                  ],
-                  _secondaryButton(
-                    label: 'View Details',
-                    onTap: () => setState(() => _focusedActiveOrder = order),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
+  Color _getStatusBadgeBorder(String status) {
+    switch (status) {
+      case 'DELIVERED':
+      case 'CLIENT_DOWNLOADED':
+      case 'PAYMENT_VERIFIED':
+        return const Color(0xFFA7F3D0);
+      case 'IN_PROGRESS':
+      case 'ASSIGNED':
+      case 'DRAFTING':
+      case 'SPA_REVIEW':
+      case 'SPA_GATE':
+        return const Color(0xFFBFDBFE);
+      case 'PAYMENT_SUBMITTED':
+      case 'QUOTE_PROVIDED':
+        return const Color(0xFFFDE68A);
+      case 'PAYMENT_REJECTED':
+      case 'CANCELLED':
+        return const Color(0xFFFECACA);
+      default:
+        return const Color(0xFFE2E8F0);
+    }
   }
 
-  Widget _buildDeliveredReportRow(dynamic order) {
-    final orderId = order['id'] as int;
-    final String? refCode = order['referenceCode']?.toString();
-    final bool hasArtifact = _hasReportArtifact(order);
-    final title = (order['propertyCategory'] ?? 'Commercial Property Valuation').toString().replaceAll('_', ' ');
-    final assetName = order['assetName'] != null && order['assetName'].toString().isNotEmpty
-        ? order['assetName'].toString()
-        : '$title Valuation';
-
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      decoration: const BoxDecoration(
-        border: Border(bottom: BorderSide(color: _LandingDesignSystem.cardBorder)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 32,
-            height: 32,
-            decoration: const BoxDecoration(
-              color: _LandingDesignSystem.stateSuccessSubtle,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.verified_rounded, size: 18, color: _LandingDesignSystem.stateSuccess),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Row(
-              children: [
-                if (refCode != null)
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: _LandingDesignSystem.bgSubtle,
-                      borderRadius: BorderRadius.circular(5),
-                      border: Border.all(color: _LandingDesignSystem.cardBorder),
-                    ),
-                    child: Text(
-                      refCode,
-                      style: GoogleFonts.robotoMono(fontSize: 11, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
-                    ),
-                  ),
-                if (refCode != null) const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    assetName,
-                    style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textPrimary),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (refCode == null)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-              decoration: BoxDecoration(
-                color: _LandingDesignSystem.bgSubtle,
-                borderRadius: BorderRadius.circular(100),
-                border: Border.all(color: _LandingDesignSystem.cardBorder),
-              ),
-              child: Text(
-                'Report not yet available.',
-                style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w500, color: _LandingDesignSystem.textMuted),
-              ),
-            )
-          else if (hasArtifact) ...[
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: _LandingDesignSystem.stateSuccessSubtle,
-                borderRadius: BorderRadius.circular(100),
-                border: Border.all(color: const Color(0xFFA7F3D0)),
-              ),
-              child: Text(
-                'Ready for Download',
-                style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: _LandingDesignSystem.stateSuccess),
-              ),
-            ),
-            const SizedBox(width: 14),
-            _primaryCtaButton(
-              label: 'Download PDF',
-              onTap: () => _downloadFinalReport(refCode),
-            ),
-            const SizedBox(width: 8),
-            _secondaryButton(
-              label: 'Invoice',
-              onTap: () => _downloadTaxInvoice(orderId),
-            ),
-          ] else
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFEF3C7),
-                borderRadius: BorderRadius.circular(100),
-                border: Border.all(color: const Color(0xFFFCD34D)),
-              ),
-              child: Text(
-                'Preparing Report',
-                style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFFB45309)),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCompactSupportStrip() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-      decoration: BoxDecoration(
-        color: _LandingDesignSystem.cardSurface,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: _LandingDesignSystem.cardBorder),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Row(
-            children: [
-              const Icon(Icons.help_outline_rounded, size: 18, color: _LandingDesignSystem.tealBrand),
-              const SizedBox(width: 10),
-              Text(
-                'Need assistance? Direct Valuer Desk: +91 85000 19091 • provaluer.india@gmail.com • Mon–Sat 9AM–7PM IST',
-                style: GoogleFonts.inter(fontSize: 12.5, color: _LandingDesignSystem.textSecondary),
-              ),
-            ],
-          ),
-          _secondaryButton(
-            label: 'Contact Support',
-            onTap: _showSupportDialog,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _emptyServiceOption({
-    required String title,
-    required String desc,
-    required IconData icon,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: _LandingDesignSystem.cardSurface,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: _LandingDesignSystem.cardBorder),
-          boxShadow: _LandingDesignSystem.cardShadow,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon, size: 24, color: _LandingDesignSystem.tealBrand),
-            const SizedBox(height: 10),
-            Text(
-              title,
-              style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              desc,
-              style: GoogleFonts.inter(fontSize: 11.5, color: _LandingDesignSystem.textSecondary, height: 1.4),
-            ),
-          ],
-        ),
-      ),
-    );
+  Color _getStatusBadgeFg(String status) {
+    switch (status) {
+      case 'DELIVERED':
+      case 'CLIENT_DOWNLOADED':
+      case 'PAYMENT_VERIFIED':
+        return const Color(0xFF047857);
+      case 'IN_PROGRESS':
+      case 'ASSIGNED':
+      case 'DRAFTING':
+      case 'SPA_REVIEW':
+      case 'SPA_GATE':
+        return const Color(0xFF1D4ED8);
+      case 'PAYMENT_SUBMITTED':
+      case 'QUOTE_PROVIDED':
+        return const Color(0xFFB45309);
+      case 'PAYMENT_REJECTED':
+      case 'CANCELLED':
+        return const Color(0xFFB91C1C);
+      default:
+        return const Color(0xFF475569);
+    }
   }
 
   Widget _buildInlineProgressTracker(int activeIndex) {
@@ -3445,128 +3539,61 @@ Widget _buildReportsInProgressGallery(OrderProvider orders) {
   // ═════════════════════════════════════════════════════════════════════════
   // FLOW 4: COMPLETED REPORTS (Landing Page Design System)
   // ═════════════════════════════════════════════════════════════════════════
+  // ═════════════════════════════════════════════════════════════════════════
+  // PART 3: DELIVERED REPORTS LIST (COMPACT ACCORDION LAYOUT)
+  // ═════════════════════════════════════════════════════════════════════════
   Widget _buildCompletedReportsGallery(OrderProvider orders) {
     final completedOrders = orders.clientOrders
         .where((o) => _mapToClientStage(o).stageIndex == 5)
         .toList();
 
-    if (completedOrders.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(40),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(22),
-                decoration: BoxDecoration(
-                  color: _LandingDesignSystem.tealSubtle,
-                  shape: BoxShape.circle,
-                  border: Border.all(color: _LandingDesignSystem.tealBorder),
-                ),
-                child: const Icon(Icons.check_circle_outline_rounded, size: 36, color: _LandingDesignSystem.tealBrand),
-              ),
-              const SizedBox(height: 18),
-              Text(
-                'No Completed Reports Yet',
-                style: GoogleFonts.montserrat(fontSize: 18, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                'Your concluded and digitally signed reports will be archived here for statutory records.',
-                style: GoogleFonts.inter(fontSize: 13, color: _LandingDesignSystem.textSecondary),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 36),
+      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'Completed Valuation Records',
-            style: GoogleFonts.montserrat(fontSize: 24, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Statutorily certified valuation reports archived under digital compliance.',
-            style: GoogleFonts.inter(fontSize: 13.5, color: _LandingDesignSystem.textSecondary),
-          ),
-          const SizedBox(height: 24),
-          ...completedOrders.map((order) {
-            final orderId = order['id'] as int;
-            final String? refCode = order['referenceCode']?.toString();
-            final bool hasArtifact = _hasReportArtifact(order);
-            final title = (order['propertyCategory'] ?? 'Commercial Property Valuation').toString().replaceAll('_', ' ');
-
-            return Container(
-              margin: const EdgeInsets.only(bottom: 16),
-              padding: const EdgeInsets.all(22),
-              decoration: BoxDecoration(
-                color: _LandingDesignSystem.cardSurface,
-                borderRadius: BorderRadius.circular(14),
-                border: Border.all(color: _LandingDesignSystem.cardBorder),
-                boxShadow: _LandingDesignSystem.cardShadow,
-              ),
-              child: Row(
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
                 children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: const BoxDecoration(
-                      color: _LandingDesignSystem.stateSuccessSubtle,
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(Icons.verified_rounded, size: 20, color: _LandingDesignSystem.stateSuccess),
-                  ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        if (refCode != null)
-                          Text(refCode, style: GoogleFonts.robotoMono(fontSize: 12, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary)),
-                        const SizedBox(height: 2),
-                        Text(title, style: GoogleFonts.montserrat(fontSize: 14.5, fontWeight: FontWeight.w700, color: _LandingDesignSystem.textPrimary)),
-                      ],
+                  Text(
+                    'Delivered Reports',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
+                      color: _LandingDesignSystem.textPrimary,
                     ),
                   ),
-                  if (refCode == null)
-                    Text(
-                      'Report not yet available.',
-                      style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w500, color: _LandingDesignSystem.textMuted),
-                    )
-                  else if (hasArtifact) ...[
-                    _primaryCtaButton(
-                      label: 'Download Report',
-                      onTap: () => _downloadFinalReport(refCode),
-                    ),
-                    const SizedBox(width: 10),
-                    _secondaryButton(
-                      label: 'Invoice',
-                      onTap: () => _downloadTaxInvoice(orderId),
-                    ),
-                  ] else
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFFEF3C7),
-                        borderRadius: BorderRadius.circular(6),
-                        border: Border.all(color: const Color(0xFFFCD34D)),
-                      ),
-                      child: Text(
-                        'Preparing Report',
-                        style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFB45309)),
-                      ),
-                    ),
+                  const SizedBox(width: 14),
+                  _metricPill(
+                    label: '${completedOrders.length} Concluded',
+                    bgColor: _LandingDesignSystem.stateSuccessSubtle,
+                    borderColor: const Color(0xFFA7F3D0),
+                    textColor: _LandingDesignSystem.stateSuccess,
+                  ),
                 ],
               ),
-            );
-          }),
+            ],
+          ),
+          const SizedBox(height: 20),
+          if (completedOrders.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(28),
+              decoration: BoxDecoration(
+                color: _LandingDesignSystem.cardSurface,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: _LandingDesignSystem.cardBorder),
+              ),
+              child: Center(
+                child: Text(
+                  'No delivered reports yet. Finalized valuation reports will appear here for statutory records.',
+                  style: GoogleFonts.inter(fontSize: 13.5, color: _LandingDesignSystem.textSecondary),
+                ),
+              ),
+            )
+          else
+            ...completedOrders.map((order) => _buildCompactAccordionReportCard(order, isDeliveredList: true)),
         ],
       ),
     );
@@ -4471,6 +4498,11 @@ class _ClientSidebar extends StatelessWidget {
 
           // ── CORE NAVIGATION ITEMS (FIX 5) ─────────────────────────────────
           const SizedBox(height: 10),
+          _navTile(
+            nav: _ClientNav.welcome,
+            label: _ClientNav.welcome.label,
+            icon: _ClientNav.welcome.icon,
+          ),
           _navTile(
             nav: _ClientNav.createReport,
             label: _ClientNav.createReport.label,
