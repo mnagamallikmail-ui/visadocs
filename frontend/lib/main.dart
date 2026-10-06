@@ -21,8 +21,11 @@ import 'screens/services/plant_machinery_valuation_screen.dart';
 import 'screens/request_intake_screen.dart';
 import 'theme/app_theme.dart';
 import 'services/analytics_service.dart';
+import 'services/global_error_service.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  GlobalErrorService.initialize();
   runApp(
     MultiProvider(
       providers: [

@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'token_storage_stub.dart'
     if (dart.library.html) 'token_storage_web.dart';
 
@@ -61,5 +62,47 @@ class TokenStorage {
     removeStorageItem(keyFullName);
     removeStorageItem(keyMobile);
     removeStorageItem(keyUserId);
+  }
+
+  static String _draftKey(int orderId) => 'pv_draft_order_$orderId';
+
+  /// SPRINT 6 EMERGENCY HOTFIX: Zero data loss write-through draft cache
+  static void saveDraftToStorage(int orderId, Map<String, String> values) {
+    try {
+      final clean = <String, String>{};
+      values.forEach((k, v) {
+        // Exclude large binary/base64 images to conserve localStorage
+        if (!v.startsWith('data:image')) {
+          clean[k] = v;
+        }
+      });
+      setStorageItem(_draftKey(orderId), jsonEncode({
+        'orderId': orderId,
+        'timestamp': DateTime.now().toIso8601String(),
+        'values': clean,
+      }));
+    } catch (_) {}
+  }
+
+  /// SPRINT 6 EMERGENCY HOTFIX: Hydrate unsaved local edits
+  static Map<String, String>? loadDraftFromStorage(int orderId) {
+    try {
+      final raw = getStorageItem(_draftKey(orderId));
+      if (raw == null || raw.isEmpty) return null;
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic> && decoded['values'] is Map) {
+        return Map<String, String>.from(
+          (decoded['values'] as Map).map((k, v) => MapEntry(k.toString(), v?.toString() ?? '')),
+        );
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// SPRINT 6 EMERGENCY HOTFIX: Evict cache upon confirmed backend HTTP 200
+  static void clearDraftFromStorage(int orderId) {
+    try {
+      removeStorageItem(_draftKey(orderId));
+    } catch (_) {}
   }
 }

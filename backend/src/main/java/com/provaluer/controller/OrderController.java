@@ -105,6 +105,9 @@ public class OrderController {
     private com.provaluer.service.QuotationNotificationService quotationNotificationService;
 
     @Autowired
+    private com.provaluer.service.ReportNumberGeneratorService reportNumberGeneratorService;
+
+    @Autowired
     private com.provaluer.service.PaymentWorkflowService paymentWorkflowService;
 
     @Autowired
@@ -273,14 +276,9 @@ public class OrderController {
             // Client pays intake deposit fee -> moves to PAID_INTAKE
             order.setStatus("PAID_INTAKE");
             
-            // Generate report number in PV-yymm-xxxx format
+            // Generate report number using atomic sequence allocator
+            order.setReportNumber(reportNumberGeneratorService.generateNextReportNumber());
             LocalDateTime now = LocalDateTime.now();
-            int yy = now.getYear() % 100;
-            int mm = now.getMonthValue();
-            String prefix = String.format("PV-%02d%02d-", yy, mm);
-            long seq = orderRepository.countByReportNumberStartingWith(prefix) + 1;
-            String reportNumber = String.format("%s%04d", prefix, seq);
-            order.setReportNumber(reportNumber);
             
             // Calculate initial SLA Expiry
             LocalDateTime expiry = slaService.calculateExpiry(order.getPurpose(), now);
@@ -1731,17 +1729,8 @@ public class OrderController {
         templateVersionRepository.findByTemplateIdAndVersion(template.getId(), template.getVersion())
                 .ifPresent(tv -> order.setTemplateVersionId(tv.getId()));
 
-        LocalDateTime now = LocalDateTime.now();
-        int yy = now.getYear() % 100;
-        int mm = now.getMonthValue();
-        String prefix = String.format("PV-%02d%02d-", yy, mm);
-        long seq = orderRepository.countByReportNumberStartingWith(prefix) + 1;
-        String reportNumber = String.format("%s%04d", prefix, seq);
-        while (orderRepository.existsByReportNumber(reportNumber)) {
-            seq++;
-            reportNumber = String.format("%s%04d", prefix, seq);
-        }
-        order.setReportNumber(reportNumber);
+        // Generate report number using atomic sequence allocator
+        order.setReportNumber(reportNumberGeneratorService.generateNextReportNumber());
 
         Order savedOrder = orderRepository.save(order);
 

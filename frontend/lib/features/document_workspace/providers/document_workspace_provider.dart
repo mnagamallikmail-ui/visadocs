@@ -13,6 +13,14 @@ import '../services/valuation_calculator.dart';
 import '../services/placeholder_normalization_registry.dart';
 import '../services/value_normalization_engine.dart';
 import '../services/numeric_formula_engine.dart';
+import '../../../services/token_storage.dart';
+
+enum SaveState {
+  saved,
+  saving,
+  error,
+  dirtyLocal,
+}
 
 enum DocumentScrollMode {
   continuous,
@@ -33,6 +41,12 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   bool _isDirty = false;
   String? _errorMessage;
   DateTime? _lastSavedAt;
+
+  // SPRINT 6 EMERGENCY HOTFIX: Zero Data Loss state machine
+  SaveState _saveState = SaveState.saved;
+  SaveState get saveState => _saveState;
+  String? saveErrorMessage;
+  bool hasRecoveredLocalDraft = false;
 
   WorkspaceViewMode _viewMode = WorkspaceViewMode.tableEdit;
   DocumentScrollMode _scrollMode = DocumentScrollMode.continuous;
@@ -154,6 +168,20 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       _workspaceModel = model;
       _activeValues = Map<String, String>.from(model.values);
       _deltaValues.clear();
+
+      // SPRINT 6 EMERGENCY HOTFIX: Zero Data Loss Draft Recovery from LocalStorage
+      final cachedDraft = TokenStorage.loadDraftFromStorage(orderId);
+      if (cachedDraft != null && cachedDraft.isNotEmpty) {
+        _activeValues.addAll(cachedDraft);
+        _deltaValues.addAll(cachedDraft);
+        _isDirty = true;
+        hasRecoveredLocalDraft = true;
+        _saveState = SaveState.dirtyLocal;
+      } else {
+        hasRecoveredLocalDraft = false;
+        _saveState = SaveState.saved;
+        saveErrorMessage = null;
+      }
 
       _initValuationDataFromValues(orderId);
 
@@ -548,6 +576,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
 
     _recalculateFormulas(notify: false);
     _isDirty = true;
+    _persistLocalDraft();
     notifyListeners();
   }
 
@@ -988,6 +1017,9 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         // LIVE DYNAMIC RECALCULATION: Recalculate dependent CALC fields immediately
         _recalculateFormulas(notify: false);
 
+        // SPRINT 6 EMERGENCY HOTFIX: Zero Data Loss write-through
+        _persistLocalDraft();
+
         if (notify) {
           notifyListeners();
         }
@@ -1188,20 +1220,38 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     _activeValues.addAll(newPlaceholders);
     _deltaValues.addAll(newPlaceholders);
     _isDirty = true;
+    _persistLocalDraft();
     if (_workspaceModel?.documentDom != null) {
       _workspaceVm = DocumentWorkspaceVm.fromDocumentDom(_workspaceModel!.documentDom!, _activeValues);
     }
     notifyListeners();
   }
 
-  /// Saves changed delta values to backend
+  /// SPRINT 6 EMERGENCY HOTFIX: Zero Data Loss local draft persistence
+  void _persistLocalDraft() {
+    final orderId = _workspaceModel?.orderId;
+    if (orderId != null && orderId > 0 && _deltaValues.isNotEmpty) {
+      TokenStorage.saveDraftToStorage(orderId, _deltaValues);
+      _saveState = SaveState.dirtyLocal;
+    }
+  }
+
+  /// Direct entry point for user input fields
+  void updateInputValue(String key, String value) {
+    updateValue(key, value);
+  }
+
+  /// Saves changed delta values to backend with robust error visibility
   Future<bool> saveChanges({bool isAutoSave = false}) async {
     if (_workspaceModel == null || _deltaValues.isEmpty) {
       _isDirty = false;
+      _saveState = SaveState.saved;
+      saveErrorMessage = null;
       notifyListeners();
       return true;
     }
 
+    _saveState = SaveState.saving;
     if (isAutoSave) {
       _isAutoSaving = true;
     } else {
@@ -1224,11 +1274,28 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         });
         _isDirty = _deltaValues.isNotEmpty;
         _lastSavedAt = DateTime.now();
+        if (_deltaValues.isEmpty) {
+          TokenStorage.clearDraftFromStorage(_workspaceModel!.orderId);
+          _saveState = SaveState.saved;
+          saveErrorMessage = null;
+          _errorMessage = null;
+        } else {
+          _persistLocalDraft();
+        }
         return true;
+      } else {
+        _saveState = SaveState.error;
+        saveErrorMessage = 'Save failed. Session expired or network unavailable. Your edits are preserved locally.';
+        _errorMessage = saveErrorMessage;
+        _persistLocalDraft();
+        return false;
       }
-      return false;
     } catch (e) {
-      _errorMessage = 'Failed to save changes: $e';
+      _saveState = SaveState.error;
+      saveErrorMessage = 'Save failed. Session expired or network unavailable. Your edits are preserved locally.';
+      _errorMessage = saveErrorMessage;
+      // Retain local cache under all circumstances
+      _persistLocalDraft();
       return false;
     } finally {
       _isSaving = false;

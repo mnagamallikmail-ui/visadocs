@@ -54,6 +54,9 @@ public class PoolReleaseService {
     @Autowired
     private TelegramNotificationService telegramNotificationService;
 
+    @Autowired
+    private ReportNumberGeneratorService reportNumberGeneratorService;
+
     // ────────────────────────────────────────────────────────────────────────────
     // Section C: GET /api/v1/orders/release-queue
     // Returns all PAYMENT_VERIFIED orders pending admin clearance.
@@ -130,13 +133,9 @@ public class PoolReleaseService {
                     "Cannot release order to pool: a valuation snapshot already exists for this order. Contact Super Admin.");
         }
 
-        // Step 9: Generate reportNumber PV-YYMM-XXXX (same algorithm as legacy submitIntake)
+        // Step 9: Generate reportNumber PV-YYMM-XXXX using atomic sequence allocator
         LocalDateTime now = LocalDateTime.now();
-        int yy = now.getYear() % 100;
-        int mm = now.getMonthValue();
-        String prefix = String.format("PV-%02d%02d-", yy, mm);
-        long seq = orderRepository.countByReportNumberStartingWith(prefix) + 1;
-        String reportNumber = String.format("%s%04d", prefix, seq);
+        String reportNumber = reportNumberGeneratorService.generateNextReportNumber();
         order.setReportNumber(reportNumber);
 
         // Step 10: Start SLA timer

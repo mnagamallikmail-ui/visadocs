@@ -1,6 +1,12 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import '../../services/unload_protection_stub.dart'
+    if (dart.library.html) '../../services/unload_protection_web.dart';
+import '../../services/api_service.dart';
+import '../../services/token_storage.dart';
+import '../../widgets/in_line_reauth_dialog.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_spacing.dart';
 import '../../theme/app_typography.dart';
@@ -31,6 +37,8 @@ class DocumentWorkspaceScreen extends StatefulWidget {
 
 class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
   late final DocumentWorkspaceProvider _provider;
+  bool _showPersistentSaveFailure = false;
+  bool _isReauthOpen = false;
 
   @override
   void initState() {
@@ -39,6 +47,37 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
     if (widget.provider == null) {
       _provider.loadWorkspace(widget.orderId);
     }
+
+    // SPRINT 6 EMERGENCY HOTFIX: Global 401 Interception & Zero Data Loss Modal
+    ApiService().onSessionExpired = () {
+      if (mounted) {
+        _showReauthModal();
+      }
+    };
+
+    // SPRINT 6 EMERGENCY HOTFIX: Browser exit protection
+    if (kIsWeb) {
+      setupBeforeUnloadProtection(() =>
+          _provider.isDirty || TokenStorage.loadDraftFromStorage(widget.orderId) != null);
+    }
+  }
+
+  void _showReauthModal() {
+    if (_isReauthOpen || !mounted) return;
+    _isReauthOpen = true;
+    InLineReauthDialog.show(
+      context,
+      onAuthenticatedAndSync: () async {
+        final success = await _provider.saveChanges();
+        if (success && mounted) {
+          setState(() {
+            _showPersistentSaveFailure = false;
+          });
+        }
+      },
+    ).then((_) {
+      _isReauthOpen = false;
+    });
   }
 
   @override
@@ -211,6 +250,14 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
                   // Sticky Property Context Header (Always visible throughout scrolling)
                   if (!provider.isLoading && provider.workspaceModel != null)
                     _buildPropertyContextHeader(provider),
+
+                  // SPRINT 6 EMERGENCY HOTFIX: Persistent Save Failure Banner (Phase 5)
+                  if (provider.saveState == SaveState.error || _showPersistentSaveFailure)
+                    _buildPersistentSaveFailureBanner(provider),
+
+                  // SPRINT 6 EMERGENCY HOTFIX: Recovered Local Draft Banner (Phase 9)
+                  if (provider.hasRecoveredLocalDraft)
+                    _buildRecoveredDraftBanner(provider),
                   Expanded(
                     child: provider.isLoading
                         ? const Center(
@@ -349,38 +396,10 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
         ],
       ),
       actions: [
-        // Subtle Auto-save Status Indicator
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (provider.isAutoSaving) ...[
-                const SizedBox(
-                  width: 12,
-                  height: 12,
-                  child: CircularProgressIndicator(strokeWidth: 1.8, color: AppColors.primaryBlue),
-                ),
-                const SizedBox(width: 6),
-                Text('Auto-saving...', style: AppTypography.workspaceMicro(color: AppColors.workspaceSecondaryText)),
-              ] else if (provider.isDirty) ...[
-                Container(
-                  width: 7,
-                  height: 7,
-                  decoration: const BoxDecoration(color: AppColors.workspaceWarning, shape: BoxShape.circle),
-                ),
-                const SizedBox(width: 6),
-                Text('Unsaved edits', style: AppTypography.workspaceMicro(color: AppColors.workspaceWarning, weight: FontWeight.w700)),
-              ] else if (provider.lastSavedAt != null) ...[
-                const Icon(Icons.check_circle_rounded, size: 14, color: AppColors.workspaceSuccess),
-                const SizedBox(width: 5),
-                Text('Auto-saved', style: AppTypography.workspaceMicro(color: AppColors.workspaceSecondaryText)),
-              ],
-            ],
-          ),
-        ),
+        // SPRINT 6 EMERGENCY HOTFIX: Visible Autosave Status Area (Phase 6)
+        _buildAutosaveStatusIndicator(provider),
 
-        // Subordinate Save Draft Button (Ghost-style appearance)
+        // Subordinate Save Draft Button (Ghost-style appearance) with Visible Failure (Phase 5)
         TextButton.icon(
           icon: provider.isSaving
               ? const SizedBox(
@@ -401,7 +420,29 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
             ),
           ),
           onPressed: (provider.isDirty && !provider.isSaving && !provider.isReadOnly)
-              ? () => provider.saveChanges()
+              ? () async {
+                  final success = await provider.saveChanges();
+                  if (!context.mounted) return;
+                  if (!success) {
+                    setState(() {
+                      _showPersistentSaveFailure = true;
+                    });
+                    if (ApiService().isSessionExpired) {
+                      _showReauthModal();
+                    }
+                  } else {
+                    setState(() {
+                      _showPersistentSaveFailure = false;
+                    });
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text('Draft saved successfully to database'),
+                        backgroundColor: AppColors.workspaceSuccess,
+                        duration: Duration(seconds: 2),
+                      ),
+                    );
+                  }
+                }
               : null,
           style: TextButton.styleFrom(
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
@@ -724,5 +765,230 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
       default:
         return AppColors.slate;
     }
+  }
+
+  /// SPRINT 6 EMERGENCY HOTFIX: Visible Autosave Status Area (Phase 6)
+  Widget _buildAutosaveStatusIndicator(DocumentWorkspaceProvider provider) {
+    final api = ApiService();
+    final isSessionExpired = api.isSessionExpired ||
+        (provider.saveErrorMessage != null && provider.saveErrorMessage!.contains('Session expired'));
+
+    if (isSessionExpired) {
+      // SAVE STATE #4: ⚠ Session expired — re-authentication required
+      return InkWell(
+        onTap: () => _showReauthModal(),
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFEF2F2),
+            border: Border.all(color: const Color(0xFFFCA5A5)),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(Icons.warning_amber_rounded, size: 14, color: AppColors.workspaceErrorText),
+              const SizedBox(width: 5),
+              Text(
+                'Session expired — re-authentication required',
+                style: AppTypography.workspaceMicro(color: AppColors.workspaceErrorText, weight: FontWeight.w700),
+              ),
+              const SizedBox(width: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.workspaceErrorText,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: const Text('Re-Auth', style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold)),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (provider.saveState == SaveState.error) {
+      // SAVE STATE #3: 🔴 Save failed — edits preserved locally
+      return InkWell(
+        onTap: () => provider.saveChanges(),
+        borderRadius: BorderRadius.circular(6),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: const Color(0xFFFEF2F2),
+            border: Border.all(color: const Color(0xFFFCA5A5)),
+            borderRadius: BorderRadius.circular(6),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: const BoxDecoration(color: Color(0xFFDC2626), shape: BoxShape.circle),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                'Save failed — edits preserved locally',
+                style: AppTypography.workspaceMicro(color: const Color(0xFFDC2626), weight: FontWeight.w700),
+              ),
+              const SizedBox(width: 6),
+              const Icon(Icons.refresh_rounded, size: 13, color: Color(0xFFDC2626)),
+            ],
+          ),
+        ),
+      );
+    }
+
+    if (provider.isSaving || provider.isAutoSaving || provider.saveState == SaveState.saving) {
+      // SAVE STATE #2: 🟡 Saving draft...
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 12,
+              height: 12,
+              child: CircularProgressIndicator(strokeWidth: 1.8, color: AppColors.primaryBlue),
+            ),
+            const SizedBox(width: 6),
+            Text('Saving draft...', style: AppTypography.workspaceMicro(color: AppColors.workspaceSecondaryText)),
+          ],
+        ),
+      );
+    }
+
+    if (provider.saveState == SaveState.dirtyLocal || provider.isDirty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 7,
+              height: 7,
+              decoration: const BoxDecoration(color: AppColors.workspaceWarning, shape: BoxShape.circle),
+            ),
+            const SizedBox(width: 6),
+            Text('Unsaved edits (cached locally)', style: AppTypography.workspaceMicro(color: AppColors.workspaceWarning, weight: FontWeight.w700)),
+          ],
+        ),
+      );
+    }
+
+    // SAVE STATE #1: ✅ All changes saved
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.check_circle_rounded, size: 14, color: AppColors.workspaceSuccess),
+          const SizedBox(width: 5),
+          Text('All changes saved', style: AppTypography.workspaceMicro(color: AppColors.workspaceSecondaryText)),
+        ],
+      ),
+    );
+  }
+
+  /// SPRINT 6 EMERGENCY HOTFIX: Persistent Save Failure Banner (Phase 5)
+  Widget _buildPersistentSaveFailureBanner(DocumentWorkspaceProvider provider) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(
+        color: Color(0xFFFEF2F2),
+        border: Border(bottom: BorderSide(color: Color(0xFFFCA5A5))),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: const TextStyle(fontSize: 13, color: Color(0xFF991B1B)),
+                children: [
+                  const TextSpan(text: '⚠ Save Failed: ', style: TextStyle(fontWeight: FontWeight.bold)),
+                  const TextSpan(text: 'Session expired or connection unavailable. '),
+                  TextSpan(
+                    text: 'Your edits have been preserved locally.',
+                    style: TextStyle(fontWeight: FontWeight.w600, color: Colors.green.shade900),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          if (ApiService().isSessionExpired) ...[
+            ElevatedButton(
+              onPressed: _showReauthModal,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.workspaceCorporateNavy,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                visualDensity: VisualDensity.compact,
+              ),
+              child: const Text('Re-Authenticate', style: TextStyle(fontSize: 12)),
+            ),
+            const SizedBox(width: 8),
+          ],
+          ElevatedButton(
+            onPressed: provider.isSaving ? null : () => provider.saveChanges(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              visualDensity: VisualDensity.compact,
+            ),
+            child: provider.isSaving
+                ? const SizedBox(width: 12, height: 12, child: CircularProgressIndicator(strokeWidth: 1.5, color: Colors.white))
+                : const Text('Retry Save', style: TextStyle(fontSize: 12)),
+          ),
+          const SizedBox(width: 4),
+          IconButton(
+            icon: const Icon(Icons.close, size: 16, color: Color(0xFF991B1B)),
+            onPressed: () => setState(() => _showPersistentSaveFailure = false),
+            tooltip: 'Dismiss',
+            visualDensity: VisualDensity.compact,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// SPRINT 6 EMERGENCY HOTFIX: Recovered Local Draft Banner (Phase 9)
+  Widget _buildRecoveredDraftBanner(DocumentWorkspaceProvider provider) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF0FDF4),
+        border: Border(bottom: BorderSide(color: Color(0xFFBBF7D0))),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.restore_page_rounded, color: Color(0xFF16A34A), size: 18),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text(
+              'Recovered unsaved draft from local backup. All your changes are restored.',
+              style: TextStyle(fontSize: 13, color: Color(0xFF15803D), fontWeight: FontWeight.w600),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.close, size: 16, color: Color(0xFF15803D)),
+            onPressed: () {
+              provider.hasRecoveredLocalDraft = false;
+              provider.notifyChanges();
+            },
+            tooltip: 'Dismiss',
+            visualDensity: VisualDensity.compact,
+          ),
+        ],
+      ),
+    );
   }
 }

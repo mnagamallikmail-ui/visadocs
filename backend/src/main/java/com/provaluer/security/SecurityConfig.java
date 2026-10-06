@@ -89,7 +89,8 @@ public class SecurityConfig {
                     // All other lead operations (listing, dossier inspection, quote generation, status transitions) require ADMIN
                     .requestMatchers("/api/leads", "/api/leads/**", "/api/v1/leads", "/api/v1/leads/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                     .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/error",
-                            "/client/delivery/stream", "/api/v1/client/delivery/stream").permitAll()
+                            "/client/delivery/stream", "/api/v1/client/delivery/stream",
+                            "/api/v1/telemetry/**", "/api/v1/governance/health", "/api/v1/governance/metrics").permitAll()
                     .anyRequest().authenticated()
             );
 

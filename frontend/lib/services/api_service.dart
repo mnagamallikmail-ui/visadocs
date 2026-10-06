@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'token_storage.dart';
+import 'global_error_service.dart';
 
 class ApiService {
   static String _determineBaseUrl() {
@@ -38,6 +39,7 @@ class ApiService {
   set token(String? val) {
     _inMemoryToken = val;
     if (val != null) {
+      isSessionExpired = false;
       TokenStorage.saveToken(val);
     } else {
       TokenStorage.clearToken();
@@ -45,6 +47,9 @@ class ApiService {
   }
 
   Function(String)? onTcRequired;
+  Function()? onSessionExpired;
+  DateTime? _last401TriggeredAt;
+  bool isSessionExpired = false;
 
   ApiService._internal() {
     dio.interceptors.add(
@@ -57,7 +62,20 @@ class ApiService {
           return handler.next(options);
         },
         onError: (DioException e, handler) {
-          if (e.response?.statusCode == 451) {
+          // Centralized error tracking
+          GlobalErrorService.recordDioError(e);
+
+          if (e.response?.statusCode == 401) {
+            isSessionExpired = true;
+            final now = DateTime.now();
+            if (_last401TriggeredAt == null ||
+                now.difference(_last401TriggeredAt!).inSeconds > 4) {
+              _last401TriggeredAt = now;
+              if (onSessionExpired != null) {
+                onSessionExpired!();
+              }
+            }
+          } else if (e.response?.statusCode == 451) {
             if (onTcRequired != null) {
               final Map<String, dynamic> body =
                   e.response?.data is Map<String, dynamic>

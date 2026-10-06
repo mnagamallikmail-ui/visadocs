@@ -650,6 +650,30 @@ public class TelegramNotificationService {
         return sendTelegramPayload(message, referenceCode, "Delivery Released");
     }
 
+    /**
+     * PLATFORM GOVERNANCE: Dispatches immediate Telegram alert for critical operational thresholds.
+     */
+    @Async
+    public CompletableFuture<Boolean> sendOperationalGovernanceAlert(String alertType, String details) {
+        if (!telegramEnabled || botToken == null || botToken.isBlank() || chatId == null || chatId.isBlank()) {
+            log.warn("[OPERATIONAL ALERT] (Simulation/Unconfigured) {} - {}", alertType, details);
+            return CompletableFuture.completedFuture(false);
+        }
+
+        String message = String.format(
+                "🚨 <b>PROVALUER CRITICAL ALERT: %s</b>%n%n" +
+                "<b>Timestamp:</b> %s%n" +
+                "<b>Severity:</b> HIGH / CRITICAL%n" +
+                "<b>Details:</b>%n<code>%s</code>%n%n" +
+                "<i>Action Required: Review Operational Health Dashboard immediately.</i>",
+                escapeHtml(alertType),
+                java.time.LocalDateTime.now(),
+                escapeHtml(details)
+        );
+
+        return sendTelegramPayload(message, "OPERATIONAL-ALERT", alertType);
+    }
+
     private String escapeHtml(String text) {
         if (text == null) return "";
         return text.replace("&", "&amp;")
