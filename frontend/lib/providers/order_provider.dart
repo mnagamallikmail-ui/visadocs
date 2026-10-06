@@ -808,6 +808,9 @@ class OrderProvider extends ChangeNotifier {
     required List<int> fileBytes,
     required String filename,
   }) async {
+    if (fileBytes.isEmpty) {
+      return {'error': 'Payment proof receipt file cannot be empty.'};
+    }
     try {
       final formData = FormData.fromMap({
         'file': MultipartFile.fromBytes(fileBytes, filename: filename),
@@ -823,23 +826,25 @@ class OrderProvider extends ChangeNotifier {
         data: formData,
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode == 200 && response.data != null) {
         await fetchClientOrders();
         await fetchAllOrders();
         return Map<String, dynamic>.from(response.data);
       }
+      return {'error': 'Server returned unexpected status: ${response.statusCode}'};
     } on DioException catch (e) {
       String msg = "Payment submission failed.";
       if (e.response?.data != null && e.response!.data is Map && e.response!.data['error'] != null) {
         msg = e.response!.data['error'].toString();
       } else if (e.response?.data != null && e.response!.data is String) {
         msg = e.response!.data.toString();
+      } else if (e.message != null) {
+        msg = e.message!;
       }
       return {'error': msg};
     } catch (e) {
       return {'error': e.toString()};
     }
-    return {'error': 'Submission failed.'};
   }
 
   Future<Map<String, dynamic>?> verifyPayment({

@@ -4127,9 +4127,12 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     _paymentAmountCtrl.text = total.toStringAsFixed(2);
     _utrCtrl.clear();
     _paymentError = null;
+    _paymentReceiptFile = null;
+    bool isSubmitting = false;
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setDlgState) => AlertDialog(
           backgroundColor: _LandingDesignSystem.bgSurface,
@@ -4180,49 +4183,219 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
                       focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: _LandingDesignSystem.tealBrand, width: 1.5)),
                     ),
                   ),
+                  const SizedBox(height: 16),
+
+                  // FIX 1: Payment Receipt Required UI
+                  Text(
+                    'Payment Proof Receipt / Screenshot * (PDF, PNG, JPG, JPEG ≤ 10 MB)',
+                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textPrimary),
+                  ),
+                  const SizedBox(height: 8),
+                  InkWell(
+                    onTap: isSubmitting ? null : () async {
+                      try {
+                        final result = await FilePicker.platform.pickFiles(
+                          type: FileType.custom,
+                          allowedExtensions: ['pdf', 'png', 'jpg', 'jpeg'],
+                          withData: true,
+                        );
+                        if (result != null && result.files.isNotEmpty) {
+                          final picked = result.files.first;
+                          setDlgState(() {
+                            _paymentReceiptFile = picked;
+                            _paymentError = null;
+                          });
+                        }
+                      } catch (e) {
+                        setDlgState(() => _paymentError = 'Failed to open file picker: $e');
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: _paymentReceiptFile != null
+                            ? _LandingDesignSystem.stateSuccess.withValues(alpha: 0.08)
+                            : _LandingDesignSystem.bgCanvas,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: _paymentReceiptFile != null
+                              ? _LandingDesignSystem.stateSuccess
+                              : _LandingDesignSystem.cardBorder,
+                          width: _paymentReceiptFile != null ? 1.5 : 1.0,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            _paymentReceiptFile != null ? Icons.check_circle_rounded : Icons.upload_file_rounded,
+                            color: _paymentReceiptFile != null ? _LandingDesignSystem.stateSuccess : _LandingDesignSystem.tealBrand,
+                            size: 22,
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _paymentReceiptFile != null
+                                      ? _paymentReceiptFile!.name
+                                      : 'Click to select receipt document (Required)',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12.5,
+                                    fontWeight: _paymentReceiptFile != null ? FontWeight.w600 : FontWeight.w500,
+                                    color: _paymentReceiptFile != null ? _LandingDesignSystem.textPrimary : _LandingDesignSystem.textSecondary,
+                                  ),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                if (_paymentReceiptFile != null && _paymentReceiptFile!.size > 0)
+                                  Text(
+                                    '${(_paymentReceiptFile!.size / 1024).toStringAsFixed(1)} KB',
+                                    style: GoogleFonts.inter(fontSize: 11, color: _LandingDesignSystem.stateSuccess),
+                                  ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            _paymentReceiptFile != null ? 'Change' : 'Browse File',
+                            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w700, color: _LandingDesignSystem.tealBrand),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
                   if (_paymentError != null) ...[
                     const SizedBox(height: 12),
-                    Text(_paymentError!, style: GoogleFonts.inter(fontSize: 12, color: _LandingDesignSystem.stateError)),
+                    Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: _LandingDesignSystem.stateError.withValues(alpha: 0.08),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: _LandingDesignSystem.stateError.withValues(alpha: 0.4)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Icon(Icons.error_outline_rounded, color: _LandingDesignSystem.stateError, size: 18),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              _paymentError!,
+                              style: GoogleFonts.inter(fontSize: 12, color: _LandingDesignSystem.stateError, fontWeight: FontWeight.w500),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ],
               ),
             ),
           ),
           actions: [
-            _secondaryButton(label: 'Cancel', onTap: () => Navigator.pop(ctx)),
+            _secondaryButton(
+              label: 'Cancel',
+              onTap: isSubmitting ? null : () {
+                _paymentReceiptFile = null;
+                Navigator.pop(ctx);
+              },
+            ),
             _primaryCtaButton(
-              label: 'Submit Payment Proof',
-              onTap: () async {
+              label: isSubmitting ? 'Submitting...' : 'Submit Payment Proof',
+              onTap: isSubmitting ? null : () async {
                 final utr = _utrCtrl.text.trim();
                 if (utr.isEmpty) {
                   setDlgState(() => _paymentError = 'Please enter your bank UTR reference.');
                   return;
                 }
-                setDlgState(() => _paymentError = null);
+
+                // FIX 1: PAYMENT RECEIPT REQUIRED VALIDATION
+                if (_paymentReceiptFile == null || _paymentReceiptFile!.bytes == null) {
+                  setDlgState(() => _paymentError = 'Payment receipt file is required. Please select a valid document.');
+                  return;
+                }
+
+                final fileBytes = _paymentReceiptFile!.bytes!;
+                if (fileBytes.isEmpty || _paymentReceiptFile!.size <= 0) {
+                  setDlgState(() => _paymentError = 'Selected payment receipt file cannot be empty.');
+                  return;
+                }
+
+                if (fileBytes.length > 10 * 1024 * 1024) {
+                  setDlgState(() => _paymentError = 'Payment receipt file exceeds maximum allowed limit of 10 MB.');
+                  return;
+                }
+
+                final filename = _paymentReceiptFile!.name;
+                final ext = filename.contains('.') ? filename.split('.').last.toLowerCase() : '';
+                const allowedExts = ['pdf', 'png', 'jpg', 'jpeg'];
+                if (!allowedExts.contains(ext)) {
+                  setDlgState(() => _paymentError = 'Unsupported file format (.$ext). Allowed formats: PDF, PNG, JPG, JPEG.');
+                  return;
+                }
+
+                // FIX 2: REMOVE DUMMY FILE FALLBACK
+                // (fileBytes and filename are strictly sourced from verified user selection)
+
+                setDlgState(() {
+                  _paymentError = null;
+                  isSubmitting = true;
+                });
+
                 try {
                   final orderProvider = context.read<OrderProvider>();
                   final messenger = ScaffoldMessenger.of(context);
-                  await orderProvider.submitPaymentProof(
+
+                  final res = await orderProvider.submitPaymentProof(
                     orderId: orderId,
                     utrNumber: utr,
                     paymentMethod: 'UPI',
                     paymentDate: DateTime.now().toIso8601String().split('T').first,
                     amountPaid: total,
-                    fileBytes: _paymentReceiptFile?.bytes ?? [0],
-                    filename: _paymentReceiptFile?.name ?? 'payment_receipt.png',
+                    fileBytes: fileBytes,
+                    filename: filename,
                   );
-                  await orderProvider.fetchClientOrders();
-                  if (ctx.mounted) {
-                    Navigator.pop(ctx);
+
+                  // FIX 3: HANDLE API FAILURE
+                  if (res == null || res['error'] != null) {
+                    final actualError = res?['error']?.toString() ?? 'Server rejected payment submission.';
+                    setDlgState(() {
+                      _paymentError = 'Payment submission failed.\n$actualError';
+                      isSubmitting = false;
+                    });
+                    // Keep modal open, do not clear form, do not show success
+                    return;
                   }
-                  if (mounted) {
-                    _loadOrdersAndSync();
-                    messenger.showSnackBar(
-                      const SnackBar(content: Text('Payment details submitted for verification.')),
-                    );
+
+                  // FIX 4: SUCCESS CONDITIONS (HTTP 200, payment saved, status = PAYMENT_SUBMITTED)
+                  final paymentStatus = res['status']?.toString().toUpperCase();
+                  if (res['id'] != null && (paymentStatus == 'SUBMITTED' || paymentStatus == 'PAYMENT_SUBMITTED')) {
+                    await orderProvider.fetchClientOrders();
+                    if (ctx.mounted) {
+                      Navigator.pop(ctx);
+                    }
+                    if (mounted) {
+                      _loadOrdersAndSync();
+                      messenger.showSnackBar(
+                        const SnackBar(
+                          backgroundColor: Color(0xFF047857),
+                          content: Text('✓ Payment submitted successfully. Awaiting administrative verification.'),
+                        ),
+                      );
+                    }
+                  } else {
+                    setDlgState(() {
+                      _paymentError = 'Payment submission failed.\nUnexpected server response state: ${res['status']}';
+                      isSubmitting = false;
+                    });
                   }
                 } catch (e) {
-                  setDlgState(() => _paymentError = e.toString().replaceAll('Exception: ', ''));
+                  setDlgState(() {
+                    _paymentError = 'Payment submission failed.\n${e.toString().replaceAll('Exception: ', '')}';
+                    isSubmitting = false;
+                  });
                 }
               },
             ),

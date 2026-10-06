@@ -8,12 +8,14 @@ class ClientPaymentSubmissionModal extends StatefulWidget {
   final int orderId;
   final String? initialRefCode;
   final VoidCallback? onSuccess;
+  final PlatformFile? initialFileForTesting;
 
   const ClientPaymentSubmissionModal({
     super.key,
     required this.orderId,
     this.initialRefCode,
     this.onSuccess,
+    this.initialFileForTesting,
   });
 
   static Future<void> show({
@@ -57,6 +59,9 @@ class _ClientPaymentSubmissionModalState extends State<ClientPaymentSubmissionMo
   @override
   void initState() {
     super.initState();
+    if (widget.initialFileForTesting != null) {
+      _selectedFile = widget.initialFileForTesting;
+    }
     _loadDetails();
   }
 
@@ -122,6 +127,18 @@ class _ClientPaymentSubmissionModalState extends State<ClientPaymentSubmissionMo
       return;
     }
 
+    if (_selectedFile!.bytes!.isEmpty || _selectedFile!.size <= 0) {
+      setState(() => _errorMessage = "Selected payment receipt file cannot be empty.");
+      return;
+    }
+
+    final ext = _selectedFile!.name.contains('.') ? _selectedFile!.name.split('.').last.toLowerCase() : '';
+    const allowedExts = ['pdf', 'png', 'jpg', 'jpeg'];
+    if (!allowedExts.contains(ext)) {
+      setState(() => _errorMessage = "Unsupported file format (.$ext). Allowed formats: PDF, PNG, JPG, JPEG.");
+      return;
+    }
+
     final amountPaid = double.tryParse(_amountController.text.trim());
     if (amountPaid == null || amountPaid <= 0) {
       setState(() => _errorMessage = "Please enter a valid positive payment amount.");
@@ -149,18 +166,22 @@ class _ClientPaymentSubmissionModalState extends State<ClientPaymentSubmissionMo
 
     if (mounted) {
       setState(() => _isSubmitting = false);
-      if (res != null && res['error'] == null) {
-        Navigator.of(context).pop();
+      final paymentStatus = res?['status']?.toString().toUpperCase();
+      if (res != null && res['error'] == null && res['id'] != null && (paymentStatus == 'SUBMITTED' || paymentStatus == 'PAYMENT_SUBMITTED')) {
+        final messenger = ScaffoldMessenger.of(context);
+        if (Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
         if (widget.onSuccess != null) widget.onSuccess!();
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(
             backgroundColor: Color(0xFF047857),
-            content: Text("✓ Payment proof submitted successfully. Awaiting administrative verification."),
+            content: Text("✓ Payment submitted successfully. Awaiting administrative verification."),
           ),
         );
       } else {
         setState(() {
-          _errorMessage = res?['error'] ?? "Failed to submit payment proof.";
+          _errorMessage = "Payment submission failed.\n${res?['error'] ?? "Failed to submit payment proof."}";
         });
       }
     }
@@ -280,14 +301,17 @@ class _ClientPaymentSubmissionModalState extends State<ClientPaymentSubmissionMo
                     child: Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text("FEE BREAKDOWN", style: GoogleFonts.montserrat(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF64748B), letterSpacing: 0.5)),
-                            const SizedBox(height: 4),
-                            Text("Base Fee: ₹ ${baseAmount.toStringAsFixed(2)}  |  GST (18%): ₹ ${taxAmount.toStringAsFixed(2)}", style: GoogleFonts.inter(fontSize: 12.5, color: const Color(0xFF334155))),
-                          ],
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text("FEE BREAKDOWN", style: GoogleFonts.montserrat(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF64748B), letterSpacing: 0.5)),
+                              const SizedBox(height: 4),
+                              Text("Base Fee: ₹ ${baseAmount.toStringAsFixed(2)}  |  GST (18%): ₹ ${taxAmount.toStringAsFixed(2)}", style: GoogleFonts.inter(fontSize: 12.5, color: const Color(0xFF334155))),
+                            ],
+                          ),
                         ),
+                        const SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
@@ -360,6 +384,7 @@ class _ClientPaymentSubmissionModalState extends State<ClientPaymentSubmissionMo
                     children: [
                       Expanded(
                         child: DropdownButtonFormField<String>(
+                          isExpanded: true,
                           initialValue: _selectedMethod,
                           decoration: InputDecoration(
                             labelText: "Payment Method *",
