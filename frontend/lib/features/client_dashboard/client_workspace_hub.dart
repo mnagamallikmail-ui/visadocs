@@ -7,7 +7,7 @@
 import 'dart:async';
 import 'dart:typed_data';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'dart:html' as html;
+import '../../services/web_file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
@@ -751,38 +751,56 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
   Widget build(BuildContext context) {
     final auth = context.watch<AuthProvider>();
     final orders = context.watch<OrderProvider>();
-    final isNarrow = MediaQuery.of(context).size.width < 960;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 768;
+    final isNarrow = screenWidth < 1024;
+
+    Widget sidebarWidget({required bool inDrawer}) => _ClientSidebar(
+          collapsed: inDrawer ? false : (_sidebarCollapsed || isNarrow),
+          activeNav: _activeNav,
+          fullName: auth.fullName ?? 'Client Officer',
+          email: auth.email ?? 'client@provaluer.com',
+          onNavSelect: (nav) {
+            if (inDrawer && Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
+            setState(() {
+              _activeNav = nav;
+              _focusedActiveOrder = null;
+              _focusedCompletedOrder = null;
+              if (nav == _ClientNav.createReport) {
+                _resetWizard();
+              } else if (nav == _ClientNav.reportsInProgress || nav == _ClientNav.completedReports) {
+                _loadOrdersAndSync();
+              }
+            });
+          },
+          onProfileTap: () {
+            if (inDrawer && Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
+            _showProfileDialog(auth);
+          },
+          onSupportTap: () {
+            if (inDrawer && Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
+            _showSupportDialog();
+          },
+          onToggleCollapse: () => setState(() => _sidebarCollapsed = !_sidebarCollapsed),
+          onSignOut: () {
+            auth.logout();
+            context.go('/');
+          },
+        );
 
     return Scaffold(
       backgroundColor: _LandingDesignSystem.bgCanvas,
+      drawer: isMobile ? Drawer(child: SafeArea(child: sidebarWidget(inDrawer: true))) : null,
       body: Row(
         children: [
-          // ── LEFT SIDEBAR ──────────────────────────────────────────────────
-          _ClientSidebar(
-            collapsed: _sidebarCollapsed || isNarrow,
-            activeNav: _activeNav,
-            fullName: auth.fullName ?? 'Client Officer',
-            email: auth.email ?? 'client@provaluer.com',
-            onNavSelect: (nav) {
-              setState(() {
-                _activeNav = nav;
-                _focusedActiveOrder = null;
-                _focusedCompletedOrder = null;
-                if (nav == _ClientNav.createReport) {
-                  _resetWizard();
-                } else if (nav == _ClientNav.reportsInProgress || nav == _ClientNav.completedReports) {
-                  _loadOrdersAndSync();
-                }
-              });
-            },
-            onProfileTap: () => _showProfileDialog(auth),
-            onSupportTap: () => _showSupportDialog(),
-            onToggleCollapse: () => setState(() => _sidebarCollapsed = !_sidebarCollapsed),
-            onSignOut: () {
-              auth.logout();
-              context.go('/');
-            },
-          ),
+          // ── LEFT SIDEBAR (Desktop & Tablet) ─────────────────────────────
+          if (!isMobile) sidebarWidget(inDrawer: false),
 
           // ── MAIN WORKSPACE CONTAINER ──────────────────────────────────────
           Expanded(
@@ -799,6 +817,15 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
                         ? 'Delivered Reports'
                         : 'Delivered Report • ${_focusedCompletedOrder['referenceCode'] ?? 'PV-${_focusedCompletedOrder['id']}'}',
                   },
+                  leading: isMobile
+                      ? Builder(
+                          builder: (ctx) => IconButton(
+                            icon: const Icon(Icons.menu_rounded, size: 22, color: _LandingDesignSystem.tealBrand),
+                            tooltip: 'Open Menu',
+                            onPressed: () => Scaffold.of(ctx).openDrawer(),
+                          ),
+                        )
+                      : null,
                   onRefresh: _loadOrdersAndSync,
                 ),
                 Expanded(
@@ -849,12 +876,11 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Top Bar: PART 8 Global Back Button (Header Area above all cards/selectors/forms)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  InkWell(
+              // Top Bar: PART 7 Global Back Button (Header Area above all cards/selectors/forms)
+              LayoutBuilder(
+                builder: (context, headerConstraints) {
+                  final isNarrow = headerConstraints.maxWidth < 640;
+                  final backBtn = InkWell(
                     onTap: () {
                       setState(() {
                         if (_wizardStep > 1) {
@@ -888,9 +914,31 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
                         ],
                       ),
                     ),
-                  ),
-                  _buildNamedProgressTracker(),
-                ],
+                  );
+
+                  if (isNarrow) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        backBtn,
+                        const SizedBox(height: 12),
+                        SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: _buildNamedProgressTracker(),
+                        ),
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      backBtn,
+                      _buildNamedProgressTracker(),
+                    ],
+                  );
+                },
               ),
               const SizedBox(height: 24),
 
@@ -1089,62 +1137,79 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
 
   // Master Service Practice Area Cards
   Widget _buildWizardStep1() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 720;
+        final card1 = _serviceCard(
+          title: ServiceType.assetValuation.displayName,
+          description: ServiceType.assetValuation.shortDescription,
+          iconText: ServiceType.assetValuation.iconText,
+          isSelected: _wizardService == ServiceType.assetValuation.code,
+          onTap: () => setState(() {
+            _wizardService = ServiceType.assetValuation.code;
+            _wizardSubmenu = 'REAL_ESTATE_VALUATION';
+            _wizardSubmenuItem = 'Residential Property';
+            _wizardAsset = 'REAL_ESTATE_VALUATION';
+            _wizardPurpose = 'BANK_COLLATERAL';
+            _wizardDocs.clear();
+            _wizardStep = 2;
+          }),
+        );
+        final card2 = _serviceCard(
+          title: ServiceType.netWorthCertification.displayName,
+          description: ServiceType.netWorthCertification.shortDescription,
+          iconText: ServiceType.netWorthCertification.iconText,
+          isSelected: _wizardService == ServiceType.netWorthCertification.code,
+          onTap: () => setState(() {
+            _wizardService = ServiceType.netWorthCertification.code;
+            _wizardSubmenu = 'INDIVIDUAL';
+            _wizardSubmenuItem = 'Individual Net Worth';
+            _wizardAsset = 'INDIVIDUAL';
+            _wizardPurpose = 'VISA_IMMIGRATION';
+            _wizardDocs.clear();
+            _wizardStep = 2;
+          }),
+        );
+        final card3 = _serviceCard(
+          title: ServiceType.technicalAssessment.displayName,
+          description: ServiceType.technicalAssessment.shortDescription,
+          iconText: ServiceType.technicalAssessment.iconText,
+          isSelected: _wizardService == ServiceType.technicalAssessment.code,
+          onTap: () => setState(() {
+            _wizardService = ServiceType.technicalAssessment.code;
+            _wizardSubmenu = 'PROPERTY_INSPECTION';
+            _wizardSubmenuItem = 'Technical Due Diligence';
+            _wizardAsset = 'PROPERTY_INSPECTION';
+            _wizardPurpose = 'RESIDENTIAL_COMPLEX';
+            _wizardDocs.clear();
+            _wizardStep = 2;
+          }),
+        );
+
+        if (isMobile) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              card1,
+              const SizedBox(height: 14),
+              card2,
+              const SizedBox(height: 14),
+              card3,
+            ],
+          );
+        }
+
+        return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _serviceCard(
-              title: ServiceType.assetValuation.displayName,
-              description: ServiceType.assetValuation.shortDescription,
-              iconText: ServiceType.assetValuation.iconText,
-              isSelected: _wizardService == ServiceType.assetValuation.code,
-              onTap: () => setState(() {
-                _wizardService = ServiceType.assetValuation.code;
-                _wizardSubmenu = 'REAL_ESTATE_VALUATION';
-                _wizardSubmenuItem = 'Residential Property';
-                _wizardAsset = 'REAL_ESTATE_VALUATION';
-                _wizardPurpose = 'BANK_COLLATERAL';
-                _wizardDocs.clear();
-                _wizardStep = 2;
-              }),
-            ),
+            Expanded(child: card1),
             const SizedBox(width: 18),
-            _serviceCard(
-              title: ServiceType.netWorthCertification.displayName,
-              description: ServiceType.netWorthCertification.shortDescription,
-              iconText: ServiceType.netWorthCertification.iconText,
-              isSelected: _wizardService == ServiceType.netWorthCertification.code,
-              onTap: () => setState(() {
-                _wizardService = ServiceType.netWorthCertification.code;
-                _wizardSubmenu = 'INDIVIDUAL';
-                _wizardSubmenuItem = 'Individual Net Worth';
-                _wizardAsset = 'INDIVIDUAL';
-                _wizardPurpose = 'VISA_IMMIGRATION';
-                _wizardDocs.clear();
-                _wizardStep = 2;
-              }),
-            ),
+            Expanded(child: card2),
             const SizedBox(width: 18),
-            _serviceCard(
-              title: ServiceType.technicalAssessment.displayName,
-              description: ServiceType.technicalAssessment.shortDescription,
-              iconText: ServiceType.technicalAssessment.iconText,
-              isSelected: _wizardService == ServiceType.technicalAssessment.code,
-              onTap: () => setState(() {
-                _wizardService = ServiceType.technicalAssessment.code;
-                _wizardSubmenu = 'PROPERTY_INSPECTION';
-                _wizardSubmenuItem = 'Technical Due Diligence';
-                _wizardAsset = 'PROPERTY_INSPECTION';
-                _wizardPurpose = 'RESIDENTIAL_COMPLEX';
-                _wizardDocs.clear();
-                _wizardStep = 2;
-              }),
-            ),
+            Expanded(child: card3),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 
@@ -1155,59 +1220,57 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     required bool isSelected,
     required VoidCallback onTap,
   }) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: isSelected ? _LandingDesignSystem.tealSubtle : _LandingDesignSystem.cardSurface,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(
-              color: isSelected ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.cardBorder,
-              width: isSelected ? 1.8 : 1.0,
-            ),
-            boxShadow: isSelected ? _LandingDesignSystem.cardHoverShadow : _LandingDesignSystem.cardShadow,
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: isSelected ? _LandingDesignSystem.tealSubtle : _LandingDesignSystem.cardSurface,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: isSelected ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.cardBorder,
+            width: isSelected ? 1.8 : 1.0,
           ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: isSelected ? Colors.white : _LandingDesignSystem.bgSubtle,
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    child: Text(iconText, style: const TextStyle(fontSize: 26)),
+          boxShadow: isSelected ? _LandingDesignSystem.cardHoverShadow : _LandingDesignSystem.cardShadow,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: isSelected ? Colors.white : _LandingDesignSystem.bgSubtle,
+                    borderRadius: BorderRadius.circular(12),
                   ),
-                  if (isSelected)
-                    const Icon(Icons.check_circle_rounded, size: 22, color: _LandingDesignSystem.tealBrand),
-                ],
-              ),
-              const SizedBox(height: 18),
-              Text(
-                title,
-                style: GoogleFonts.montserrat(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
-                  color: isSelected ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.textPrimary,
+                  child: Text(iconText, style: const TextStyle(fontSize: 26)),
                 ),
+                if (isSelected)
+                  const Icon(Icons.check_circle_rounded, size: 22, color: _LandingDesignSystem.tealBrand),
+              ],
+            ),
+            const SizedBox(height: 18),
+            Text(
+              title,
+              style: GoogleFonts.montserrat(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: isSelected ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.textPrimary,
               ),
-              const SizedBox(height: 8),
-              Text(
-                description,
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  height: 1.5,
-                  color: _LandingDesignSystem.textSecondary,
-                ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              description,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                height: 1.5,
+                color: _LandingDesignSystem.textSecondary,
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -1387,66 +1450,73 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
         break;
     }
 
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Wrap(
-          spacing: 16,
-          runSpacing: 16,
-          children: options.map((p) {
-            final isSel = _wizardPurpose == p['key'];
-            return SizedBox(
-              width: 320,
-              child: GestureDetector(
-                onTap: () => setState(() {
-                  _wizardPurpose = p['key']!;
-                  _wizardStep = 4;
-                }),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
-                  decoration: BoxDecoration(
-                    color: isSel ? _LandingDesignSystem.tealSubtle : _LandingDesignSystem.cardSurface,
-                    borderRadius: BorderRadius.circular(14),
-                    border: Border.all(
-                      color: isSel ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.cardBorder,
-                      width: isSel ? 1.8 : 1.0,
-                    ),
-                    boxShadow: isSel ? _LandingDesignSystem.cardHoverShadow : _LandingDesignSystem.cardShadow,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final itemWidth = constraints.maxWidth < 640
+            ? constraints.maxWidth
+            : (constraints.maxWidth < 960 ? (constraints.maxWidth - 16) / 2 : 320.0);
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Wrap(
+              spacing: 16,
+              runSpacing: 16,
+              children: options.map((p) {
+                final isSel = _wizardPurpose == p['key'];
+                return SizedBox(
+                  width: itemWidth,
+                  child: GestureDetector(
+                    onTap: () => setState(() {
+                      _wizardPurpose = p['key']!;
+                      _wizardStep = 4;
+                    }),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                      decoration: BoxDecoration(
+                        color: isSel ? _LandingDesignSystem.tealSubtle : _LandingDesignSystem.cardSurface,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(
+                          color: isSel ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.cardBorder,
+                          width: isSel ? 1.8 : 1.0,
+                        ),
+                        boxShadow: isSel ? _LandingDesignSystem.cardHoverShadow : _LandingDesignSystem.cardShadow,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Text(
-                              p['title']!,
-                              style: GoogleFonts.montserrat(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                                color: isSel ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.textPrimary,
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Expanded(
+                                child: Text(
+                                  p['title']!,
+                                  style: GoogleFonts.montserrat(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w700,
+                                    color: isSel ? _LandingDesignSystem.tealBrand : _LandingDesignSystem.textPrimary,
+                                  ),
+                                ),
                               ),
-                            ),
+                              if (isSel)
+                                const Icon(Icons.check_circle_rounded, size: 18, color: _LandingDesignSystem.tealBrand),
+                            ],
                           ),
-                          if (isSel)
-                            const Icon(Icons.check_circle_rounded, size: 18, color: _LandingDesignSystem.tealBrand),
+                          const SizedBox(height: 4),
+                          Text(
+                            p['sub']!,
+                            style: GoogleFonts.inter(fontSize: 12, color: _LandingDesignSystem.textSecondary),
+                          ),
                         ],
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        p['sub']!,
-                        style: GoogleFonts.inter(fontSize: 12, color: _LandingDesignSystem.textSecondary),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            );
-          }).toList(),
-        ),
-      ],
+                );
+              }).toList(),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -1661,54 +1731,51 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
           child: content,
         ),
         const SizedBox(height: 28),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _secondaryButton(label: '← Back to ${service.step3Label}', onTap: () => setState(() => _wizardStep = 3)),
-            if (_step4AutoAdvancing)
-              Row(
-                children: [
-                  const SizedBox(
-                    width: 16,
-                    height: 16,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: _LandingDesignSystem.tealBrand),
-                  ),
-                  const SizedBox(width: 8),
-                  Text('Advancing to documents...', style: GoogleFonts.inter(fontSize: 12.5, color: _LandingDesignSystem.tealBrand)),
-                ],
-              )
-            else
-              _primaryCtaButton(
-                label: 'Continue to Documents',
-                onTap: () {
-                  bool valid = false;
-                  switch (service) {
-                    case ServiceType.assetValuation:
-                      valid = _assetNameCtrl.text.trim().isNotEmpty &&
-                          _propertyAddressCtrl.text.trim().isNotEmpty &&
-                          _cityCtrl.text.trim().isNotEmpty;
-                      break;
-                    case ServiceType.netWorthCertification:
-                      valid = _legalNameCtrl.text.trim().isNotEmpty &&
-                          _panNumberCtrl.text.trim().isNotEmpty &&
-                          _cityCtrl.text.trim().isNotEmpty;
-                      break;
-                    case ServiceType.technicalAssessment:
-                      valid = _assetNameCtrl.text.trim().isNotEmpty &&
-                          _propertyAddressCtrl.text.trim().isNotEmpty &&
-                          _cityCtrl.text.trim().isNotEmpty;
-                      break;
-                  }
-                  if (!valid) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Please provide all mandatory details before continuing.')),
-                    );
-                    return;
-                  }
-                  setState(() => _wizardStep = 5);
-                },
-              ),
-          ],
+        Align(
+          alignment: Alignment.centerRight,
+          child: _step4AutoAdvancing
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: _LandingDesignSystem.tealBrand),
+                    ),
+                    const SizedBox(width: 8),
+                    Text('Advancing to documents...', style: GoogleFonts.inter(fontSize: 12.5, color: _LandingDesignSystem.tealBrand)),
+                  ],
+                )
+              : _primaryCtaButton(
+                  label: 'Continue to Documents',
+                  onTap: () {
+                    bool valid = false;
+                    switch (service) {
+                      case ServiceType.assetValuation:
+                        valid = _assetNameCtrl.text.trim().isNotEmpty &&
+                            _propertyAddressCtrl.text.trim().isNotEmpty &&
+                            _cityCtrl.text.trim().isNotEmpty;
+                        break;
+                      case ServiceType.netWorthCertification:
+                        valid = _legalNameCtrl.text.trim().isNotEmpty &&
+                            _panNumberCtrl.text.trim().isNotEmpty &&
+                            _cityCtrl.text.trim().isNotEmpty;
+                        break;
+                      case ServiceType.technicalAssessment:
+                        valid = _assetNameCtrl.text.trim().isNotEmpty &&
+                            _propertyAddressCtrl.text.trim().isNotEmpty &&
+                            _cityCtrl.text.trim().isNotEmpty;
+                        break;
+                    }
+                    if (!valid) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('Please provide all mandatory details before continuing.')),
+                      );
+                      return;
+                    }
+                    setState(() => _wizardStep = 5);
+                  },
+                ),
         ),
       ],
     );
@@ -1822,15 +1889,12 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
         ),
         _buildMissingDocsCard(),
         const SizedBox(height: 28),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _secondaryButton(label: '← Back to ${service.step4Label}', onTap: () => setState(() => _wizardStep = 4)),
-            _primaryCtaButton(
-              label: 'Review Your Request',
-              onTap: _areAllMandatoryDocsUploaded() ? () => setState(() => _wizardStep = 6) : null,
-            ),
-          ],
+        Align(
+          alignment: Alignment.centerRight,
+          child: _primaryCtaButton(
+            label: 'Review Your Request',
+            onTap: _areAllMandatoryDocsUploaded() ? () => setState(() => _wizardStep = 6) : null,
+          ),
         ),
       ],
     );
@@ -1967,24 +2031,18 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
           ),
         ),
         const SizedBox(height: 28),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _secondaryButton(
-              label: '← Edit Information',
-              onTap: _wizardSubmitting ? null : () => setState(() => _wizardStep = 5),
-            ),
-            _wizardSubmitting
-                ? const SizedBox(
-                    width: 24,
-                    height: 24,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: _LandingDesignSystem.tealBrand),
-                  )
-                : _primaryCtaButton(
-                    label: 'Submit Request',
-                    onTap: (_areAllMandatoryDocsUploaded() && !_wizardSubmitting) ? _submitWizardReport : null,
-                  ),
-          ],
+        Align(
+          alignment: Alignment.centerRight,
+          child: _wizardSubmitting
+              ? const SizedBox(
+                  width: 24,
+                  height: 24,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: _LandingDesignSystem.tealBrand),
+                )
+              : _primaryCtaButton(
+                  label: 'Submit Request',
+                  onTap: (_areAllMandatoryDocsUploaded() && !_wizardSubmitting) ? _submitWizardReport : null,
+                ),
         ),
       ],
     );
@@ -2182,9 +2240,9 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
                         width: cardWidth,
                         child: _welcomeActionCard(
                           icon: Icons.hourglass_top_rounded,
-                          title: 'View Active Requests',
+                          title: 'View Active Reports',
                           subtitle: 'Track in-flight requests, quote approvals, payments, and valuation inspections.',
-                          buttonLabel: 'Active Requests →',
+                          buttonLabel: 'Active Reports →',
                           primary: false,
                           onTap: () {
                             setState(() {
@@ -2238,16 +2296,22 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      children: [
-                        const Icon(Icons.help_outline_rounded, size: 20, color: _LandingDesignSystem.tealBrand),
-                        const SizedBox(width: 12),
-                        Text(
-                          'Direct Valuer Desk: +91 85000 19091 • provaluer.india@gmail.com • Mon–Sat 9AM–7PM IST',
-                          style: GoogleFonts.inter(fontSize: 13, color: _LandingDesignSystem.textSecondary),
-                        ),
-                      ],
+                    Expanded(
+                      child: Row(
+                        children: [
+                          const Icon(Icons.help_outline_rounded, size: 20, color: _LandingDesignSystem.tealBrand),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              'Direct Valuer Desk: +91 85000 19091 • provaluer.india@gmail.com • Mon–Sat 9AM–7PM IST',
+                              style: GoogleFonts.inter(fontSize: 13, color: _LandingDesignSystem.textSecondary),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 12),
                     InkWell(
                       onTap: _showSupportDialog,
                       borderRadius: BorderRadius.circular(8),
@@ -2359,30 +2423,36 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
         .toList();
 
     return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 32),
+      padding: EdgeInsets.symmetric(
+        horizontal: MediaQuery.of(context).size.width < 600 ? 16 : 40,
+        vertical: 32,
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Row(
                 children: [
                   Text(
-                    'Active Requests',
+                    'MY REPORTS',
                     style: GoogleFonts.montserrat(
                       fontSize: 22,
                       fontWeight: FontWeight.w700,
                       color: _LandingDesignSystem.textPrimary,
                     ),
                   ),
-                  const SizedBox(width: 14),
-                  _metricPill(
-                    label: '${activeOrders.length} In Progress',
-                    bgColor: _LandingDesignSystem.tealSubtle,
-                    borderColor: _LandingDesignSystem.tealBorder,
-                    textColor: _LandingDesignSystem.tealBrand,
-                  ),
+                  if (activeOrders.isNotEmpty) ...[
+                    const SizedBox(width: 14),
+                    _metricPill(
+                      label: '${activeOrders.length} In Progress',
+                      bgColor: _LandingDesignSystem.tealSubtle,
+                      borderColor: _LandingDesignSystem.tealBorder,
+                      textColor: _LandingDesignSystem.tealBrand,
+                    ),
+                  ],
                 ],
               ),
               _secondaryButton(
@@ -2396,43 +2466,9 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
               ),
             ],
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 24),
           if (activeOrders.isEmpty)
-            Container(
-              padding: const EdgeInsets.all(32),
-              decoration: BoxDecoration(
-                color: _LandingDesignSystem.cardSurface,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: _LandingDesignSystem.cardBorder),
-              ),
-              child: Center(
-                child: Column(
-                  children: [
-                    const Icon(Icons.inbox_outlined, size: 40, color: _LandingDesignSystem.textSecondary),
-                    const SizedBox(height: 12),
-                    Text(
-                      'No active requests currently in progress.',
-                      style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textPrimary),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      'Start a new valuation request to engage our advisory desk.',
-                      style: GoogleFonts.inter(fontSize: 12.5, color: _LandingDesignSystem.textSecondary),
-                    ),
-                    const SizedBox(height: 16),
-                    _primaryCtaButton(
-                      label: 'Create Request Now',
-                      onTap: () {
-                        setState(() {
-                          _activeNav = _ClientNav.createReport;
-                          _resetWizard();
-                        });
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            )
+            _buildZeroReportsEmptyState()
           else
             ...activeOrders.map((order) => _buildCompactAccordionReportCard(order, isDeliveredList: false)),
         ],
@@ -2440,9 +2476,151 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     );
   }
 
+  Widget _buildZeroReportsEmptyState() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 36),
+          decoration: BoxDecoration(
+            color: _LandingDesignSystem.cardSurface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _LandingDesignSystem.cardBorder),
+            boxShadow: _LandingDesignSystem.cardShadow,
+          ),
+          child: Column(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  color: _LandingDesignSystem.bgSubtle,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.description_outlined, size: 36, color: _LandingDesignSystem.textSecondary),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'No reports found.',
+                style: GoogleFonts.montserrat(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                  color: _LandingDesignSystem.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Create your first request to begin tracking progress.',
+                style: GoogleFonts.inter(
+                  fontSize: 13.5,
+                  color: _LandingDesignSystem.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              _primaryCtaButton(
+                label: 'Create New Request',
+                onTap: () {
+                  setState(() {
+                    _activeNav = _ClientNav.createReport;
+                    _resetWizard();
+                  });
+                },
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 24),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(24),
+          decoration: BoxDecoration(
+            color: _LandingDesignSystem.cardSurface,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: _LandingDesignSystem.cardBorder),
+            boxShadow: _LandingDesignSystem.cardShadow,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'How it works',
+                style: GoogleFonts.montserrat(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: _LandingDesignSystem.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 18),
+              _buildHowItWorksStep(1, 'Create Request', 'Submit asset parameters and required ownership documents.'),
+              const SizedBox(height: 12),
+              _buildHowItWorksStep(2, 'Receive Quote', 'Senior valuation desk reviews scope and issues official fee proposal.'),
+              const SizedBox(height: 12),
+              _buildHowItWorksStep(3, 'Submit Payment', 'Remit appraisal fee and upload transaction UTR reference.'),
+              const SizedBox(height: 12),
+              _buildHowItWorksStep(4, 'Track Progress', 'Monitor desk appraisal, physical site inspection, and SPA review.'),
+              const SizedBox(height: 12),
+              _buildHowItWorksStep(5, 'Download Report', 'Access digitally certified IBBI valuation report and statutory tax invoice.'),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildHowItWorksStep(int num, String title, String subtitle) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: _LandingDesignSystem.tealBrand,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Center(
+            child: Text(
+              '$num',
+              style: GoogleFonts.montserrat(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                '$num. $title',
+                style: GoogleFonts.montserrat(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: _LandingDesignSystem.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Text(
+                subtitle,
+                style: GoogleFonts.inter(
+                  fontSize: 12.5,
+                  color: _LandingDesignSystem.textSecondary,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
   // ═════════════════════════════════════════════════════════════════════════
-  // PART 4, 5, 6: COMPACT ACCORDION REPORT CARD (Status inside card)
-  // Collapsed by default. Tightly packed.
+  // PART 2 & 3: COMPACT ACCORDION REPORT CARD (Status strictly inside card)
+  // Collapsed by default. Minimal info initially visible.
   // Expands on click to reveal Quote, Payment, Documents, Timeline, Invoice, Report.
   // ═════════════════════════════════════════════════════════════════════════
   Widget _buildCompactAccordionReportCard(dynamic order, {required bool isDeliveredList}) {
@@ -2488,84 +2666,159 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
               });
             },
             borderRadius: BorderRadius.circular(10),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
-              child: Row(
-                children: [
-                  // Reference Number
-                  Expanded(
-                    flex: 3,
+            child: LayoutBuilder(
+              builder: (context, cardConstraints) {
+                final isMobileCard = cardConstraints.maxWidth < 540;
+
+                if (isMobileCard) {
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text(
-                          refCode,
-                          style: GoogleFonts.montserrat(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w700,
-                            color: _LandingDesignSystem.textPrimary,
-                          ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Expanded(
+                              child: Text(
+                                refCode,
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: _LandingDesignSystem.textPrimary,
+                                ),
+                              ),
+                            ),
+                            // Status Badge strictly inside report card
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: _getStatusBadgeBg(statusStr),
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: _getStatusBadgeBorder(statusStr)),
+                              ),
+                              child: Text(
+                                statusStr,
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: _getStatusBadgeFg(statusStr),
+                                  letterSpacing: 0.4,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          (order['propertyCategory'] ?? order['serviceType'] ?? 'Asset Valuation').toString().replaceAll('_', ' '),
-                          style: GoogleFonts.inter(
-                            fontSize: 11.5,
-                            color: _LandingDesignSystem.textSecondary,
-                          ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.calendar_today_outlined, size: 12, color: _LandingDesignSystem.textSecondary),
+                                const SizedBox(width: 5),
+                                Text(
+                                  dateStr,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w500,
+                                    color: _LandingDesignSystem.textSecondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            Icon(
+                              isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                              size: 20,
+                              color: _LandingDesignSystem.textSecondary,
+                            ),
+                          ],
                         ),
                       ],
                     ),
-                  ),
+                  );
+                }
 
-                  // Date
-                  Expanded(
-                    flex: 2,
-                    child: Row(
-                      children: [
-                        const Icon(Icons.calendar_today_outlined, size: 13, color: _LandingDesignSystem.textSecondary),
-                        const SizedBox(width: 6),
-                        Text(
-                          dateStr,
-                          style: GoogleFonts.inter(
-                            fontSize: 12.5,
-                            fontWeight: FontWeight.w500,
-                            color: _LandingDesignSystem.textSecondary,
-                          ),
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 12),
+                  child: Row(
+                    children: [
+                      // Reference Number
+                      Expanded(
+                        flex: 3,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              refCode,
+                              style: GoogleFonts.montserrat(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                                color: _LandingDesignSystem.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              (order['propertyCategory'] ?? order['serviceType'] ?? 'Asset Valuation').toString().replaceAll('_', ' '),
+                              style: GoogleFonts.inter(
+                                fontSize: 11.5,
+                                color: _LandingDesignSystem.textSecondary,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-
-                  // Status Badge strictly inside the card
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: _getStatusBadgeBg(statusStr),
-                      borderRadius: BorderRadius.circular(6),
-                      border: Border.all(color: _getStatusBadgeBorder(statusStr)),
-                    ),
-                    child: Text(
-                      statusStr,
-                      style: GoogleFonts.montserrat(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: _getStatusBadgeFg(statusStr),
-                        letterSpacing: 0.4,
                       ),
-                    ),
-                  ),
 
-                  const SizedBox(width: 14),
+                      // Date
+                      Expanded(
+                        flex: 2,
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_today_outlined, size: 13, color: _LandingDesignSystem.textSecondary),
+                            const SizedBox(width: 6),
+                            Text(
+                              dateStr,
+                              style: GoogleFonts.inter(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w500,
+                                color: _LandingDesignSystem.textSecondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
 
-                  // Expand/Collapse Chevron Indicator
-                  Icon(
-                    isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
-                    size: 20,
-                    color: _LandingDesignSystem.textSecondary,
+                      // Status Badge strictly inside the card
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: _getStatusBadgeBg(statusStr),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: _getStatusBadgeBorder(statusStr)),
+                        ),
+                        child: Text(
+                          statusStr,
+                          style: GoogleFonts.montserrat(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w700,
+                            color: _getStatusBadgeFg(statusStr),
+                            letterSpacing: 0.4,
+                          ),
+                        ),
+                      ),
+
+                      const SizedBox(width: 14),
+
+                      // Expand/Collapse Chevron Indicator
+                      Icon(
+                        isExpanded ? Icons.keyboard_arrow_up_rounded : Icons.keyboard_arrow_down_rounded,
+                        size: 20,
+                        color: _LandingDesignSystem.textSecondary,
+                      ),
+                    ],
                   ),
-                ],
-              ),
+                );
+              },
             ),
           ),
 
@@ -2578,10 +2831,11 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   // 1. Timeline Tracker
+                  // 1. Timeline Tracker
                   Text(
-                    'WORKFLOW TIMELINE',
+                    'Timeline',
                     style: GoogleFonts.montserrat(
-                      fontSize: 10.5,
+                      fontSize: 11,
                       fontWeight: FontWeight.w700,
                       letterSpacing: 0.8,
                       color: _LandingDesignSystem.textSecondary,
@@ -2597,15 +2851,19 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
                         'Current Stage: ${stage.stageTitle}',
                         style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: _LandingDesignSystem.tealBrand),
                       ),
-                      Text(
-                        stage.statusDescription,
-                        style: GoogleFonts.inter(fontSize: 11.5, color: _LandingDesignSystem.textSecondary),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          stage.statusDescription,
+                          textAlign: TextAlign.end,
+                          style: GoogleFonts.inter(fontSize: 11.5, color: _LandingDesignSystem.textSecondary),
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 20),
 
-                  // 2. 5 Information Grids: Quote, Payment, Documents, Invoice, Report
+                  // 2. Information Grids: Quote Information, Payment Information, Documents, Invoice, Report
                   LayoutBuilder(
                     builder: (context, constraints) {
                       final isWide = constraints.maxWidth > 700;
@@ -2672,7 +2930,7 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
                           SizedBox(
                             width: colWidth,
                             child: _buildAccordionSection(
-                              title: 'Documents & Evidence',
+                              title: 'Documents',
                               icon: Icons.folder_open_outlined,
                               content: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -2694,40 +2952,49 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
                             ),
                           ),
 
-                          // Invoice & Report
+                          // Invoice
                           SizedBox(
                             width: colWidth,
                             child: _buildAccordionSection(
-                              title: 'Deliverables & Statutory Invoice',
+                              title: 'Invoice',
+                              icon: Icons.receipt_outlined,
+                              content: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Statutory Tax Invoice', style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600)),
+                                  const SizedBox(height: 8),
+                                  _secondaryButton(
+                                    label: 'Download Invoice PDF',
+                                    onTap: () => _downloadTaxInvoice(orderId),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          // Report
+                          SizedBox(
+                            width: colWidth,
+                            child: _buildAccordionSection(
+                              title: 'Report',
                               icon: Icons.verified_outlined,
                               content: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Row(
-                                    children: [
-                                      if (stage.isDelivered) ...[
-                                        _primaryCtaButton(
-                                          label: 'Download Report PDF',
-                                          onTap: () => _downloadFinalReport(refCode),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        _secondaryButton(
-                                          label: 'Tax Invoice',
-                                          onTap: () => _downloadTaxInvoice(orderId),
-                                        ),
-                                      ] else ...[
-                                        Text(
-                                          'Report: In Preparation',
-                                          style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFFB45309)),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        _secondaryButton(
-                                          label: 'Tax Invoice',
-                                          onTap: () => _downloadTaxInvoice(orderId),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
+                                  if (stage.isDelivered) ...[
+                                    _primaryCtaButton(
+                                      label: 'Download Report PDF',
+                                      onTap: () => _downloadFinalReport(refCode),
+                                    ),
+                                  ] else ...[
+                                    Text(
+                                      'Report: In Preparation',
+                                      style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: const Color(0xFFB45309)),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text('Available immediately once final sign-off is completed.',
+                                        style: GoogleFonts.inter(fontSize: 12, color: _LandingDesignSystem.textSecondary)),
+                                  ],
                                 ],
                               ),
                             ),
@@ -3994,17 +4261,7 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
   }
 
   void _triggerBrowserFileDownload(Uint8List bytes, String filename, String mimeType) {
-    if (kIsWeb) {
-      final blob = html.Blob([bytes], mimeType);
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute('download', filename)
-        ..style.display = 'none';
-      html.document.body?.append(anchor);
-      anchor.click();
-      anchor.remove();
-      html.Url.revokeObjectUrl(url);
-    }
+    triggerBrowserDownload(bytes, filename, mimeType);
   }
 
   Future<void> _downloadQuotePdf(int orderId) async {
@@ -4572,7 +4829,7 @@ class _ClientSidebar extends StatelessWidget {
         onTap: () => onNavSelect(nav),
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8.5),
+          padding: EdgeInsets.symmetric(horizontal: collapsed ? 4 : 10, vertical: 8.5),
           decoration: BoxDecoration(
             color: isActive ? _LandingDesignSystem.tealSubtle : Colors.transparent,
             borderRadius: BorderRadius.circular(8),
@@ -4581,8 +4838,9 @@ class _ClientSidebar extends StatelessWidget {
             ),
           ),
           child: Row(
+            mainAxisAlignment: collapsed ? MainAxisAlignment.center : MainAxisAlignment.start,
             children: [
-              if (isActive)
+              if (isActive && !collapsed)
                 Container(
                   width: 3,
                   height: 16,
@@ -4641,10 +4899,12 @@ class _ClientSidebar extends StatelessWidget {
 class _ClientTopHeader extends StatelessWidget {
   final String title;
   final VoidCallback onRefresh;
+  final Widget? leading;
 
   const _ClientTopHeader({
     required this.title,
     required this.onRefresh,
+    this.leading,
   });
 
   @override
@@ -4653,7 +4913,7 @@ class _ClientTopHeader extends StatelessWidget {
     // The portal focuses on Current Engagements, not creating another request.
     return Container(
       height: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 28),
+      padding: const EdgeInsets.symmetric(horizontal: 20),
       decoration: const BoxDecoration(
         color: _LandingDesignSystem.bgSurface,
         border: Border(bottom: BorderSide(color: _LandingDesignSystem.cardBorder)),
@@ -4661,13 +4921,22 @@ class _ClientTopHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            title,
-            style: GoogleFonts.montserrat(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: _LandingDesignSystem.textPrimary,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (leading != null) ...[
+                leading!,
+                const SizedBox(width: 8),
+              ],
+              Text(
+                title,
+                style: GoogleFonts.montserrat(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: _LandingDesignSystem.textPrimary,
+                ),
+              ),
+            ],
           ),
           IconButton(
             icon: const Icon(Icons.refresh_rounded, size: 18, color: _LandingDesignSystem.textSecondary),

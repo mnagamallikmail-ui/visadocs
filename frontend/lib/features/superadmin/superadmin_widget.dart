@@ -31,8 +31,17 @@ class SuperAdminWidget extends StatefulWidget {
 
 class _SuperAdminWidgetState extends State<SuperAdminWidget> {
   String _selectedMenu = 'overview';
+  Map<String, dynamic>? _selectedMenuParams;
   bool _showValuationPortal = false;
   final ApiService _api = ApiService();
+
+  void _navigateTo(String menuKey, [Map<String, dynamic>? params]) {
+    setState(() {
+      _selectedMenu = menuKey;
+      _selectedMenuParams = params;
+      if (menuKey == 'users') _loadUsers();
+    });
+  }
 
   // User Management state
   bool _loadingUsers = false;
@@ -858,6 +867,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
         } else {
           setState(() {
             _selectedMenu = key;
+            _selectedMenuParams = null;
             if (key == 'users') _loadUsers();
           });
         }
@@ -870,11 +880,11 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
     final isSuper = widget.role == 'SUPER_ADMIN';
     final menu = _selectedMenu;
     if (!isSuper && menu != 'overview' && menu != 'leads_crm' && menu != 'queue' && menu != 'intake_clearance' && menu != 'templates' && menu != 'signing' && menu != 'seo_intelligence') {
-      return const AdminOverviewSection();
+      return AdminOverviewSection(onNavigate: _navigateTo);
     }
     switch (menu) {
       case 'overview':
-        return const AdminOverviewSection();
+        return AdminOverviewSection(onNavigate: _navigateTo);
       case 'leads_crm':
         return const AdminLeadsCrmSection();
       case 'seo_intelligence':
@@ -882,9 +892,14 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
       case 'users':
         return _buildUserManagement();
       case 'queue':
-        return const AdminQueueSection();
+        return AdminQueueSection(
+          initialQuickFilter: _selectedMenuParams?['quickFilter'],
+          initialSearch: _selectedMenuParams?['search'],
+        );
       case 'intake_clearance':
-        return const AdminReleaseQueueSection();
+        return AdminReleaseQueueSection(
+          initialTab: _selectedMenuParams?['tab'] ?? 0,
+        );
       case 'sla':
         return const AdminSlaSection();
       case 'pricing':
@@ -898,13 +913,15 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
       case 'val_settings':
         return const AdminValuationSettingsSection();
       case 'reports':
-        return const AdminReportSection();
+        return AdminReportSection(
+          initialFilter: _selectedMenuParams?['filter'],
+        );
       case 'trash':
         return const AdminTrashBinSection();
       case 'signing':
         return const AdminSigningSection();
       default:
-        return const AdminOverviewSection();
+        return AdminOverviewSection(onNavigate: _navigateTo);
     }
   }
 

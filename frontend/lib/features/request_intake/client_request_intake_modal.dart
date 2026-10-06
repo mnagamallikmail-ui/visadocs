@@ -415,6 +415,41 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
       ),
       child: Row(
         children: [
+          if (_currentStep > 1 && _currentStep < 7) ...[
+            InkWell(
+              onTap: () {
+                _clearError();
+                setState(() {
+                  _currentStep--;
+                });
+              },
+              borderRadius: BorderRadius.circular(8),
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                margin: const EdgeInsets.only(right: 10),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.white24),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.arrow_back_rounded, size: 14, color: Colors.white),
+                    const SizedBox(width: 4),
+                    Text(
+                      '← Back',
+                      style: GoogleFonts.montserrat(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
@@ -782,7 +817,36 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
           return Padding(
             padding: const EdgeInsets.only(bottom: 14),
             child: InkWell(
-              onTap: () => setState(() => _selectedServiceCategory = svc['id'] as String),
+              onTap: () {
+                _clearError();
+                final service = ServiceTaxonomy.parseService(svc['id'] as String);
+                final submenus = ServiceTaxonomy.getSubmenusForService(service);
+                String propCat = _selectedPropertyCategory;
+                String subItem = _selectedSubmenuItem;
+                if (submenus.isNotEmpty) {
+                  propCat = submenus.first.id;
+                  subItem = submenus.first.items.first;
+                }
+                String purpose = _selectedPurpose;
+                switch (service) {
+                  case ServiceType.assetValuation:
+                    purpose = 'BANK_COLLATERAL';
+                    break;
+                  case ServiceType.netWorthCertification:
+                    purpose = 'VISA_IMMIGRATION';
+                    break;
+                  case ServiceType.technicalAssessment:
+                    purpose = 'RESIDENTIAL_COMPLEX';
+                    break;
+                }
+                setState(() {
+                  _selectedServiceCategory = svc['id'] as String;
+                  _selectedPropertyCategory = propCat;
+                  _selectedSubmenuItem = subItem;
+                  _selectedPurpose = purpose;
+                  _currentStep = 4; // Auto advance to Step 2
+                });
+              },
               borderRadius: BorderRadius.circular(14),
               child: Container(
                 padding: const EdgeInsets.all(18),
@@ -832,7 +896,25 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
                       value: svc['id'] as String,
                       groupValue: _selectedServiceCategory,
                       activeColor: AppColors.primaryBlue,
-                      onChanged: (val) => setState(() => _selectedServiceCategory = val!),
+                      onChanged: (val) {
+                        if (val != null) {
+                          _clearError();
+                          final service = ServiceTaxonomy.parseService(val);
+                          final submenus = ServiceTaxonomy.getSubmenusForService(service);
+                          String propCat = _selectedPropertyCategory;
+                          String subItem = _selectedSubmenuItem;
+                          if (submenus.isNotEmpty) {
+                            propCat = submenus.first.id;
+                            subItem = submenus.first.items.first;
+                          }
+                          setState(() {
+                            _selectedServiceCategory = val;
+                            _selectedPropertyCategory = propCat;
+                            _selectedSubmenuItem = subItem;
+                            _currentStep = 4;
+                          });
+                        }
+                      },
                     ),
                   ],
                 ),
@@ -840,50 +922,6 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
             ),
           );
         }),
-
-        const SizedBox(height: 24),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.end,
-          children: [
-            ElevatedButton(
-              onPressed: () {
-                _clearError();
-                final service = ServiceTaxonomy.parseService(_selectedServiceCategory);
-                final submenus = ServiceTaxonomy.getSubmenusForService(service);
-                if (submenus.isNotEmpty) {
-                  _selectedPropertyCategory = submenus.first.id;
-                  _selectedSubmenuItem = submenus.first.items.first;
-                }
-                switch (service) {
-                  case ServiceType.assetValuation:
-                    _selectedPurpose = 'BANK_COLLATERAL';
-                    break;
-                  case ServiceType.netWorthCertification:
-                    _selectedPurpose = 'VISA_IMMIGRATION';
-                    break;
-                  case ServiceType.technicalAssessment:
-                    _selectedPurpose = 'RESIDENTIAL_COMPLEX';
-                    break;
-                }
-                setState(() => _currentStep = 4);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.brandNavy,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text("Continue to ${ServiceTaxonomy.parseService(_selectedServiceCategory).step2Label}", style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700)),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.arrow_forward_rounded, size: 16),
-                ],
-              ),
-            ),
-          ],
-        ),
       ],
     );
   }
@@ -952,6 +990,8 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
                 if (!opt.items.contains(_selectedSubmenuItem)) {
                   _selectedSubmenuItem = opt.items.first;
                 }
+                _clearError();
+                _currentStep = 5; // Auto advance to Purpose
               }),
               borderRadius: BorderRadius.circular(12),
               child: Container(
@@ -985,12 +1025,18 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
                           value: opt.id,
                           groupValue: _selectedPropertyCategory,
                           activeColor: AppColors.primaryBlue,
-                          onChanged: (val) => setState(() {
-                            _selectedPropertyCategory = val!;
-                            if (!opt.items.contains(_selectedSubmenuItem)) {
-                              _selectedSubmenuItem = opt.items.first;
+                          onChanged: (val) {
+                            if (val != null) {
+                              setState(() {
+                                _selectedPropertyCategory = val;
+                                if (!opt.items.contains(_selectedSubmenuItem)) {
+                                  _selectedSubmenuItem = opt.items.first;
+                                }
+                                _clearError();
+                                _currentStep = 5;
+                              });
                             }
-                          }),
+                          },
                         ),
                       ],
                     ),
@@ -1006,7 +1052,12 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
                         children: opt.items.map((item) {
                           final isItemSelected = _selectedSubmenuItem == item;
                           return InkWell(
-                            onTap: () => setState(() => _selectedSubmenuItem = item),
+                            onTap: () => setState(() {
+                              _selectedPropertyCategory = opt.id;
+                              _selectedSubmenuItem = item;
+                              _clearError();
+                              _currentStep = 5;
+                            }),
                             borderRadius: BorderRadius.circular(8),
                             child: Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
@@ -1033,60 +1084,6 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
             ),
           );
         }),
-
-        const SizedBox(height: 20),
-        specializedFields,
-
-        const SizedBox(height: 24),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            OutlinedButton(
-              onPressed: () {
-                _clearError();
-                setState(() => _currentStep = 3);
-              },
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Color(0xFFCBD5E1)),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: Text("← Back", style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.slate)),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                if (service == ServiceType.assetValuation && _assetNameCtrl.text.trim().isEmpty) {
-                  setState(() => _errorMessage = "Asset / Property name is required.");
-                  return;
-                }
-                if (service == ServiceType.netWorthCertification && _legalNameCtrl.text.trim().isEmpty) {
-                  setState(() => _errorMessage = "Applicant / Entity legal name is required.");
-                  return;
-                }
-                if (service == ServiceType.technicalAssessment && _assetNameCtrl.text.trim().isEmpty) {
-                  setState(() => _errorMessage = "Project / Facility / Site name is required.");
-                  return;
-                }
-                _clearError();
-                setState(() => _currentStep = 5);
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.brandNavy,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text("Continue to ${service.step3Label}", style: GoogleFonts.montserrat(fontSize: 13.5, fontWeight: FontWeight.w700)),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.arrow_forward_rounded, size: 16),
-                ],
-              ),
-            ),
-          ],
-        ),
       ],
     );
   }
@@ -1159,6 +1156,9 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
         ),
 
         const SizedBox(height: 20),
+        _buildSpecializedFields(service),
+
+        const SizedBox(height: 20),
         _buildTextField(label: "Target Bank / Institution / Authority", controller: _targetBankCtrl, hint: "e.g. State Bank of India / US Embassy / HDFC", icon: Icons.account_balance_outlined),
         const SizedBox(height: 14),
 
@@ -1188,20 +1188,8 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
 
         const SizedBox(height: 24),
         Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          mainAxisAlignment: MainAxisAlignment.end,
           children: [
-            OutlinedButton(
-              onPressed: () {
-                _clearError();
-                setState(() => _currentStep = 4);
-              },
-              style: OutlinedButton.styleFrom(
-                side: const BorderSide(color: Color(0xFFCBD5E1)),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              ),
-              child: Text("← Back", style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.slate)),
-            ),
             ElevatedButton(
               onPressed: _isLoading ? null : _saveDraftAndProceedToUpload,
               style: ElevatedButton.styleFrom(
@@ -1225,6 +1213,43 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
         ),
       ],
     );
+  }
+
+  Widget _buildSpecializedFields(ServiceType service) {
+    switch (service) {
+      case ServiceType.assetValuation:
+        return Column(
+          children: [
+            _buildTextField(label: "Asset / Property Name *", controller: _assetNameCtrl, hint: "e.g. Prestige Tech Cloud, Tower 2", icon: Icons.tag_outlined),
+            const SizedBox(height: 14),
+            _buildTextField(label: "Asset Location (City, State) *", controller: _assetLocationCtrl, hint: "e.g. Bengaluru, Karnataka", icon: Icons.place_outlined),
+            const SizedBox(height: 14),
+            _buildTextField(label: "Estimated Market Value (₹, optional)", controller: _estimatedValueCtrl, hint: "e.g. 4,50,00,000", icon: Icons.currency_rupee_rounded, keyboardType: TextInputType.number),
+          ],
+        );
+      case ServiceType.netWorthCertification:
+        return Column(
+          children: [
+            _buildTextField(label: "Applicant / Entity Legal Name *", controller: _legalNameCtrl, hint: "e.g. Ramesh Kumar Gupta / Apex Infra LLP", icon: Icons.person_outline_rounded),
+            const SizedBox(height: 14),
+            _buildTextField(label: "Permanent Account Number (PAN) / Tax ID *", controller: _panNumberCtrl, hint: "e.g. ABCDE1234F", icon: Icons.badge_outlined),
+            const SizedBox(height: 14),
+            _buildTextField(label: "City & State Jurisdiction *", controller: _assetLocationCtrl, hint: "e.g. Mumbai, Maharashtra", icon: Icons.place_outlined),
+            const SizedBox(height: 14),
+            _buildTextField(label: "Estimated Total Net Worth (₹) *", controller: _estimatedValueCtrl, hint: "e.g. 2,50,00,000", icon: Icons.currency_rupee_rounded, keyboardType: TextInputType.number),
+          ],
+        );
+      case ServiceType.technicalAssessment:
+        return Column(
+          children: [
+            _buildTextField(label: "Project / Facility / Site Name *", controller: _assetNameCtrl, hint: "e.g. Green Valley Solar Park & Plant", icon: Icons.business_outlined),
+            const SizedBox(height: 14),
+            _buildTextField(label: "Site Location & Landmark *", controller: _assetLocationCtrl, hint: "e.g. Survey No. 42, Bengaluru, Karnataka", icon: Icons.place_outlined),
+            const SizedBox(height: 14),
+            _buildTextField(label: "Target Inspection Date / SLA *", controller: _inspectionDateCtrl, hint: "e.g. Within 48 Hours / 12-Oct-2026", icon: Icons.calendar_today_outlined),
+          ],
+        );
+    }
   }
 
   // ══════════════════════════════════════════════════════════════════════════

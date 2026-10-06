@@ -13,21 +13,35 @@ import 'admin_payment_review_modal.dart';
 // ─────────────────────────────────────────────────────────────────────────────
 
 class AdminReleaseQueueSection extends StatefulWidget {
-  const AdminReleaseQueueSection({super.key});
+  final int initialTab;
+
+  const AdminReleaseQueueSection({
+    super.key,
+    this.initialTab = 0,
+  });
 
   @override
   State<AdminReleaseQueueSection> createState() => _AdminReleaseQueueSectionState();
 }
 
 class _AdminReleaseQueueSectionState extends State<AdminReleaseQueueSection> {
-  int _selectedTab = 0; // 0 = Payment Review, 1 = Ready for Pool Release
+  late int _selectedTab; // 0 = Payment Review, 1 = Ready for Pool Release
   bool _isLoading = true;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
+    _selectedTab = widget.initialTab;
     _refresh();
+  }
+
+  @override
+  void didUpdateWidget(AdminReleaseQueueSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialTab != oldWidget.initialTab) {
+      setState(() => _selectedTab = widget.initialTab);
+    }
   }
 
   Future<void> _refresh() async {

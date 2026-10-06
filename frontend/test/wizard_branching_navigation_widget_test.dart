@@ -16,14 +16,12 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Screen 3: Service Selection
+      // Screen 3: Service Selection - tapping auto-advances (Part 6)
       expect(find.text('1. Asset Valuation'), findsOneWidget);
       expect(find.text('2. Net Worth Certification'), findsOneWidget);
       expect(find.text('3. Technical Assessment'), findsOneWidget);
 
-      final nextBtn = find.text('Continue to Asset Category');
-      expect(nextBtn, findsOneWidget);
-      await tester.tap(nextBtn);
+      await tester.tap(find.text('1. Asset Valuation'));
       await tester.pumpAndSettle();
 
       // Screen 4: Should display 5 Asset Valuation Submenus
@@ -55,16 +53,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Screen 3: Select Net Worth Certification
+      // Screen 3: Select Net Worth Certification -> auto advances
       final netWorthCard = find.text('2. Net Worth Certification');
       expect(netWorthCard, findsOneWidget);
       await tester.tap(netWorthCard);
-      await tester.pumpAndSettle();
-
-      // Verify button dynamically changes to "Continue to Applicant Type"
-      final continueBtn = find.text('Continue to Applicant Type');
-      expect(continueBtn, findsOneWidget);
-      await tester.tap(continueBtn);
       await tester.pumpAndSettle();
 
       // Screen 4: Must show Net Worth Submenus
@@ -94,16 +86,10 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      // Screen 3: Select Technical Assessment
+      // Screen 3: Select Technical Assessment -> auto advances
       final techCard = find.text('3. Technical Assessment');
       expect(techCard, findsOneWidget);
       await tester.tap(techCard);
-      await tester.pumpAndSettle();
-
-      // Verify button dynamically changes to "Continue to Assessment Type"
-      final continueBtn = find.text('Continue to Assessment Type');
-      expect(continueBtn, findsOneWidget);
-      await tester.tap(continueBtn);
       await tester.pumpAndSettle();
 
       // Screen 4: Must show Technical Assessment Submenus

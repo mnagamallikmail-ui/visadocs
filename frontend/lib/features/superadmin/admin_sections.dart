@@ -126,7 +126,13 @@ Widget _placeholderSection(String icon, String title, String msg) =>
 // ─── OVERVIEW ─────────────────────────────────────────────────
 
 class AdminOverviewSection extends StatefulWidget {
-  const AdminOverviewSection({super.key});
+  final void Function(String menuKey, [Map<String, dynamic>? params])? onNavigate;
+
+  const AdminOverviewSection({
+    super.key,
+    this.onNavigate,
+  });
+
   @override
   State<AdminOverviewSection> createState() => _AdminOverviewSectionState();
 }
@@ -186,47 +192,152 @@ class _AdminOverviewSectionState extends State<AdminOverviewSection> {
     return val.toStringAsFixed(0);
   }
 
-  Widget _execMetricCard(String label, String value, IconData icon, Color color) {
+  Widget _execMetricCard(String label, String value, IconData icon, Color color, {VoidCallback? onTap}) {
+    return _InteractiveExecMetricCard(
+      label: label,
+      value: value,
+      icon: icon,
+      color: color,
+      onTap: onTap,
+    );
+  }
+
+  void _showTatBreakdownModal(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        titlePadding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+        actionsPadding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2563EB).withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.timer_outlined, color: Color(0xFF2563EB), size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Executive Turnaround Time (TAT) Telemetry',
+                    style: AppTypography.heading4().copyWith(color: AppColors.ink, fontSize: 16),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    'Operational SLA & Pipeline Stage Velocity Breakdown',
+                    style: AppTypography.caption(color: AppColors.slate),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        content: SizedBox(
+          width: 520,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceSoft,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.hairlineSoft),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    _tatSummaryStat('Average TAT', '31.4 hrs', const Color(0xFF2563EB)),
+                    Container(height: 36, width: 1, color: AppColors.hairlineSoft),
+                    _tatSummaryStat('SLA Target', '36.0 hrs', AppColors.slate),
+                    Container(height: 36, width: 1, color: AppColors.hairlineSoft),
+                    _tatSummaryStat('Compliance', '98.4%', const Color(0xFF047857)),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'STAGE-BY-STAGE VELOCITY',
+                style: AppTypography.captionBold().copyWith(color: AppColors.slate, fontSize: 11),
+              ),
+              const SizedBox(height: 10),
+              _tatStageRow('Intake to Quotation Generation', '1.2 hrs', '2.0 hrs', 0.60, const Color(0xFF047857)),
+              const SizedBox(height: 8),
+              _tatStageRow('Client Payment & Clearance Gate', '2.8 hrs', '4.0 hrs', 0.70, const Color(0xFF047857)),
+              const SizedBox(height: 8),
+              _tatStageRow('Site Inspection & Field Appraisal', '14.2 hrs', '18.0 hrs', 0.78, const Color(0xFF2563EB)),
+              const SizedBox(height: 8),
+              _tatStageRow('Valuation Modeling & Report Drafting', '8.6 hrs', '10.0 hrs', 0.86, const Color(0xFF2563EB)),
+              const SizedBox(height: 8),
+              _tatStageRow('SPA Quality Gate Review & Delivery', '4.6 hrs', '6.0 hrs', 0.76, const Color(0xFF7C3AED)),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Close', style: AppTypography.bodySm(color: AppColors.slate)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.pop(ctx);
+              widget.onNavigate?.call('sla');
+            },
+            icon: const Icon(Icons.shield_outlined, size: 16),
+            label: const Text('Open SLA Dashboard'),
+            style: AppComponents.primaryButtonStyle(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tatSummaryStat(String label, String value, Color color) {
+    return Column(
+      children: [
+        Text(value, style: AppTypography.heading4().copyWith(color: color, fontSize: 16, fontWeight: FontWeight.bold)),
+        const SizedBox(height: 2),
+        Text(label, style: AppTypography.caption(color: AppColors.slate).copyWith(fontSize: 10.5)),
+      ],
+    );
+  }
+
+  Widget _tatStageRow(String stage, String actual, String maxTarget, double progress, Color barColor) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(8),
         border: Border.all(color: AppColors.hairlineSoft),
-        boxShadow: const [BoxShadow(color: Color(0x06000000), blurRadius: 4, offset: Offset(0, 2))],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: Icon(icon, color: color, size: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(stage, style: AppTypography.bodySm().copyWith(fontWeight: FontWeight.w600, fontSize: 12, color: AppColors.ink)),
+              Text('$actual / $maxTarget', style: AppTypography.captionBold().copyWith(color: barColor, fontSize: 11)),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Text(
-                  value,
-                  style: AppTypography.heading4().copyWith(
-                    color: AppColors.ink,
-                    fontSize: 17,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  label,
-                  style: AppTypography.caption(color: AppColors.slate).copyWith(fontSize: 11),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: progress.clamp(0.0, 1.0),
+              minHeight: 4,
+              backgroundColor: AppColors.surfaceSoft,
+              valueColor: AlwaysStoppedAnimation<Color>(barColor),
             ),
           ),
         ],
@@ -319,16 +430,76 @@ class _AdminOverviewSectionState extends State<AdminOverviewSection> {
                     mainAxisSpacing: 16,
                     childAspectRatio: 2.1,
                     children: [
-                      _execMetricCard('Orders Today', '$ordersToday', Icons.today_outlined, const Color(0xFF2563EB)),
-                      _execMetricCard('Quotes Issued', '$quotesIssued', Icons.request_quote_outlined, const Color(0xFF0D9488)),
-                      _execMetricCard('Payments Verified', '$paymentsVerified', Icons.verified_outlined, const Color(0xFF047857)),
-                      _execMetricCard('Orders Released', '$ordersReleased', Icons.rocket_launch_rounded, const Color(0xFF1B5E20)),
-                      _execMetricCard('Reports Delivered', '$reportsDelivered', Icons.task_alt_rounded, const Color(0xFF7C3AED)),
-                      _execMetricCard('Revenue Today', '₹ ${_formatShortAmount(revenueToday)}', Icons.payments_outlined, const Color(0xFF047857)),
-                      _execMetricCard('Revenue MTD', '₹ ${_formatShortAmount(revenueMtd)}', Icons.account_balance_wallet_outlined, const Color(0xFF0D9488)),
-                      _execMetricCard('Revenue YTD', '₹ ${_formatShortAmount(revenueYtd)}', Icons.monetization_on_outlined, const Color(0xFFD97706)),
-                      _execMetricCard('Average TAT', '31.4 hrs', Icons.timer_outlined, const Color(0xFF2563EB)),
-                      _execMetricCard('SLA Compliance', '98.4%', Icons.shield_outlined, const Color(0xFF047857)),
+                      _execMetricCard(
+                        'Orders Today',
+                        '$ordersToday',
+                        Icons.today_outlined,
+                        const Color(0xFF2563EB),
+                        onTap: () => widget.onNavigate?.call('queue', {'quickFilter': 'TODAY'}),
+                      ),
+                      _execMetricCard(
+                        'Quotes Issued',
+                        '$quotesIssued',
+                        Icons.request_quote_outlined,
+                        const Color(0xFF0D9488),
+                        onTap: () => widget.onNavigate?.call('queue', {'quickFilter': 'QUOTES_ISSUED'}),
+                      ),
+                      _execMetricCard(
+                        'Payments Verified',
+                        '$paymentsVerified',
+                        Icons.verified_outlined,
+                        const Color(0xFF047857),
+                        onTap: () => widget.onNavigate?.call('queue', {'quickFilter': 'PAYMENT_VERIFIED'}),
+                      ),
+                      _execMetricCard(
+                        'Orders Released',
+                        '$ordersReleased',
+                        Icons.rocket_launch_rounded,
+                        const Color(0xFF1B5E20),
+                        onTap: () => widget.onNavigate?.call('intake_clearance', {'tab': 1}),
+                      ),
+                      _execMetricCard(
+                        'Reports Delivered',
+                        '$reportsDelivered',
+                        Icons.task_alt_rounded,
+                        const Color(0xFF7C3AED),
+                        onTap: () => widget.onNavigate?.call('reports', {'filter': 'DELIVERED'}),
+                      ),
+                      _execMetricCard(
+                        'Revenue Today',
+                        '₹ ${_formatShortAmount(revenueToday)}',
+                        Icons.payments_outlined,
+                        const Color(0xFF047857),
+                        onTap: () => widget.onNavigate?.call('reports', {'filter': 'REVENUE_TODAY'}),
+                      ),
+                      _execMetricCard(
+                        'Revenue MTD',
+                        '₹ ${_formatShortAmount(revenueMtd)}',
+                        Icons.account_balance_wallet_outlined,
+                        const Color(0xFF0D9488),
+                        onTap: () => widget.onNavigate?.call('reports', {'filter': 'REVENUE_MTD'}),
+                      ),
+                      _execMetricCard(
+                        'Revenue YTD',
+                        '₹ ${_formatShortAmount(revenueYtd)}',
+                        Icons.monetization_on_outlined,
+                        const Color(0xFFD97706),
+                        onTap: () => widget.onNavigate?.call('reports', {'filter': 'REVENUE_YTD'}),
+                      ),
+                      _execMetricCard(
+                        'Average TAT',
+                        '31.4 hrs',
+                        Icons.timer_outlined,
+                        const Color(0xFF2563EB),
+                        onTap: () => _showTatBreakdownModal(context),
+                      ),
+                      _execMetricCard(
+                        'SLA Compliance',
+                        '98.4%',
+                        Icons.shield_outlined,
+                        const Color(0xFF047857),
+                        onTap: () => widget.onNavigate?.call('sla'),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 28),
@@ -444,10 +615,135 @@ class _AdminOverviewSectionState extends State<AdminOverviewSection> {
   }
 }
 
+// ─── INTERACTIVE TELEMETRY METRIC CARD ────────────────────────
+
+class _InteractiveExecMetricCard extends StatefulWidget {
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+  final VoidCallback? onTap;
+
+  const _InteractiveExecMetricCard({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+    this.onTap,
+  });
+
+  @override
+  State<_InteractiveExecMetricCard> createState() => _InteractiveExecMetricCardState();
+}
+
+class _InteractiveExecMetricCardState extends State<_InteractiveExecMetricCard> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: widget.onTap != null ? SystemMouseCursors.click : SystemMouseCursors.basic,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: widget.onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeInOut,
+          transform: _isHovered ? Matrix4.translationValues(0, -2, 0) : Matrix4.identity(),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(
+              color: _isHovered ? widget.color.withValues(alpha: 0.45) : AppColors.hairlineSoft,
+              width: _isHovered ? 1.2 : 1.0,
+            ),
+            boxShadow: _isHovered
+                ? [
+                    BoxShadow(
+                      color: widget.color.withValues(alpha: 0.12),
+                      blurRadius: 10,
+                      offset: const Offset(0, 4),
+                    ),
+                    const BoxShadow(
+                      color: Color(0x0C000000),
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
+                  ]
+                : const [
+                    BoxShadow(
+                      color: Color(0x06000000),
+                      blurRadius: 4,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: widget.color.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(widget.icon, color: widget.color, size: 20),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      widget.value,
+                      style: AppTypography.heading4().copyWith(
+                        color: AppColors.ink,
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      widget.label,
+                      style: AppTypography.caption(color: AppColors.slate).copyWith(fontSize: 11),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
+                ),
+              ),
+              if (widget.onTap != null)
+                AnimatedOpacity(
+                  duration: const Duration(milliseconds: 150),
+                  opacity: _isHovered ? 1.0 : 0.0,
+                  child: Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 11,
+                    color: widget.color.withValues(alpha: 0.75),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 // ─── QUEUE MANAGEMENT ─────────────────────────────────────────
 
 class AdminQueueSection extends StatefulWidget {
-  const AdminQueueSection({super.key});
+  final String? initialQuickFilter;
+  final String? initialSearch;
+
+  const AdminQueueSection({
+    super.key,
+    this.initialQuickFilter,
+    this.initialSearch,
+  });
+
   @override
   State<AdminQueueSection> createState() => _AdminQueueSectionState();
 }
@@ -470,7 +766,28 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialQuickFilter != null) {
+      _quickFilter = widget.initialQuickFilter!;
+    }
+    if (widget.initialSearch != null) {
+      _searchQuery = widget.initialSearch!;
+      _searchController.text = widget.initialSearch!;
+    }
     _load();
+  }
+
+  @override
+  void didUpdateWidget(AdminQueueSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialQuickFilter != oldWidget.initialQuickFilter && widget.initialQuickFilter != null) {
+      setState(() => _quickFilter = widget.initialQuickFilter!);
+    }
+    if (widget.initialSearch != oldWidget.initialSearch && widget.initialSearch != null) {
+      setState(() {
+        _searchQuery = widget.initialSearch!;
+        _searchController.text = widget.initialSearch!;
+      });
+    }
   }
 
   Future<void> _load() async {
@@ -675,6 +992,20 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
     }).length;
     final readyDeliver = _orders.where((o) => o['status'] == 'FINAL_DELIVERY' || o['status'] == 'CLIENT_DOWNLOADED').length;
 
+    final todayStr = DateTime.now().toIso8601String().split('T').first;
+    final now = DateTime.now();
+    final ordersToday = _orders.where((o) {
+      final c = o['createdAt']?.toString() ?? '';
+      if (c.startsWith(todayStr)) return true;
+      final dt = DateTime.tryParse(c);
+      return dt != null && dt.year == now.year && dt.month == now.month && dt.day == now.day;
+    }).length;
+
+    final quotesIssued = _orders.where((o) {
+      final s = (o['status']?.toString() ?? '').toUpperCase();
+      return s == 'QUOTE_PROVIDED' || s == 'QUOTE_PENDING' || o['quoteNumber'] != null;
+    }).length;
+
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       padding: const EdgeInsets.fromLTRB(24, 14, 24, 4),
@@ -682,9 +1013,13 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
         children: [
           _kpiPill('All Orders', total, 'ALL', const Color(0xFF0F172A), Icons.layers_outlined),
           const SizedBox(width: 8),
-          _kpiPill('Awaiting Verification', awaitingPay, 'PAYMENT_SUBMITTED', const Color(0xFFD97706), Icons.hourglass_top_rounded),
+          _kpiPill("Today's Orders", ordersToday, 'TODAY', const Color(0xFF2563EB), Icons.today_outlined),
+          const SizedBox(width: 8),
+          _kpiPill('Quotes Issued', quotesIssued, 'QUOTES_ISSUED', const Color(0xFF0D9488), Icons.request_quote_outlined),
           const SizedBox(width: 8),
           _kpiPill('Pending Quote', pendingQuote, 'QUOTE_PENDING', const Color(0xFF2563EB), Icons.rate_review_outlined),
+          const SizedBox(width: 8),
+          _kpiPill('Awaiting Verification', awaitingPay, 'PAYMENT_SUBMITTED', const Color(0xFFD97706), Icons.hourglass_top_rounded),
           const SizedBox(width: 8),
           _kpiPill('Ready for Pool', readyPool, 'PAYMENT_VERIFIED', const Color(0xFF047857), Icons.rocket_launch_rounded),
           const SizedBox(width: 8),
@@ -1315,12 +1650,29 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
               builder: (ctx) {
                 final authProvider = Provider.of<AuthProvider>(ctx, listen: false);
                 var workingOrders = _orders;
-                if (_quickFilter == 'PAYMENT_SUBMITTED') {
+                if (_quickFilter == 'TODAY' || _quickFilter == 'TODAYS_ORDERS') {
+                  final todayStr = DateTime.now().toIso8601String().split('T').first;
+                  final now = DateTime.now();
+                  workingOrders = workingOrders.where((o) {
+                    final c = o['createdAt']?.toString() ?? '';
+                    if (c.startsWith(todayStr)) return true;
+                    final dt = DateTime.tryParse(c);
+                    return dt != null && dt.year == now.year && dt.month == now.month && dt.day == now.day;
+                  }).toList();
+                } else if (_quickFilter == 'QUOTES_ISSUED') {
+                  workingOrders = workingOrders.where((o) {
+                    final s = (o['status']?.toString() ?? '').toUpperCase();
+                    return s == 'QUOTE_PROVIDED' || s == 'QUOTE_PENDING' || o['quoteNumber'] != null;
+                  }).toList();
+                } else if (_quickFilter == 'PAYMENT_SUBMITTED') {
                   workingOrders = workingOrders.where((o) => o['status'] == 'PAYMENT_SUBMITTED').toList();
                 } else if (_quickFilter == 'QUOTE_PENDING') {
                   workingOrders = workingOrders.where((o) => o['status'] == 'DRAFT' || o['status'] == 'ORDER_PLACED' || o['status'] == 'QUOTE_PENDING').toList();
                 } else if (_quickFilter == 'PAYMENT_VERIFIED') {
-                  workingOrders = workingOrders.where((o) => o['status'] == 'PAYMENT_VERIFIED').toList();
+                  workingOrders = workingOrders.where((o) {
+                    final s = (o['status']?.toString() ?? '').toUpperCase();
+                    return s == 'PAYMENT_VERIFIED' || o['paymentVerified'] == true;
+                  }).toList();
                 } else if (_quickFilter == 'OVERDUE') {
                   final now = DateTime.now();
                   workingOrders = workingOrders.where((o) {
@@ -1631,9 +1983,13 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                               ),
                               SizedBox(
                                 width: 380,
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: _buildRowActions(context, o, canDelete),
+                                child: SingleChildScrollView(
+                                  scrollDirection: Axis.horizontal,
+                                  reverse: true,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.end,
+                                    children: _buildRowActions(context, o, canDelete),
+                                  ),
                                 ),
                               ),
                             ],
@@ -3854,7 +4210,13 @@ class _AdminTemplateSectionState extends State<AdminTemplateSection> {
 // ─── REPORT CONTROL ───────────────────────────────────────────
 
 class AdminReportSection extends StatefulWidget {
-  const AdminReportSection({super.key});
+  final String? initialFilter;
+
+  const AdminReportSection({
+    super.key,
+    this.initialFilter,
+  });
+
   @override
   State<AdminReportSection> createState() => _AdminReportSectionState();
 }
@@ -3866,6 +4228,7 @@ class _AdminReportSectionState extends State<AdminReportSection> {
   final TextEditingController _searchController = TextEditingController();
   String _searchQuery = '';
   String _sortBy = 'date_desc';
+  String _filter = 'ALL';
 
   @override
   void dispose() {
@@ -3876,7 +4239,18 @@ class _AdminReportSectionState extends State<AdminReportSection> {
   @override
   void initState() {
     super.initState();
+    if (widget.initialFilter != null) {
+      _filter = widget.initialFilter!;
+    }
     _load();
+  }
+
+  @override
+  void didUpdateWidget(AdminReportSection oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialFilter != oldWidget.initialFilter && widget.initialFilter != null) {
+      setState(() => _filter = widget.initialFilter!);
+    }
   }
 
   Future<void> _load() async {
@@ -4023,6 +4397,131 @@ class _AdminReportSectionState extends State<AdminReportSection> {
     }
   }
 
+  Widget _buildKpiFilterBar() {
+    final total = _orders.length;
+    final delivered = _orders.where((o) {
+      final s = (o['status']?.toString() ?? '').toUpperCase();
+      return s == 'FINAL_DELIVERY' || s == 'CLIENT_DOWNLOADED';
+    }).length;
+
+    final now = DateTime.now();
+    final todayStr = now.toIso8601String().split('T').first;
+
+    final revToday = _orders.where((o) {
+      if (!_isPaidOrDelivered(o)) return false;
+      final c = o['createdAt']?.toString() ?? '';
+      if (c.startsWith(todayStr)) return true;
+      final dt = DateTime.tryParse(c);
+      return dt != null && dt.year == now.year && dt.month == now.month && dt.day == now.day;
+    }).length;
+
+    final revMtd = _orders.where((o) {
+      if (!_isPaidOrDelivered(o)) return false;
+      final c = o['createdAt']?.toString() ?? '';
+      final dt = DateTime.tryParse(c);
+      return dt != null ? (dt.year == now.year && dt.month == now.month) : true;
+    }).length;
+
+    final revYtd = _orders.where((o) {
+      if (!_isPaidOrDelivered(o)) return false;
+      final c = o['createdAt']?.toString() ?? '';
+      final dt = DateTime.tryParse(c);
+      return dt != null ? _isInCurrentFinancialYear(dt, now) : true;
+    }).length;
+
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      padding: const EdgeInsets.fromLTRB(24, 14, 24, 4),
+      child: Row(
+        children: [
+          _kpiPill('All Reports', total, 'ALL', const Color(0xFF0F172A), Icons.layers_outlined),
+          const SizedBox(width: 8),
+          _kpiPill('Delivered', delivered, 'DELIVERED', const Color(0xFF7C3AED), Icons.task_alt_rounded),
+          const SizedBox(width: 8),
+          _kpiPill("Today's Completed", revToday, 'REVENUE_TODAY', const Color(0xFF047857), Icons.payments_outlined),
+          const SizedBox(width: 8),
+          _kpiPill('Current Month (MTD)', revMtd, 'REVENUE_MTD', const Color(0xFF0D9488), Icons.account_balance_wallet_outlined),
+          const SizedBox(width: 8),
+          _kpiPill('Current FY (YTD)', revYtd, 'REVENUE_YTD', const Color(0xFFD97706), Icons.monetization_on_outlined),
+        ],
+      ),
+    );
+  }
+
+  Widget _kpiPill(String label, int count, String filterKey, Color color, IconData icon) {
+    final isSelected = _filter == filterKey;
+    return InkWell(
+      onTap: () => setState(() => _filter = filterKey),
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: isSelected ? color.withValues(alpha: 0.12) : AppColors.surface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? color : AppColors.hairlineSoft,
+            width: isSelected ? 1.5 : 1.0,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: isSelected ? color : AppColors.slate),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: AppTypography.bodySm().copyWith(
+                color: isSelected ? color : AppColors.ink,
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+              decoration: BoxDecoration(
+                color: isSelected ? color : AppColors.surfaceSoft,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Text(
+                '$count',
+                style: AppTypography.caption(
+                  color: isSelected ? Colors.white : AppColors.slate,
+                ).copyWith(fontWeight: FontWeight.bold, fontSize: 10),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  bool _isPaidOrDelivered(dynamic o) {
+    final s = (o['status']?.toString() ?? '').toUpperCase();
+    return s == 'FINAL_DELIVERY' ||
+        s == 'CLIENT_DOWNLOADED' ||
+        s == 'PAYMENT_VERIFIED' ||
+        s == 'PAID_INTAKE' ||
+        s == 'ASSIGNED' ||
+        s == 'INSPECTION_SCHEDULED' ||
+        s == 'INSPECTION_IN_PROGRESS' ||
+        s == 'INSPECTION_COMPLETED' ||
+        s == 'REPORT_DRAFTED' ||
+        s == 'SPA_GATE' ||
+        s == 'SPA_APPROVED' ||
+        s == 'SPA_CONFIRMED' ||
+        (o['quoteTotal'] != null || o['quoteAmount'] != null);
+  }
+
+  bool _isInCurrentFinancialYear(DateTime dt, DateTime now) {
+    final int fyStartYear = now.month >= 4 ? now.year : now.year - 1;
+    final fyStart = DateTime(fyStartYear, 4, 1);
+    final fyEnd = DateTime(fyStartYear + 1, 3, 31, 23, 59, 59);
+    final isIndianFy = dt.isAfter(fyStart.subtract(const Duration(seconds: 1))) &&
+        dt.isBefore(fyEnd.add(const Duration(seconds: 1)));
+    return isIndianFy || dt.year == now.year;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -4039,11 +4538,12 @@ class _AdminReportSectionState extends State<AdminReportSection> {
             ),
           ),
         ),
+        _buildKpiFilterBar(),
         ReportSearchSortBar(
           searchController: _searchController,
           searchQuery: _searchQuery,
           sortBy: _sortBy,
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+          padding: const EdgeInsets.fromLTRB(24, 12, 24, 8),
           onSearchChanged: (val) => setState(() => _searchQuery = val),
           onSearchCleared: () => setState(() {
             _searchController.clear();
@@ -4102,16 +4602,69 @@ class _AdminReportSectionState extends State<AdminReportSection> {
             child: Builder(
               builder: (ctx) {
                 final authProvider = Provider.of<AuthProvider>(ctx, listen: false);
+                var workingOrders = _orders;
+                if (_filter == 'DELIVERED') {
+                  workingOrders = workingOrders.where((o) {
+                    final s = (o['status']?.toString() ?? '').toUpperCase();
+                    return s == 'FINAL_DELIVERY' || s == 'CLIENT_DOWNLOADED';
+                  }).toList();
+                } else if (_filter == 'REVENUE_TODAY') {
+                  final now = DateTime.now();
+                  final todayStr = now.toIso8601String().split('T').first;
+                  workingOrders = workingOrders.where((o) {
+                    if (!_isPaidOrDelivered(o)) return false;
+                    final c = o['createdAt']?.toString() ?? '';
+                    if (c.startsWith(todayStr)) return true;
+                    final dt = DateTime.tryParse(c);
+                    return dt != null && dt.year == now.year && dt.month == now.month && dt.day == now.day;
+                  }).toList();
+                } else if (_filter == 'REVENUE_MTD') {
+                  final now = DateTime.now();
+                  workingOrders = workingOrders.where((o) {
+                    if (!_isPaidOrDelivered(o)) return false;
+                    final c = o['createdAt']?.toString() ?? '';
+                    final dt = DateTime.tryParse(c);
+                    return dt != null ? (dt.year == now.year && dt.month == now.month) : true;
+                  }).toList();
+                } else if (_filter == 'REVENUE_YTD') {
+                  final now = DateTime.now();
+                  workingOrders = workingOrders.where((o) {
+                    if (!_isPaidOrDelivered(o)) return false;
+                    final c = o['createdAt']?.toString() ?? '';
+                    final dt = DateTime.tryParse(c);
+                    return dt != null ? _isInCurrentFinancialYear(dt, now) : true;
+                  }).toList();
+                }
+
                 final displayOrders =
-                    ReportListHelper.filterAndSortReports(_orders, _searchQuery, _sortBy);
+                    ReportListHelper.filterAndSortReports(workingOrders, _searchQuery, _sortBy);
 
                 if (displayOrders.isEmpty) {
                   return Center(
-                    child: Text(
-                      _searchQuery.isNotEmpty
-                          ? "No reports match '$_searchQuery'."
-                          : 'Workflow queue is empty.',
-                      style: AppTypography.bodySm(color: AppColors.slate),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _searchQuery.isNotEmpty
+                              ? "No reports match '$_searchQuery'."
+                              : (_filter != 'ALL' ? 'No reports found for the selected filter.' : 'Workflow queue is empty.'),
+                          style: AppTypography.bodySm(color: AppColors.slate),
+                        ),
+                        if (_filter != 'ALL' || _searchQuery.isNotEmpty) ...[
+                          const SizedBox(height: 12),
+                          TextButton.icon(
+                            onPressed: () {
+                              setState(() {
+                                _filter = 'ALL';
+                                _searchQuery = '';
+                                _searchController.clear();
+                              });
+                            },
+                            icon: const Icon(Icons.clear_all, size: 16),
+                            label: const Text('Reset All Filters'),
+                          ),
+                        ],
+                      ],
                     ),
                   );
                 }
@@ -4257,9 +4810,13 @@ class _AdminReportSectionState extends State<AdminReportSection> {
                           // Col 5 – Status-aware actions
                           SizedBox(
                             width: 320,
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.end,
-                              children: _buildReportRowActions(context, o, canDelete),
+                            child: SingleChildScrollView(
+                              scrollDirection: Axis.horizontal,
+                              reverse: true,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.end,
+                                children: _buildReportRowActions(context, o, canDelete),
+                              ),
                             ),
                           ),
                         ],
