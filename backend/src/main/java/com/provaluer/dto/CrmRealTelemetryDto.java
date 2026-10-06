@@ -28,6 +28,15 @@ public class CrmRealTelemetryDto {
     private String gscSource = "Google Search Console API";
     private String gscStatus = "NOT CONNECTED";
     private String gscLastUpdated = null;
+    private String gscPropertyId = "sc-domain:provaluer.in";
+    private int gscTotalQueries = 0;
+    private int gscTotalImpressions = 0;
+    private int gscTotalClicks = 0;
+    private BigDecimal gscAverageCtr = BigDecimal.ZERO;
+    private BigDecimal gscAveragePosition = BigDecimal.ZERO;
+    private int gscIndexedPages = 0;
+    private java.util.List<Map<String, Object>> gscQueries = new java.util.ArrayList<>();
+    private java.util.List<Map<String, Object>> gscPages = new java.util.ArrayList<>();
 
     // 4. PostgreSQL CRM Tables (Verified Live)
     private long totalLeads;
@@ -100,6 +109,33 @@ public class CrmRealTelemetryDto {
 
     public String getGscLastUpdated() { return gscLastUpdated; }
     public void setGscLastUpdated(String gscLastUpdated) { this.gscLastUpdated = gscLastUpdated; }
+
+    public String getGscPropertyId() { return gscPropertyId; }
+    public void setGscPropertyId(String gscPropertyId) { this.gscPropertyId = gscPropertyId; }
+
+    public int getGscTotalQueries() { return gscTotalQueries; }
+    public void setGscTotalQueries(int gscTotalQueries) { this.gscTotalQueries = gscTotalQueries; }
+
+    public int getGscTotalImpressions() { return gscTotalImpressions; }
+    public void setGscTotalImpressions(int gscTotalImpressions) { this.gscTotalImpressions = gscTotalImpressions; }
+
+    public int getGscTotalClicks() { return gscTotalClicks; }
+    public void setGscTotalClicks(int gscTotalClicks) { this.gscTotalClicks = gscTotalClicks; }
+
+    public BigDecimal getGscAverageCtr() { return gscAverageCtr; }
+    public void setGscAverageCtr(BigDecimal gscAverageCtr) { this.gscAverageCtr = gscAverageCtr; }
+
+    public BigDecimal getGscAveragePosition() { return gscAveragePosition; }
+    public void setGscAveragePosition(BigDecimal gscAveragePosition) { this.gscAveragePosition = gscAveragePosition; }
+
+    public int getGscIndexedPages() { return gscIndexedPages; }
+    public void setGscIndexedPages(int gscIndexedPages) { this.gscIndexedPages = gscIndexedPages; }
+
+    public java.util.List<Map<String, Object>> getGscQueries() { return gscQueries; }
+    public void setGscQueries(java.util.List<Map<String, Object>> gscQueries) { this.gscQueries = gscQueries; }
+
+    public java.util.List<Map<String, Object>> getGscPages() { return gscPages; }
+    public void setGscPages(java.util.List<Map<String, Object>> gscPages) { this.gscPages = gscPages; }
 
     public long getTotalLeads() { return totalLeads; }
     public void setTotalLeads(long totalLeads) { this.totalLeads = totalLeads; }

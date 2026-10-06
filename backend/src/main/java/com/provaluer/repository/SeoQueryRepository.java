@@ -20,6 +20,8 @@ public interface SeoQueryRepository extends JpaRepository<SeoQuery, Long> {
 
     List<SeoQuery> findTop50ByOrderByClicksDescImpressionsDesc();
 
+    List<SeoQuery> findBySourceOrderByImpressionsDesc(String source);
+
     @Query("SELECT q FROM SeoQuery q WHERE q.date = (SELECT MAX(q2.date) FROM SeoQuery q2) ORDER BY q.clicks DESC, q.impressions DESC")
     List<SeoQuery> findLatestTopQueries();
 }

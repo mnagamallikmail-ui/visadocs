@@ -32,4 +32,13 @@ public interface SeoDailyMetricRepository extends JpaRepository<SeoDailyMetric, 
 
     @Query("SELECT AVG(m.avgPosition) FROM SeoDailyMetric m WHERE m.avgPosition > 0")
     Double calculateOverallAvgPosition();
+
+    @Query("SELECT SUM(m.impressions) FROM SeoDailyMetric m WHERE m.source = :source")
+    Long sumTotalImpressionsBySource(@Param("source") String source);
+
+    @Query("SELECT SUM(m.clicks) FROM SeoDailyMetric m WHERE m.source = :source")
+    Long sumTotalClicksBySource(@Param("source") String source);
+
+    @Query("SELECT AVG(m.avgPosition) FROM SeoDailyMetric m WHERE m.source = :source AND m.avgPosition > 0")
+    Double calculateAvgPositionBySource(@Param("source") String source);
 }
