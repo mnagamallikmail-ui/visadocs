@@ -93,22 +93,7 @@ const WORKFLOW_STAGES = [
     buttonClass: 'big-action-trigger-btn',
     assignedPerson: 'Rajesh Sharma (PA)',
     stageStatus: 'Analyst Working (Telemetry Live)',
-    nextMilestone: '7. INSPECTION (Physical / Desk Audit)'
-  },
-  {
-    id: 'INSPECTION',
-    name: 'INSPECTION',
-    shortLabel: 'Inspection',
-    icon: '📐',
-    sla: 'Scheduled Today',
-    nextValidActionLabel: '[ Track Progress ]',
-    nextActionType: 'TRACK_PROGRESS',
-    actionTitle: 'Site Inspection & Geo-spatial Audit',
-    actionDesc: 'Physical site verification or satellite municipal boundary geo-tagging is in progress to assess construction quality, carpet area, and depreciation.',
-    buttonClass: 'big-action-trigger-btn',
-    assignedPerson: 'Field Surveyor / GIS Team',
-    stageStatus: 'Site Audit Active',
-    nextMilestone: '8. DRAFTING (Template Engine)'
+    nextMilestone: '7. DRAFTING (Template Engine)'
   },
   {
     id: 'DRAFTING',
@@ -123,7 +108,7 @@ const WORKFLOW_STAGES = [
     buttonClass: 'big-action-trigger-btn',
     assignedPerson: 'Docx Template Engine & PA',
     stageStatus: 'Draft 85% Compiled',
-    nextMilestone: '9. REVIEW (Senior Analyst QA)'
+    nextMilestone: '8. REVIEW (Senior Analyst QA)'
   },
   {
     id: 'REVIEW',
@@ -138,7 +123,7 @@ const WORKFLOW_STAGES = [
     buttonClass: 'big-action-trigger-btn',
     assignedPerson: 'Vikramaditya Rao (SPA)',
     stageStatus: 'Review & Sign-Off Pending',
-    nextMilestone: '10. DELIVERY (Signed Report Release)'
+    nextMilestone: '9. DELIVERY (Signed Report Release)'
   },
   {
     id: 'DELIVERY',
@@ -153,7 +138,7 @@ const WORKFLOW_STAGES = [
     buttonClass: 'big-action-trigger-btn btn-success-action',
     assignedPerson: 'Signed via Class 3 Cloud HSM',
     stageStatus: 'Report Ready for Download',
-    nextMilestone: '11. CLOSED (Archived)'
+    nextMilestone: '10. CLOSED (Archived)'
   },
   {
     id: 'CLOSED',
@@ -677,7 +662,7 @@ let activeReportsData = [
     expectedDate: '28 Sep 2026',
     status: 'Report In Progress',
     stageIndex: 4, // Report In Progress
-    statusDesc: 'Field inspection completed and report is currently being sealed by Senior Valuer.',
+    statusDesc: 'Valuation report is currently being sealed by Senior Valuer.',
     requiredAction: 'None (Processing SLA active)',
     actionType: 'IN_PROGRESS',
     docs: [
@@ -686,7 +671,7 @@ let activeReportsData = [
       { name: 'Customs Duty Clearance Certificate', status: 'verified', statusText: 'Verified ✓' }
     ],
     timeline: [
-      { title: 'Physical Field Inspection Completed', desc: 'Surveyor validated serial numbers, calibration records, and run-hours.', time: 'Today, 02:30 PM' },
+      { title: 'Technical Assessment Completed', desc: 'Analyst validated serial numbers, calibration records, and run-hours.', time: 'Today, 02:30 PM' },
       { title: 'Advance Remittance Received', desc: 'UTR verified by finance desk; assignment released.', time: '23 Sep 2026, 11:00 AM' },
       { title: 'Quotation Approved', desc: 'Client accepted formal quotation online.', time: '22 Sep 2026, 05:40 PM' }
     ]

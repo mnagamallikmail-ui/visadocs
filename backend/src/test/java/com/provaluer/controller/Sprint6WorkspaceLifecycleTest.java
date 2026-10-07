@@ -28,8 +28,6 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -52,10 +50,9 @@ public class Sprint6WorkspaceLifecycleTest {
 
     @Autowired private MockMvc mockMvc;
     @Autowired private OrderRepository orderRepository;
-    @Autowired private OrderInspectionRepository orderInspectionRepository;
-    @Autowired private InspectionPhotoRepository inspectionPhotoRepository;
     @Autowired private TemplateRepository templateRepository;
     @Autowired private AuditLogRepository auditLogRepository;
+    @Autowired private OrderInputRepository orderInputRepository;
     @Autowired private UserRepository userRepository;
     @Autowired private ObjectMapper objectMapper;
 
@@ -143,7 +140,7 @@ public class Sprint6WorkspaceLifecycleTest {
         com.provaluer.model.Order order = new com.provaluer.model.Order();
         order.setClientId(clientUser.getId());
         order.setPaId(paUser.getId());
-        order.setStatus("INSPECTION_COMPLETED");
+        order.setStatus("ASSIGNED");
         order.setPurpose("Commercial Valuation");
         order.setPropertyCategory("Commercial Complex");
         order.setReferenceCode("PV-REQ-" + System.nanoTime());
@@ -154,39 +151,9 @@ public class Sprint6WorkspaceLifecycleTest {
         order.setBranchName("Commercial Main Branch");
         order = orderRepository.save(order);
 
-        // Attach Inspection details
-        OrderInspection inspection = new OrderInspection();
-        inspection.setOrderId(order.getId());
-        inspection.setPaId(paUser.getId());
-        inspection.setVisitStatus("COMPLETED");
-        inspection.setCompletedAt(LocalDateTime.now());
-        inspection.setInspectionDate(LocalDate.now());
-        inspection.setInspectionTime(LocalTime.of(11, 30));
-        inspection.setSiteContactName("John Doe");
-        inspection.setSiteContactNumber("+919123456780");
-        inspection.setGpsLatStart(BigDecimal.valueOf(18.5204300));
-        inspection.setGpsLngStart(BigDecimal.valueOf(73.8567400));
-        inspection.setGpsLatEnd(BigDecimal.valueOf(18.5204350));
-        inspection.setGpsLngEnd(BigDecimal.valueOf(73.8567450));
-        orderInspectionRepository.save(inspection);
-
-        // Attach Inspection Photos for all 7 mandatory categories
-        for (PhotoCategory cat : PhotoCategory.getMandatoryCategories()) {
-            for (int i = 0; i < cat.getMinPhotos(); i++) {
-                InspectionPhoto photo = new InspectionPhoto();
-                photo.setOrderId(order.getId());
-                photo.setInspectionId(inspection.getId());
-                photo.setPaId(paUser.getId());
-                photo.setCategory(cat.name());
-                photo.setFilename(cat.name().toLowerCase() + "_" + i + ".jpg");
-                photo.setMimeType("image/jpeg");
-                photo.setFileContent(new byte[]{1, 2, 3, 4, 5});
-                photo.setUploadedBy(paUser.getId());
-                photo.setUploadedAt(LocalDateTime.now());
-                photo.setCaptureSequence(i + 1);
-                inspectionPhotoRepository.save(photo);
-            }
-        }
+        OrderInput frontPage = new OrderInput(order.getId(), "IMG_FRONT_PAGE", "[IMAGE]");
+        frontPage.setImageValue(new byte[]{1, 2, 3, 4, 5});
+        orderInputRepository.save(frontPage);
 
         return order;
     }
@@ -217,12 +184,6 @@ public class Sprint6WorkspaceLifecycleTest {
         Map<String, String> values = objectMapper.readValue(updatedOrder.getInputValues(), new TypeReference<Map<String, String>>() {});
         assertEquals("Apex Commercial Bank", values.get("CLIENT_NAME"));
         assertEquals("Apex Bank", values.get("BANK_NAME"));
-        assertEquals("John Doe", values.get("SITE_CONTACT_PERSON"));
-        assertEquals("+919123456780", values.get("SITE_CONTACT_PHONE"));
-        assertTrue(values.containsKey("IMG_FRONT_PAGE") || values.containsKey("IMG_FRONT_ELEVATION"));
-        assertTrue(values.containsKey("IMG_STREET_VIEW"));
-        assertTrue(values.containsKey("IMG_SURROUNDINGS_1") || values.containsKey("IMG_SURROUNDINGS"));
-
         // Verify Audit Logs
         List<AuditLog> auditLogs = auditLogRepository.findAllByEntityTypeAndEntityIdOrderByTimestampDesc("ORDER", String.valueOf(order.getId()));
         Set<String> actionTypes = new HashSet<>();
@@ -231,8 +192,6 @@ public class Sprint6WorkspaceLifecycleTest {
         }
         assertTrue(actionTypes.contains("WORKSPACE_INITIALIZED"));
         assertTrue(actionTypes.contains("TEMPLATE_BOUND"));
-        assertTrue(actionTypes.contains("INSPECTION_DATA_IMPORTED"));
-        assertTrue(actionTypes.contains("PHOTO_BOUND"));
     }
 
     @Test

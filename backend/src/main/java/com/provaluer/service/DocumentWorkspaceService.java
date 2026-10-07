@@ -99,11 +99,6 @@ public class DocumentWorkspaceService {
     @Autowired
     private ValuationAuditLogRepository valuationAuditLogRepository;
 
-    @Autowired
-    private OrderInspectionRepository orderInspectionRepository;
-
-    @Autowired
-    private InspectionPhotoRepository inspectionPhotoRepository;
 
     @Autowired
     private TelegramNotificationService telegramNotificationService;
@@ -258,20 +253,6 @@ public class DocumentWorkspaceService {
         return principal.getAuthorities().iterator().next().getAuthority().replace("ROLE_", "");
     }
 
-    private void saveOrUpdateImageInput(Long orderId, String key, byte[] imageBytes) {
-        if (imageBytes == null || imageBytes.length == 0) return;
-        Optional<OrderInput> opt = orderInputRepository.findByOrderIdAndFieldKey(orderId, key);
-        OrderInput input = opt.orElseGet(() -> {
-            OrderInput oi = new OrderInput();
-            oi.setOrderId(orderId);
-            oi.setFieldKey(key);
-            return oi;
-        });
-        input.setImageValue(imageBytes);
-        input.setFieldValue("[IMAGE_BINARY: " + imageBytes.length + " bytes]");
-        orderInputRepository.save(input);
-    }
-
     /**
      * SPRINT 6: Initialize Document Workspace.
      * Transitions status: INSPECTION_COMPLETED → WORKSPACE_READY.
@@ -382,45 +363,18 @@ public class DocumentWorkspaceService {
         if (order.getQuoteTotal() != null) inputsMap.put("QUOTE_TOTAL", order.getQuoteTotal().toPlainString());
         if (order.getQuoteTurnaround() != null) inputsMap.put("QUOTE_TURNAROUND", order.getQuoteTurnaround());
 
-        // Inspection records
-        OrderInspection inspection = orderInspectionRepository.findByOrderId(orderId).orElse(null);
-        if (inspection != null) {
-            if (inspection.getInspectionDate() != null) {
-                inputsMap.put("INSPECTION_DATE", inspection.getInspectionDate().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")));
+
+
+        // Update orders.input_values JSONB
+        try {
+            Map<String, String> textOnly = new HashMap<>();
+            for (Map.Entry<String, String> e : inputsMap.entrySet()) {
+                if (e.getValue() != null && !e.getValue().startsWith("data:image")) {
+                    textOnly.put(e.getKey(), e.getValue());
+                }
             }
-            if (inspection.getInspectionTime() != null) {
-                inputsMap.put("INSPECTION_TIME", inspection.getInspectionTime().format(DateTimeFormatter.ofPattern("HH:mm")));
-            }
-            if (inspection.getSiteContactName() != null) {
-                inputsMap.put("SITE_CONTACT_PERSON", inspection.getSiteContactName());
-            }
-            if (inspection.getSiteContactNumber() != null) {
-                inputsMap.put("SITE_CONTACT_PHONE", inspection.getSiteContactNumber());
-            }
-            if (inspection.getInspectionRemarks() != null) {
-                inputsMap.put("SITE_INSPECTION_REMARKS", inspection.getInspectionRemarks());
-                inputsMap.put("INSPECTION_REMARKS", inspection.getInspectionRemarks());
-            }
-            if (inspection.getVisitStatus() != null) {
-                inputsMap.put("VISIT_STATUS", inspection.getVisitStatus());
-            }
-            if (inspection.getGpsAccuracyStart() != null) {
-                inputsMap.put("GPS_ACCURACY_START", String.valueOf(inspection.getGpsAccuracyStart()));
-            }
-            if (inspection.getGpsAccuracyEnd() != null) {
-                inputsMap.put("GPS_ACCURACY_END", String.valueOf(inspection.getGpsAccuracyEnd()));
-            }
-            if (inspection.getGpsLatEnd() != null) {
-                inputsMap.put("PROPERTY_LATITUDE", inspection.getGpsLatEnd().toPlainString());
-            } else if (inspection.getGpsLatStart() != null) {
-                inputsMap.put("PROPERTY_LATITUDE", inspection.getGpsLatStart().toPlainString());
-            }
-            if (inspection.getGpsLngEnd() != null) {
-                inputsMap.put("PROPERTY_LONGITUDE", inspection.getGpsLngEnd().toPlainString());
-            } else if (inspection.getGpsLngStart() != null) {
-                inputsMap.put("PROPERTY_LONGITUDE", inspection.getGpsLngStart().toPlainString());
-            }
-        }
+            order.setInputValues(objectMapper.writeValueAsString(textOnly));
+        } catch (Exception ignored) {}
 
         // Valuer / PA Details
         if (order.getPaId() != null) {
@@ -438,48 +392,6 @@ public class DocumentWorkspaceService {
             saveOrUpdateInput(orderId, entry.getKey(), entry.getValue());
         }
 
-        // 6. Import and Bind Photo Evidence
-        List<InspectionPhoto> photos = inspectionPhotoRepository.findAllByOrderIdAndIsDeletedFalseOrderByCategoryAscCaptureSequenceAsc(orderId);
-        int surroundingsCount = 0;
-        int extraCount = 0;
-        for (InspectionPhoto photo : photos) {
-            if (photo.getFileContent() == null || photo.getFileContent().length == 0) continue;
-            String cat = photo.getCategory();
-            if (PhotoCategory.FRONT_ELEVATION.name().equalsIgnoreCase(cat)) {
-                saveOrUpdateImageInput(orderId, "IMG_FRONT_PAGE", photo.getFileContent());
-                saveOrUpdateImageInput(orderId, "IMG_COVER_PAGE", photo.getFileContent());
-                saveOrUpdateImageInput(orderId, "IMG_FRONT_ELEVATION", photo.getFileContent());
-                saveOrUpdateImageInput(orderId, "COVER_IMAGE", photo.getFileContent());
-                inputsMap.put("IMG_FRONT_PAGE", "[ATTACHED_PHOTO: FRONT_ELEVATION #" + photo.getId() + "]");
-            } else if (PhotoCategory.REAR_ELEVATION.name().equalsIgnoreCase(cat)) {
-                saveOrUpdateImageInput(orderId, "IMG_REAR_ELEVATION", photo.getFileContent());
-                inputsMap.put("IMG_REAR_ELEVATION", "[ATTACHED_PHOTO: REAR_ELEVATION #" + photo.getId() + "]");
-            } else if (PhotoCategory.SIDE_VIEW_LEFT.name().equalsIgnoreCase(cat)) {
-                saveOrUpdateImageInput(orderId, "IMG_SIDE_VIEW_LEFT", photo.getFileContent());
-                inputsMap.put("IMG_SIDE_VIEW_LEFT", "[ATTACHED_PHOTO: SIDE_VIEW_LEFT #" + photo.getId() + "]");
-            } else if (PhotoCategory.SIDE_VIEW_RIGHT.name().equalsIgnoreCase(cat)) {
-                saveOrUpdateImageInput(orderId, "IMG_SIDE_VIEW_RIGHT", photo.getFileContent());
-                inputsMap.put("IMG_SIDE_VIEW_RIGHT", "[ATTACHED_PHOTO: SIDE_VIEW_RIGHT #" + photo.getId() + "]");
-            } else if (PhotoCategory.STREET_VIEW.name().equalsIgnoreCase(cat)) {
-                saveOrUpdateImageInput(orderId, "IMG_STREET_VIEW", photo.getFileContent());
-                saveOrUpdateImageInput(orderId, "IMG_APPROACH_ROAD", photo.getFileContent());
-                inputsMap.put("IMG_STREET_VIEW", "[ATTACHED_PHOTO: STREET_VIEW #" + photo.getId() + "]");
-            } else if (PhotoCategory.ACCESS_ROAD.name().equalsIgnoreCase(cat)) {
-                saveOrUpdateImageInput(orderId, "IMG_ACCESS_ROAD", photo.getFileContent());
-                inputsMap.put("IMG_ACCESS_ROAD", "[ATTACHED_PHOTO: ACCESS_ROAD #" + photo.getId() + "]");
-            } else if (PhotoCategory.SURROUNDINGS.name().equalsIgnoreCase(cat)) {
-                surroundingsCount++;
-                String slot = surroundingsCount == 1 ? "IMG_SURROUNDINGS_1" : "IMG_SURROUNDINGS_2";
-                saveOrUpdateImageInput(orderId, slot, photo.getFileContent());
-                inputsMap.put(slot, "[ATTACHED_PHOTO: SURROUNDINGS #" + photo.getId() + "]");
-            } else {
-                extraCount++;
-                String slot = "IMG_ANNEXURE_EXTRA_" + extraCount;
-                saveOrUpdateImageInput(orderId, slot, photo.getFileContent());
-                inputsMap.put(slot, "[ATTACHED_PHOTO: " + cat + " #" + photo.getId() + "]");
-            }
-        }
-
         // Update orders.input_values JSONB
         try {
             Map<String, String> textOnly = new HashMap<>();
@@ -491,27 +403,23 @@ public class DocumentWorkspaceService {
             order.setInputValues(objectMapper.writeValueAsString(textOnly));
         } catch (Exception ignored) {}
 
-        // 7. Transition status: INSPECTION_COMPLETED → WORKSPACE_READY
+        // 6. Transition status: ASSIGNED → WORKSPACE_READY
         String previousStatus = order.getStatus();
-        if ("INSPECTION_COMPLETED".equalsIgnoreCase(order.getStatus())) {
+        if ("ASSIGNED".equalsIgnoreCase(order.getStatus()) || "INSPECTION_COMPLETED".equalsIgnoreCase(order.getStatus())) {
             order.setStatus("WORKSPACE_READY");
         }
         order.setUpdatedAt(LocalDateTime.now());
         Order savedOrder = orderRepository.save(order);
 
-        // 8. Audit Logging
+        // 7. Audit Logging
         Long actorId = principal != null ? principal.getId() : null;
         String actorEmail = principal != null ? principal.getEmail() : "SYSTEM";
         String actorRole = getPrincipalRole(principal);
 
         auditLogService.log(actorId, actorEmail, actorRole, "WORKSPACE_INITIALIZED", "ORDER",
-                String.valueOf(orderId), previousStatus, savedOrder.getStatus(), "Workspace initialized from inspection artifacts");
+                String.valueOf(orderId), previousStatus, savedOrder.getStatus(), "Workspace initialized");
         auditLogService.log(actorId, actorEmail, actorRole, "TEMPLATE_BOUND", "ORDER",
                 String.valueOf(orderId), "Template #" + (template != null ? template.getId() : effectiveTemplateId) + " v" + (template != null ? template.getVersion() : order.getTemplateVersion()) + " locked (Version ID: " + order.getTemplateVersionId() + ")");
-        auditLogService.log(actorId, actorEmail, actorRole, "INSPECTION_DATA_IMPORTED", "ORDER",
-                String.valueOf(orderId), "Imported " + inputsMap.size() + " fields from inspection, order, and quotation records");
-        auditLogService.log(actorId, actorEmail, actorRole, "PHOTO_BOUND", "ORDER",
-                String.valueOf(orderId), "Bound " + photos.size() + " inspection photos to template image placeholders");
 
         return getDocumentWorkspace(orderId, principal);
     }
@@ -661,13 +569,7 @@ public class DocumentWorkspaceService {
             } catch (Exception ignored) {}
         }
 
-        // 2. Mandatory Photos Check (All 7 mandatory categories from Sprint 5)
-        for (PhotoCategory cat : PhotoCategory.getMandatoryCategories()) {
-            long count = inspectionPhotoRepository.countByOrderIdAndCategoryAndIsDeletedFalse(orderId, cat.name());
-            if (count < cat.getMinPhotos()) {
-                missingPhotos.add(cat.name() + " (min " + cat.getMinPhotos() + " required)");
-            }
-        }
+
 
         // 3. Formula & Valuation Calculation
         BigDecimal estVal = order.getEstimatedValue();
@@ -731,8 +633,8 @@ public class DocumentWorkspaceService {
 
         validateOrderAccess(order, principal, "VIEW");
 
-        // SPRINT 6 Auto-initialization:
-        if ("INSPECTION_COMPLETED".equalsIgnoreCase(order.getStatus())) {
+        // Auto-initialization:
+        if ("ASSIGNED".equalsIgnoreCase(order.getStatus()) || "INSPECTION_COMPLETED".equalsIgnoreCase(order.getStatus())) {
             return initializeWorkspace(orderId, principal);
         }
 

@@ -37,16 +37,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import com.provaluer.dto.ScheduleInspectionRequest;
-import com.provaluer.dto.RescheduleInspectionRequest;
-import com.provaluer.dto.StartInspectionRequest;
-import com.provaluer.dto.CompleteInspectionRequest;
-import com.provaluer.dto.DeleteInspectionPhotoRequest;
-import com.provaluer.dto.InspectionPhotoDto;
-import com.provaluer.dto.InspectionSummaryDto;
-import com.provaluer.service.InspectionService;
-import org.springframework.web.multipart.MultipartFile;
-
 @RestController
 @RequestMapping("/api/v1/orders")
 public class OrderController {
@@ -59,8 +49,7 @@ public class OrderController {
     @Autowired
     private AuditLogRepository auditLogRepository;
 
-    @Autowired
-    private InspectionService inspectionService;
+
 
     @Autowired
     private com.provaluer.service.AuditLogService auditLogService;
@@ -1130,102 +1119,7 @@ public class OrderController {
         return ResponseEntity.notFound().build();
     }
 
-    // =========================================================================
-    // SPRINT 5: Site Inspection Lifecycle Endpoints
-    // =========================================================================
 
-    @PostMapping("/{id}/schedule-inspection")
-    @PreAuthorize("hasAnyRole('PA', 'SUPER_ADMIN', 'ADMIN')")
-    public ResponseEntity<?> scheduleInspection(
-            @PathVariable Long id,
-            @RequestBody ScheduleInspectionRequest request) {
-        UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        InspectionSummaryDto response = inspectionService.scheduleInspection(id, request, principal);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/{id}/reschedule-inspection")
-    @PreAuthorize("hasAnyRole('PA', 'SUPER_ADMIN', 'ADMIN')")
-    public ResponseEntity<?> rescheduleInspection(
-            @PathVariable Long id,
-            @RequestBody RescheduleInspectionRequest request) {
-        UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        InspectionSummaryDto response = inspectionService.rescheduleInspection(id, request, principal);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping("/{id}/start-inspection")
-    @PreAuthorize("hasAnyRole('PA', 'SUPER_ADMIN', 'ADMIN')")
-    public ResponseEntity<?> startInspection(
-            @PathVariable Long id,
-            @RequestBody(required = false) StartInspectionRequest request) {
-        UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        InspectionSummaryDto response = inspectionService.startInspection(id, request, principal);
-        return ResponseEntity.ok(response);
-    }
-
-    @PostMapping(value = "/{id}/inspection/photos", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    @PreAuthorize("hasAnyRole('PA', 'SUPER_ADMIN', 'ADMIN')")
-    public ResponseEntity<?> uploadInspectionPhoto(
-            @PathVariable Long id,
-            @RequestParam("file") MultipartFile file,
-            @RequestParam("category") String category,
-            @RequestParam(value = "gpsLat", required = false) BigDecimal gpsLat,
-            @RequestParam(value = "gpsLng", required = false) BigDecimal gpsLng,
-            @RequestParam(value = "gpsAccuracy", required = false) Float gpsAccuracy,
-            @RequestParam(value = "deviceTimestamp", required = false) String deviceTimestamp) {
-        UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        InspectionPhotoDto dto = inspectionService.uploadPhoto(id, file, category, gpsLat, gpsLng, gpsAccuracy, deviceTimestamp, principal);
-        return ResponseEntity.status(HttpStatus.CREATED).body(dto);
-    }
-
-    @DeleteMapping("/{orderId}/inspection/photos/{photoId}")
-    @PreAuthorize("hasAnyRole('PA', 'SUPER_ADMIN', 'ADMIN')")
-    public ResponseEntity<?> deleteInspectionPhoto(
-            @PathVariable Long orderId,
-            @PathVariable Long photoId,
-            @RequestBody(required = false) DeleteInspectionPhotoRequest request,
-            @RequestParam(value = "reason", required = false) String queryReason) {
-        UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        String reason = request != null && request.getReason() != null ? request.getReason() : queryReason;
-        inspectionService.deletePhoto(orderId, photoId, reason, principal);
-        return ResponseEntity.ok(Map.of("message", "Photo deleted successfully", "photoId", photoId));
-    }
-
-    @PostMapping("/{id}/complete-inspection")
-    @PreAuthorize("hasAnyRole('PA', 'SUPER_ADMIN', 'ADMIN')")
-    public ResponseEntity<?> completeInspection(
-            @PathVariable Long id,
-            @RequestBody CompleteInspectionRequest request) {
-        UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        InspectionSummaryDto response = inspectionService.completeInspection(id, request, principal);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/{id}/inspection")
-    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN', 'CLIENT')")
-    public ResponseEntity<?> getInspectionSummary(@PathVariable Long id) {
-        UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        InspectionSummaryDto response = inspectionService.getInspectionSummary(id, principal);
-        return ResponseEntity.ok(response);
-    }
-
-    @GetMapping("/{orderId}/inspection/photos/{photoId}/download")
-    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN')")
-    public ResponseEntity<?> downloadInspectionPhoto(
-            @PathVariable Long orderId,
-            @PathVariable Long photoId) {
-        UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        InspectionPhoto photo = inspectionService.getPhotoEntity(orderId, photoId, principal);
-        MediaType mediaType = MediaType.IMAGE_JPEG;
-        if (photo.getMimeType() != null && photo.getMimeType().equalsIgnoreCase("image/png")) {
-            mediaType = MediaType.IMAGE_PNG;
-        }
-        return ResponseEntity.ok()
-                .contentType(mediaType)
-                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"" + photo.getFilename() + "\"")
-                .body(photo.getFileContent());
-    }
 
     @PostMapping("/{id}/submit-draft")
     @Transactional

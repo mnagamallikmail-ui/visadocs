@@ -34,7 +34,7 @@ class DocumentWorkspaceApiService {
     return response.statusCode == 200;
   }
 
-  /// SPRINT 6: Initialize Document Workspace from INSPECTION_COMPLETED
+  /// Initialize Document Workspace for order
   Future<DocumentWorkspaceModel> initializeWorkspace(int orderId) async {
     final response = await _api.dio.post('/api/v1/orders/$orderId/initialize-workspace');
     if (response.statusCode == 200 && response.data != null) {

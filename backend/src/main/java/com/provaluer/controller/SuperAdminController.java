@@ -719,8 +719,6 @@ public class SuperAdminController {
                 "PAYMENT_VERIFIED",
                 "PAID_INTAKE",
                 "ASSIGNED",
-                "INSPECTION_SCHEDULED",
-                "INSPECTION_COMPLETED",
                 "DRAFTING",
                 "SPA_REVIEW",
                 "SPA_GATE"

@@ -528,7 +528,7 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
                     Text(
                       hasValue
                           ? (isBase64 ? 'Image Attached & Ready for DOCX/PDF' : 'Attached: $value')
-                          : 'PNG, JPEG, WebP supported for property inspection',
+                          : 'PNG, JPEG, WebP supported for report documentation',
                       style: AppTypography.workspaceMicro(
                         color: hasValue ? AppColors.workspaceCorporateNavy : AppColors.workspaceSecondaryText,
                         weight: hasValue ? FontWeight.w600 : FontWeight.w400,

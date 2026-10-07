@@ -275,8 +275,6 @@ class _AdminOverviewSectionState extends State<AdminOverviewSection> {
               const SizedBox(height: 8),
               _tatStageRow('Client Payment & Clearance Gate', '2.8 hrs', '4.0 hrs', 0.70, const Color(0xFF047857)),
               const SizedBox(height: 8),
-              _tatStageRow('Site Inspection & Field Appraisal', '14.2 hrs', '18.0 hrs', 0.78, const Color(0xFF2563EB)),
-              const SizedBox(height: 8),
               _tatStageRow('Valuation Modeling & Report Drafting', '8.6 hrs', '10.0 hrs', 0.86, const Color(0xFF2563EB)),
               const SizedBox(height: 8),
               _tatStageRow('SPA Quality Gate Review & Delivery', '4.6 hrs', '6.0 hrs', 0.76, const Color(0xFF7C3AED)),
@@ -360,7 +358,7 @@ class _AdminOverviewSectionState extends State<AdminOverviewSection> {
     final quotesIssued = _orders.where((o) => o['quoteNumber'] != null).length;
     final paymentsVerified = _orders.where((o) {
       final s = o['status']?.toString();
-      return s == 'PAYMENT_VERIFIED' || s == 'PAID_INTAKE' || s == 'ASSIGNED' || s == 'INSPECTION_SCHEDULED' || s == 'INSPECTION_IN_PROGRESS' || s == 'INSPECTION_COMPLETED' || s == 'REPORT_DRAFTED' || s == 'SPA_GATE' || s == 'SPA_APPROVED' || s == 'SPA_CONFIRMED' || s == 'FINAL_DELIVERY' || s == 'CLIENT_DOWNLOADED';
+      return s == 'PAYMENT_VERIFIED' || s == 'PAID_INTAKE' || s == 'ASSIGNED' || s == 'REPORT_DRAFTED' || s == 'SPA_GATE' || s == 'SPA_APPROVED' || s == 'SPA_CONFIRMED' || s == 'FINAL_DELIVERY' || s == 'CLIENT_DOWNLOADED';
     }).length;
     final ordersReleased = _orders.where((o) {
       final s = o['status']?.toString();
@@ -375,7 +373,7 @@ class _AdminOverviewSectionState extends State<AdminOverviewSection> {
 
     for (final o in _orders) {
       final s = o['status']?.toString();
-      final isPaid = s == 'PAYMENT_VERIFIED' || s == 'PAID_INTAKE' || s == 'ASSIGNED' || s == 'INSPECTION_SCHEDULED' || s == 'INSPECTION_IN_PROGRESS' || s == 'INSPECTION_COMPLETED' || s == 'REPORT_DRAFTED' || s == 'SPA_GATE' || s == 'SPA_APPROVED' || s == 'SPA_CONFIRMED' || s == 'FINAL_DELIVERY' || s == 'CLIENT_DOWNLOADED';
+      final isPaid = s == 'PAYMENT_VERIFIED' || s == 'PAID_INTAKE' || s == 'ASSIGNED' || s == 'REPORT_DRAFTED' || s == 'SPA_GATE' || s == 'SPA_APPROVED' || s == 'SPA_CONFIRMED' || s == 'FINAL_DELIVERY' || s == 'CLIENT_DOWNLOADED';
       if (!isPaid) continue;
 
       final amt = (o['quoteTotal'] as num?)?.toDouble() ?? (o['quoteAmount'] as num?)?.toDouble() ?? 0.0;
@@ -4503,9 +4501,6 @@ class _AdminReportSectionState extends State<AdminReportSection> {
         s == 'PAYMENT_VERIFIED' ||
         s == 'PAID_INTAKE' ||
         s == 'ASSIGNED' ||
-        s == 'INSPECTION_SCHEDULED' ||
-        s == 'INSPECTION_IN_PROGRESS' ||
-        s == 'INSPECTION_COMPLETED' ||
         s == 'REPORT_DRAFTED' ||
         s == 'SPA_GATE' ||
         s == 'SPA_APPROVED' ||

@@ -26,7 +26,6 @@ import '../quotations/admin_request_review_modal.dart';
 import '../quotations/client_quote_view_modal.dart';
 import '../quotations/client_payment_submission_modal.dart';
 import '../quotations/admin_payment_review_modal.dart';
-import '../inspection/site_inspection_modal.dart';
 import '../../utils/build_info.dart';
 
 class ValuationPortalWidget extends StatefulWidget {
@@ -2783,7 +2782,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
         if (widget.role == 'CLIENT') {
           list = provider.clientOrders.where((o) => o['status'] != 'FINAL_DELIVERY').toList();
         } else if (widget.role == 'PA') {
-          list = provider.paOrders.where((o) => o['status'] == 'ASSIGNED' || o['status'] == 'INSPECTION_SCHEDULED' || o['status'] == 'INSPECTION_IN_PROGRESS' || o['status'] == 'INSPECTION_COMPLETED' || o['status'] == 'ACTION_NEEDED' || o['status'] == 'SPA_GATE' || o['status'] == 'SPA_CONFIRMED' || o['status'] == 'FINAL_DELIVERY').toList();
+          list = provider.paOrders.where((o) => o['status'] == 'ASSIGNED' || o['status'] == 'ACTION_NEEDED' || o['status'] == 'SPA_GATE' || o['status'] == 'SPA_CONFIRMED' || o['status'] == 'FINAL_DELIVERY').toList();
         } else if (widget.role == 'SPA') {
           list = provider.allOrders.where((o) => o['status'] == 'SPA_GATE' || o['status'] == 'SPA_CONFIRMED').toList();
         } else {
@@ -3359,7 +3358,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
     final String status = order['status'] ?? 'PENDING';
     final isCompleted = status == "FINAL_DELIVERY";
     final isUnassigned = status == "PAID_INTAKE";
-    final isAssignedToMe = (status == "ASSIGNED" || status == "INSPECTION_SCHEDULED" || status == "INSPECTION_IN_PROGRESS" || status == "INSPECTION_COMPLETED" || status == "ACTION_NEEDED" || status == "SPA_GATE") && order['paId'] != null;
+    final isAssignedToMe = (status == "ASSIGNED" || status == "ACTION_NEEDED" || status == "SPA_GATE") && order['paId'] != null;
 
     final String reportNum = order['reportNumber'] ?? 'PV-${order['id']}';
 
@@ -3434,71 +3433,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
             ),
           ),
 
-        // Action: Site Inspection Lifecycle (Sprint 5)
-        if (isAssignedToMe && (widget.role == 'PA' || widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN') &&
-            (status == 'ASSIGNED' || status == 'INSPECTION_SCHEDULED' || status == 'INSPECTION_IN_PROGRESS' || status == 'INSPECTION_COMPLETED' || status == 'ACTION_NEEDED')) ...[
-          Container(
-            padding: const EdgeInsets.all(12),
-            margin: const EdgeInsets.only(bottom: 12),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0F172A),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFF334155)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.explore_outlined, color: Color(0xFF38BDF8), size: 16),
-                    const SizedBox(width: 8),
-                    Text(
-                      "SITE INSPECTION LIFECYCLE",
-                      style: GoogleFonts.montserrat(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  height: 38,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.touch_app, size: 16, color: Colors.white),
-                    onPressed: () {
-                      SiteInspectionModal.show(
-                        context: context,
-                        orderId: order['id'],
-                        referenceCode: order['referenceCode'] ?? 'REQ-${order['id']}',
-                        orderStatus: status,
-                        role: widget.role,
-                        onStatusChanged: () {
-                          _refreshData();
-                        },
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF0284C7),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
-                    ),
-                    label: Text(
-                      status == 'ASSIGNED'
-                          ? "SCHEDULE SITE INSPECTION"
-                          : (status == 'INSPECTION_SCHEDULED'
-                              ? "MANAGE SCHEDULE & START VISIT"
-                              : (status == 'INSPECTION_IN_PROGRESS'
-                                  ? "EVIDENCE & COMPLETION GATE"
-                                  : (status == 'ACTION_NEEDED'
-                                      ? "VIEW BLOCKER & RESUME"
-                                      : "VIEW INSPECTION DETAILS"))),
-                      style: const TextStyle(fontSize: 10, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+
 
         // Action B: Template selection and inputs form (For PA / SPA / Super Admin)
         if (isAssignedToMe && (widget.role == 'PA' || widget.role == 'SPA' || widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN')) ...[
@@ -4423,12 +4358,6 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
         return AppColors.successBg;
       case "ASSIGNED":
         return AppColors.warningBg;
-      case "INSPECTION_SCHEDULED":
-        return const Color(0xFF818CF8).withOpacity(0.15);
-      case "INSPECTION_IN_PROGRESS":
-        return const Color(0xFFF97316).withOpacity(0.15);
-      case "INSPECTION_COMPLETED":
-        return const Color(0xFF14B8A6).withOpacity(0.15);
       case "ACTION_NEEDED":
         return const Color(0xFFEF4444).withOpacity(0.15);
       case "SPA_GATE":
@@ -4449,12 +4378,6 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
         return AppColors.successAccent;
       case "ASSIGNED":
         return AppColors.warning;
-      case "INSPECTION_SCHEDULED":
-        return const Color(0xFF818CF8);
-      case "INSPECTION_IN_PROGRESS":
-        return const Color(0xFFF97316);
-      case "INSPECTION_COMPLETED":
-        return const Color(0xFF14B8A6);
       case "ACTION_NEEDED":
         return const Color(0xFFEF4444);
       case "SPA_GATE":
