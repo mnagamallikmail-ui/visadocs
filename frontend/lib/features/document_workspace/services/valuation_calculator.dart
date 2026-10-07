@@ -290,7 +290,12 @@ class ValuationCalculator {
     data.distressSaleValue = landDistVal + bldgDistVal;
 
     // 7. Insurable Value = Total Replacement Cost of Buildings (Phase 13)
-    data.insurableValue = totalReplCost;
+    // Land has no insurable value (land is indestructible).
+    if (buildingItems.isEmpty) {
+      data.insurableValue = 0.0;
+    } else {
+      data.insurableValue = totalReplCost;
+    }
 
     // 8. Government Values (Phase 12)
     double landGovt = 0;

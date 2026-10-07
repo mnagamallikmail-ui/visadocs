@@ -116,13 +116,27 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   List<ValuationCompositeItemModel> get compositeItems => _compositeItems;
 
   bool get isCompositeProperty {
-    final meth = _valuationData?.valuationMethodology ?? _activeValues['VALUATION_METHODOLOGY'] ?? '';
-    if (meth == 'COMPOSITE') return true;
-    if (_compositeItems.isNotEmpty) return true;
-    if (_activeValues.containsKey('SALEABLE_AREA') || _activeValues.containsKey('SALEABLE_RATE') || _activeValues.containsKey('MARKET_RATE_FLAT')) return true;
     final cat = (_activeValues['PROPERTY_CATEGORY'] ?? _activeValues['property_category'] ?? _activeValues['PROPERTY_TYPE'] ?? '').toLowerCase();
-    return cat.contains('flat') || cat.contains('apartment') || cat.contains('commercial space') ||
-           cat.contains('office') || cat.contains('retail') || cat.contains('shop') || cat.contains('commercial unit');
+    if (cat.contains('land') || cat.contains('plot') || cat.contains('open land') || cat.contains('vacant land') || cat.contains('agricultural') || cat.contains('site')) {
+      return false;
+    }
+    final meth = (_activeValues['VALUATION_METHODOLOGY'] ?? _valuationData?.valuationMethodology ?? '').toUpperCase();
+    if (meth == 'COMPOSITE' || meth == 'COMPOSITE_RATE') return true;
+    if (meth.contains('LAND') || meth.contains('BUILDING') || meth == 'PHYSICAL' || meth == 'LAND_ONLY') {
+      return false;
+    }
+    if (cat.contains('flat') || cat.contains('apartment') || cat.contains('commercial space') ||
+        cat.contains('office') || cat.contains('retail') || cat.contains('shop') || cat.contains('commercial unit')) {
+      return true;
+    }
+    if (cat.contains('house') || cat.contains('bungalow') || cat.contains('villa') || cat.contains('industrial') || cat.contains('factory')) {
+      return false;
+    }
+    if (_compositeItems.isNotEmpty) return true;
+    if (_activeValues.containsKey('SALEABLE_AREA') || _activeValues.containsKey('SALEABLE_RATE') || _activeValues.containsKey('MARKET_RATE_FLAT')) {
+      return true;
+    }
+    return false;
   }
   int get activeSectionIndex => _activeSectionIndex;
   Map<String, String> get activeValues => _activeValues;
@@ -588,6 +602,14 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       );
       _mergePlaceholdersPreservingRaw(initialPlaceholders);
     } else {
+      _valuationData!.valuationMethodology = 'LAND_AND_BUILDING';
+      _compositeItems = [];
+      for (final item in _landItems) {
+        ValuationCalculator.calculateLandItem(item);
+      }
+      for (final item in _buildingItems) {
+        ValuationCalculator.calculateBuildingItem(item);
+      }
       ValuationCalculator.recalculateSummary(_valuationData!, _landItems, _buildingItems);
       final initialPlaceholders = ValuationCalculator.generatePlaceholders(
         orderInfo: {
@@ -595,6 +617,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
           'clientName': _activeValues['CLIENT_NAME'] ?? _activeValues['client_name'] ?? '',
           'bankName': _activeValues['BANK_NAME'] ?? _activeValues['bank_name'] ?? '',
           'branchName': _activeValues['BRANCH_NAME'] ?? _activeValues['branch_name'] ?? '',
+          'propertyCategory': _activeValues['PROPERTY_CATEGORY'] ?? _activeValues['property_category'] ?? '',
         },
         data: _valuationData!,
         landItems: _landItems,
@@ -641,11 +664,11 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     if (_valuationData == null) {
       _valuationData = ValuationDataModel(
         orderId: _workspaceModel?.orderId ?? 0,
-        valuationMethodology: 'COMPOSITE',
+        valuationMethodology: isCompositeProperty ? 'COMPOSITE' : 'LAND_AND_BUILDING',
       );
     }
 
-    if (isCompositeProperty || _compositeItems.isNotEmpty) {
+    if (isCompositeProperty) {
       _valuationData!.valuationMethodology = 'COMPOSITE';
       ValuationCalculator.recalculateCompositeSummary(_valuationData!, _compositeItems);
       final placeholders = ValuationCalculator.generatePlaceholders(
@@ -680,6 +703,13 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         _deltaValues['DISTRESS_SALE_PERCENTAGE'] = _valuationData!.distressSalePercentage.toString();
       } catch (_) {}
     } else {
+      _valuationData!.valuationMethodology = 'LAND_AND_BUILDING';
+      for (final item in _landItems) {
+        ValuationCalculator.calculateLandItem(item);
+      }
+      for (final item in _buildingItems) {
+        ValuationCalculator.calculateBuildingItem(item);
+      }
       ValuationCalculator.recalculateSummary(_valuationData!, _landItems, _buildingItems);
       final placeholders = ValuationCalculator.generatePlaceholders(
         orderInfo: {
@@ -687,6 +717,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
           'clientName': _activeValues['CLIENT_NAME'] ?? _activeValues['client_name'] ?? '',
           'bankName': _activeValues['BANK_NAME'] ?? _activeValues['bank_name'] ?? '',
           'branchName': _activeValues['BRANCH_NAME'] ?? _activeValues['branch_name'] ?? '',
+          'propertyCategory': _activeValues['PROPERTY_CATEGORY'] ?? _activeValues['property_category'] ?? '',
         },
         data: _valuationData!,
         landItems: _landItems,

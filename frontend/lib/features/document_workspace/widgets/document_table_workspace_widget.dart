@@ -368,13 +368,11 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           LayoutBuilder(
             builder: (context, constraints) {
               final tableWidth = constraints.maxWidth > 960 ? constraints.maxWidth : 960.0;
-              return Scrollbar(
-                thumbVisibility: constraints.maxWidth < 960,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: tableWidth,
-                    child: Column(
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
+                  width: tableWidth,
+                  child: Column(
                 children: [
                   // Table Header
                   Container(
@@ -528,10 +526,9 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 ],
               ),
             ),
-          ),
-        );
-      },
-    ),
+          );
+        },
+      ),
 
           // Total & Say Rows
           Container(
@@ -639,11 +636,9 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           LayoutBuilder(
             builder: (context, constraints) {
               final tableWidth = constraints.maxWidth > 1160 ? constraints.maxWidth : 1160.0;
-              return Scrollbar(
-                thumbVisibility: constraints.maxWidth < 1160,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
+              return SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: SizedBox(
                     width: tableWidth,
                     child: Column(
                 children: [
@@ -857,10 +852,9 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                 ],
               ),
             ),
-          ),
-        );
-      },
-    ),
+          );
+        },
+      ),
 
           // Total & Say Rows
           Container(
@@ -1409,13 +1403,11 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             child: LayoutBuilder(
               builder: (context, constraints) {
                 final tableWidth = constraints.maxWidth > 780 ? constraints.maxWidth : 780.0;
-                return Scrollbar(
-                  thumbVisibility: constraints.maxWidth < 780,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: SizedBox(
-                      width: tableWidth,
-                      child: Container(
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: tableWidth,
+                    child: Container(
                         decoration: BoxDecoration(
                           border: Border.all(color: AppColors.hairlineSoft),
                           borderRadius: BorderRadius.circular(8),
@@ -1471,23 +1463,24 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                     '₹ ${IndianNumberFormatter.format(data.governmentValue)}',
                     isHighlight: true,
                   ),
-                  const Divider(height: 1),
-                  // Row 5: Insurable Value
-                  _buildInlineSummaryTableRow(
-                    'Insurable Value (Replacement Cost)',
-                    'N/A',
-                    '₹ ${IndianNumberFormatter.format(insurableVal)}',
-                    '₹ ${IndianNumberFormatter.format(insurableVal)}',
-                  ),
+                  // Row 5: Insurable Value (Only displayed for properties with buildings)
+                  if (provider.buildingItems.isNotEmpty) ...[
+                    const Divider(height: 1),
+                    _buildInlineSummaryTableRow(
+                      'Insurable Value (Replacement Cost)',
+                      'N/A',
+                      '₹ ${IndianNumberFormatter.format(insurableVal)}',
+                      '₹ ${IndianNumberFormatter.format(insurableVal)}',
+                    ),
+                  ],
                 ],
               ),
             ),
           ),
-        ),
-      );
-    },
+        );
+      },
+    ),
   ),
-),
 
           // Total in words footer
           Padding(
