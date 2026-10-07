@@ -108,9 +108,32 @@ class DocumentWorkspaceApiService {
   }
 
   /// Advances order status to SPA_GATE.
+  /// Throws a [DioException] with the server's validation message on HTTP 400,
+  /// so the caller can surface the exact list of missing fields to the PA.
   Future<bool> submitToSpa(int orderId) async {
-    final response = await _api.dio.post('/api/v1/orders/$orderId/submit-to-spa');
-    return response.statusCode == 200;
+    final response = await _api.dio.post(
+      '/api/v1/orders/$orderId/submit-to-spa',
+      options: Options(validateStatus: (status) => true),
+    );
+    if (response.statusCode == 200) return true;
+
+    // Extract the server-provided error detail from the 400 response body
+    final body = response.data;
+    final String serverMsg;
+    if (body is Map && body['error'] != null) {
+      serverMsg = body['error'] as String;
+    } else if (body is String && body.isNotEmpty) {
+      serverMsg = body;
+    } else {
+      serverMsg = 'Submission failed (HTTP ${response.statusCode})';
+    }
+
+    throw DioException(
+      requestOptions: response.requestOptions,
+      response: response,
+      error: serverMsg,
+      message: serverMsg,
+    );
   }
 
   /// Approves report, computes fees, and triggers binary DOCX/PDF report compilation.

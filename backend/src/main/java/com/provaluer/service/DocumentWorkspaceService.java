@@ -1262,6 +1262,13 @@ public class DocumentWorkspaceService {
             allErrors.addAll(validation.getMissingPhotos());
             allErrors.addAll(validation.getCalculationErrors());
             allErrors.addAll(validation.getPlaceholderErrors());
+            log.warn("[SUBMIT_TO_SPA] Order #{} draft validation FAILED for PA #{}. missingFields={} missingPhotos={} calculationErrors={} placeholderErrors={}",
+                    orderId,
+                    principal != null ? principal.getId() : "unknown",
+                    validation.getMissingFields(),
+                    validation.getMissingPhotos(),
+                    validation.getCalculationErrors(),
+                    validation.getPlaceholderErrors());
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Draft validation failed. Incomplete draft: " + String.join("; ", allErrors));
         }
