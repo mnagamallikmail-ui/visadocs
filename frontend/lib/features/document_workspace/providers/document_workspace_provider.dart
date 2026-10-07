@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:dio/dio.dart';
 import '../../document_studio/models/visual_preview_model.dart';
@@ -76,6 +77,24 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
 
   Timer? _autoSaveTimer;
 
+  // FIX 4: Multi-tab session lease & isolation
+  final String _tabSessionId = '${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(999999)}';
+  bool hasActiveSessionConflict = false;
+  bool sessionTakenOver = false;
+  Timer? _sessionLeaseTimer;
+  Timer? _telemetryTimer;
+
+  // FIX 1 & FIX 3: Revision conflict detection
+  bool hasRevisionConflict = false;
+
+  // FIX 8: Real-time invalidation notice
+  String? invalidationNotice;
+
+  // FIX 6: Stale local draft quarantine
+  bool hasPendingStaleLocalDraft = false;
+  Map<String, dynamic>? pendingStaleDraftMetadata;
+  Map<String, String>? _pendingStaleDraftValues;
+
   // Getters
   bool get isLoading => _isLoading;
   bool get isSaving => _isSaving;
@@ -117,7 +136,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   String? get hoveredKey => _hoveredKey;
   String? get focusedKey => _focusedKey;
   bool get hasWorkspace => _workspaceModel != null;
-  bool get isReadOnly => _workspaceModel?.readOnly ?? false;
+  bool get isReadOnly => (_workspaceModel?.readOnly ?? false) || hasActiveSessionConflict || sessionTakenOver || hasRevisionConflict || invalidationNotice != null;
 
   DocumentScrollMode get scrollMode => _scrollMode;
 
@@ -143,6 +162,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
 
   void initAutoSave() {
     _autoSaveTimer?.cancel();
+    if (isReadOnly) return;
     // Auto-save every 30 seconds if dirty
     _autoSaveTimer = Timer.periodic(const Duration(seconds: 30), (_) {
       if (_isDirty && !_isSaving && !_isAutoSaving && !isReadOnly) {
@@ -154,6 +174,11 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   @override
   void dispose() {
     _autoSaveTimer?.cancel();
+    _sessionLeaseTimer?.cancel();
+    _telemetryTimer?.cancel();
+    if (_workspaceModel != null) {
+      TokenStorage.releaseActiveWorkspaceSession(_workspaceModel!.orderId, _tabSessionId);
+    }
     super.dispose();
   }
 
@@ -161,6 +186,10 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   Future<void> loadWorkspace(int orderId) async {
     _isLoading = true;
     _errorMessage = null;
+    hasActiveSessionConflict = false;
+    sessionTakenOver = false;
+    hasRevisionConflict = false;
+    invalidationNotice = null;
     notifyListeners();
 
     try {
@@ -169,16 +198,49 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       _activeValues = Map<String, String>.from(model.values);
       _deltaValues.clear();
 
-      // SPRINT 6 EMERGENCY HOTFIX: Zero Data Loss Draft Recovery from LocalStorage
-      final cachedDraft = TokenStorage.loadDraftFromStorage(orderId);
-      if (cachedDraft != null && cachedDraft.isNotEmpty) {
-        _activeValues.addAll(cachedDraft);
-        _deltaValues.addAll(cachedDraft);
-        _isDirty = true;
-        hasRecoveredLocalDraft = true;
-        _saveState = SaveState.dirtyLocal;
+      // FIX 4: Check Multi-Tab Collision & Lease State
+      final activeLease = TokenStorage.getActiveWorkspaceSession(orderId);
+      if (activeLease != null) {
+        final leaseTabId = activeLease['tabSessionId'] as String?;
+        final lastSeen = activeLease['lastSeen'] as int? ?? 0;
+        final diff = DateTime.now().millisecondsSinceEpoch - lastSeen;
+        if (leaseTabId != null && leaseTabId != _tabSessionId && diff < 15000) {
+          hasActiveSessionConflict = true;
+        }
+      }
+      if (!hasActiveSessionConflict) {
+        TokenStorage.claimActiveWorkspaceSession(orderId, _tabSessionId);
+      }
+
+      // FIX 6: Local Storage Sanitization - Never silently hydrate stale drafts
+      final draftMeta = TokenStorage.loadDraftMetadataFromStorage(orderId);
+      if (draftMeta != null && draftMeta['values'] is Map && (draftMeta['values'] as Map).isNotEmpty) {
+        final draftRev = draftMeta['workspaceRevision'] as int? ?? 1;
+        final serverRev = model.workspaceRevision;
+        if (draftRev < serverRev) {
+          // Stale draft detected: quarantine and prompt user
+          hasPendingStaleLocalDraft = true;
+          pendingStaleDraftMetadata = draftMeta;
+          _pendingStaleDraftValues = Map<String, String>.from(
+            (draftMeta['values'] as Map).map((k, v) => MapEntry(k.toString(), v?.toString() ?? '')),
+          );
+          hasRecoveredLocalDraft = false;
+          _saveState = SaveState.saved;
+        } else {
+          // Fresh or matching revision: safe to hydrate
+          final cachedDraft = Map<String, String>.from(
+            (draftMeta['values'] as Map).map((k, v) => MapEntry(k.toString(), v?.toString() ?? '')),
+          );
+          _activeValues.addAll(cachedDraft);
+          _deltaValues.addAll(cachedDraft);
+          _isDirty = true;
+          hasRecoveredLocalDraft = true;
+          hasPendingStaleLocalDraft = false;
+          _saveState = SaveState.dirtyLocal;
+        }
       } else {
         hasRecoveredLocalDraft = false;
+        hasPendingStaleLocalDraft = false;
         _saveState = SaveState.saved;
         saveErrorMessage = null;
       }
@@ -195,7 +257,14 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
 
       _isDirty = false;
       _lastSavedAt = DateTime.now();
-      initAutoSave();
+
+      if (!isReadOnly) {
+        initAutoSave();
+      }
+
+      // Start multi-tab lease heartbeats and real-time backend telemetry
+      _initSessionLeaseMonitoring(orderId);
+      _initRealtimeTelemetry(orderId);
 
       // Lazy background preview pre-compilation (non-blocking for immediate data entry)
       _initBackgroundPreview(orderId);
@@ -213,6 +282,85 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  void _initSessionLeaseMonitoring(int orderId) {
+    _sessionLeaseTimer?.cancel();
+    _sessionLeaseTimer = Timer.periodic(const Duration(seconds: 5), (_) {
+      if (!hasActiveSessionConflict && !sessionTakenOver) {
+        final currentLease = TokenStorage.getActiveWorkspaceSession(orderId);
+        if (currentLease != null && currentLease['tabSessionId'] != _tabSessionId) {
+          sessionTakenOver = true;
+          _autoSaveTimer?.cancel();
+          notifyListeners();
+        } else {
+          TokenStorage.claimActiveWorkspaceSession(orderId, _tabSessionId);
+        }
+      }
+    });
+  }
+
+  void _initRealtimeTelemetry(int orderId) {
+    _telemetryTimer?.cancel();
+    _telemetryTimer = Timer.periodic(const Duration(seconds: 15), (_) async {
+      if (_workspaceModel == null) return;
+      final telemetry = await _apiService.checkWorkspaceTelemetry(orderId);
+      if (telemetry != null) {
+        final currentStatus = telemetry['status'] as String? ?? '';
+        final serverRev = telemetry['workspaceRevision'] as int? ?? _workspaceModel!.workspaceRevision;
+
+        final isLocked = ['SPA_GATE', 'SPA_CONFIRMED', 'FINAL_DELIVERY', 'FINALIZED', 'CLOSED'].contains(currentStatus);
+        if (isLocked && _workspaceModel!.status != currentStatus) {
+          invalidationNotice = 'Order transitioned to $currentStatus and is now locked.';
+          _autoSaveTimer?.cancel();
+          _workspaceModel = _workspaceModel!.copyWith(status: currentStatus, readOnly: true);
+          notifyListeners();
+        } else if (serverRev > _workspaceModel!.workspaceRevision && !hasRevisionConflict) {
+          hasRevisionConflict = true;
+          _autoSaveTimer?.cancel();
+          notifyListeners();
+        }
+      }
+    });
+  }
+
+  void takeOverSession() {
+    if (_workspaceModel == null) return;
+    TokenStorage.claimActiveWorkspaceSession(_workspaceModel!.orderId, _tabSessionId);
+    hasActiveSessionConflict = false;
+    sessionTakenOver = false;
+    initAutoSave();
+    notifyListeners();
+  }
+
+  void keepReadOnlySession() {
+    hasActiveSessionConflict = false;
+    _autoSaveTimer?.cancel();
+    notifyListeners();
+  }
+
+  void applyPendingStaleDraft() {
+    if (_pendingStaleDraftValues != null && _workspaceModel != null) {
+      _activeValues.addAll(_pendingStaleDraftValues!);
+      _deltaValues.addAll(_pendingStaleDraftValues!);
+      _isDirty = true;
+      hasRecoveredLocalDraft = true;
+      hasPendingStaleLocalDraft = false;
+      _pendingStaleDraftValues = null;
+      _recalculateFormulas(notify: true);
+      _persistLocalDraft();
+      notifyListeners();
+    }
+  }
+
+  void discardPendingStaleDraft() {
+    if (_workspaceModel != null) {
+      TokenStorage.clearDraftFromStorage(_workspaceModel!.orderId);
+    }
+    hasPendingStaleLocalDraft = false;
+    _pendingStaleDraftValues = null;
+    pendingStaleDraftMetadata = null;
+    notifyListeners();
   }
 
   void _initValuationDataFromValues(int orderId) {
@@ -1227,11 +1375,15 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// SPRINT 6 EMERGENCY HOTFIX: Zero Data Loss local draft persistence
+  /// SPRINT 6 EMERGENCY HOTFIX & FIX 6: Zero Data Loss local draft persistence with revision
   void _persistLocalDraft() {
     final orderId = _workspaceModel?.orderId;
     if (orderId != null && orderId > 0 && _deltaValues.isNotEmpty) {
-      TokenStorage.saveDraftToStorage(orderId, _deltaValues);
+      TokenStorage.saveDraftToStorage(
+        orderId,
+        _deltaValues,
+        workspaceRevision: _workspaceModel?.workspaceRevision,
+      );
       _saveState = SaveState.dirtyLocal;
     }
   }
@@ -1241,7 +1393,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     updateValue(key, value);
   }
 
-  /// Saves changed delta values to backend with robust error visibility
+  /// Saves changed delta values to backend with robust error visibility & concurrency protection
   Future<bool> saveChanges({bool isAutoSave = false}) async {
     if (_workspaceModel == null || _deltaValues.isEmpty) {
       _isDirty = false;
@@ -1249,6 +1401,11 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       saveErrorMessage = null;
       notifyListeners();
       return true;
+    }
+
+    // Never save if locked, session taken over, or revision conflict detected
+    if (isReadOnly) {
+      return false;
     }
 
     _saveState = SaveState.saving;
@@ -1261,12 +1418,18 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
 
     try {
       final deltaToSave = Map<String, String>.from(_deltaValues);
-      final success = await _apiService.saveDocumentValues(
+      final saveResult = await _apiService.saveDocumentValues(
         _workspaceModel!.orderId,
         deltaToSave,
+        workspaceRevision: _workspaceModel?.workspaceRevision,
       );
 
-      if (success) {
+      if (saveResult != null && saveResult['status'] == 'SAVED') {
+        final newRevStr = saveResult['workspaceRevision']?.toString();
+        final newRev = int.tryParse(newRevStr ?? '') ?? (_workspaceModel!.workspaceRevision + 1);
+        _workspaceModel = _workspaceModel!.copyWith(workspaceRevision: newRev);
+        hasRevisionConflict = false;
+
         deltaToSave.forEach((k, _) {
           if (_deltaValues[k] == deltaToSave[k]) {
             _deltaValues.remove(k);
@@ -1290,11 +1453,34 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         _persistLocalDraft();
         return false;
       }
+    } on DioException catch (dioErr) {
+      if (dioErr.response?.statusCode == 409) {
+        hasRevisionConflict = true;
+        _saveState = SaveState.error;
+        saveErrorMessage = 'Workspace updated elsewhere. Refresh required.';
+        _errorMessage = saveErrorMessage;
+        _autoSaveTimer?.cancel();
+        notifyListeners();
+        return false;
+      } else if (dioErr.response?.statusCode == 403) {
+        invalidationNotice = 'Order is locked or assigned elsewhere.';
+        _saveState = SaveState.error;
+        saveErrorMessage = 'Order access restricted or locked.';
+        _errorMessage = saveErrorMessage;
+        _autoSaveTimer?.cancel();
+        _persistLocalDraft();
+        notifyListeners();
+        return false;
+      }
+      _saveState = SaveState.error;
+      saveErrorMessage = 'Save failed. Session expired or network unavailable. Your edits are preserved locally.';
+      _errorMessage = saveErrorMessage;
+      _persistLocalDraft();
+      return false;
     } catch (e) {
       _saveState = SaveState.error;
       saveErrorMessage = 'Save failed. Session expired or network unavailable. Your edits are preserved locally.';
       _errorMessage = saveErrorMessage;
-      // Retain local cache under all circumstances
       _persistLocalDraft();
       return false;
     } finally {
@@ -1313,7 +1499,11 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
 
     try {
       if (_deltaValues.isNotEmpty) {
-        await _apiService.saveDocumentValues(_workspaceModel!.orderId, _deltaValues);
+        await _apiService.saveDocumentValues(
+          _workspaceModel!.orderId,
+          _deltaValues,
+          workspaceRevision: _workspaceModel?.workspaceRevision,
+        );
         _deltaValues.clear();
         _isDirty = false;
       }

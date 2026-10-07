@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../../providers/order_provider.dart';
+import '../../services/api_service.dart';
 import 'admin_quote_creation_modal.dart';
 
 class AdminRequestReviewModal extends StatefulWidget {
@@ -540,33 +541,45 @@ class _AdminRequestReviewModalState extends State<AdminRequestReviewModal> {
         status == 'PAYMENT_VERIFIED' ||
         status == 'PAID_INTAKE' ||
         status == 'ASSIGNED' ||
-        status == 'IN_PROGRESS' ||
+        status == 'WORKSPACE_READY' ||
+        status == 'DRAFTING' ||
+        status == 'ACTION_NEEDED' ||
         status == 'SPA_GATE' ||
-        status == 'SPA_APPROVED' ||
+        status == 'SPA_CONFIRMED' ||
+        status == 'DELIVERY_READY' ||
         status == 'FINAL_DELIVERY' ||
-        status == 'CLIENT_DOWNLOADED';
+        status == 'CLIENT_DOWNLOADED' ||
+        status == 'CLOSED';
 
     final paymentVerifiedDone = paymentStatus == 'VERIFIED' ||
         status == 'PAYMENT_VERIFIED' ||
         status == 'PAID_INTAKE' ||
         status == 'ASSIGNED' ||
-        status == 'IN_PROGRESS' ||
+        status == 'WORKSPACE_READY' ||
+        status == 'DRAFTING' ||
+        status == 'ACTION_NEEDED' ||
         status == 'SPA_GATE' ||
-        status == 'SPA_APPROVED' ||
+        status == 'SPA_CONFIRMED' ||
+        status == 'DELIVERY_READY' ||
         status == 'FINAL_DELIVERY' ||
-        status == 'CLIENT_DOWNLOADED';
+        status == 'CLIENT_DOWNLOADED' ||
+        status == 'CLOSED';
 
     final assignedDone = widget.order['paId'] != null ||
         widget.order['claimedAt'] != null ||
         status == 'ASSIGNED' ||
-        status == 'IN_PROGRESS' ||
+        status == 'WORKSPACE_READY' ||
+        status == 'DRAFTING' ||
+        status == 'ACTION_NEEDED' ||
         status == 'SPA_GATE' ||
-        status == 'SPA_APPROVED' ||
-        status == 'FINAL_DELIVERY' ||
-        status == 'CLIENT_DOWNLOADED';
-
-    final spaApprovedDone = status == 'SPA_APPROVED' ||
         status == 'SPA_CONFIRMED' ||
+        status == 'DELIVERY_READY' ||
+        status == 'FINAL_DELIVERY' ||
+        status == 'CLIENT_DOWNLOADED' ||
+        status == 'CLOSED';
+
+    final spaApprovedDone = status == 'SPA_CONFIRMED' ||
+        status == 'DELIVERY_READY' ||
         status == 'FINAL_DELIVERY' ||
         status == 'CLIENT_DOWNLOADED' ||
         status == 'CLOSED';
@@ -579,9 +592,9 @@ class _AdminRequestReviewModalState extends State<AdminRequestReviewModal> {
     final quotedActive = status == 'QUOTE_PENDING';
     final paymentSubmittedActive = status == 'QUOTE_PROVIDED';
     final paymentVerifiedActive = status == 'PAYMENT_SUBMITTED';
-    final assignedActive = status == 'PAYMENT_VERIFIED' || status == 'PAID_INTAKE' || status == 'RELEASED_TO_POOL';
-    final spaApprovedActive = status == 'ASSIGNED' || status == 'IN_PROGRESS' || status == 'SPA_GATE';
-    final deliveredActive = status == 'SPA_APPROVED' || status == 'SPA_CONFIRMED';
+    final assignedActive = status == 'PAYMENT_VERIFIED' || status == 'PAID_INTAKE';
+    final spaApprovedActive = status == 'ASSIGNED' || status == 'WORKSPACE_READY' || status == 'DRAFTING' || status == 'ACTION_NEEDED' || status == 'SPA_GATE';
+    final deliveredActive = status == 'SPA_CONFIRMED' || status == 'DELIVERY_READY';
 
     // Extract dates
     final createdDate = _formatDateTime(widget.order['createdAt']);
@@ -1340,7 +1353,166 @@ class _AdminRequestReviewModalState extends State<AdminRequestReviewModal> {
     );
   }
 
+  Future<void> _handleReassign() async {
+    final paIdController = TextEditingController(text: widget.order['paId'] != null ? '${widget.order['paId']}' : '');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Reassign Analyst for #${widget.order['id']}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Current PA ID: ${widget.order['paId'] ?? 'None'} (Status: $_status)',
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: paIdController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'New Property Analyst (PA) ID *',
+                hintText: 'Enter analyst user ID (e.g. 2)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF4F46E5), foregroundColor: Colors.white),
+            onPressed: () {
+              if (paIdController.text.trim().isNotEmpty) {
+                Navigator.pop(ctx, true);
+              }
+            },
+            child: const Text('Reassign Analyst'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && paIdController.text.trim().isNotEmpty) {
+      final newPaId = int.tryParse(paIdController.text.trim());
+      if (newPaId != null) {
+        try {
+          await ApiService().dio.post('/api/v1/admin/orders/${widget.order['id']}/reassign', data: {'newPaId': newPaId});
+          widget.onRefresh();
+          if (mounted) {
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              backgroundColor: const Color(0xFF047857),
+              content: Text('Order #${widget.order['id']} successfully reassigned to PA #$newPaId.'),
+            ));
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              backgroundColor: const Color(0xFFDC2626),
+              content: Text('Failed to reassign: ${ApiService.getErrorMessage(e)}'),
+            ));
+          }
+        }
+      }
+    }
+  }
+
+  Future<void> _handleReleaseToPool() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Release Order #${widget.order['id']} to Common Pool'),
+        content: const Text(
+          'This will return the order to PAID_INTAKE in the common pool so that another qualified analyst can claim it.\n\nAll documents and authored data remain intact.',
+          style: TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF059669), foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Release To Pool'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await ApiService().dio.post('/api/v1/admin/orders/${widget.order['id']}/force-status', data: {
+          'status': 'PAID_INTAKE',
+          'reason': 'Released to common pool by Admin from Review Modal',
+        });
+        widget.onRefresh();
+        if (mounted) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            backgroundColor: Color(0xFF047857),
+            content: Text('Order successfully released to Common Pool (PAID_INTAKE).'),
+          ));
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            backgroundColor: const Color(0xFFDC2626),
+            content: Text('Failed to release: ${ApiService.getErrorMessage(e)}'),
+          ));
+        }
+      }
+    }
+  }
+
+  Future<void> _handleForceRecovery() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Force Recovery for #${widget.order['id']}'),
+        content: const Text(
+          'This will safely recover the order without losing any authored workspace data:\n\n'
+          '• WORKSPACE_READY / ASSIGNED → Recycled to Common Pool (PAID_INTAKE)\n'
+          '• DRAFTING → Recovered to ACTION_NEEDED (All authored drafts preserved)\n\n'
+          'Proceed with recovery?',
+          style: TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD97706), foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Force Recovery'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await ApiService().dio.post('/api/v1/admin/orders/${widget.order['id']}/force-recovery');
+        widget.onRefresh();
+        if (mounted) {
+          Navigator.of(context).pop();
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            backgroundColor: Color(0xFF047857),
+            content: Text('Workspace recovered successfully. Authored data preserved.'),
+          ));
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            backgroundColor: const Color(0xFFDC2626),
+            content: Text('Failed to recover workspace: ${ApiService.getErrorMessage(e)}'),
+          ));
+        }
+      }
+    }
+  }
+
   Widget _buildFooter() {
+    final isStaleOrAuthoring = _status == "ASSIGNED" ||
+        _status == "WORKSPACE_READY" ||
+        _status == "DRAFTING" ||
+        _status == "ACTION_NEEDED";
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
       decoration: const BoxDecoration(
@@ -1359,7 +1531,44 @@ class _AdminRequestReviewModalState extends State<AdminRequestReviewModal> {
             ),
             child: Text("Close", style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: const Color(0xFF64748B))),
           ),
-          if (_status == "QUOTE_PENDING")
+          if (isStaleOrAuthoring) ...[
+            Wrap(
+              spacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: _handleReassign,
+                  icon: const Icon(Icons.person_add_alt_1_outlined, size: 14, color: Color(0xFF4F46E5)),
+                  label: Text("Reassign Analyst", style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: const Color(0xFF4F46E5), fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF4F46E5)),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: _handleReleaseToPool,
+                  icon: const Icon(Icons.rocket_launch_rounded, size: 14, color: Color(0xFF059669)),
+                  label: Text("Release To Pool", style: GoogleFonts.inter(fontWeight: FontWeight.w600, color: const Color(0xFF059669), fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF059669)),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+                ElevatedButton.icon(
+                  onPressed: _handleForceRecovery,
+                  icon: const Icon(Icons.replay_rounded, size: 14),
+                  label: Text("Force Recovery", style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 12)),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFD97706),
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                  ),
+                ),
+              ],
+            ),
+          ] else if (_status == "QUOTE_PENDING")
             ElevatedButton.icon(
               onPressed: _openQuoteCreation,
               icon: const Icon(Icons.request_quote_rounded, size: 16),

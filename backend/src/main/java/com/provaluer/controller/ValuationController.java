@@ -23,8 +23,10 @@ public class ValuationController {
 
     @GetMapping("/orders/{orderId}/valuation")
     @PreAuthorize("hasAnyRole('SUPER_ADMIN', 'ADMIN', 'PA', 'SPA', 'CLIENT')")
-    public ResponseEntity<ValuationBundleResponse> getValuation(@PathVariable Long orderId) {
-        return ResponseEntity.ok(valuationEngineService.getValuationBundle(orderId));
+    public ResponseEntity<ValuationBundleResponse> getValuation(
+            @PathVariable Long orderId,
+            @AuthenticationPrincipal UserDetailsImpl user) {
+        return ResponseEntity.ok(valuationEngineService.getValuationBundle(orderId, user));
     }
 
     @PostMapping("/orders/{orderId}/valuation")

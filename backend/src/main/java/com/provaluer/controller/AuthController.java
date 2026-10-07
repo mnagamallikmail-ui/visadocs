@@ -31,6 +31,9 @@ public class AuthController {
     @Autowired
     private JwtUtils jwtUtils;
 
+    @Autowired
+    private com.provaluer.service.AuditLogService auditLogService;
+
     @PostMapping("/login")
     public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
         String loginIdentifier = loginRequest.getUsername() != null && !loginRequest.getUsername().isBlank()
@@ -45,6 +48,12 @@ public class AuthController {
         
         UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
         User user = userRepository.findById(userDetails.getId()).orElseThrow();
+
+        try {
+            auditLogService.log(user.getId(), user.getEmail() != null ? user.getEmail() : user.getUsername(),
+                    user.getRole().name(), "USER_LOGIN_SUCCESS", "USER", String.valueOf(user.getId()),
+                    null, null, "User successfully logged in");
+        } catch (Exception ignored) {}
 
         return ResponseEntity.ok(new JwtResponse(jwt, 
                                                  userDetails.getId(), 
@@ -79,15 +88,9 @@ public class AuthController {
             }
         }
 
-        // Create new user's account
+        // P0-1 Hardened: Public registration ALWAYS creates CLIENT role ONLY.
+        // Privileged roles (ADMIN, SUPER_ADMIN, PA, SPA) are strictly rejected/ignored.
         UserRole userRole = UserRole.CLIENT;
-        if (signUpRequest.getRole() != null) {
-            try {
-                userRole = UserRole.valueOf(signUpRequest.getRole().toUpperCase());
-            } catch (IllegalArgumentException e) {
-                return ResponseEntity.badRequest().body("Error: Invalid role specified.");
-            }
-        }
 
         User user = new User(
             username,
@@ -99,7 +102,14 @@ public class AuthController {
         );
         user.setFullName(signUpRequest.getFullName());
 
-        userRepository.save(user);
+        User savedUser = userRepository.save(user);
+
+        try {
+            auditLogService.log(savedUser.getId(), savedUser.getEmail() != null ? savedUser.getEmail() : savedUser.getUsername(),
+                    "CLIENT", "USER_REGISTERED", "USER", String.valueOf(savedUser.getId()),
+                    null, "CLIENT", "New user self-registered with CLIENT role");
+        } catch (Exception ignored) {}
+
         return ResponseEntity.ok("User registered successfully!");
     }
 

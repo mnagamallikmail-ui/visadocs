@@ -48,7 +48,6 @@ public class SuperAdminController {
     @Autowired private com.provaluer.repository.ValuationBuildingItemRepository valuationBuildingItemRepository;
     @Autowired private com.provaluer.repository.ValuationComparableSaleRepository valuationComparableSaleRepository;
     @Autowired private com.provaluer.repository.ValuationSnapshotRepository valuationSnapshotRepository;
-    @Autowired private com.provaluer.repository.ValuationAuditLogRepository valuationAuditLogRepository;
     @Autowired private AuditLogRepository auditLogRepository;
     @Autowired private PricingService pricingService;
     @Autowired private AuditLogService auditLogService;
@@ -226,6 +225,7 @@ public class SuperAdminController {
 
     @DeleteMapping("/users/{id}/hard")
     @Transactional
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> hardDeleteUser(@PathVariable Long id) {
         if (id.equals(actorId())) return ResponseEntity.badRequest().body("Cannot hard-delete your own account.");
         return userRepository.findById(id).map(user -> {
@@ -246,8 +246,8 @@ public class SuperAdminController {
             // 3. Cascade: remove performance ledger entry if staff
             performanceLedgerRepository.deleteByEmployeeId(id);
 
-            // 4. Cascade: remove all audit logs for this user as actor
-            auditLogRepository.deleteByActorId(id);
+            // 4. P0-5 Hardened: Audit trail is permanently immutable and append-only.
+            // Never delete audit logs on user deletion. Forensic history is preserved.
 
             // 5. Write final audit event BEFORE deleting user (using current admin as actor)
             auditLogService.log(actorId(), actorEmail(), "SUPER_ADMIN", "USER_HARD_DELETE", "USER",
@@ -278,7 +278,11 @@ public class SuperAdminController {
 
     @PutMapping("/users/{id}/role")
     @Transactional
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> changeUserRole(@PathVariable Long id, @RequestBody RoleChangeRequest req) {
+        if (id.equals(actorId())) {
+            return ResponseEntity.badRequest().body("Self-promotion or modifying own role is strictly prohibited.");
+        }
         return userRepository.findById(id).map(user -> {
             if ("admin".equalsIgnoreCase(user.getUsername())) {
                 return ResponseEntity.badRequest().body("Master 'admin' account role cannot be changed.");
@@ -411,10 +415,38 @@ public class SuperAdminController {
     public ResponseEntity<?> reassignOrder(@PathVariable Long id, @RequestBody ReassignRequest req) {
         return orderRepository.findById(id).map(order -> {
             String oldPa = String.valueOf(order.getPaId());
+            String oldStatus = order.getStatus();
+            Long oldPaId = order.getPaId();
             order.setPaId(req.getNewPaId());
             order.setClaimedAt(LocalDateTime.now());
             order.setLastHeartbeat(LocalDateTime.now());
             order.setUpdatedAt(LocalDateTime.now());
+
+            // If recovering an order from ACTION_NEEDED or PAID_INTAKE
+            if ("ACTION_NEEDED".equalsIgnoreCase(oldStatus) || "PAID_INTAKE".equalsIgnoreCase(oldStatus)) {
+                if (order.getInputValues() != null && !order.getInputValues().trim().isEmpty() && !"{}".equals(order.getInputValues().trim())) {
+                    order.setStatus("DRAFTING");
+                } else {
+                    order.setStatus("ASSIGNED");
+                }
+                order.setPaused(false);
+                order.setPauseReason(null);
+            }
+
+            // Ledger updates
+            if (oldPaId != null && !oldPaId.equals(req.getNewPaId())) {
+                performanceLedgerRepository.findById(oldPaId).ifPresent(l -> {
+                    l.setActiveAllocations(Math.max(0, l.getActiveAllocations() - 1));
+                    performanceLedgerRepository.save(l);
+                });
+            }
+            if (req.getNewPaId() != null) {
+                performanceLedgerRepository.findById(req.getNewPaId()).ifPresent(l -> {
+                    l.setActiveAllocations(l.getActiveAllocations() + 1);
+                    performanceLedgerRepository.save(l);
+                });
+            }
+
             orderRepository.save(order);
             auditLogService.log(actorId(), actorEmail(), "SUPER_ADMIN", "FILE_REASSIGN", "ORDER",
                     String.valueOf(id), oldPa, String.valueOf(req.getNewPaId()),
@@ -430,11 +462,50 @@ public class SuperAdminController {
             String oldStatus = order.getStatus();
             order.setStatus(req.getStatus());
             order.setUpdatedAt(LocalDateTime.now());
+            if ("PAID_INTAKE".equalsIgnoreCase(req.getStatus())) {
+                order.setPaId(null);
+                order.setClaimedAt(null);
+                order.setLastHeartbeat(null);
+                order.setPaused(false);
+                order.setPauseReason("Released to pool by SUPER_ADMIN: " + req.getReason());
+            } else if ("ACTION_NEEDED".equalsIgnoreCase(req.getStatus())) {
+                order.setPaused(true);
+                order.setPauseReason("Forced to ACTION_NEEDED by SUPER_ADMIN: " + req.getReason());
+            }
             orderRepository.save(order);
             auditLogService.log(actorId(), actorEmail(), "SUPER_ADMIN", "WORKFLOW_OVERRIDE", "ORDER",
                     String.valueOf(id), oldStatus, req.getStatus(),
                     "Status forced by SUPER_ADMIN: " + req.getReason());
             return ResponseEntity.ok("Order status forced to: " + req.getStatus());
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/orders/{id}/force-recovery")
+    @Transactional
+    public ResponseEntity<?> forceRecovery(@PathVariable Long id) {
+        return orderRepository.findById(id).map(order -> {
+            String oldStatus = order.getStatus();
+            LocalDateTime now = LocalDateTime.now();
+            if ("ASSIGNED".equalsIgnoreCase(oldStatus) || "WORKSPACE_READY".equalsIgnoreCase(oldStatus)) {
+                order.setPaId(null);
+                order.setClaimedAt(null);
+                order.setLastHeartbeat(null);
+                order.setStatus("PAID_INTAKE");
+                order.setPauseReason("Order recovered to PAID_INTAKE by SUPER_ADMIN.");
+            } else if ("DRAFTING".equalsIgnoreCase(oldStatus)) {
+                order.setStatus("ACTION_NEEDED");
+                order.setPaused(true);
+                order.setPrePauseStatus("DRAFTING");
+                order.setPauseReason("Order recovered to ACTION_NEEDED by SUPER_ADMIN. Authored work preserved.");
+            } else {
+                order.setPauseReason("Order recovery triggered by SUPER_ADMIN.");
+            }
+            order.setUpdatedAt(now);
+            orderRepository.save(order);
+            auditLogService.log(actorId(), actorEmail(), "SUPER_ADMIN", "FORCE_RECOVERY", "ORDER",
+                    String.valueOf(id), oldStatus, order.getStatus(),
+                    "Workspace forced recovery executed by SUPER_ADMIN");
+            return ResponseEntity.ok(Map.of("message", "Order recovered successfully", "status", order.getStatus()));
         }).orElse(ResponseEntity.notFound().build());
     }
 
@@ -717,15 +788,21 @@ public class SuperAdminController {
                 "QUOTE_PROVIDED",
                 "PAYMENT_SUBMITTED",
                 "PAYMENT_VERIFIED",
+                "PAYMENT_REJECTED",
                 "PAID_INTAKE",
                 "ASSIGNED",
+                "WORKSPACE_READY",
                 "DRAFTING",
+                "ACTION_NEEDED",
                 "SPA_REVIEW",
-                "SPA_GATE"
+                "SPA_GATE",
+                "SPA_CONFIRMED",
+                "ON_HOLD_PAYMENT_PENDING",
+                "DELIVERY_READY"
         );
         stats.put("openOrders", orderRepository.countByStatusIn(openStatuses));
         stats.put("spaGateOrders", orderRepository.findAllByStatus("SPA_GATE").size());
-        stats.put("finalDeliveryOrders", orderRepository.findAllByStatus("FINAL_DELIVERY").size());
+        stats.put("finalDeliveryOrders", orderRepository.countByStatusIn(List.of("FINAL_DELIVERY", "CLIENT_DOWNLOADED", "CLOSED")));
         stats.put("activeTemplates", templateRepository.findAllByIsActive("Y").size());
         stats.put("recentAuditLogs", auditLogRepository.findTop50ByOrderByTimestampDesc().size());
         return ResponseEntity.ok(stats);
@@ -898,6 +975,7 @@ public class SuperAdminController {
 
     @DeleteMapping("/orders/{id}/purge")
     @Transactional
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> purgeOrder(@PathVariable Long id) {
         Order order = orderRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Order not found with id: " + id));
@@ -1042,10 +1120,11 @@ public class SuperAdminController {
      */
     @DeleteMapping("/reports/purge-all")
     @Transactional
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> purgeAllReports() {
         log.warn("SUPER_ADMIN #{} initiated purge of ALL report and order data.", actorId());
         
-        valuationAuditLogRepository.deleteAll();
+        // P0-5 Hardened: Valuation audit logs are permanently preserved for non-repudiation.
 
         long landDeleted = valuationLandItemRepository.count();
         valuationLandItemRepository.deleteAll();
@@ -1100,6 +1179,7 @@ public class SuperAdminController {
      */
     @DeleteMapping("/templates/purge-all")
     @Transactional
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<?> purgeAllTemplates() {
         log.warn("SUPER_ADMIN #{} initiated purge of ALL template data.", actorId());
 

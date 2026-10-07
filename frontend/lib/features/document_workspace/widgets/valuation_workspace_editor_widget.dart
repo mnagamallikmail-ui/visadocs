@@ -317,9 +317,20 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
   Widget _buildLandTable(bool isReadOnly) {
     return Container(
       decoration: AppComponents.cardBase(),
-      child: Column(
-        children: [
-          Container(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final tableWidth = constraints.maxWidth > 960 ? constraints.maxWidth : 960.0;
+          return Column(
+            children: [
+              Scrollbar(
+                thumbVisibility: constraints.maxWidth < 960,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: tableWidth,
+                    child: Column(
+                      children: [
+                        Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             decoration: const BoxDecoration(
               color: AppColors.surfaceSoft,
@@ -425,6 +436,11 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
               ),
             );
           }),
+        ],
+      ),
+    ),
+  ),
+),
           // Total & Say Rows (Phase 4 & 15)
           Container(
             padding: const EdgeInsets.all(16),
@@ -450,8 +466,10 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
             ),
           ),
         ],
-      ),
-    );
+      );
+    },
+  ),
+);
   }
 
   Widget _buildBuildingTable(bool isReadOnly) {
@@ -460,11 +478,16 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
       child: Column(
         children: [
           // Phase 3: Horizontal scroll container ensuring all 10 columns are completely visible
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: 1100,
-              child: Column(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final tableWidth = constraints.maxWidth > 1160 ? constraints.maxWidth : 1160.0;
+              return Scrollbar(
+                thumbVisibility: constraints.maxWidth < 1160,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: tableWidth,
+                    child: Column(
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -621,6 +644,9 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
               ),
             ),
           ),
+        );
+      },
+    ),
           // Total & Say Rows (Phase 4 & 16)
           Container(
             padding: const EdgeInsets.all(16),
@@ -660,57 +686,71 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
     }
     return Container(
       decoration: AppComponents.cardBase(),
-      child: Column(
-        children: _comparables.asMap().entries.map((entry) {
-          final idx = entry.key;
-          final item = entry.value;
-          return Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Expanded(flex: 3, child: TextFormField(
-                  initialValue: item.location,
-                  enabled: !isReadOnly,
-                  decoration: const InputDecoration(labelText: 'Location / Survey No', isDense: true, border: OutlineInputBorder()),
-                  onChanged: (val) => item.location = val,
-                )),
-                const SizedBox(width: 8),
-                Expanded(flex: 2, child: TextFormField(
-                  initialValue: item.enteredArea > 0 ? IndianNumberFormatter.format(item.enteredArea, includeDecimals: item.enteredArea % 1 != 0) : '',
-                  enabled: !isReadOnly,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Area (Sq.Ft)', isDense: true, border: OutlineInputBorder()),
-                  onChanged: (val) {
-                    item.enteredArea = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
-                    item.saleValue = item.enteredArea * item.rate;
-                    setState(() {});
-                  },
-                )),
-                const SizedBox(width: 8),
-                Expanded(flex: 2, child: TextFormField(
-                  initialValue: item.rate > 0 ? IndianNumberFormatter.format(item.rate, includeDecimals: item.rate % 1 != 0) : '',
-                  enabled: !isReadOnly,
-                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                  decoration: const InputDecoration(labelText: 'Rate / Sq.Ft', isDense: true, border: OutlineInputBorder()),
-                  onChanged: (val) {
-                    item.rate = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
-                    item.saleValue = item.enteredArea * item.rate;
-                    setState(() {});
-                  },
-                )),
-                const SizedBox(width: 8),
-                Expanded(flex: 2, child: Text('₹ ${IndianNumberFormatter.format(item.saleValue)}', style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold))),
-                if (!isReadOnly)
-                  IconButton(
-                    icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.brandRedDark),
-                    onPressed: () {
-                      setState(() => _comparables.removeAt(idx));
-                    },
-                  ),
-              ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final tableWidth = constraints.maxWidth > 850 ? constraints.maxWidth : 850.0;
+          return Scrollbar(
+            thumbVisibility: constraints.maxWidth < 850,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: tableWidth,
+                child: Column(
+                  children: _comparables.asMap().entries.map((entry) {
+                    final idx = entry.key;
+                    final item = entry.value;
+                    return Padding(
+                      padding: const EdgeInsets.all(12),
+                      child: Row(
+                        children: [
+                          Expanded(flex: 3, child: TextFormField(
+                            initialValue: item.location,
+                            enabled: !isReadOnly,
+                            decoration: const InputDecoration(labelText: 'Location / Survey No', isDense: true, border: OutlineInputBorder()),
+                            onChanged: (val) => item.location = val,
+                          )),
+                          const SizedBox(width: 8),
+                          Expanded(flex: 2, child: TextFormField(
+                            initialValue: item.enteredArea > 0 ? IndianNumberFormatter.format(item.enteredArea, includeDecimals: item.enteredArea % 1 != 0) : '',
+                            enabled: !isReadOnly,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(labelText: 'Area (Sq.Ft)', isDense: true, border: OutlineInputBorder()),
+                            onChanged: (val) {
+                              item.enteredArea = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
+                              item.saleValue = item.enteredArea * item.rate;
+                              setState(() {});
+                            },
+                          )),
+                          const SizedBox(width: 8),
+                          Expanded(flex: 2, child: TextFormField(
+                            initialValue: item.rate > 0 ? IndianNumberFormatter.format(item.rate, includeDecimals: item.rate % 1 != 0) : '',
+                            enabled: !isReadOnly,
+                            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                            decoration: const InputDecoration(labelText: 'Rate / Sq.Ft', isDense: true, border: OutlineInputBorder()),
+                            onChanged: (val) {
+                              item.rate = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
+                              item.saleValue = item.enteredArea * item.rate;
+                              setState(() {});
+                            },
+                          )),
+                          const SizedBox(width: 8),
+                          Expanded(flex: 2, child: Text('₹ ${IndianNumberFormatter.format(item.saleValue)}', style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold))),
+                          if (!isReadOnly)
+                            IconButton(
+                              icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.brandRedDark),
+                              onPressed: () {
+                                setState(() => _comparables.removeAt(idx));
+                              },
+                            ),
+                        ],
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ),
             ),
           );
-        }).toList(),
+        },
       ),
     );
   }
@@ -1024,12 +1064,21 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
             const SizedBox(height: 20),
 
             // Phase 8-13 & 18: 4-Column Live Valuation Summary Grid Table matching DOCX output
-            Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.hairlineSoft),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final tableWidth = constraints.maxWidth > 780 ? constraints.maxWidth : 780.0;
+                return Scrollbar(
+                  thumbVisibility: constraints.maxWidth < 780,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: tableWidth,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: AppColors.hairlineSoft),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
                 children: [
                   // Table Header
                   Container(
@@ -1088,9 +1137,14 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
                     '₹ ${IndianNumberFormatter.format(insurableVal)}',
                     '₹ ${IndianNumberFormatter.format(insurableVal)}',
                   ),
-                ],
-              ),
-            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
           ],
           const SizedBox(height: 16),
 

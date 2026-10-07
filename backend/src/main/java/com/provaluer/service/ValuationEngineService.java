@@ -75,13 +75,60 @@ public class ValuationEngineService {
         return false;
     }
 
+    public void validateValuationAccess(Order order, UserDetailsImpl user, String action) {
+        if (user == null) {
+            throw new org.springframework.security.access.AccessDeniedException("Authentication required to access valuation for Order #" + order.getId());
+        }
+        boolean isSuperAdmin = user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+        boolean isAdmin = user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        boolean isSpa = user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SPA"));
+        boolean isPa = user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PA"));
+        boolean isClient = user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_CLIENT"));
+
+        if (isSuperAdmin || isAdmin) {
+            return;
+        }
+
+        if (isClient) {
+            if ("EDIT".equalsIgnoreCase(action)) {
+                throw new org.springframework.security.access.AccessDeniedException("Clients cannot modify valuation data");
+            }
+            if (order.getClientId() == null || !order.getClientId().equals(user.getId())) {
+                throw new org.springframework.security.access.AccessDeniedException("Access denied: You do not own Order #" + order.getId());
+            }
+            return;
+        }
+
+        if (isPa) {
+            if (order.getPaId() == null || !order.getPaId().equals(user.getId())) {
+                throw new org.springframework.security.access.AccessDeniedException("Access denied: You are not assigned to Order #" + order.getId());
+            }
+            return;
+        }
+
+        if (isSpa) {
+            return;
+        }
+
+        throw new org.springframework.security.access.AccessDeniedException("Unauthorized role for Order #" + order.getId());
+    }
+
     /**
      * Retrieves or creates default ValuationData and child items for an order.
      */
     @Transactional
     public ValuationBundleResponse getValuationBundle(Long orderId) {
+        return getValuationBundle(orderId, null);
+    }
+
+    @Transactional
+    public ValuationBundleResponse getValuationBundle(Long orderId, UserDetailsImpl user) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new NoSuchElementException("Order not found with ID: " + orderId));
+
+        if (user != null) {
+            validateValuationAccess(order, user, "VIEW");
+        }
 
         ValuationData data = valuationDataRepository.findByOrderId(orderId)
                 .orElseGet(() -> initializeDefaultValuationData(order));
@@ -295,6 +342,8 @@ public class ValuationEngineService {
     public ValuationBundleResponse saveValuation(Long orderId, SaveValuationRequest request, UserDetailsImpl user, String source) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new NoSuchElementException("Order not found with ID: " + orderId));
+
+        validateValuationAccess(order, user, "EDIT");
 
         ValuationData data = valuationDataRepository.findByOrderId(orderId)
                 .orElseGet(() -> new ValuationData(orderId));

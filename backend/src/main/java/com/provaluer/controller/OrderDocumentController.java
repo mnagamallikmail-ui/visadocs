@@ -44,11 +44,11 @@ public class OrderDocumentController {
         boolean isAdmin = principal.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
         boolean isPa = principal.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PA"));
         boolean isSpa = principal.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SPA"));
+        boolean isOwner = order.getClientId() != null && order.getClientId().equals(principal.getId());
+        boolean isAssignedPa = order.getPaId() != null && order.getPaId().equals(principal.getId());
 
-        if (!isAdmin && !isPa && !isSpa) {
-            if (!order.getClientId().equals(principal.getId())) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied to this order's documents");
-            }
+        if (!isAdmin && !isSpa && !isOwner && !(isPa && isAssignedPa)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied to this order's documents");
         }
 
         List<OrderDocument> docs = orderDocumentRepository.findAllByOrderId(orderId);
@@ -299,17 +299,17 @@ public class OrderDocumentController {
         boolean isAdmin = principal.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
         boolean isPa = principal.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PA"));
         boolean isSpa = principal.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_SPA"));
+        boolean isOwner = order.getClientId() != null && order.getClientId().equals(principal.getId());
+        boolean isAssignedPa = order.getPaId() != null && order.getPaId().equals(principal.getId());
 
         if ("PAYMENT_PROOF".equalsIgnoreCase(doc.getCategory())) {
             // Explicitly deny PA and SPA. Allow only client owner or Admin/SuperAdmin.
-            if (!isAdmin && !order.getClientId().equals(principal.getId())) {
+            if (!isAdmin && !isOwner) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied to payment proof document");
             }
         } else {
-            if (!isAdmin && !isPa && !isSpa) {
-                if (!order.getClientId().equals(principal.getId())) {
-                    return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied to this document");
-                }
+            if (!isAdmin && !isSpa && !isOwner && !(isPa && isAssignedPa)) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Access denied to this document");
             }
         }
 

@@ -21,6 +21,10 @@ public class OrderInput {
     @Column(name = "image_value", columnDefinition = "BYTEA")
     private byte[] imageValue;
 
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version = 0L;
+
     public OrderInput() {}
 
     public OrderInput(Long orderId, String fieldKey, String fieldValue) {
@@ -50,4 +54,7 @@ public class OrderInput {
 
     public byte[] getImageValue() { return imageValue; }
     public void setImageValue(byte[] imageValue) { this.imageValue = imageValue; }
+
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
 }

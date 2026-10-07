@@ -113,7 +113,9 @@ class ReportListHelper {
     final isFinalized = valStatus == 'FINALIZED' ||
         valStatus == 'LOCKED' ||
         status == 'SPA_CONFIRMED' ||
-        status == 'FINAL_DELIVERY';
+        status == 'FINAL_DELIVERY' ||
+        status == 'CLIENT_DOWNLOADED' ||
+        status == 'CLOSED';
 
     if (isFinalized) {
       return isSuperAdmin;

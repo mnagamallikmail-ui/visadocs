@@ -111,11 +111,26 @@ public class OrderController {
     public ResponseEntity<?> saveDraft(@RequestBody OrderDraftRequest request) {
         UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         
-        final Order order = (request.getId() != null)
-                ? orderRepository.findById(request.getId()).orElse(new Order())
-                : new Order();
-        
-        order.setClientId(principal.getId());
+        final Order order;
+        if (request.getId() != null) {
+            Optional<Order> existingOpt = orderRepository.findById(request.getId());
+            if (existingOpt.isPresent()) {
+                Order existing = existingOpt.get();
+                boolean isAdmin = principal.getAuthorities().stream().anyMatch(a ->
+                        a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
+                if (!isAdmin && (existing.getClientId() == null || !existing.getClientId().equals(principal.getId()))) {
+                    return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                            .body(Map.of("error", "Access denied: Cannot modify or adopt another user's draft order"));
+                }
+                order = existing;
+            } else {
+                order = new Order();
+                order.setClientId(principal.getId());
+            }
+        } else {
+            order = new Order();
+            order.setClientId(principal.getId());
+        }
         if (order.getClientName() == null || order.getClientName().isBlank()) {
             User u = userRepository.findById(principal.getId()).orElse(null);
             if (u != null) {
@@ -224,7 +239,8 @@ public class OrderController {
         boolean isFinalized = "FINALIZED".equalsIgnoreCase(order.getValuationStatus())
                 || "LOCKED".equalsIgnoreCase(order.getValuationStatus())
                 || "SPA_CONFIRMED".equalsIgnoreCase(order.getStatus())
-                || "FINAL_DELIVERY".equalsIgnoreCase(order.getStatus());
+                || "FINAL_DELIVERY".equalsIgnoreCase(order.getStatus())
+                || "CLIENT_DOWNLOADED".equalsIgnoreCase(order.getStatus());
 
         if (isFinalized) {
             if (!isSuperAdmin) {
@@ -259,9 +275,18 @@ public class OrderController {
     @PostMapping("/{id}/submit")
     @Transactional
     public ResponseEntity<?> submitIntake(@PathVariable Long id) {
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
+        }
         Optional<Order> orderOpt = orderRepository.findById(id);
         if (orderOpt.isPresent()) {
             Order order = orderOpt.get();
+            boolean isAdmin = principal.getAuthorities().stream().anyMatch(a ->
+                    a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
+            if (!isAdmin && (order.getClientId() == null || !order.getClientId().equals(principal.getId()))) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Access denied to submit order #" + id));
+            }
             // Client pays intake deposit fee -> moves to PAID_INTAKE
             order.setStatus("PAID_INTAKE");
             
@@ -993,13 +1018,30 @@ public class OrderController {
 
     @PostMapping("/{id}/heartbeat")
     @Transactional
+    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<?> telemetryHeartbeat(@PathVariable Long id) {
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
+        }
         Optional<Order> orderOpt = orderRepository.findById(id);
         if (orderOpt.isPresent()) {
             Order order = orderOpt.get();
+            boolean isAdminOrSpa = principal.getAuthorities().stream().anyMatch(a ->
+                    a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SPA"));
+            boolean isAssignedPa = order.getPaId() != null && order.getPaId().equals(principal.getId());
+            if (!isAdminOrSpa && !isAssignedPa) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Access denied: Not assigned to order #" + id));
+            }
             order.setLastHeartbeat(LocalDateTime.now());
             orderRepository.save(order);
-            return ResponseEntity.ok().build();
+            return ResponseEntity.ok(Map.of(
+                "orderId", order.getId(),
+                "status", order.getStatus() != null ? order.getStatus() : "",
+                "paId", order.getPaId() != null ? order.getPaId() : -1L,
+                "workspaceRevision", order.getWorkspaceRevision() != null ? order.getWorkspaceRevision() : 1,
+                "isPaused", order.isPaused()
+            ));
         }
         return ResponseEntity.notFound().build();
     }
@@ -1123,11 +1165,21 @@ public class OrderController {
 
     @PostMapping("/{id}/submit-draft")
     @Transactional
-    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN')")
+    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<?> submitDraftForVerification(@PathVariable Long id, @RequestBody Map<String, String> inputs) {
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
+        }
         Optional<Order> orderOpt = orderRepository.findById(id);
         if (orderOpt.isPresent()) {
             Order order = orderOpt.get();
+            boolean isSpaOrAdmin = principal.getAuthorities().stream().anyMatch(a ->
+                    a.getAuthority().equals("ROLE_SPA") || a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
+            boolean isAssignedPa = order.getPaId() != null && order.getPaId().equals(principal.getId());
+            if (!isSpaOrAdmin && !isAssignedPa) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Access denied: You are not assigned to Order #" + id));
+            }
             
             // Save final fields
             for (Map.Entry<String, String> entry : inputs.entrySet()) {
@@ -1143,10 +1195,6 @@ public class OrderController {
                     order.setTemplateVersion(t.getVersion());
                 });
             }
-
-            UserDetailsImpl principal = (UserDetailsImpl) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-            boolean isSpaOrAdmin = principal.getAuthorities().stream()
-                    .anyMatch(a -> a.getAuthority().equals("ROLE_SPA") || a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
 
             // SPA/Admin only saves inputs — status is preserved so the order stays visible in review queue.
             // Only a PA submission advances the status to SPA_GATE.
@@ -1236,14 +1284,27 @@ public class OrderController {
 
     @GetMapping("/{id}/download")
     public ResponseEntity<?> downloadReportSecure(@PathVariable Long id) {
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
+        }
         Optional<Order> orderOpt = orderRepository.findById(id);
         if (orderOpt.isPresent()) {
             Order order = orderOpt.get();
             
-            boolean isSuperAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream()
-                    .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN"));
+            boolean isSuperAdmin = principal.getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
+            boolean isOwner = order.getClientId() != null && order.getClientId().equals(principal.getId());
 
-            if (!"FINAL_DELIVERY".equals(order.getStatus()) && !isSuperAdmin) {
+            if (!isSuperAdmin && !isOwner) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Access denied: You do not own this valuation report."));
+            }
+
+            boolean isDeliveryState = "FINAL_DELIVERY".equalsIgnoreCase(order.getStatus())
+                    || "CLIENT_DOWNLOADED".equalsIgnoreCase(order.getStatus())
+                    || "CLOSED".equalsIgnoreCase(order.getStatus());
+
+            if (!isDeliveryState && !isSuperAdmin) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Report is currently locked.");
             }
 
@@ -1315,8 +1376,14 @@ public class OrderController {
 
             Map<String, Object> result = new HashMap<>();
             result.put("message", "Report compiled and encrypted successfully.");
-            result.put("encryptionPassword", password);
+            result.put("passwordHint", "First 4 digits of your registered mobile number");
             result.put("dataStream", encryptedBase64);
+
+            try {
+                auditLogService.log(principal.getId(), principal.getUsername(),
+                        principal.getAuthorities().iterator().next().getAuthority(),
+                        "REPORT_DOWNLOADED", "ORDER", String.valueOf(id), "Report downloaded via secure direct endpoint");
+            } catch (Exception ignored) {}
 
             return ResponseEntity.ok(result);
         }
@@ -1326,10 +1393,27 @@ public class OrderController {
     @GetMapping("/{id}/download-docx")
     @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<?> downloadReportDocx(@PathVariable Long id) {
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
+        }
         Optional<Order> orderOpt = orderRepository.findById(id);
         if (orderOpt.isPresent()) {
             Order order = orderOpt.get();
-            if (!"SPA_GATE".equals(order.getStatus()) && !"SPA_CONFIRMED".equals(order.getStatus()) && !"FINAL_DELIVERY".equals(order.getStatus()) && !"SUPER_ADMIN_GATE".equals(order.getStatus())) {
+            boolean isSpaOrAdmin = principal.getAuthorities().stream().anyMatch(a ->
+                    a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SPA"));
+            boolean isAssignedPa = order.getPaId() != null && order.getPaId().equals(principal.getId());
+            if (!isSpaOrAdmin && !isAssignedPa) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Access denied: You are not assigned to Order #" + id));
+            }
+            boolean isDocxAllowed = "SPA_GATE".equals(order.getStatus())
+                    || "SPA_CONFIRMED".equals(order.getStatus())
+                    || "FINAL_DELIVERY".equals(order.getStatus())
+                    || "CLIENT_DOWNLOADED".equals(order.getStatus())
+                    || "CLOSED".equals(order.getStatus())
+                    || "SUPER_ADMIN_GATE".equals(order.getStatus());
+
+            if (!isDocxAllowed) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("Report is not submitted or confirmed yet.");
             }
 
@@ -1448,9 +1532,19 @@ public class OrderController {
     @Transactional
     @PreAuthorize("hasAnyRole('PA', 'SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<?> associateTemplate(@PathVariable Long id, @RequestParam("templateId") Long templateId) {
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
+        }
         Optional<Order> orderOpt = orderRepository.findById(id);
         if (orderOpt.isPresent()) {
             Order order = orderOpt.get();
+            boolean isAdmin = principal.getAuthorities().stream().anyMatch(a ->
+                    a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
+            boolean isAssignedPa = order.getPaId() != null && order.getPaId().equals(principal.getId());
+            if (!isAdmin && !isAssignedPa) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Access denied: You are not assigned to Order #" + id));
+            }
             order.setTemplateId(templateId);
             templateRepository.findById(templateId).ifPresent(t -> {
                 order.setFieldMappingSnapshot(t.getFieldMapping());
@@ -1466,7 +1560,26 @@ public class OrderController {
     }
 
     @GetMapping("/{id}/inputs")
-    public ResponseEntity<Map<String, String>> getOrderInputs(@PathVariable Long id) {
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<?> getOrderInputs(@PathVariable Long id) {
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
+        }
+        Optional<Order> orderOpt = orderRepository.findById(id);
+        if (orderOpt.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        Order order = orderOpt.get();
+        boolean isStaffOrAdmin = principal.getAuthorities().stream().anyMatch(a ->
+                a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SPA"));
+        boolean isOwner = order.getClientId() != null && order.getClientId().equals(principal.getId());
+        boolean isAssignedPa = order.getPaId() != null && order.getPaId().equals(principal.getId());
+
+        if (!isStaffOrAdmin && !isOwner && !isAssignedPa) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Access denied to inputs for Order #" + id));
+        }
+
         List<OrderInput> inputs = orderInputRepository.findAllByOrderId(id);
         Map<String, String> map = new HashMap<>();
         for (OrderInput input : inputs) {
@@ -1769,6 +1882,10 @@ public class OrderController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
         } catch (ResponseStatusException e) {
             return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", e.getReason() != null ? e.getReason() : e.getMessage()));
+        } catch (org.springframework.orm.ObjectOptimisticLockingFailureException | jakarta.persistence.OptimisticLockException e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of(
+                "error", "Concurrent update detected. Workspace was modified by another session. Please refresh."
+            ));
         } catch (NoSuchElementException e) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
         } catch (Exception e) {

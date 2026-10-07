@@ -55,6 +55,17 @@
     window.addEventListener('DOMContentLoaded', function() {
       window.scrollTo(0, 0);
     });
+
+    // P0 AUDIT FIX: Enable Browser-Native Zoom (CTRL + Mouse Wheel / Pinch Zoom) in Flutter Web
+    // Flutter Web Engine by default captures 'wheel' events and calls preventDefault(),
+    // which prevents the browser from executing native page zoom when Ctrl is pressed.
+    // By intercepting in the capture phase and stopping immediate propagation when ctrlKey
+    // is active, the browser performs its native zoom (80%..150%) unimpeded.
+    window.addEventListener('wheel', function(e) {
+      if (e.ctrlKey) {
+        e.stopImmediatePropagation();
+      }
+    }, { capture: true, passive: false });
   </script>
 
   <!-- Cache Freshness Policy for Entry Point HTML -->

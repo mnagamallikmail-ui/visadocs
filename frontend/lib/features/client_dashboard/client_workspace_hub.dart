@@ -255,7 +255,9 @@ _ClientStageInfo _mapToClientStage(dynamic order) {
 
     case 'INSPECTION_IN_PROGRESS':
     case 'INSPECTION_COMPLETED':
+    case 'WORKSPACE_READY':
     case 'DRAFTING':
+    case 'ACTION_NEEDED':
     case 'UNDER_REVIEW':
     case 'SPA_REVIEW':
     case 'SPA_CONFIRMED':
@@ -2914,7 +2916,7 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
                                     order['paymentReference'] != null ? 'UTR: ${order['paymentReference']}' : 'Reference: Pending Submission',
                                     style: GoogleFonts.inter(fontSize: 12, color: _LandingDesignSystem.textSecondary),
                                   ),
-                                  if (statusStr == 'QUOTE_ACCEPTED' || (statusStr == 'QUOTE_PROVIDED' && paymentStatus == 'UNPAID')) ...[
+                                  if (statusStr == 'QUOTE_PROVIDED' || statusStr == 'PAYMENT_REJECTED' || (statusStr == 'PAYMENT_SUBMITTED' && paymentStatus == 'UNPAID')) ...[
                                     const SizedBox(height: 8),
                                     _secondaryButton(
                                       label: 'Submit Payment Proof',
@@ -3075,22 +3077,29 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
 
   Color _getStatusBadgeBg(String status) {
     switch (status) {
+      case 'FINAL_DELIVERY':
       case 'DELIVERED':
       case 'CLIENT_DOWNLOADED':
+      case 'DELIVERY_READY':
       case 'PAYMENT_VERIFIED':
         return const Color(0xFFECFDF5);
-      case 'IN_PROGRESS':
       case 'ASSIGNED':
+      case 'WORKSPACE_READY':
       case 'DRAFTING':
       case 'SPA_REVIEW':
       case 'SPA_GATE':
+      case 'SPA_CONFIRMED':
         return const Color(0xFFEFF6FF);
+      case 'ACTION_NEEDED':
+      case 'ON_HOLD_PAYMENT_PENDING':
       case 'PAYMENT_SUBMITTED':
       case 'QUOTE_PROVIDED':
         return const Color(0xFFFEF3C7);
       case 'PAYMENT_REJECTED':
+      case 'DELIVERY_DISPUTED':
       case 'CANCELLED':
         return const Color(0xFFFEF2F2);
+      case 'CLOSED':
       default:
         return const Color(0xFFF1F5F9);
     }
@@ -3098,22 +3107,29 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
 
   Color _getStatusBadgeBorder(String status) {
     switch (status) {
+      case 'FINAL_DELIVERY':
       case 'DELIVERED':
       case 'CLIENT_DOWNLOADED':
+      case 'DELIVERY_READY':
       case 'PAYMENT_VERIFIED':
         return const Color(0xFFA7F3D0);
-      case 'IN_PROGRESS':
       case 'ASSIGNED':
+      case 'WORKSPACE_READY':
       case 'DRAFTING':
       case 'SPA_REVIEW':
       case 'SPA_GATE':
+      case 'SPA_CONFIRMED':
         return const Color(0xFFBFDBFE);
+      case 'ACTION_NEEDED':
+      case 'ON_HOLD_PAYMENT_PENDING':
       case 'PAYMENT_SUBMITTED':
       case 'QUOTE_PROVIDED':
         return const Color(0xFFFDE68A);
       case 'PAYMENT_REJECTED':
+      case 'DELIVERY_DISPUTED':
       case 'CANCELLED':
         return const Color(0xFFFECACA);
+      case 'CLOSED':
       default:
         return const Color(0xFFE2E8F0);
     }
@@ -3121,22 +3137,29 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
 
   Color _getStatusBadgeFg(String status) {
     switch (status) {
+      case 'FINAL_DELIVERY':
       case 'DELIVERED':
       case 'CLIENT_DOWNLOADED':
+      case 'DELIVERY_READY':
       case 'PAYMENT_VERIFIED':
         return const Color(0xFF047857);
-      case 'IN_PROGRESS':
       case 'ASSIGNED':
+      case 'WORKSPACE_READY':
       case 'DRAFTING':
       case 'SPA_REVIEW':
       case 'SPA_GATE':
+      case 'SPA_CONFIRMED':
         return const Color(0xFF1D4ED8);
+      case 'ACTION_NEEDED':
+      case 'ON_HOLD_PAYMENT_PENDING':
       case 'PAYMENT_SUBMITTED':
       case 'QUOTE_PROVIDED':
         return const Color(0xFFB45309);
       case 'PAYMENT_REJECTED':
+      case 'DELIVERY_DISPUTED':
       case 'CANCELLED':
         return const Color(0xFFB91C1C);
+      case 'CLOSED':
       default:
         return const Color(0xFF475569);
     }

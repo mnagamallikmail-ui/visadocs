@@ -27,6 +27,7 @@ import '../quotations/client_quote_view_modal.dart';
 import '../quotations/client_payment_submission_modal.dart';
 import '../quotations/admin_payment_review_modal.dart';
 import '../../utils/build_info.dart';
+import '../../constants/order_status.dart';
 
 class ValuationPortalWidget extends StatefulWidget {
   final String role;
@@ -2780,13 +2781,19 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
       builder: (context, provider, _) {
         List<dynamic> list = [];
         if (widget.role == 'CLIENT') {
-          list = provider.clientOrders.where((o) => o['status'] != 'FINAL_DELIVERY').toList();
+          list = provider.clientOrders.where((o) => !OrderStatus.isDelivered(o['status'])).toList();
         } else if (widget.role == 'PA') {
-          list = provider.paOrders.where((o) => o['status'] == 'ASSIGNED' || o['status'] == 'ACTION_NEEDED' || o['status'] == 'SPA_GATE' || o['status'] == 'SPA_CONFIRMED' || o['status'] == 'FINAL_DELIVERY').toList();
+          list = provider.paOrders.where((o) =>
+              o['status'] == 'ASSIGNED' ||
+              o['status'] == 'WORKSPACE_READY' ||
+              o['status'] == 'DRAFTING' ||
+              o['status'] == 'ACTION_NEEDED' ||
+              o['status'] == 'SPA_GATE' ||
+              o['status'] == 'SPA_CONFIRMED').toList();
         } else if (widget.role == 'SPA') {
           list = provider.allOrders.where((o) => o['status'] == 'SPA_GATE' || o['status'] == 'SPA_CONFIRMED').toList();
         } else {
-          list = provider.allOrders.where((o) => o['status'] != 'FINAL_DELIVERY').toList();
+          list = provider.allOrders.where((o) => !OrderStatus.isDelivered(o['status'])).toList();
         }
         return _buildDirectoryList(
           title: "IN-PROGRESS PIPELINE RECORDS",
@@ -2802,9 +2809,9 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
         final list = provider.allOrders.where((o) {
           final String status = o['status'] ?? '';
           if (widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN') {
-            return status == 'SPA_GATE' || status == 'SPA_CONFIRMED' || status == 'FINAL_DELIVERY';
+            return status == 'SPA_GATE' || status == 'SPA_CONFIRMED' || OrderStatus.isDelivered(status);
           }
-          return status == 'SPA_GATE' || status == 'SPA_CONFIRMED' || status == 'FINAL_DELIVERY';
+          return status == 'SPA_GATE' || status == 'SPA_CONFIRMED' || OrderStatus.isDelivered(status);
         }).toList();
         return _buildDirectoryList(
           title: "VALUATION REPORTS REVIEW QUEUE",
@@ -2819,11 +2826,11 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
       builder: (context, provider, _) {
         List<dynamic> list = [];
         if (widget.role == 'CLIENT') {
-          list = provider.clientOrders.where((o) => o['status'] == 'FINAL_DELIVERY').toList();
+          list = provider.clientOrders.where((o) => OrderStatus.isDelivered(o['status'])).toList();
         } else if (widget.role == 'PA') {
-          list = provider.paOrders.where((o) => o['status'] == 'FINAL_DELIVERY').toList();
+          list = provider.paOrders.where((o) => OrderStatus.isDelivered(o['status'])).toList();
         } else {
-          list = provider.allOrders.where((o) => o['status'] == 'FINAL_DELIVERY').toList();
+          list = provider.allOrders.where((o) => OrderStatus.isDelivered(o['status'])).toList();
         }
         return _buildDirectoryList(
           title: "COMPLETED & SEALED REPORTS ARCHIVE",
@@ -3026,7 +3033,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                                                       ],
                                                     ),
                                                   );
-                                                } else if (statusStr == 'PAYMENT_VERIFIED' || statusStr == 'COMMON_POOL' || title.contains("UNASSIGNED")) {
+                                                } else if (statusStr == 'PAYMENT_VERIFIED' || statusStr == 'PAID_INTAKE' || title.contains("UNASSIGNED")) {
                                                   final isPoolAging = elapsedHours >= 6;
                                                   return Container(
                                                     margin: const EdgeInsets.only(top: 4),
@@ -3356,9 +3363,14 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
 
   Widget _buildSideSheetContent(OrderProvider provider, dynamic order) {
     final String status = order['status'] ?? 'PENDING';
-    final isCompleted = status == "FINAL_DELIVERY";
+    final isCompleted = OrderStatus.isDelivered(status);
     final isUnassigned = status == "PAID_INTAKE";
-    final isAssignedToMe = (status == "ASSIGNED" || status == "ACTION_NEEDED" || status == "SPA_GATE") && order['paId'] != null;
+    final isAssignedToMe = (status == "ASSIGNED" ||
+            status == "WORKSPACE_READY" ||
+            status == "DRAFTING" ||
+            status == "ACTION_NEEDED" ||
+            status == "SPA_GATE") &&
+        order['paId'] != null;
 
     final String reportNum = order['reportNumber'] ?? 'PV-${order['id']}';
 
@@ -3540,7 +3552,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
         // Action C: Review and approval forms (For SPA / SUPER_ADMIN / ADMIN)
         // SPA and Admin have full edit rights on both SPA_GATE and SPA_CONFIRMED orders.
         if ((widget.role == 'SPA' || widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN') &&
-            (status == 'SPA_GATE' || status == 'SPA_CONFIRMED' || (status == 'FINAL_DELIVERY' && (widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN')))) ...[
+            (status == 'SPA_GATE' || status == 'SPA_CONFIRMED' || (OrderStatus.isDelivered(status) && (widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN')))) ...[
           if (status == 'SPA_GATE') ...[
             Text(
               "DOCUMENT WORKSPACE & VERIFICATION",
@@ -3618,7 +3630,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
         ],
 
         // Action E: SPA / Admin Finalized Report Operations & Reopen / Revision Mode
-        if ((status == 'SPA_CONFIRMED' || status == 'FINAL_DELIVERY') &&
+        if ((status == 'SPA_CONFIRMED' || OrderStatus.isDelivered(status)) &&
             (widget.role == 'SPA' || widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN')) ...[
           const SizedBox(height: 16),
           const Divider(),
@@ -3671,7 +3683,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                 shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
               ),
               label: Text(
-                status == 'FINAL_DELIVERY'
+                OrderStatus.isDelivered(status)
                     ? "REOPEN WORKSPACE (REVISION MODE)"
                     : "OPEN DOCUMENT WORKSPACE (EDIT & RECOMPILE)",
                 style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold),
@@ -3852,7 +3864,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
         ],
 
         // Bottom Action Button: DOCX & PDF Download for Staff
-        if ((status == 'FINAL_DELIVERY' || status == 'SPA_GATE' || status == 'SPA_CONFIRMED') &&
+        if ((OrderStatus.isDelivered(status) || status == 'SPA_GATE' || status == 'SPA_CONFIRMED') &&
             (widget.role == 'PA' || widget.role == 'SPA' || widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN')) ...[
           const SizedBox(height: 12),
           Row(
@@ -3875,7 +3887,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                   ),
                 ),
               ),
-              if (status == 'FINAL_DELIVERY') ...[
+              if (OrderStatus.isDelivered(status)) ...[
                 const SizedBox(width: 8),
                 Expanded(
                   child: SizedBox(
@@ -4356,16 +4368,26 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
     switch (status) {
       case "FINAL_DELIVERY":
         return AppColors.successBg;
+      case "CLIENT_DOWNLOADED":
+        return const Color(0xFFE0E7FF);
+      case "DELIVERY_READY":
+        return const Color(0xFFDCFCE7);
+      case "ON_HOLD_PAYMENT_PENDING":
+        return const Color(0xFFFEF3C7);
+      case "DELIVERY_DISPUTED":
+        return const Color(0xFFFEE2E2);
+      case "CLOSED":
+        return const Color(0xFFE2E8F0);
       case "ASSIGNED":
+      case "WORKSPACE_READY":
+      case "DRAFTING":
         return AppColors.warningBg;
       case "ACTION_NEEDED":
         return const Color(0xFFEF4444).withOpacity(0.15);
       case "SPA_GATE":
-        return AppColors.primaryBlueLight;
       case "SPA_CONFIRMED":
         return AppColors.primaryBlueLight;
       case "PAID_INTAKE":
-        return AppColors.surfaceSoft;
       case "DRAFT":
       default:
         return AppColors.surfaceSoft;
@@ -4376,16 +4398,26 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
     switch (status) {
       case "FINAL_DELIVERY":
         return AppColors.successAccent;
+      case "CLIENT_DOWNLOADED":
+        return const Color(0xFF4338CA);
+      case "DELIVERY_READY":
+        return const Color(0xFF15803D);
+      case "ON_HOLD_PAYMENT_PENDING":
+        return const Color(0xFFB45309);
+      case "DELIVERY_DISPUTED":
+        return const Color(0xFFB91C1C);
+      case "CLOSED":
+        return const Color(0xFF475569);
       case "ASSIGNED":
+      case "WORKSPACE_READY":
+      case "DRAFTING":
         return AppColors.warning;
       case "ACTION_NEEDED":
         return const Color(0xFFEF4444);
       case "SPA_GATE":
-        return AppColors.primaryBlue;
       case "SPA_CONFIRMED":
         return AppColors.primaryBlue;
       case "PAID_INTAKE":
-        return AppColors.slate;
       case "DRAFT":
       default:
         return AppColors.slate;

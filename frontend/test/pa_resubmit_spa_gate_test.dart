@@ -11,11 +11,25 @@ void main() {
   group('PA Edit & Resubmit during SPA Review (Option A) Verification Suite', () {
     test('Valuation Portal isAssignedToMe evaluation logic', () {
       bool isAssignedToMe(String status, int? paId) {
-        return (status == 'ASSIGNED' || status == 'SPA_GATE') && paId != null;
+        return (status == 'ASSIGNED' ||
+                status == 'WORKSPACE_READY' ||
+                status == 'DRAFTING' ||
+                status == 'ACTION_NEEDED' ||
+                status == 'SPA_GATE') &&
+            paId != null;
       }
 
       // ASSIGNED -> PA can access workspace
       expect(isAssignedToMe('ASSIGNED', 42), isTrue);
+
+      // WORKSPACE_READY -> PA can access workspace
+      expect(isAssignedToMe('WORKSPACE_READY', 42), isTrue);
+
+      // DRAFTING -> PA can access workspace
+      expect(isAssignedToMe('DRAFTING', 42), isTrue);
+
+      // ACTION_NEEDED -> PA can access workspace
+      expect(isAssignedToMe('ACTION_NEEDED', 42), isTrue);
 
       // SPA_GATE -> PA can STILL access workspace (Option A)
       expect(isAssignedToMe('SPA_GATE', 42), isTrue);
@@ -92,7 +106,11 @@ void main() {
 
                     // SINGLE DOMINANT PRIMARY ACTION: PA Submit / Resubmit to SPA
                     if ((isPa || isAdmin) &&
-                        (status == 'ASSIGNED' || status == 'ACTION_NEEDED' || status == 'SPA_GATE')) ...[
+                        (status == 'ASSIGNED' ||
+                         status == 'WORKSPACE_READY' ||
+                         status == 'DRAFTING' ||
+                         status == 'ACTION_NEEDED' ||
+                         status == 'SPA_GATE')) ...[
                       ElevatedButton.icon(
                         icon: const Icon(Icons.send_rounded, size: 14),
                         label: Text(
@@ -117,6 +135,28 @@ void main() {
     testWidgets('PA sees "SUBMIT TO SPA" button when status is ASSIGNED', (tester) async {
       final provider = DocumentWorkspaceProvider();
       provider.setWorkspaceModelForTest(createWorkspaceModel('ASSIGNED', false));
+
+      await tester.pumpWidget(buildActionBarHarness(provider: provider, role: 'PA'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('SUBMIT TO SPA'), findsOneWidget);
+      expect(find.text('RESUBMIT TO SPA'), findsNothing);
+    });
+
+    testWidgets('PA sees "SUBMIT TO SPA" button when status is WORKSPACE_READY (Active Work Fix)', (tester) async {
+      final provider = DocumentWorkspaceProvider();
+      provider.setWorkspaceModelForTest(createWorkspaceModel('WORKSPACE_READY', false));
+
+      await tester.pumpWidget(buildActionBarHarness(provider: provider, role: 'PA'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('SUBMIT TO SPA'), findsOneWidget);
+      expect(find.text('RESUBMIT TO SPA'), findsNothing);
+    });
+
+    testWidgets('PA sees "SUBMIT TO SPA" button when status is DRAFTING (Drafting Lifecycle Fix)', (tester) async {
+      final provider = DocumentWorkspaceProvider();
+      provider.setWorkspaceModelForTest(createWorkspaceModel('DRAFTING', false));
 
       await tester.pumpWidget(buildActionBarHarness(provider: provider, role: 'PA'));
       await tester.pumpAndSettle();

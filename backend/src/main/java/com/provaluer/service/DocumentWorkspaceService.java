@@ -30,6 +30,8 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.*;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 public class DocumentWorkspaceService {
@@ -778,7 +780,8 @@ public class DocumentWorkspaceService {
                 visualPreview,
                 valuesMap,
                 readOnly,
-                domNode
+                domNode,
+                order.getWorkspaceRevision() != null ? order.getWorkspaceRevision() : 1
         );
     }
 
@@ -937,6 +940,32 @@ public class DocumentWorkspaceService {
 
         validateOrderAccess(order, principal, "SAVE");
 
+        // FIX 1 & FIX 3 & FIX 5: Concurrency Conflict Detection & Workspace Revision Governance
+        Integer expectedRev = order.getWorkspaceRevision() != null ? order.getWorkspaceRevision() : 1;
+        if (request != null && request.getWorkspaceRevision() != null) {
+            if (!request.getWorkspaceRevision().equals(expectedRev)) {
+                try {
+                    auditLogService.log(
+                            principal != null ? principal.getId() : null,
+                            principal != null ? principal.getEmail() : "SYSTEM",
+                            getPrincipalRole(principal),
+                            "WORKSPACE_CONFLICT_REJECTED",
+                            "ORDER",
+                            String.valueOf(orderId),
+                            "rev:" + expectedRev,
+                            "submitted_rev:" + request.getWorkspaceRevision(),
+                            "Save rejected due to revision mismatch. Workspace updated elsewhere. Current revision: "
+                                    + expectedRev + ", Submitted revision: " + request.getWorkspaceRevision()
+                    );
+                } catch (Exception e) {
+                    log.warn("Failed to audit conflict event: {}", e.getMessage());
+                }
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Workspace updated elsewhere (Server revision: " + expectedRev
+                        + ", Submitted revision: " + request.getWorkspaceRevision() + "). Refresh required.");
+            }
+        }
+
         // SPRINT 6: Transition WORKSPACE_READY → DRAFTING upon first save
         if ("WORKSPACE_READY".equalsIgnoreCase(order.getStatus())) {
             order.setStatus("DRAFTING");
@@ -987,7 +1016,6 @@ public class DocumentWorkspaceService {
                 saveOrUpdateInput(orderId, entry.getKey(), entry.getValue());
             }
 
-            // 3. Synchronize Dynamic Table Items to Repositories (Single Source of Truth)
             boolean tablesModified = false;
 
             if (expandedInputs.containsKey("RAW_LAND_ITEMS_JSON")) {
@@ -999,17 +1027,7 @@ public class DocumentWorkspaceService {
                                 objectMapper.getTypeFactory().constructCollectionType(List.class, ValuationLandItem.class)
                         );
                         if (items != null && landItemRepository != null) {
-                            landItemRepository.deleteByOrderId(orderId);
-                            int s = 1;
-                            for (ValuationLandItem itm : items) {
-                                itm.setId(null);
-                                itm.setOrderId(orderId);
-                                itm.setSortOrder(s++);
-                                if (formulaService != null) {
-                                    formulaService.calculateLandItem(itm);
-                                }
-                                landItemRepository.save(itm);
-                            }
+                            reconcileLandItems(orderId, items);
                             tablesModified = true;
                         }
                     } catch (Exception e) {
@@ -1027,23 +1045,7 @@ public class DocumentWorkspaceService {
                                 objectMapper.getTypeFactory().constructCollectionType(List.class, ValuationBuildingItem.class)
                         );
                         if (items != null && buildingItemRepository != null) {
-                            buildingItemRepository.deleteByOrderId(orderId);
-                            int s = 1;
-                            ValuationData vData = valuationDataRepository != null ?
-                                    valuationDataRepository.findByOrderId(orderId).orElse(null) : null;
-                            BigDecimal defaultSalvage = vData != null ? vData.getDefaultSalvagePercentage() : new BigDecimal("10.00");
-                            for (ValuationBuildingItem itm : items) {
-                                itm.setId(null);
-                                itm.setOrderId(orderId);
-                                itm.setSortOrder(s++);
-                                if (itm.getSalvagePercentage() == null) {
-                                    itm.setSalvagePercentage(defaultSalvage);
-                                }
-                                if (formulaService != null) {
-                                    formulaService.calculateBuildingItem(itm);
-                                }
-                                buildingItemRepository.save(itm);
-                            }
+                            reconcileBuildingItems(orderId, items);
                             tablesModified = true;
                         }
                     } catch (Exception e) {
@@ -1061,18 +1063,7 @@ public class DocumentWorkspaceService {
                                 objectMapper.getTypeFactory().constructCollectionType(List.class, ValuationCompositeItem.class)
                         );
                         if (items != null && compositeItemRepository != null) {
-                            compositeItemRepository.deleteByOrderId(orderId);
-                            int s = 1;
-                            for (ValuationCompositeItem itm : items) {
-                                itm.setId(null);
-                                itm.setOrderId(orderId);
-                                itm.setSortOrder(s++);
-                                if (itm.getItemCategory() == null) itm.setItemCategory("OTHER");
-                                if (formulaService != null) {
-                                    formulaService.calculateCompositeItem(itm);
-                                }
-                                compositeItemRepository.save(itm);
-                            }
+                            reconcileCompositeItems(orderId, items);
                             tablesModified = true;
                         }
                     } catch (Exception e) {
@@ -1207,7 +1198,12 @@ public class DocumentWorkspaceService {
             }
         }
 
-        // SPRINT 6: Audit log for saved draft values
+        // FIX 1: Increment workspace revision on successful save
+        order.setWorkspaceRevision(expectedRev + 1);
+        order.setUpdatedAt(LocalDateTime.now());
+        orderRepository.save(order);
+
+        // SPRINT 6 & FIX 9: Audit log for saved draft values with revision governance
         try {
             Long actorId = principal != null ? principal.getId() : null;
             String actorEmail = principal != null ? principal.getEmail() : "PA";
@@ -1219,13 +1215,18 @@ public class DocumentWorkspaceService {
                     "DRAFT_SAVED",
                     "ORDER",
                     String.valueOf(orderId),
-                    "Saved workspace draft input values (keys: " + (request != null && request.getValues() != null ? request.getValues().size() : 0) + ")"
+                    "rev:" + expectedRev,
+                    "rev:" + order.getWorkspaceRevision(),
+                    "Saved workspace draft input values (keys: " + (request != null && request.getValues() != null ? request.getValues().size() : 0) + ") at revision " + order.getWorkspaceRevision()
             );
         } catch (Exception e) {
             log.warn("Failed to log DRAFT_SAVED for order #{}: {}", orderId, e.getMessage());
         }
 
-        return Map.of("status", "SAVED");
+        Map<String, String> result = new HashMap<>();
+        result.put("status", "SAVED");
+        result.put("workspaceRevision", String.valueOf(order.getWorkspaceRevision()));
+        return result;
     }
 
     /**
@@ -1246,9 +1247,12 @@ public class DocumentWorkspaceService {
             }
         }
 
-        if (!"DRAFTING".equalsIgnoreCase(order.getStatus()) && !"WORKSPACE_READY".equalsIgnoreCase(order.getStatus())) {
+        if (!"DRAFTING".equalsIgnoreCase(order.getStatus()) &&
+            !"WORKSPACE_READY".equalsIgnoreCase(order.getStatus()) &&
+            !"ASSIGNED".equalsIgnoreCase(order.getStatus()) &&
+            !"ACTION_NEEDED".equalsIgnoreCase(order.getStatus())) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "Order must be in DRAFTING or WORKSPACE_READY status to submit to SPA. Current status: " + order.getStatus());
+                    "Order must be in DRAFTING, WORKSPACE_READY, ASSIGNED, or ACTION_NEEDED status to submit to SPA. Current status: " + order.getStatus());
         }
 
         DraftValidationResponseDto validation = validateDraft(orderId, principal);
@@ -1721,6 +1725,172 @@ public class DocumentWorkspaceService {
             field.setImageValue(null);
         }
         orderInputRepository.save(field);
+    }
+
+    /**
+     * FIX 7: Dynamic Table Safety - Row-level reconciliation for Land Items.
+     * Prevents destructive deleteByOrderId() pattern and preserves row identity.
+     */
+    private void reconcileLandItems(Long orderId, List<ValuationLandItem> incomingItems) {
+        List<ValuationLandItem> existingItems = landItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
+        Map<Long, ValuationLandItem> existingById = existingItems.stream()
+                .filter(i -> i.getId() != null)
+                .collect(Collectors.toMap(ValuationLandItem::getId, Function.identity(), (a, b) -> a));
+
+        Set<Long> processedIds = new HashSet<>();
+        int sort = 1;
+
+        for (ValuationLandItem incoming : incomingItems) {
+            ValuationLandItem target;
+            if (incoming.getId() != null && existingById.containsKey(incoming.getId())) {
+                target = existingById.get(incoming.getId());
+                target.setDescription(incoming.getDescription());
+                target.setSurveyNo(incoming.getSurveyNo());
+                target.setEnteredArea(incoming.getEnteredArea());
+                target.setEnteredUnit(incoming.getEnteredUnit());
+                target.setStandardAreaSqft(incoming.getStandardAreaSqft());
+                target.setRate(incoming.getRate());
+                target.setValue(incoming.getValue());
+                target.setSortOrder(sort++);
+                processedIds.add(target.getId());
+            } else {
+                target = incoming;
+                target.setId(null);
+                target.setOrderId(orderId);
+                target.setSortOrder(sort++);
+            }
+            if (formulaService != null) {
+                formulaService.calculateLandItem(target);
+            }
+            ValuationLandItem saved = landItemRepository.save(target);
+            if (saved.getId() != null) {
+                processedIds.add(saved.getId());
+            }
+        }
+
+        for (ValuationLandItem existing : existingItems) {
+            if (!processedIds.contains(existing.getId())) {
+                landItemRepository.delete(existing);
+            }
+        }
+    }
+
+    /**
+     * FIX 7: Dynamic Table Safety - Row-level reconciliation for Building Items.
+     * Prevents destructive deleteByOrderId() pattern and preserves row identity.
+     */
+    private void reconcileBuildingItems(Long orderId, List<ValuationBuildingItem> incomingItems) {
+        List<ValuationBuildingItem> existingItems = buildingItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
+        Map<Long, ValuationBuildingItem> existingById = existingItems.stream()
+                .filter(i -> i.getId() != null)
+                .collect(Collectors.toMap(ValuationBuildingItem::getId, Function.identity(), (a, b) -> a));
+
+        ValuationData vData = valuationDataRepository != null ?
+                valuationDataRepository.findByOrderId(orderId).orElse(null) : null;
+        BigDecimal defaultSalvage = vData != null ? vData.getDefaultSalvagePercentage() : new BigDecimal("10.00");
+
+        Set<Long> processedIds = new HashSet<>();
+        int sort = 1;
+
+        for (ValuationBuildingItem incoming : incomingItems) {
+            ValuationBuildingItem target;
+            if (incoming.getId() != null && existingById.containsKey(incoming.getId())) {
+                target = existingById.get(incoming.getId());
+                target.setDescription(incoming.getDescription());
+                target.setStructureType(incoming.getStructureType());
+                target.setBuildingType(incoming.getBuildingType());
+                target.setBuildingAge(incoming.getBuildingAge());
+                target.setBuildingUsefulLife(incoming.getBuildingUsefulLife());
+                target.setDepreciationPercentage(incoming.getDepreciationPercentage());
+                target.setEnteredArea(incoming.getEnteredArea());
+                target.setEnteredUnit(incoming.getEnteredUnit());
+                target.setStandardAreaSqft(incoming.getStandardAreaSqft());
+                target.setReplacementRate(incoming.getReplacementRate());
+                target.setReplacementCost(incoming.getReplacementCost());
+                target.setDepreciationAmount(incoming.getDepreciationAmount());
+                target.setBuildingValue(incoming.getBuildingValue());
+                target.setSalvagePercentage(incoming.getSalvagePercentage() != null ? incoming.getSalvagePercentage() : defaultSalvage);
+                target.setSortOrder(sort++);
+                processedIds.add(target.getId());
+            } else {
+                target = incoming;
+                target.setId(null);
+                target.setOrderId(orderId);
+                target.setSortOrder(sort++);
+                if (target.getSalvagePercentage() == null) {
+                    target.setSalvagePercentage(defaultSalvage);
+                }
+            }
+            if (formulaService != null) {
+                formulaService.calculateBuildingItem(target);
+            }
+            ValuationBuildingItem saved = buildingItemRepository.save(target);
+            if (saved.getId() != null) {
+                processedIds.add(saved.getId());
+            }
+        }
+
+        for (ValuationBuildingItem existing : existingItems) {
+            if (!processedIds.contains(existing.getId())) {
+                buildingItemRepository.delete(existing);
+            }
+        }
+    }
+
+    /**
+     * FIX 7: Dynamic Table Safety - Row-level reconciliation for Composite Items.
+     * Prevents destructive deleteByOrderId() pattern and preserves row identity.
+     */
+    private void reconcileCompositeItems(Long orderId, List<ValuationCompositeItem> incomingItems) {
+        List<ValuationCompositeItem> existingItems = compositeItemRepository.findByOrderIdOrderBySortOrderAscIdAsc(orderId);
+        Map<Long, ValuationCompositeItem> existingById = existingItems.stream()
+                .filter(i -> i.getId() != null)
+                .collect(Collectors.toMap(ValuationCompositeItem::getId, Function.identity(), (a, b) -> a));
+
+        Set<Long> processedIds = new HashSet<>();
+        int sort = 1;
+
+        for (ValuationCompositeItem incoming : incomingItems) {
+            ValuationCompositeItem target;
+            if (incoming.getId() != null && existingById.containsKey(incoming.getId())) {
+                target = existingById.get(incoming.getId());
+                target.setItemCategory(incoming.getItemCategory() != null ? incoming.getItemCategory() : "OTHER");
+                target.setDescription(incoming.getDescription());
+                target.setEnteredUnit(incoming.getEnteredUnit());
+                target.setQuantity(incoming.getQuantity());
+                target.setRate(incoming.getRate());
+                target.setAmount(incoming.getAmount());
+                target.setConstructionCost(incoming.getConstructionCost());
+                target.setBuildingAge(incoming.getBuildingAge());
+                target.setTotalLife(incoming.getTotalLife());
+                target.setDepreciationMode(incoming.getDepreciationMode());
+                target.setDepreciationAmount(incoming.getDepreciationAmount());
+                target.setIsInsurable(incoming.getIsInsurable());
+                target.setSortOrder(sort++);
+                processedIds.add(target.getId());
+            } else {
+                target = incoming;
+                target.setId(null);
+                target.setOrderId(orderId);
+                target.setSortOrder(sort++);
+                if (target.getItemCategory() == null) {
+                    target.setItemCategory("OTHER");
+                }
+            }
+            if (formulaService != null) {
+                formulaService.calculateCompositeItem(target);
+            }
+            ValuationCompositeItem saved = compositeItemRepository.save(target);
+            if (saved.getId() != null) {
+                processedIds.add(saved.getId());
+            }
+        }
+
+        for (ValuationCompositeItem existing : existingItems) {
+            if (!processedIds.contains(existing.getId())) {
+                compositeItemRepository.delete(existing);
+            }
+        }
     }
 
     /**

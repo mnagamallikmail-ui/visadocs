@@ -14,17 +14,24 @@ public class DocumentWorkspaceResponse implements Serializable {
     private Map<String, String> values;
     private boolean readOnly;
     private JsonNode documentDom;
+    private Integer workspaceRevision = 1;
 
     public DocumentWorkspaceResponse() {}
 
     public DocumentWorkspaceResponse(Long orderId, String status, String reportNumber,
                                      VisualPreviewResponse visualPreview, Map<String, String> values, boolean readOnly) {
-        this(orderId, status, reportNumber, visualPreview, values, readOnly, null);
+        this(orderId, status, reportNumber, visualPreview, values, readOnly, null, 1);
     }
 
     public DocumentWorkspaceResponse(Long orderId, String status, String reportNumber,
                                      VisualPreviewResponse visualPreview, Map<String, String> values, boolean readOnly,
                                      JsonNode documentDom) {
+        this(orderId, status, reportNumber, visualPreview, values, readOnly, documentDom, 1);
+    }
+
+    public DocumentWorkspaceResponse(Long orderId, String status, String reportNumber,
+                                     VisualPreviewResponse visualPreview, Map<String, String> values, boolean readOnly,
+                                     JsonNode documentDom, Integer workspaceRevision) {
         this.orderId = orderId;
         this.status = status;
         this.reportNumber = reportNumber;
@@ -32,6 +39,7 @@ public class DocumentWorkspaceResponse implements Serializable {
         this.values = values;
         this.readOnly = readOnly;
         this.documentDom = documentDom;
+        this.workspaceRevision = workspaceRevision != null ? workspaceRevision : 1;
     }
 
     public Long getOrderId() { return orderId; }
@@ -54,4 +62,7 @@ public class DocumentWorkspaceResponse implements Serializable {
 
     public JsonNode getDocumentDom() { return documentDom; }
     public void setDocumentDom(JsonNode documentDom) { this.documentDom = documentDom; }
+
+    public Integer getWorkspaceRevision() { return workspaceRevision; }
+    public void setWorkspaceRevision(Integer workspaceRevision) { this.workspaceRevision = workspaceRevision; }
 }

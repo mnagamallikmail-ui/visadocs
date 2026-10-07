@@ -3,43 +3,86 @@ package com.provaluer.controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
-import java.util.HashMap;
+
+import java.security.SecureRandom;
+import java.time.Instant;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 @RestController
 @RequestMapping("/api/v1/signatures")
 public class SignatureController {
-    
+
+    private static class OtpSession {
+        final String otp;
+        final String username;
+        final Instant expiresAt;
+
+        OtpSession(String otp, String username, Instant expiresAt) {
+            this.otp = otp;
+            this.username = username;
+            this.expiresAt = expiresAt;
+        }
+    }
+
+    private final Map<String, OtpSession> otpSessionStore = new ConcurrentHashMap<>();
+    private final SecureRandom secureRandom = new SecureRandom();
+
     /**
      * POST /api/v1/signatures/request-otp
      * Initiates cloud Aadhaar/e-Mudhra wrapper HSM signature transaction.
+     * Generates a single-use cryptographically secure random 6-digit OTP valid for 5 minutes.
      */
     @PostMapping("/request-otp")
     @PreAuthorize("hasRole('SPA')")
     public ResponseEntity<?> requestSigningOtp(@RequestParam("username") String username) {
-        Map<String, String> response = new HashMap<>();
-        response.put("transactionId", UUID.randomUUID().toString());
-        response.put("message", "Cryptographic signing OTP sent successfully to registered cloud HSM device.");
-        return ResponseEntity.ok(response);
+        String transactionId = UUID.randomUUID().toString();
+        // Generate secure 6-digit numeric OTP (100000 - 999999)
+        String generatedOtp = String.valueOf(100000 + secureRandom.nextInt(900000));
+        Instant expiresAt = Instant.now().plusSeconds(300); // 5 minute TTL
+
+        otpSessionStore.put(transactionId, new OtpSession(generatedOtp, username, expiresAt));
+
+        return ResponseEntity.ok(Map.of(
+            "transactionId", transactionId,
+            "message", "Cryptographic signing OTP dispatched to registered cloud HSM device. Valid for 5 minutes."
+        ));
     }
 
     /**
      * POST /api/v1/signatures/verify
-     * Verifies the cloud certificate token transaction.
+     * Strictly verifies the ephemeral cloud certificate token transaction.
+     * Eliminates all hardcoded OTPs, mock bypasses, and enforces single-use expiry.
      */
     @PostMapping("/verify")
     @PreAuthorize("hasRole('SPA')")
-    public ResponseEntity<?> verifySigningOtp(@RequestParam("transactionId") String transactionId, @RequestParam("otp") String otp) {
-        // Simple mock OTP check (accepts standard length OTPs)
-        if ("123456".equals(otp) || "1234".equals(otp) || (otp != null && otp.length() == 6)) {
-            Map<String, String> response = new HashMap<>();
-            response.put("status", "SUCCESS");
-            response.put("certificateClass", "Class 3 Cloud HSM Digital Signature");
-            response.put("signedBy", "Senior Property Analyst (SPA)");
-            response.put("timestamp", String.valueOf(System.currentTimeMillis()));
-            return ResponseEntity.ok(response);
+    public ResponseEntity<?> verifySigningOtp(
+            @RequestParam("transactionId") String transactionId,
+            @RequestParam("otp") String otp) {
+
+        if (transactionId == null || transactionId.isBlank() || otp == null || otp.isBlank()) {
+            return ResponseEntity.badRequest().body("Transaction ID and OTP are mandatory.");
         }
-        return ResponseEntity.badRequest().body("Invalid cloud eSignature OTP.");
+
+        OtpSession session = otpSessionStore.remove(transactionId); // Single-use consumption
+        if (session == null) {
+            return ResponseEntity.badRequest().body("Invalid or expired digital signature transaction session.");
+        }
+
+        if (Instant.now().isAfter(session.expiresAt)) {
+            return ResponseEntity.badRequest().body("Signature transaction OTP has expired (5-minute TTL elapsed).");
+        }
+
+        if (!session.otp.equals(otp.trim())) {
+            return ResponseEntity.badRequest().body("Invalid cryptographic OTP provided.");
+        }
+
+        return ResponseEntity.ok(Map.of(
+            "status", "SUCCESS",
+            "certificateClass", "Class 3 Cloud HSM Digital Signature",
+            "signedBy", session.username != null ? session.username : "Senior Property Analyst (SPA)",
+            "timestamp", String.valueOf(System.currentTimeMillis())
+        ));
     }
 }

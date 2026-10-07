@@ -173,7 +173,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             SliverToBoxAdapter(
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1040),
+                  constraints: const BoxConstraints(maxWidth: 1400),
                   child: Padding(
                     padding: const EdgeInsets.fromLTRB(28, 20, 28, 0),
                     child: _buildSectionHeaderCard(activeSection, provider.isReadOnly, isContinuous: false),
@@ -209,7 +209,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
         padding: const EdgeInsets.fromLTRB(28, 20, 28, 60),
         child: Center(
           child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 1040),
+            constraints: const BoxConstraints(maxWidth: 1400),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
@@ -365,11 +365,16 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           ),
 
           // Scrollable Table Content (Interactive Editor)
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: 960,
-              child: Column(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final tableWidth = constraints.maxWidth > 960 ? constraints.maxWidth : 960.0;
+              return Scrollbar(
+                thumbVisibility: constraints.maxWidth < 960,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: tableWidth,
+                    child: Column(
                 children: [
                   // Table Header
                   Container(
@@ -524,6 +529,9 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
               ),
             ),
           ),
+        );
+      },
+    ),
 
           // Total & Say Rows
           Container(
@@ -628,11 +636,16 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           ),
 
           // Scrollable Table Content (Interactive Editor)
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: 1120,
-              child: Column(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final tableWidth = constraints.maxWidth > 1160 ? constraints.maxWidth : 1160.0;
+              return Scrollbar(
+                thumbVisibility: constraints.maxWidth < 1160,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: tableWidth,
+                    child: Column(
                 children: [
                   // Table Header
                   Container(
@@ -845,6 +858,9 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
               ),
             ),
           ),
+        );
+      },
+    ),
 
           // Total & Say Rows
           Container(
@@ -945,11 +961,16 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
               ],
             ),
           ),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: 850,
-              child: Column(
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final tableWidth = constraints.maxWidth > 850 ? constraints.maxWidth : 850.0;
+              return Scrollbar(
+                thumbVisibility: constraints.maxWidth < 850,
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: tableWidth,
+                    child: Column(
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
@@ -1069,6 +1090,9 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
               ),
             ),
           ),
+        );
+      },
+    ),
         ],
       ),
     );
@@ -1122,48 +1146,62 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           ),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Table(
-              columnWidths: const {
-                0: FlexColumnWidth(5.5),
-                1: FlexColumnWidth(4.5),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final tableWidth = constraints.maxWidth > 550 ? constraints.maxWidth : 550.0;
+                return Scrollbar(
+                  thumbVisibility: constraints.maxWidth < 550,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: tableWidth,
+                      child: Table(
+                        columnWidths: const {
+                          0: FlexColumnWidth(5.5),
+                          1: FlexColumnWidth(4.5),
+                        },
+                        children: [
+                          TableRow(
+                            decoration: const BoxDecoration(color: AppColors.surfaceSoft, border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
+                            children: [
+                              Padding(padding: const EdgeInsets.all(10), child: Text('Particulars', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold))),
+                              Padding(padding: const EdgeInsets.all(10), child: Text('Amount (₹)', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold))),
+                            ],
+                          ),
+                          TableRow(
+                            decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
+                            children: [
+                              Padding(padding: const EdgeInsets.all(10), child: Text('Value of Land (Say Land)', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600))),
+                              Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(landVal)}', style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold))),
+                            ],
+                          ),
+                          TableRow(
+                            decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
+                            children: [
+                              Padding(padding: const EdgeInsets.all(10), child: Text('Value of Buildings (Say Bldg)', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600))),
+                              Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(bldgVal)}', style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold))),
+                            ],
+                          ),
+                          TableRow(
+                            decoration: BoxDecoration(color: AppColors.surfaceSoft, border: const Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
+                            children: [
+                              Padding(padding: const EdgeInsets.all(10), child: Text('Total', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary))),
+                              Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(fairVal)}', style: GoogleFonts.firaCode(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary))),
+                            ],
+                          ),
+                          TableRow(
+                            decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.05)),
+                            children: [
+                              Padding(padding: const EdgeInsets.all(10), child: Text('Say', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.ink))),
+                              Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(sayVal)}', style: GoogleFonts.firaCode(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.successAccent))),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
               },
-              children: [
-                TableRow(
-                  decoration: const BoxDecoration(color: AppColors.surfaceSoft, border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
-                  children: [
-                    Padding(padding: const EdgeInsets.all(10), child: Text('Particulars', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold))),
-                    Padding(padding: const EdgeInsets.all(10), child: Text('Amount (₹)', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold))),
-                  ],
-                ),
-                TableRow(
-                  decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
-                  children: [
-                    Padding(padding: const EdgeInsets.all(10), child: Text('Value of Land (Say Land)', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600))),
-                    Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(landVal)}', style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold))),
-                  ],
-                ),
-                TableRow(
-                  decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
-                  children: [
-                    Padding(padding: const EdgeInsets.all(10), child: Text('Value of Buildings (Say Bldg)', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600))),
-                    Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(bldgVal)}', style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold))),
-                  ],
-                ),
-                TableRow(
-                  decoration: BoxDecoration(color: AppColors.surfaceSoft, border: const Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
-                  children: [
-                    Padding(padding: const EdgeInsets.all(10), child: Text('Total', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary))),
-                    Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(fairVal)}', style: GoogleFonts.firaCode(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary))),
-                  ],
-                ),
-                TableRow(
-                  decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.05)),
-                  children: [
-                    Padding(padding: const EdgeInsets.all(10), child: Text('Say', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.ink))),
-                    Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(sayVal)}', style: GoogleFonts.firaCode(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.successAccent))),
-                  ],
-                ),
-              ],
             ),
           ),
         ],
@@ -1368,12 +1406,21 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           // 4-Column Live Valuation Summary Grid Table matching DOCX output
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Container(
-              decoration: BoxDecoration(
-                border: Border.all(color: AppColors.hairlineSoft),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Column(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final tableWidth = constraints.maxWidth > 780 ? constraints.maxWidth : 780.0;
+                return Scrollbar(
+                  thumbVisibility: constraints.maxWidth < 780,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: tableWidth,
+                      child: Container(
+                        decoration: BoxDecoration(
+                          border: Border.all(color: AppColors.hairlineSoft),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Column(
                 children: [
                   // Table Header
                   Container(
@@ -1436,6 +1483,11 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
               ),
             ),
           ),
+        ),
+      );
+    },
+  ),
+),
 
           // Total in words footer
           Padding(
@@ -1557,14 +1609,23 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
     }
     mainUnit ??= items.isNotEmpty ? items.first : ValuationCompositeItemModel(itemCategory: 'MAIN_UNIT', quantity: 1000, rate: 0);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: AppColors.hairlineSoft),
-        borderRadius: BorderRadius.circular(8),
-        boxShadow: AppShadows.subtleElevated,
-      ),
-      child: Column(
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final tableWidth = constraints.maxWidth > 1180 ? constraints.maxWidth : 1180.0;
+        return Scrollbar(
+          thumbVisibility: constraints.maxWidth < 1180,
+          child: SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: SizedBox(
+              width: tableWidth,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  border: Border.all(color: AppColors.hairlineSoft),
+                  borderRadius: BorderRadius.circular(8),
+                  boxShadow: AppShadows.subtleElevated,
+                ),
+                child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           // Table Column Headers
@@ -2260,7 +2321,12 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           ),
         ],
       ),
-    );
+    ),
+  ),
+),
+);
+},
+);
   }
 
   Widget _buildCompositeSummaryCard(BuildContext context, ValuationDataModel data, double sayFairVal, bool isReadOnly, DocumentWorkspaceProvider provider) {
@@ -2793,12 +2859,26 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
         boxShadow: AppShadows.subtleElevated,
       ),
       clipBehavior: Clip.antiAlias,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          for (int r = 0; r < tableVm.rows.length; r++)
-            _buildTableRow(context, tableVm.rows[r], r, tableVm.rows.length, readOnly),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final tableWidth = constraints.maxWidth > 720 ? constraints.maxWidth : 720.0;
+          return Scrollbar(
+            thumbVisibility: constraints.maxWidth < 720,
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: SizedBox(
+                width: tableWidth,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    for (int r = 0; r < tableVm.rows.length; r++)
+                      _buildTableRow(context, tableVm.rows[r], r, tableVm.rows.length, readOnly),
+                  ],
+                ),
+              ),
+            ),
+          );
+        },
       ),
     );
   }

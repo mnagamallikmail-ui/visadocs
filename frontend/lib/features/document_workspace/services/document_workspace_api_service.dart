@@ -24,14 +24,42 @@ class DocumentWorkspaceApiService {
     );
   }
 
-  /// Delta persistence of in-document input values.
-  Future<bool> saveDocumentValues(int orderId, Map<String, String> values) async {
+  /// Delta persistence of in-document input values with workspaceRevision concurrency token
+  Future<Map<String, dynamic>?> saveDocumentValues(
+    int orderId,
+    Map<String, String> values, {
+    int? workspaceRevision,
+  }) async {
     final response = await _api.dio.post(
       '/api/v1/orders/$orderId/save-document-values',
-      data: {'values': values},
+      data: {
+        'values': values,
+        if (workspaceRevision != null) 'workspaceRevision': workspaceRevision,
+      },
     );
 
-    return response.statusCode == 200;
+    if (response.statusCode == 200 && response.data != null) {
+      final dynamic raw = response.data is String ? jsonDecode(response.data as String) : response.data;
+      if (raw is Map<String, dynamic>) {
+        return raw;
+      }
+      return {'status': 'SAVED'};
+    }
+    return null;
+  }
+
+  /// FIX 8: Real-time telemetry & invalidation check
+  Future<Map<String, dynamic>?> checkWorkspaceTelemetry(int orderId) async {
+    try {
+      final response = await _api.dio.post('/api/v1/orders/$orderId/heartbeat');
+      if (response.statusCode == 200 && response.data != null) {
+        final dynamic raw = response.data is String ? jsonDecode(response.data as String) : response.data;
+        if (raw is Map<String, dynamic>) {
+          return raw;
+        }
+      }
+    } catch (_) {}
+    return null;
   }
 
   /// Initialize Document Workspace for order

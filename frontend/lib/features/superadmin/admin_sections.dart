@@ -358,13 +358,13 @@ class _AdminOverviewSectionState extends State<AdminOverviewSection> {
     final quotesIssued = _orders.where((o) => o['quoteNumber'] != null).length;
     final paymentsVerified = _orders.where((o) {
       final s = o['status']?.toString();
-      return s == 'PAYMENT_VERIFIED' || s == 'PAID_INTAKE' || s == 'ASSIGNED' || s == 'REPORT_DRAFTED' || s == 'SPA_GATE' || s == 'SPA_APPROVED' || s == 'SPA_CONFIRMED' || s == 'FINAL_DELIVERY' || s == 'CLIENT_DOWNLOADED';
+      return s == 'PAYMENT_VERIFIED' || s == 'PAID_INTAKE' || s == 'ASSIGNED' || s == 'WORKSPACE_READY' || s == 'DRAFTING' || s == 'ACTION_NEEDED' || s == 'SPA_GATE' || s == 'SPA_CONFIRMED' || s == 'DELIVERY_READY' || s == 'FINAL_DELIVERY' || s == 'CLIENT_DOWNLOADED' || s == 'CLOSED';
     }).length;
     final ordersReleased = _orders.where((o) {
       final s = o['status']?.toString();
       return s != 'DRAFT' && s != 'QUOTE_PENDING' && s != 'QUOTE_PROVIDED' && s != 'PAYMENT_SUBMITTED' && s != 'PAYMENT_VERIFIED';
     }).length;
-    final reportsDelivered = (_data?['finalDeliveryOrders'] as num?)?.toInt() ?? _orders.where((o) => o['status'] == 'FINAL_DELIVERY' || o['status'] == 'CLIENT_DOWNLOADED').length;
+    final reportsDelivered = (_data?['finalDeliveryOrders'] as num?)?.toInt() ?? _orders.where((o) => o['status'] == 'FINAL_DELIVERY' || o['status'] == 'CLIENT_DOWNLOADED' || o['status'] == 'CLOSED').length;
 
     double revenueToday = 0;
     double revenueMtd = 0;
@@ -373,7 +373,7 @@ class _AdminOverviewSectionState extends State<AdminOverviewSection> {
 
     for (final o in _orders) {
       final s = o['status']?.toString();
-      final isPaid = s == 'PAYMENT_VERIFIED' || s == 'PAID_INTAKE' || s == 'ASSIGNED' || s == 'REPORT_DRAFTED' || s == 'SPA_GATE' || s == 'SPA_APPROVED' || s == 'SPA_CONFIRMED' || s == 'FINAL_DELIVERY' || s == 'CLIENT_DOWNLOADED';
+      final isPaid = s == 'PAYMENT_VERIFIED' || s == 'PAID_INTAKE' || s == 'ASSIGNED' || s == 'WORKSPACE_READY' || s == 'DRAFTING' || s == 'ACTION_NEEDED' || s == 'SPA_GATE' || s == 'SPA_CONFIRMED' || s == 'DELIVERY_READY' || s == 'FINAL_DELIVERY' || s == 'CLIENT_DOWNLOADED' || s == 'CLOSED';
       if (!isPaid) continue;
 
       final amt = (o['quoteTotal'] as num?)?.toDouble() ?? (o['quoteAmount'] as num?)?.toDouble() ?? 0.0;
@@ -934,47 +934,326 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
     }
   }
 
-  Widget _buildSlaChip(dynamic order) {
-    final createdAtStr = order['createdAt']?.toString();
-    if (createdAtStr == null) return const SizedBox.shrink();
-    final dt = DateTime.tryParse(createdAtStr) ?? DateTime.now();
-    final diffHours = DateTime.now().difference(dt).inMinutes / 60.0;
-
-    Color bgColor;
-    Color textColor;
-    Color borderColor;
-    String label;
-
-    if (diffHours < 4) {
-      bgColor = const Color(0xFFECFDF5);
-      textColor = const Color(0xFF047857);
-      borderColor = const Color(0xFFA7F3D0);
-      label = '${diffHours.toStringAsFixed(1)}h • On Track';
-    } else if (diffHours < 12) {
-      bgColor = const Color(0xFFFFFBEB);
-      textColor = const Color(0xFFB45309);
-      borderColor = const Color(0xFFFDE68A);
-      label = '${diffHours.toStringAsFixed(1)}h • Attention';
-    } else {
-      bgColor = const Color(0xFFFEF2F2);
-      textColor = const Color(0xFFDC2626);
-      borderColor = const Color(0xFFFECACA);
-      label = '${diffHours.toStringAsFixed(1)}h • Overdue';
-    }
-
+  Widget _badgeContainer(String text, Color bg, Color fg, Color border, IconData icon) {
     return Container(
-      margin: const EdgeInsets.only(top: 4),
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+      margin: const EdgeInsets.only(top: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
       decoration: BoxDecoration(
-        color: bgColor,
-        border: Border.all(color: borderColor, width: 0.8),
+        color: bg,
+        border: Border.all(color: border, width: 0.8),
         borderRadius: BorderRadius.circular(4),
       ),
-      child: Text(
-        label,
-        style: AppTypography.caption(color: textColor).copyWith(fontSize: 10, fontWeight: FontWeight.w700),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 9, color: fg),
+          const SizedBox(width: 3),
+          Text(
+            text,
+            style: TextStyle(color: fg, fontSize: 9.5, fontWeight: FontWeight.w700),
+          ),
+        ],
       ),
     );
+  }
+
+  Widget _buildSlaChip(dynamic order) {
+    final status = (order['status']?.toString() ?? '').toUpperCase();
+    final isActiveAuthoring = status == 'ASSIGNED' ||
+        status == 'WORKSPACE_READY' ||
+        status == 'DRAFTING' ||
+        status == 'ACTION_NEEDED';
+
+    final now = DateTime.now();
+    final chips = <Widget>[];
+
+    // 1. SLA ENFORCEMENT CHIP (Warning, Overdue, Critical)
+    final slaExpiryStr = order['slaExpiryTime']?.toString();
+    if (slaExpiryStr != null) {
+      final exp = DateTime.tryParse(slaExpiryStr);
+      if (exp != null) {
+        if (now.isAfter(exp)) {
+          final overdueH = now.difference(exp).inMinutes / 60.0;
+          if (overdueH >= 4.0) {
+            chips.add(_badgeContainer(
+              'CRITICAL SLA BREACH',
+              const Color(0xFFFEF2F2),
+              const Color(0xFFDC2626),
+              const Color(0xFFFECACA),
+              Icons.error_outline_rounded,
+            ));
+          } else {
+            chips.add(_badgeContainer(
+              'OVERDUE (${overdueH.toStringAsFixed(1)}h)',
+              const Color(0xFFFEF2F2),
+              const Color(0xFFDC2626),
+              const Color(0xFFFECACA),
+              Icons.warning_amber_rounded,
+            ));
+          }
+        } else {
+          final remainingH = exp.difference(now).inMinutes / 60.0;
+          if (remainingH <= 4.0) {
+            chips.add(_badgeContainer(
+              'WARNING (${remainingH.toStringAsFixed(1)}h)',
+              const Color(0xFFFFFBEB),
+              const Color(0xFFB45309),
+              const Color(0xFFFDE68A),
+              Icons.alarm_on_rounded,
+            ));
+          } else {
+            chips.add(_badgeContainer(
+              '${remainingH.toStringAsFixed(1)}h SLA • OK',
+              const Color(0xFFECFDF5),
+              const Color(0xFF047857),
+              const Color(0xFFA7F3D0),
+              Icons.timer_outlined,
+            ));
+          }
+        }
+      }
+    } else {
+      final createdAtStr = order['createdAt']?.toString();
+      if (createdAtStr != null) {
+        final dt = DateTime.tryParse(createdAtStr) ?? now;
+        final diffHours = now.difference(dt).inMinutes / 60.0;
+        if (diffHours < 4) {
+          chips.add(_badgeContainer('${diffHours.toStringAsFixed(1)}h • On Track', const Color(0xFFECFDF5), const Color(0xFF047857), const Color(0xFFA7F3D0), Icons.timer_outlined));
+        } else if (diffHours < 12) {
+          chips.add(_badgeContainer('${diffHours.toStringAsFixed(1)}h • Attention', const Color(0xFFFFFBEB), const Color(0xFFB45309), const Color(0xFFFDE68A), Icons.warning_amber_rounded));
+        } else {
+          chips.add(_badgeContainer('${diffHours.toStringAsFixed(1)}h • Overdue', const Color(0xFFFEF2F2), const Color(0xFFDC2626), const Color(0xFFFECACA), Icons.error_outline_rounded));
+        }
+      }
+    }
+
+    // 2. ABANDONMENT & STALENESS INDICATORS (FIX 4)
+    if (isActiveAuthoring) {
+      final hbStr = order['lastHeartbeat']?.toString();
+      final claimStr = order['claimedAt']?.toString();
+      final upStr = order['updatedAt']?.toString();
+      final crStr = order['createdAt']?.toString();
+
+      DateTime? lastActive = DateTime.tryParse(hbStr ?? '') ??
+          DateTime.tryParse(claimStr ?? '') ??
+          DateTime.tryParse(upStr ?? '') ??
+          DateTime.tryParse(crStr ?? '');
+
+      if (lastActive != null) {
+        final hoursStale = now.difference(lastActive).inMinutes / 60.0;
+
+        if (hoursStale >= 72.0) {
+          chips.add(_badgeContainer('Stale 72h', const Color(0xFF450A0A), Colors.white, const Color(0xFF991B1B), Icons.hourglass_disabled_rounded));
+        } else if (hoursStale >= 48.0) {
+          chips.add(_badgeContainer('Stale 48h', const Color(0xFF7F1D1D), Colors.white, const Color(0xFFDC2626), Icons.hourglass_disabled_rounded));
+        } else if (hoursStale >= 24.0) {
+          chips.add(_badgeContainer('Stale 24h', const Color(0xFFFFF7ED), const Color(0xFFC2410C), const Color(0xFFFDBA74), Icons.hourglass_bottom_rounded));
+        }
+
+        // Abandoned check: active status and inactive > 6 hours without active heartbeat, or pauseReason indicates abandonment
+        final isAbandonedReason = (order['pauseReason']?.toString().toLowerCase().contains('abandoned') ?? false);
+        final isHeartbeatAbandoned = (hbStr != null && hoursStale >= 6.0) || (hbStr == null && hoursStale >= 6.0 && status != 'PAID_INTAKE');
+
+        if (isAbandonedReason || isHeartbeatAbandoned) {
+          chips.add(_badgeContainer(
+            'Abandoned',
+            const Color(0xFF581C87),
+            Colors.white,
+            const Color(0xFF9333EA),
+            Icons.person_off_outlined,
+          ));
+        }
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: chips,
+    );
+  }
+
+  Future<void> _showReassignDialog(dynamic order) async {
+    final paIdController = TextEditingController(text: order['paId'] != null ? '${order['paId']}' : '');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Reassign Analyst for #${order['id']}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Current PA ID: ${order['paId'] ?? 'None'} (Status: ${order['status']})',
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: paIdController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'New Property Analyst (PA) ID *',
+                hintText: 'Enter analyst user ID (e.g. 2)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+            onPressed: () {
+              if (paIdController.text.trim().isNotEmpty) {
+                Navigator.pop(ctx, true);
+              }
+            },
+            child: const Text('Reassign Analyst'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && paIdController.text.trim().isNotEmpty) {
+      final newPaId = int.tryParse(paIdController.text.trim());
+      if (newPaId != null) {
+        try {
+          await _api.dio.post('/api/v1/admin/orders/${order['id']}/reassign', data: {'newPaId': newPaId});
+          _load();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              backgroundColor: AppColors.success,
+              content: Text('Order #${order['id']} successfully reassigned to PA #$newPaId.'),
+            ));
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              backgroundColor: AppColors.brandRedDark,
+              content: Text('Failed to reassign: ${ApiService.getErrorMessage(e)}'),
+            ));
+          }
+        }
+      }
+    }
+  }
+
+  Future<void> _forceRecovery(dynamic order) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Force Workspace Recovery for #${order['id']}'),
+        content: const Text(
+          'This will safely recover the order without losing any authored workspace data:\n\n'
+          '• WORKSPACE_READY / ASSIGNED → Recycled to Common Pool (PAID_INTAKE)\n'
+          '• DRAFTING → Recovered to ACTION_NEEDED (All authored drafts & calculations preserved)\n\n'
+          'Proceed with recovery?',
+          style: TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD97706), foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Force Recovery'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _api.dio.post('/api/v1/admin/orders/${order['id']}/force-recovery');
+        _load();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            backgroundColor: AppColors.success,
+            content: Text('Workspace recovered successfully. Authored data preserved.'),
+          ));
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            backgroundColor: AppColors.brandRedDark,
+            content: Text('Failed to recover workspace: ${ApiService.getErrorMessage(e)}'),
+          ));
+        }
+      }
+    }
+  }
+
+  Future<void> _showChangeStatusDialog(dynamic order) async {
+    String selectedStatus = order['status'] ?? 'PAID_INTAKE';
+    final reasonController = TextEditingController(text: 'Admin manual status override');
+    final statuses = [
+      'PAID_INTAKE',
+      'ASSIGNED',
+      'WORKSPACE_READY',
+      'DRAFTING',
+      'ACTION_NEEDED',
+      'SPA_GATE',
+      'SPA_CONFIRMED',
+      'FINAL_DELIVERY',
+      'CLIENT_DOWNLOADED',
+    ];
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDlgState) => AlertDialog(
+          title: Text('Change Status for Order #${order['id']}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Current Status: ${order['status']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: statuses.contains(selectedStatus) ? selectedStatus : statuses.first,
+                items: statuses.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                onChanged: (val) {
+                  if (val != null) setDlgState(() => selectedStatus = val);
+                },
+                decoration: const InputDecoration(labelText: 'Target Status *', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: reasonController,
+                decoration: const InputDecoration(labelText: 'Reason for Override', border: OutlineInputBorder()),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Apply Status'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _api.dio.post('/api/v1/admin/orders/${order['id']}/force-status', data: {
+          'status': selectedStatus,
+          'reason': reasonController.text.trim(),
+        });
+        _load();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            backgroundColor: AppColors.success,
+            content: Text('Order status changed to $selectedStatus.'),
+          ));
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            backgroundColor: AppColors.brandRedDark,
+            content: Text('Failed to change status: ${ApiService.getErrorMessage(e)}'),
+          ));
+        }
+      }
+    }
   }
 
   Widget _buildKpiFilterBar() {
@@ -1247,8 +1526,51 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
         ));
         break;
 
-      case 'PAID_INTAKE':
+      case 'WORKSPACE_READY':
+      case 'DRAFTING':
+      case 'ACTION_NEEDED':
       case 'ASSIGNED':
+        actions.add(_queueBtn(
+          'View',
+          Icons.visibility_outlined,
+          const Color(0xFF2563EB),
+          () => AdminRequestReviewModal.show(
+            context: context,
+            order: o,
+            onRefresh: _load,
+          ),
+        ));
+        actions.add(const SizedBox(width: 6));
+        actions.add(_queueBtn(
+          'Reassign',
+          Icons.person_add_alt_1_outlined,
+          const Color(0xFF4F46E5),
+          () => _showReassignDialog(o),
+        ));
+        actions.add(const SizedBox(width: 6));
+        actions.add(_queueBtn(
+          'Release To Pool',
+          Icons.rocket_launch_rounded,
+          const Color(0xFF059669),
+          () => _releaseOrderToPool(o),
+        ));
+        actions.add(const SizedBox(width: 6));
+        actions.add(_queueBtn(
+          'Force Recovery',
+          Icons.replay_rounded,
+          const Color(0xFFD97706),
+          () => _forceRecovery(o),
+        ));
+        actions.add(const SizedBox(width: 6));
+        actions.add(_queueBtn(
+          'Change Status',
+          Icons.swap_horiz_rounded,
+          const Color(0xFF7C3AED),
+          () => _showChangeStatusDialog(o),
+        ));
+        break;
+
+      case 'PAID_INTAKE':
       case 'SPA_GATE':
         actions.add(_queueBtn(
           'View',
@@ -1260,10 +1582,18 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
             onRefresh: _load,
           ),
         ));
+        actions.add(const SizedBox(width: 6));
+        actions.add(_queueBtn(
+          'Change Status',
+          Icons.swap_horiz_rounded,
+          const Color(0xFF7C3AED),
+          () => _showChangeStatusDialog(o),
+        ));
         break;
 
       case 'FINAL_DELIVERY':
       case 'CLIENT_DOWNLOADED':
+      case 'CLOSED':
         actions.add(_queueBtn(
           'View Report',
           Icons.description_outlined,
@@ -1665,7 +1995,7 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                 } else if (_quickFilter == 'PAYMENT_SUBMITTED') {
                   workingOrders = workingOrders.where((o) => o['status'] == 'PAYMENT_SUBMITTED').toList();
                 } else if (_quickFilter == 'QUOTE_PENDING') {
-                  workingOrders = workingOrders.where((o) => o['status'] == 'DRAFT' || o['status'] == 'ORDER_PLACED' || o['status'] == 'QUOTE_PENDING').toList();
+                  workingOrders = workingOrders.where((o) => o['status'] == 'DRAFT' || o['status'] == 'QUOTE_PENDING').toList();
                 } else if (_quickFilter == 'PAYMENT_VERIFIED') {
                   workingOrders = workingOrders.where((o) {
                     final s = (o['status']?.toString() ?? '').toUpperCase();
@@ -1680,7 +2010,7 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                     return now.difference(dt).inHours >= 12;
                   }).toList();
                 } else if (_quickFilter == 'FINAL_DELIVERY') {
-                  workingOrders = workingOrders.where((o) => o['status'] == 'FINAL_DELIVERY' || o['status'] == 'CLIENT_DOWNLOADED').toList();
+                  workingOrders = workingOrders.where((o) => o['status'] == 'FINAL_DELIVERY' || o['status'] == 'CLIENT_DOWNLOADED' || o['status'] == 'CLOSED').toList();
                 }
 
                 final displayOrders = ReportListHelper.filterAndSortReports(workingOrders, _searchQuery, _sortBy);
@@ -4277,6 +4607,297 @@ class _AdminReportSectionState extends State<AdminReportSection> {
     } catch (_) {}
   }
 
+  Future<void> _showReassignDialog(dynamic order) async {
+    final paIdController = TextEditingController(text: order['paId'] != null ? '${order['paId']}' : '');
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Reassign Analyst for #${order['id']}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Current PA ID: ${order['paId'] ?? 'None'} (Status: ${order['status']})',
+                style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13)),
+            const SizedBox(height: 12),
+            TextField(
+              controller: paIdController,
+              keyboardType: TextInputType.number,
+              decoration: const InputDecoration(
+                labelText: 'New Property Analyst (PA) ID *',
+                hintText: 'Enter analyst user ID (e.g. 2)',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+            onPressed: () {
+              if (paIdController.text.trim().isNotEmpty) {
+                Navigator.pop(ctx, true);
+              }
+            },
+            child: const Text('Reassign Analyst'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmed == true && paIdController.text.trim().isNotEmpty) {
+      final newPaId = int.tryParse(paIdController.text.trim());
+      if (newPaId != null) {
+        try {
+          await _api.dio.post('/api/v1/admin/orders/${order['id']}/reassign', data: {'newPaId': newPaId});
+          _load();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              backgroundColor: AppColors.success,
+              content: Text('Order #${order['id']} successfully reassigned to PA #$newPaId.'),
+            ));
+          }
+        } catch (e) {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+              backgroundColor: AppColors.brandRedDark,
+              content: Text('Failed to reassign: ${ApiService.getErrorMessage(e)}'),
+            ));
+          }
+        }
+      }
+    }
+  }
+
+  Future<void> _forceRecovery(dynamic order) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Force Workspace Recovery for #${order['id']}'),
+        content: const Text(
+          'This will safely recover the order without losing any authored workspace data:\n\n'
+          '• WORKSPACE_READY / ASSIGNED → Recycled to Common Pool (PAID_INTAKE)\n'
+          '• DRAFTING → Recovered to ACTION_NEEDED (All authored drafts & calculations preserved)\n\n'
+          'Proceed with recovery?',
+          style: TextStyle(fontSize: 13),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD97706), foregroundColor: Colors.white),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Force Recovery'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _api.dio.post('/api/v1/admin/orders/${order['id']}/force-recovery');
+        _load();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            backgroundColor: AppColors.success,
+            content: Text('Workspace recovered successfully. Authored data preserved.'),
+          ));
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            backgroundColor: AppColors.brandRedDark,
+            content: Text('Failed to recover workspace: ${ApiService.getErrorMessage(e)}'),
+          ));
+        }
+      }
+    }
+  }
+
+  Future<void> _showChangeStatusDialog(dynamic order) async {
+    String selectedStatus = order['status'] ?? 'PAID_INTAKE';
+    final reasonController = TextEditingController(text: 'Admin manual status override');
+    final statuses = [
+      'PAID_INTAKE',
+      'ASSIGNED',
+      'WORKSPACE_READY',
+      'DRAFTING',
+      'ACTION_NEEDED',
+      'SPA_GATE',
+      'SPA_CONFIRMED',
+      'FINAL_DELIVERY',
+      'CLIENT_DOWNLOADED',
+    ];
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDlgState) => AlertDialog(
+          title: Text('Change Status for Order #${order['id']}'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Current Status: ${order['status']}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                value: statuses.contains(selectedStatus) ? selectedStatus : statuses.first,
+                items: statuses.map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                onChanged: (val) {
+                  if (val != null) setDlgState(() => selectedStatus = val);
+                },
+                decoration: const InputDecoration(labelText: 'Target Status *', border: OutlineInputBorder()),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: reasonController,
+                decoration: const InputDecoration(labelText: 'Reason for Override', border: OutlineInputBorder()),
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Cancel')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, foregroundColor: Colors.white),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Apply Status'),
+            ),
+          ],
+        ),
+      ),
+    );
+
+    if (confirmed == true) {
+      try {
+        await _api.dio.post('/api/v1/admin/orders/${order['id']}/force-status', data: {
+          'status': selectedStatus,
+          'reason': reasonController.text.trim(),
+        });
+        _load();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            backgroundColor: AppColors.success,
+            content: Text('Order status changed to $selectedStatus.'),
+          ));
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+            backgroundColor: AppColors.brandRedDark,
+            content: Text('Failed to change status: ${ApiService.getErrorMessage(e)}'),
+          ));
+        }
+      }
+    }
+  }
+
+  Widget _badgeContainer(String text, Color bg, Color fg, Color border, IconData icon) {
+    return Container(
+      margin: const EdgeInsets.only(top: 2),
+      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+      decoration: BoxDecoration(
+        color: bg,
+        border: Border.all(color: border, width: 0.8),
+        borderRadius: BorderRadius.circular(4),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 9, color: fg),
+          const SizedBox(width: 3),
+          Text(
+            text,
+            style: TextStyle(color: fg, fontSize: 9.5, fontWeight: FontWeight.w700),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSlaChip(dynamic order) {
+    final status = (order['status']?.toString() ?? '').toUpperCase();
+    final isActiveAuthoring = status == 'ASSIGNED' ||
+        status == 'WORKSPACE_READY' ||
+        status == 'DRAFTING' ||
+        status == 'ACTION_NEEDED';
+
+    final now = DateTime.now();
+    final chips = <Widget>[];
+
+    // 1. SLA ENFORCEMENT CHIP (Warning, Overdue, Critical)
+    final slaExpiryStr = order['slaExpiryTime']?.toString();
+    if (slaExpiryStr != null) {
+      final exp = DateTime.tryParse(slaExpiryStr);
+      if (exp != null) {
+        if (now.isAfter(exp)) {
+          final overdueH = now.difference(exp).inMinutes / 60.0;
+          if (overdueH >= 4.0) {
+            chips.add(_badgeContainer('CRITICAL SLA BREACH', const Color(0xFFFEF2F2), const Color(0xFFDC2626), const Color(0xFFFECACA), Icons.error_outline_rounded));
+          } else {
+            chips.add(_badgeContainer('OVERDUE (${overdueH.toStringAsFixed(1)}h)', const Color(0xFFFEF2F2), const Color(0xFFDC2626), const Color(0xFFFECACA), Icons.warning_amber_rounded));
+          }
+        } else {
+          final remainingH = exp.difference(now).inMinutes / 60.0;
+          if (remainingH <= 4.0) {
+            chips.add(_badgeContainer('WARNING (${remainingH.toStringAsFixed(1)}h)', const Color(0xFFFFFBEB), const Color(0xFFB45309), const Color(0xFFFDE68A), Icons.alarm_on_rounded));
+          } else {
+            chips.add(_badgeContainer('${remainingH.toStringAsFixed(1)}h SLA • OK', const Color(0xFFECFDF5), const Color(0xFF047857), const Color(0xFFA7F3D0), Icons.timer_outlined));
+          }
+        }
+      }
+    } else {
+      final createdAtStr = order['createdAt']?.toString();
+      if (createdAtStr != null) {
+        final dt = DateTime.tryParse(createdAtStr) ?? now;
+        final diffHours = now.difference(dt).inMinutes / 60.0;
+        if (diffHours < 4) {
+          chips.add(_badgeContainer('${diffHours.toStringAsFixed(1)}h • On Track', const Color(0xFFECFDF5), const Color(0xFF047857), const Color(0xFFA7F3D0), Icons.timer_outlined));
+        } else if (diffHours < 12) {
+          chips.add(_badgeContainer('${diffHours.toStringAsFixed(1)}h • Attention', const Color(0xFFFFFBEB), const Color(0xFFB45309), const Color(0xFFFDE68A), Icons.warning_amber_rounded));
+        } else {
+          chips.add(_badgeContainer('${diffHours.toStringAsFixed(1)}h • Overdue', const Color(0xFFFEF2F2), const Color(0xFFDC2626), const Color(0xFFFECACA), Icons.error_outline_rounded));
+        }
+      }
+    }
+
+    // 2. ABANDONMENT & STALENESS INDICATORS (FIX 4)
+    if (isActiveAuthoring) {
+      final hbStr = order['lastHeartbeat']?.toString();
+      final claimStr = order['claimedAt']?.toString();
+      final upStr = order['updatedAt']?.toString();
+      final crStr = order['createdAt']?.toString();
+
+      DateTime? lastActive = DateTime.tryParse(hbStr ?? '') ??
+          DateTime.tryParse(claimStr ?? '') ??
+          DateTime.tryParse(upStr ?? '') ??
+          DateTime.tryParse(crStr ?? '');
+
+      if (lastActive != null) {
+        final hoursStale = now.difference(lastActive).inMinutes / 60.0;
+
+        if (hoursStale >= 72.0) {
+          chips.add(_badgeContainer('Stale 72h', const Color(0xFF450A0A), Colors.white, const Color(0xFF991B1B), Icons.hourglass_disabled_rounded));
+        } else if (hoursStale >= 48.0) {
+          chips.add(_badgeContainer('Stale 48h', const Color(0xFF7F1D1D), Colors.white, const Color(0xFFDC2626), Icons.hourglass_disabled_rounded));
+        } else if (hoursStale >= 24.0) {
+          chips.add(_badgeContainer('Stale 24h', const Color(0xFFFFF7ED), const Color(0xFFC2410C), const Color(0xFFFDBA74), Icons.hourglass_bottom_rounded));
+        }
+
+        final isAbandonedReason = (order['pauseReason']?.toString().toLowerCase().contains('abandoned') ?? false);
+        final isHeartbeatAbandoned = (hbStr != null && hoursStale >= 6.0) || (hbStr == null && hoursStale >= 6.0 && status != 'PAID_INTAKE');
+
+        if (isAbandonedReason || isHeartbeatAbandoned) {
+          chips.add(_badgeContainer('Abandoned', const Color(0xFF581C87), Colors.white, const Color(0xFF9333EA), Icons.person_off_outlined));
+        }
+      }
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: chips,
+    );
+  }
+
   Future<void> _deleteOrder(dynamic o) async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -4399,7 +5020,7 @@ class _AdminReportSectionState extends State<AdminReportSection> {
     final total = _orders.length;
     final delivered = _orders.where((o) {
       final s = (o['status']?.toString() ?? '').toUpperCase();
-      return s == 'FINAL_DELIVERY' || s == 'CLIENT_DOWNLOADED';
+      return s == 'FINAL_DELIVERY' || s == 'CLIENT_DOWNLOADED' || s == 'CLOSED';
     }).length;
 
     final now = DateTime.now();
@@ -4498,13 +5119,16 @@ class _AdminReportSectionState extends State<AdminReportSection> {
     final s = (o['status']?.toString() ?? '').toUpperCase();
     return s == 'FINAL_DELIVERY' ||
         s == 'CLIENT_DOWNLOADED' ||
+        s == 'CLOSED' ||
         s == 'PAYMENT_VERIFIED' ||
         s == 'PAID_INTAKE' ||
         s == 'ASSIGNED' ||
-        s == 'REPORT_DRAFTED' ||
+        s == 'WORKSPACE_READY' ||
+        s == 'DRAFTING' ||
+        s == 'ACTION_NEEDED' ||
         s == 'SPA_GATE' ||
-        s == 'SPA_APPROVED' ||
         s == 'SPA_CONFIRMED' ||
+        s == 'DELIVERY_READY' ||
         (o['quoteTotal'] != null || o['quoteAmount'] != null);
   }
 
@@ -4783,22 +5407,28 @@ class _AdminReportSectionState extends State<AdminReportSection> {
                                       .copyWith(color: AppColors.slate, fontSize: 11));
                             }),
                           ),
-                          // Col 4 – Status badge
+                          // Col 4 – Status badge & SLA/Abandonment Indicators
                           SizedBox(
-                            width: 130,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary.withOpacity(0.08),
-                                borderRadius: BorderRadius.circular(4),
-                              ),
-                              child: Text(
-                                '${o['status']}',
-                                style: AppTypography.bodySm().copyWith(
-                                    color: AppColors.primary,
-                                    fontSize: 10,
-                                    fontWeight: FontWeight.bold),
-                              ),
+                            width: 150,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary.withOpacity(0.08),
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: Text(
+                                    '${o['status']}',
+                                    style: AppTypography.bodySm().copyWith(
+                                        color: AppColors.primary,
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.bold),
+                                  ),
+                                ),
+                                _buildSlaChip(o),
+                              ],
                             ),
                           ),
                           const SizedBox(width: 12),
@@ -4882,15 +5512,33 @@ class _AdminReportSectionState extends State<AdminReportSection> {
             'Release To Pool', const Color(0xFF1B5E20), () => _releaseToPool(o)));
         break;
 
-      case 'PAID_INTAKE':
+      case 'WORKSPACE_READY':
+      case 'DRAFTING':
+      case 'ACTION_NEEDED':
       case 'ASSIGNED':
+        actions.add(_overrideBtn('View', const Color(0xFF2563EB),
+            () => AdminRequestReviewModal.show(context: context, order: o, onRefresh: _load)));
+        actions.add(const SizedBox(width: 6));
+        actions.add(_overrideBtn('Reassign', const Color(0xFF4F46E5), () => _showReassignDialog(o)));
+        actions.add(const SizedBox(width: 6));
+        actions.add(_overrideBtn('Release To Pool', const Color(0xFF059669), () => _releaseToPool(o)));
+        actions.add(const SizedBox(width: 6));
+        actions.add(_overrideBtn('Force Recovery', const Color(0xFFD97706), () => _forceRecovery(o)));
+        actions.add(const SizedBox(width: 6));
+        actions.add(_overrideBtn('Change Status', const Color(0xFF7C3AED), () => _showChangeStatusDialog(o)));
+        break;
+
+      case 'PAID_INTAKE':
       case 'SPA_GATE':
         actions.add(_overrideBtn('View', const Color(0xFF2563EB),
             () => AdminRequestReviewModal.show(context: context, order: o, onRefresh: _load)));
+        actions.add(const SizedBox(width: 6));
+        actions.add(_overrideBtn('Change Status', const Color(0xFF7C3AED), () => _showChangeStatusDialog(o)));
         break;
 
       case 'FINAL_DELIVERY':
       case 'CLIENT_DOWNLOADED':
+      case 'CLOSED':
         actions.add(_overrideBtn('View Report', const Color(0xFF2563EB),
             () => AdminRequestReviewModal.show(context: context, order: o, onRefresh: _load)));
         actions.add(const SizedBox(width: 6));

@@ -258,29 +258,60 @@ class AppComponents {
     Color fg;
 
     switch (status.toLowerCase()) {
-      case 'new':
-      case 'in_progress':
-        bg = AppColors.tealLight;
-        fg = AppColors.deepTeal;
+      case 'final_delivery':
+      case 'completed':
+      case 'approved':
+        bg = AppColors.successBg;
+        fg = const Color(0xFF15803D);
         break;
+      case 'client_downloaded':
+        bg = const Color(0xFFE0E7FF);
+        fg = const Color(0xFF4338CA);
+        break;
+      case 'delivery_ready':
+        bg = const Color(0xFFDCFCE7);
+        fg = const Color(0xFF15803D);
+        break;
+      case 'on_hold_payment_pending':
+        bg = const Color(0xFFFEF3C7);
+        fg = const Color(0xFFB45309);
+        break;
+      case 'delivery_disputed':
+        bg = const Color(0xFFFEE2E2);
+        fg = const Color(0xFFB91C1C);
+        break;
+      case 'closed':
+        bg = const Color(0xFFE2E8F0);
+        fg = const Color(0xFF475569);
+        break;
+      case 'spa_gate':
+      case 'spa_confirmed':
+        bg = AppColors.primaryBlueLight;
+        fg = AppColors.primaryBlue;
+        break;
+      case 'workspace_ready':
+      case 'drafting':
       case 'assigned':
       case 'under_review':
       case 'pending':
         bg = AppColors.featureOchreLight;
         fg = const Color(0xFF7A5A10);
         break;
-      case 'completed':
-      case 'approved':
-        bg = AppColors.successBg;
-        fg = const Color(0xFF15803D);
-        break;
+      case 'action_needed':
       case 'rejected':
       case 'failed':
+      case 'payment_rejected':
         bg = AppColors.brandRed;
         fg = const Color(0xFFB91C1C);
         break;
+      case 'paid_intake':
+      case 'payment_verified':
+      case 'new':
+        bg = AppColors.tealLight;
+        fg = AppColors.deepTeal;
+        break;
       default:
-        bg = AppColors.cardBg;
+        bg = const Color(0xFFF1F5F9);
         fg = AppColors.slate;
     }
 

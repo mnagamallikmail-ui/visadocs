@@ -65,9 +65,15 @@ class TokenStorage {
   }
 
   static String _draftKey(int orderId) => 'pv_draft_order_$orderId';
+  static String _activeSessionKey(int orderId) => 'pv_active_workspace_session_$orderId';
 
-  /// SPRINT 6 EMERGENCY HOTFIX: Zero data loss write-through draft cache
-  static void saveDraftToStorage(int orderId, Map<String, String> values) {
+  /// FIX 6: Local Storage Sanitization - includes workspaceRevision, timestamp, and owner
+  static void saveDraftToStorage(
+    int orderId,
+    Map<String, String> values, {
+    int? workspaceRevision,
+    String? owner,
+  }) {
     try {
       final clean = <String, String>{};
       values.forEach((k, v) {
@@ -78,7 +84,9 @@ class TokenStorage {
       });
       setStorageItem(_draftKey(orderId), jsonEncode({
         'orderId': orderId,
+        'workspaceRevision': workspaceRevision ?? 1,
         'timestamp': DateTime.now().toIso8601String(),
+        'owner': owner ?? '',
         'values': clean,
       }));
     } catch (_) {}
@@ -99,10 +107,54 @@ class TokenStorage {
     return null;
   }
 
+  /// FIX 6: Returns complete draft metadata for age & revision comparison
+  static Map<String, dynamic>? loadDraftMetadataFromStorage(int orderId) {
+    try {
+      final raw = getStorageItem(_draftKey(orderId));
+      if (raw == null || raw.isEmpty) return null;
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+    } catch (_) {}
+    return null;
+  }
+
   /// SPRINT 6 EMERGENCY HOTFIX: Evict cache upon confirmed backend HTTP 200
   static void clearDraftFromStorage(int orderId) {
     try {
       removeStorageItem(_draftKey(orderId));
+    } catch (_) {}
+  }
+
+  /// FIX 4: Multi-Tab Lease Management
+  static void claimActiveWorkspaceSession(int orderId, String tabSessionId) {
+    try {
+      setStorageItem(_activeSessionKey(orderId), jsonEncode({
+        'tabSessionId': tabSessionId,
+        'lastSeen': DateTime.now().millisecondsSinceEpoch,
+      }));
+    } catch (_) {}
+  }
+
+  static Map<String, dynamic>? getActiveWorkspaceSession(int orderId) {
+    try {
+      final raw = getStorageItem(_activeSessionKey(orderId));
+      if (raw == null || raw.isEmpty) return null;
+      final decoded = jsonDecode(raw);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  static void releaseActiveWorkspaceSession(int orderId, String tabSessionId) {
+    try {
+      final current = getActiveWorkspaceSession(orderId);
+      if (current != null && current['tabSessionId'] == tabSessionId) {
+        removeStorageItem(_activeSessionKey(orderId));
+      }
     } catch (_) {}
   }
 }

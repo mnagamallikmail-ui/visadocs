@@ -16,6 +16,7 @@ class DocumentWorkspaceModel {
   final Map<String, String> values;
   final StudioDocumentModel? documentDom;
   final bool readOnly;
+  final int workspaceRevision;
 
   const DocumentWorkspaceModel({
     required this.orderId,
@@ -25,6 +26,7 @@ class DocumentWorkspaceModel {
     required this.values,
     this.documentDom,
     this.readOnly = false,
+    this.workspaceRevision = 1,
   });
 
   factory DocumentWorkspaceModel.fromJson(Map<String, dynamic> json) {
@@ -58,6 +60,7 @@ class DocumentWorkspaceModel {
       values: stringValues,
       documentDom: parsedDom,
       readOnly: json['readOnly'] as bool? ?? false,
+      workspaceRevision: json['workspaceRevision'] as int? ?? 1,
     );
   }
 
@@ -69,6 +72,7 @@ class DocumentWorkspaceModel {
         'values': values,
         if (documentDom != null) 'documentDom': documentDom!.toJson(),
         'readOnly': readOnly,
+        'workspaceRevision': workspaceRevision,
       };
 
   DocumentWorkspaceModel copyWith({
@@ -79,6 +83,7 @@ class DocumentWorkspaceModel {
     Map<String, String>? values,
     StudioDocumentModel? documentDom,
     bool? readOnly,
+    int? workspaceRevision,
   }) {
     return DocumentWorkspaceModel(
       orderId: orderId ?? this.orderId,
@@ -88,6 +93,7 @@ class DocumentWorkspaceModel {
       values: values ?? this.values,
       documentDom: documentDom ?? this.documentDom,
       readOnly: readOnly ?? this.readOnly,
+      workspaceRevision: workspaceRevision ?? this.workspaceRevision,
     );
   }
 }

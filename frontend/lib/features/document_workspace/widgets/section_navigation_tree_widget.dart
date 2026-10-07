@@ -8,10 +8,14 @@ import '../providers/document_workspace_provider.dart';
 
 class SectionNavigationTreeWidget extends StatelessWidget {
   final VoidCallback? onSectionSelected;
+  final bool isCompact;
+  final VoidCallback? onToggleCompact;
 
   const SectionNavigationTreeWidget({
     super.key,
     this.onSectionSelected,
+    this.isCompact = false,
+    this.onToggleCompact,
   });
 
   @override
@@ -19,18 +23,22 @@ class SectionNavigationTreeWidget extends StatelessWidget {
     final provider = context.watch<DocumentWorkspaceProvider>();
     final vm = provider.workspaceVm;
 
+    final sidebarWidth = isCompact ? 68.0 : 280.0;
+
     if (vm == null || vm.sections.isEmpty) {
       return Container(
-        width: 280,
+        width: sidebarWidth,
         decoration: const BoxDecoration(
           color: AppColors.surface,
           border: Border(right: BorderSide(color: AppColors.hairline)),
         ),
         child: Center(
-          child: Text(
-            'No sections available',
-            style: AppTypography.bodySm().copyWith(color: AppColors.slate),
-          ),
+          child: isCompact
+              ? const Icon(Icons.account_tree_outlined, size: 20, color: AppColors.slate)
+              : Text(
+                  'No sections available',
+                  style: AppTypography.bodySm().copyWith(color: AppColors.slate),
+                ),
         ),
       );
     }
@@ -38,6 +46,10 @@ class SectionNavigationTreeWidget extends StatelessWidget {
     final totalFields = vm.totalFields;
     final completedFields = vm.getCompletedFieldsCount(provider.activeValues);
     final progress = vm.getCompletionProgress(provider.activeValues);
+
+    if (isCompact) {
+      return _buildCompactSidebar(context, provider, vm, totalFields, completedFields, progress);
+    }
 
     return Container(
       width: 280,
@@ -50,7 +62,7 @@ class SectionNavigationTreeWidget extends StatelessWidget {
         children: [
           // Header & Dual Mode Switcher
           Container(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 10),
+            padding: const EdgeInsets.fromLTRB(16, 12, 10, 10),
             decoration: const BoxDecoration(
               color: AppColors.workspacePanel,
               border: Border(bottom: BorderSide(color: AppColors.workspaceBorder)),
@@ -71,6 +83,17 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                         ).copyWith(fontSize: 11, letterSpacing: 0.8),
                       ),
                     ),
+                    if (onToggleCompact != null)
+                      Tooltip(
+                        message: 'Compact Sidebar',
+                        child: IconButton(
+                          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 13, color: AppColors.workspaceSecondaryText),
+                          onPressed: onToggleCompact,
+                          visualDensity: VisualDensity.compact,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
+                        ),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 10),
@@ -505,6 +528,218 @@ class SectionNavigationTreeWidget extends StatelessWidget {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  /// Compact Navigation Rail for Laptops and Space Optimization
+  Widget _buildCompactSidebar(
+    BuildContext context,
+    DocumentWorkspaceProvider provider,
+    DocumentWorkspaceVm vm,
+    int totalFields,
+    int completedFields,
+    double progress,
+  ) {
+    return Container(
+      width: 68,
+      decoration: const BoxDecoration(
+        color: AppColors.workspacePanel,
+        border: Border(right: BorderSide(color: AppColors.workspaceBorder)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          // Compact Header with Expand Action & Mode Toggles
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 4),
+            decoration: const BoxDecoration(
+              color: AppColors.workspacePanel,
+              border: Border(bottom: BorderSide(color: AppColors.workspaceBorder)),
+            ),
+            child: Column(
+              children: [
+                if (onToggleCompact != null)
+                  Tooltip(
+                    message: 'Expand Document Sections',
+                    child: IconButton(
+                      icon: const Icon(Icons.arrow_forward_ios_rounded, size: 14, color: AppColors.workspaceCorporateNavy),
+                      onPressed: onToggleCompact,
+                      visualDensity: VisualDensity.compact,
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                    ),
+                  )
+                else
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 4),
+                    child: Icon(Icons.account_tree_outlined, size: 18, color: AppColors.workspaceCorporateNavy),
+                  ),
+                const SizedBox(height: 4),
+                // Compact View Mode Icons
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Tooltip(
+                      message: 'Continuous Scroll View',
+                      child: InkWell(
+                        onTap: () => provider.setScrollMode(DocumentScrollMode.continuous),
+                        borderRadius: BorderRadius.circular(4),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: provider.scrollMode == DocumentScrollMode.continuous
+                                ? AppColors.workspaceSegmentBg
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Icon(
+                            Icons.menu_book_rounded,
+                            size: 13,
+                            color: provider.scrollMode == DocumentScrollMode.continuous
+                                ? AppColors.workspaceCorporateNavy
+                                : AppColors.workspaceSecondaryText,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    Tooltip(
+                      message: 'Section-by-Section View',
+                      child: InkWell(
+                        onTap: () => provider.setScrollMode(DocumentScrollMode.sectionBySection),
+                        borderRadius: BorderRadius.circular(4),
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: provider.scrollMode == DocumentScrollMode.sectionBySection
+                                ? AppColors.workspaceSegmentBg
+                                : Colors.transparent,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Icon(
+                            Icons.tab_rounded,
+                            size: 13,
+                            color: provider.scrollMode == DocumentScrollMode.sectionBySection
+                                ? AppColors.workspaceCorporateNavy
+                                : AppColors.workspaceSecondaryText,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+
+          // Compact Section Avatars with Tooltips
+          Expanded(
+            child: ListView.builder(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              itemCount: vm.sections.length,
+              itemBuilder: (context, index) {
+                final section = vm.sections[index];
+                final isActive = provider.activeSectionIndex == index;
+                final isCompleted = section.isCompleted(provider.activeValues);
+                final completedCount = section.getCompletedCount(provider.activeValues);
+                final totalCount = section.totalFields;
+                final inProgress = completedCount > 0 && !isCompleted;
+
+                return Tooltip(
+                  message: '${section.title}\n($completedCount / $totalCount fields completed)',
+                  preferBelow: false,
+                  waitDuration: const Duration(milliseconds: 200),
+                  child: InkWell(
+                    onTap: () {
+                      provider.requestScrollToSection(index);
+                      onSectionSelected?.call();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 7),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        color: isActive ? AppColors.workspaceCanvas : Colors.transparent,
+                        border: Border(
+                          left: BorderSide(
+                            color: isActive ? AppColors.workspaceCorporateNavy : Colors.transparent,
+                            width: 3.0,
+                          ),
+                        ),
+                      ),
+                      child: Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: isCompleted
+                              ? AppColors.workspaceSuccess.withValues(alpha: 0.12)
+                              : (isActive ? AppColors.workspaceCorporateNavy : AppColors.workspaceSegmentBg),
+                          border: Border.all(
+                            color: isCompleted
+                                ? AppColors.workspaceSuccess.withValues(alpha: 0.4)
+                                : (isActive
+                                    ? AppColors.workspaceCorporateNavy
+                                    : (inProgress
+                                        ? AppColors.warning.withValues(alpha: 0.6)
+                                        : AppColors.workspaceBorder)),
+                            width: 1.2,
+                          ),
+                        ),
+                        alignment: Alignment.center,
+                        child: isCompleted
+                            ? const Icon(Icons.check_rounded, size: 14, color: AppColors.workspaceSuccess)
+                            : Text(
+                                '${section.sectionIndex + 1}',
+                                style: AppTypography.workspaceMicro(
+                                  color: isActive
+                                      ? Colors.white
+                                      : (inProgress ? AppColors.warning : AppColors.workspaceSecondaryText),
+                                  weight: FontWeight.w700,
+                                ),
+                              ),
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+          ),
+
+          // Compact Circular Progress Indicator at Bottom
+          Tooltip(
+            message: 'Report Progress: ${(progress * 100).round()}%\n($completedFields / $totalFields fields complete)',
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              alignment: Alignment.center,
+              decoration: const BoxDecoration(
+                color: AppColors.workspacePanel,
+                border: Border(top: BorderSide(color: AppColors.workspaceBorder)),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox(
+                    width: 32,
+                    height: 32,
+                    child: CircularProgressIndicator(
+                      value: progress,
+                      strokeWidth: 3,
+                      backgroundColor: AppColors.workspaceBorder,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        progress >= 1.0 ? AppColors.workspaceSuccess : AppColors.workspaceCorporateNavy,
+                      ),
+                    ),
+                  ),
+                  Text(
+                    '${(progress * 100).round()}%',
+                    style: const TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: AppColors.workspacePrimaryText),
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );

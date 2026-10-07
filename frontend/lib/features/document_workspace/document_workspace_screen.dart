@@ -40,6 +40,10 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
   bool _showPersistentSaveFailure = false;
   bool _isReauthOpen = false;
 
+  // Responsive Sidebar Adaptation (Phase 2B)
+  bool? _userSidebarCompact;
+  bool? _userSidebarCollapsed;
+
   @override
   void initState() {
     super.initState();
@@ -251,6 +255,26 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
                   if (!provider.isLoading && provider.workspaceModel != null)
                     _buildPropertyContextHeader(provider),
 
+                  // Multi-Tab Collision Banner (FIX 4)
+                  if (provider.hasActiveSessionConflict)
+                    _buildMultiTabConflictBanner(provider),
+
+                  // Session Taken Over Banner (FIX 4)
+                  if (provider.sessionTakenOver)
+                    _buildSessionTakenOverBanner(provider),
+
+                  // Concurrency Revision Conflict Banner (FIX 1 & FIX 3)
+                  if (provider.hasRevisionConflict)
+                    _buildRevisionConflictBanner(provider),
+
+                  // Real-Time Invalidation Notice Banner (FIX 8)
+                  if (provider.invalidationNotice != null)
+                    _buildInvalidationBanner(provider),
+
+                  // Stale Local Draft Quarantine Banner (FIX 6)
+                  if (provider.hasPendingStaleLocalDraft)
+                    _buildStaleDraftQuarantineBanner(provider),
+
                   // SPRINT 6 EMERGENCY HOTFIX: Persistent Save Failure Banner (Phase 5)
                   if (provider.saveState == SaveState.error || _showPersistentSaveFailure)
                     _buildPersistentSaveFailureBanner(provider),
@@ -287,19 +311,71 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
                                             }
                                             return KeyEventResult.ignored;
                                           },
-                                          child: Row(
-                                            key: const ValueKey('TABLE_EDIT_LAYOUT'),
-                                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                                            children: const [
-                                              Focus(
-                                                canRequestFocus: false,
-                                                descendantsAreFocusable: false,
-                                                child: SectionNavigationTreeWidget(),
-                                              ),
-                                              Expanded(
-                                                child: DocumentTableWorkspaceWidget(),
-                                              ),
-                                            ],
+                                          child: LayoutBuilder(
+                                            builder: (context, constraints) {
+                                              final availableWidth = constraints.maxWidth;
+                                              // Desktop wide (>= 1440): Expanded (280px)
+                                              // Medium laptops (1150..1440): Compact mode (68px)
+                                              // Smaller widths (< 1150): Collapsible (pinned 34px tab)
+                                              final bool defaultCompact = availableWidth >= 1150 && availableWidth < 1440;
+                                              final bool defaultCollapsed = availableWidth < 1150;
+                                              final bool isCollapsed = _userSidebarCollapsed ?? defaultCollapsed;
+                                              final bool isCompact = !isCollapsed && (_userSidebarCompact ?? defaultCompact);
+
+                                              return Row(
+                                                key: const ValueKey('TABLE_EDIT_LAYOUT'),
+                                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                                children: [
+                                                  if (!isCollapsed)
+                                                    Focus(
+                                                      canRequestFocus: false,
+                                                      descendantsAreFocusable: false,
+                                                      child: SectionNavigationTreeWidget(
+                                                        isCompact: isCompact,
+                                                        onToggleCompact: () {
+                                                          setState(() {
+                                                            if (isCompact) {
+                                                              _userSidebarCompact = false;
+                                                              _userSidebarCollapsed = false;
+                                                            } else {
+                                                              _userSidebarCompact = true;
+                                                            }
+                                                          });
+                                                        },
+                                                      ),
+                                                    )
+                                                  else
+                                                    Container(
+                                                      width: 34,
+                                                      decoration: const BoxDecoration(
+                                                        color: AppColors.workspacePanel,
+                                                        border: Border(right: BorderSide(color: AppColors.workspaceBorder)),
+                                                      ),
+                                                      child: Column(
+                                                        children: [
+                                                          const SizedBox(height: 12),
+                                                          Tooltip(
+                                                            message: 'Open Document Sections',
+                                                            child: IconButton(
+                                                              icon: const Icon(Icons.menu_open_rounded, size: 16, color: AppColors.workspaceCorporateNavy),
+                                                              onPressed: () {
+                                                                setState(() {
+                                                                  _userSidebarCollapsed = false;
+                                                                  _userSidebarCompact = availableWidth < 1366;
+                                                                });
+                                                              },
+                                                              padding: EdgeInsets.zero,
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  const Expanded(
+                                                    child: DocumentTableWorkspaceWidget(),
+                                                  ),
+                                                ],
+                                              );
+                                            },
                                           ),
                                         )
                                     : const LivePreviewViewerWidget(key: ValueKey('COMPILED_PREVIEW')),
@@ -453,7 +529,12 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
         const SizedBox(width: 10),
 
         // SINGLE DOMINANT PRIMARY ACTION: PA Submit / Resubmit to SPA
-        if ((isPa || isAdmin) && (status == 'ASSIGNED' || status == 'ACTION_NEEDED' || status == 'SPA_GATE')) ...[
+        if ((isPa || isAdmin) &&
+            (status == 'ASSIGNED' ||
+             status == 'WORKSPACE_READY' ||
+             status == 'DRAFTING' ||
+             status == 'ACTION_NEEDED' ||
+             status == 'SPA_GATE')) ...[
           ElevatedButton.icon(
             icon: provider.isSubmitting
                 ? const SizedBox(
@@ -515,7 +596,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
         ],
 
         // REVISION MODE ACTION: SPA / Super Admin Recompile & Regenerate
-        if ((isSpa || isAdmin) && (status == 'SPA_CONFIRMED' || status == 'FINAL_DELIVERY')) ...[
+        if ((isSpa || isAdmin) && (status == 'SPA_CONFIRMED' || status == 'FINAL_DELIVERY' || status == 'CLIENT_DOWNLOADED' || status == 'CLOSED')) ...[
           ElevatedButton.icon(
             icon: provider.isSubmitting
                 ? const SizedBox(
@@ -586,7 +667,9 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
         color: AppColors.workspacePanel,
         border: Border(bottom: BorderSide(color: AppColors.workspaceBorder, width: 1.0)),
       ),
-      child: Row(
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
         children: [
           // Property Category Tag
           Container(
@@ -682,33 +765,38 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
           ),
         ],
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildContextMetaItem({
     required String label,
     required String value,
     required IconData icon,
   }) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Icon(icon, size: 13, color: AppColors.workspaceSecondaryText),
-        const SizedBox(width: 4),
-        Text(
-          '$label: ',
-          style: AppTypography.workspaceMetadataLabel(),
-        ),
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 180),
-          child: Text(
-            value,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppTypography.workspaceMetadataValue(),
+    return Tooltip(
+      message: '$label: $value',
+      waitDuration: const Duration(milliseconds: 200),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 13, color: AppColors.workspaceSecondaryText),
+          const SizedBox(width: 4),
+          Text(
+            '$label: ',
+            style: AppTypography.workspaceMetadataLabel(),
           ),
-        ),
-      ],
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 240),
+            child: Text(
+              value,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTypography.workspaceMetadataValue(),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -759,9 +847,17 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
         return AppColors.warning;
       case 'SPA_CONFIRMED':
       case 'FINAL_DELIVERY':
+      case 'CLIENT_DOWNLOADED':
+      case 'DELIVERY_READY':
         return AppColors.successAccent;
+      case 'ON_HOLD_PAYMENT_PENDING':
+        return AppColors.warning;
+      case 'DELIVERY_DISPUTED':
+        return AppColors.brandRedDark;
       case 'ACTION_NEEDED':
         return AppColors.brandRedDark;
+      case 'CLOSED':
+        return AppColors.slate;
       default:
         return AppColors.slate;
     }
@@ -986,6 +1082,182 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
             },
             tooltip: 'Dismiss',
             visualDensity: VisualDensity.compact,
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// FIX 4: Multi-Tab Collision Banner
+  Widget _buildMultiTabConflictBanner(DocumentWorkspaceProvider provider) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(
+        color: Color(0xFFFFFBEB),
+        border: Border(bottom: BorderSide(color: Color(0xFFFDE68A))),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.warning_amber_rounded, color: Color(0xFFD97706), size: 20),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text(
+              'Workspace is already open in another tab. Opened in Read-Only mode to prevent collisions.',
+              style: TextStyle(fontSize: 13, color: Color(0xFF92400E), fontWeight: FontWeight.w600),
+            ),
+          ),
+          TextButton(
+            onPressed: () => provider.keepReadOnlySession(),
+            child: const Text('Keep Read-Only', style: TextStyle(color: Color(0xFF92400E), fontWeight: FontWeight.bold, fontSize: 12)),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD97706),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              visualDensity: VisualDensity.compact,
+            ),
+            onPressed: () => provider.takeOverSession(),
+            child: const Text('Take Over Session', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// FIX 4: Session Taken Over Banner
+  Widget _buildSessionTakenOverBanner(DocumentWorkspaceProvider provider) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(
+        color: Color(0xFFFEF2F2),
+        border: Border(bottom: BorderSide(color: Color(0xFFFECACA))),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.lock_rounded, color: Color(0xFFDC2626), size: 20),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text(
+              'Session Taken Over: Another tab took over editing this workspace. Switched to Read-Only mode to protect data integrity.',
+              style: TextStyle(fontSize: 13, color: Color(0xFF991B1B), fontWeight: FontWeight.w600),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              visualDensity: VisualDensity.compact,
+            ),
+            onPressed: () => provider.takeOverSession(),
+            child: const Text('Reclaim Editing', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// FIX 1 & FIX 3: Concurrency Conflict Banner
+  Widget _buildRevisionConflictBanner(DocumentWorkspaceProvider provider) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(
+        color: Color(0xFFFEF2F2),
+        border: Border(bottom: BorderSide(color: Color(0xFFFECACA))),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.sync_problem_rounded, color: Color(0xFFDC2626), size: 20),
+          const SizedBox(width: 10),
+          const Expanded(
+            child: Text(
+              'Workspace updated elsewhere. Newer revision exists on server. Refresh required to prevent overwrite.',
+              style: TextStyle(fontSize: 13, color: Color(0xFF991B1B), fontWeight: FontWeight.bold),
+            ),
+          ),
+          ElevatedButton.icon(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              visualDensity: VisualDensity.compact,
+            ),
+            icon: const Icon(Icons.refresh_rounded, size: 16),
+            label: const Text('Refresh Workspace', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            onPressed: () => provider.loadWorkspace(widget.orderId),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// FIX 8: Real-Time Invalidation Notice Banner
+  Widget _buildInvalidationBanner(DocumentWorkspaceProvider provider) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(
+        color: Color(0xFFF5F3FF),
+        border: Border(bottom: BorderSide(color: Color(0xFFDDD6FE))),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.info_outline_rounded, color: Color(0xFF7C3AED), size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              provider.invalidationNotice ?? 'Workspace locked. Converted to Read-Only mode.',
+              style: const TextStyle(fontSize: 13, color: Color(0xFF5B21B6), fontWeight: FontWeight.w600),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// FIX 6: Stale Draft Quarantine Banner
+  Widget _buildStaleDraftQuarantineBanner(DocumentWorkspaceProvider provider) {
+    final meta = provider.pendingStaleDraftMetadata;
+    final timestamp = meta?['timestamp'] ?? 'earlier';
+    final draftRev = meta?['workspaceRevision'] ?? 1;
+    final serverRev = provider.workspaceModel?.workspaceRevision ?? 1;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      decoration: const BoxDecoration(
+        color: Color(0xFFFFFBEB),
+        border: Border(bottom: BorderSide(color: Color(0xFFFDE68A))),
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.history_rounded, color: Color(0xFFD97706), size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              'Local draft detected from $timestamp (Rev $draftRev), but server has a newer version (Rev $serverRev). Draft held in quarantine.',
+              style: const TextStyle(fontSize: 13, color: Color(0xFF92400E), fontWeight: FontWeight.w600),
+            ),
+          ),
+          TextButton(
+            onPressed: () => provider.discardPendingStaleDraft(),
+            child: const Text('Discard Local Draft', style: TextStyle(color: Color(0xFFB45309), fontSize: 12, fontWeight: FontWeight.bold)),
+          ),
+          const SizedBox(width: 8),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFD97706),
+              foregroundColor: Colors.white,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              visualDensity: VisualDensity.compact,
+            ),
+            onPressed: () => provider.applyPendingStaleDraft(),
+            child: const Text('Apply Anyway', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
           ),
         ],
       ),

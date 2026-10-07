@@ -79,6 +79,13 @@ public class Order {
     @Column(name = "template_version_id")
     private Long templateVersionId;
 
+    @Column(name = "workspace_revision", nullable = false)
+    private Integer workspaceRevision = 1;
+
+    @Version
+    @Column(name = "version", nullable = false)
+    private Long version = 0L;
+
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt = LocalDateTime.now();
@@ -423,5 +430,11 @@ public class Order {
 
     public LocalDateTime getClosedAt() { return closedAt; }
     public void setClosedAt(LocalDateTime closedAt) { this.closedAt = closedAt; }
+
+    public Integer getWorkspaceRevision() { return workspaceRevision; }
+    public void setWorkspaceRevision(Integer workspaceRevision) { this.workspaceRevision = workspaceRevision; }
+
+    public Long getVersion() { return version; }
+    public void setVersion(Long version) { this.version = version; }
 }
 

@@ -109,7 +109,7 @@ public class ProductionReadinessUatCertificationTest {
         );
 
         // Step 6: PA / SPA Approval
-        order.setStatus("SPA_APPROVED");
+        order.setStatus("SPA_CONFIRMED");
         order = orderRepository.saveAndFlush(order);
         operationalAuditService.recordOperationalAction(
                 testSpaApprover.getId(), testSpaApprover.getEmail(), "SPA",
