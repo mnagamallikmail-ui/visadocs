@@ -494,11 +494,29 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       _valuationData!.buildingDistressPercentage = double.tryParse(bldgDistStr) ?? 75.0;
     }
 
-    // 5. Government Value
-    final govtStr = _activeValues['GOVERNMENT_VALUE'] ?? _activeValues['government_value'];
+    // 5. Government Rate vs Government Value
+    final govtRateStr = _activeValues['GOVERNMENT_RATE'] ??
+        _activeValues['GUIDELINE_RATE'] ??
+        _activeValues['CIRCLE_RATE'] ??
+        _activeValues['government_rate'] ??
+        _activeValues['guideline_rate'];
+    if (govtRateStr != null) {
+      final cleanRate = govtRateStr.replaceAll(',', '').replaceAll('₹', '').trim();
+      _valuationData!.governmentRate = double.tryParse(cleanRate) ?? 0.0;
+    }
+
+    final govtStr = _activeValues['GOVERNMENT_VALUE'] ??
+        _activeValues['TOTAL_GOVERNMENT_VALUE'] ??
+        _activeValues['GUIDELINE_VALUE'] ??
+        _activeValues['government_value'];
     if (govtStr != null) {
-      final cleanGovt = govtStr.replaceAll(',', '').trim();
-      _valuationData!.governmentValue = double.tryParse(cleanGovt) ?? 0.0;
+      final cleanGovt = govtStr.replaceAll(',', '').replaceAll('₹', '').trim();
+      final parsedGovt = double.tryParse(cleanGovt) ?? 0.0;
+      if (parsedGovt > 0 && _valuationData!.governmentRate <= 0 && parsedGovt <= 500000 && _landItems.isNotEmpty) {
+        _valuationData!.governmentRate = parsedGovt;
+      } else {
+        _valuationData!.governmentValue = parsedGovt;
+      }
     }
 
     if (isCompositeProperty) {
@@ -749,6 +767,20 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
           _deltaValues['BUILDING_DISTRESS_PERCENTAGE'] = _valuationData!.buildingDistressPercentage.toString();
           _activeValues['GOVERNMENT_VALUE'] = _valuationData!.governmentValue.toString();
           _deltaValues['GOVERNMENT_VALUE'] = _valuationData!.governmentValue.toString();
+          _activeValues['TOTAL_GOVERNMENT_VALUE'] = _valuationData!.governmentValue.toString();
+          _deltaValues['TOTAL_GOVERNMENT_VALUE'] = _valuationData!.governmentValue.toString();
+          _activeValues['LAND_GOVERNMENT_VALUE'] = _valuationData!.landGovernmentValue.toString();
+          _deltaValues['LAND_GOVERNMENT_VALUE'] = _valuationData!.landGovernmentValue.toString();
+          _activeValues['BUILDING_GOVERNMENT_VALUE'] = _valuationData!.buildingGovernmentValue.toString();
+          _deltaValues['BUILDING_GOVERNMENT_VALUE'] = _valuationData!.buildingGovernmentValue.toString();
+          _activeValues['GOVERNMENT_RATE'] = _valuationData!.governmentRate.toString();
+          _deltaValues['GOVERNMENT_RATE'] = _valuationData!.governmentRate.toString();
+          _activeValues['FINAL_VALUATION_AMOUNT'] = _valuationData!.fairValue.toString();
+          _deltaValues['FINAL_VALUATION_AMOUNT'] = _valuationData!.fairValue.toString();
+          _activeValues['TOTAL_VALUATION'] = _valuationData!.fairValue.toString();
+          _deltaValues['TOTAL_VALUATION'] = _valuationData!.fairValue.toString();
+          _activeValues['FAIR_MARKET_VALUE'] = _valuationData!.fairValue.toString();
+          _deltaValues['FAIR_MARKET_VALUE'] = _valuationData!.fairValue.toString();
         }
       } catch (_) {}
     }
@@ -900,9 +932,26 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     }
   }
 
+  void setGovernmentRate(double val) {
+    if (_valuationData != null) {
+      _valuationData!.governmentRate = val;
+      _activeValues['GOVERNMENT_RATE'] = val.toString();
+      _deltaValues['GOVERNMENT_RATE'] = val.toString();
+      _activeValues['GUIDELINE_RATE'] = val.toString();
+      _deltaValues['GUIDELINE_RATE'] = val.toString();
+      _activeValues['CIRCLE_RATE'] = val.toString();
+      _deltaValues['CIRCLE_RATE'] = val.toString();
+      recalculateValuation();
+    }
+  }
+
   void setGovernmentValue(double val) {
     if (_valuationData != null) {
       _valuationData!.governmentValue = val;
+      _activeValues['GOVERNMENT_VALUE'] = val.toString();
+      _deltaValues['GOVERNMENT_VALUE'] = val.toString();
+      _activeValues['TOTAL_GOVERNMENT_VALUE'] = val.toString();
+      _deltaValues['TOTAL_GOVERNMENT_VALUE'] = val.toString();
       recalculateValuation();
     }
   }
@@ -1103,10 +1152,18 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
 
         recalculateValuation();
         return;
-      } else if (upperKey == 'GOVERNMENT_VALUE') {
+      } else if (upperKey == 'GOVERNMENT_RATE' || upperKey == 'GUIDELINE_RATE' || upperKey == 'CIRCLE_RATE') {
         if (_valuationData != null) {
-          _valuationData!.governmentValue = dual.numericValue;
-          recalculateValuation();
+          setGovernmentRate(dual.numericValue);
+          return;
+        }
+      } else if (upperKey == 'GOVERNMENT_VALUE' || upperKey == 'TOTAL_GOVERNMENT_VALUE' || upperKey == 'GUIDELINE_VALUE') {
+        if (_valuationData != null) {
+          if (dual.numericValue > 0 && dual.numericValue <= 500000 && _landItems.isNotEmpty) {
+            setGovernmentRate(dual.numericValue);
+          } else {
+            setGovernmentValue(dual.numericValue);
+          }
           return;
         }
       } else if (upperKey == 'COMPOSITE_GOVERNMENT_RATE') {

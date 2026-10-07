@@ -754,6 +754,13 @@ public class ValuationEngineService {
             map.put("report_fair_value_words", IndianCurrencyToWords.convertToWords(sayFairVal));
             map.put("fair_value", IndianNumberFormatter.format(sayFairVal));
             map.put("fair_value_words", IndianCurrencyToWords.convertToWords(sayFairVal));
+            map.put("final_valuation_amount", IndianNumberFormatter.format(sayFairVal));
+            map.put("final_valuation_amount_words", IndianCurrencyToWords.convertToWords(sayFairVal));
+            map.put("FINAL_VALUATION_AMOUNT", IndianNumberFormatter.format(sayFairVal));
+            map.put("total_valuation", IndianNumberFormatter.format(sayFairVal));
+            map.put("TOTAL_VALUATION", IndianNumberFormatter.format(sayFairVal));
+            map.put("fair_market_value", IndianNumberFormatter.format(sayFairVal));
+            map.put("FAIR_MARKET_VALUE", IndianNumberFormatter.format(sayFairVal));
             map.put("market_value", IndianNumberFormatter.format(sayFairVal));
             map.put("market_value_words", IndianCurrencyToWords.convertToWords(sayFairVal));
             map.put("property_value", IndianNumberFormatter.format(sayFairVal));
@@ -776,8 +783,14 @@ public class ValuationEngineService {
 
             map.put("government_value", IndianNumberFormatter.format(data.getGovernmentValue()));
             map.put("government_value_words", IndianCurrencyToWords.convertToWords(data.getGovernmentValue()));
+            map.put("total_government_value", IndianNumberFormatter.format(data.getGovernmentValue()));
+            map.put("total_government_value_words", IndianCurrencyToWords.convertToWords(data.getGovernmentValue()));
+            map.put("guideline_value", IndianNumberFormatter.format(data.getGovernmentValue()));
+            map.put("guideline_value_words", IndianCurrencyToWords.convertToWords(data.getGovernmentValue()));
             map.put("govt_value", IndianNumberFormatter.format(data.getGovernmentValue()));
             map.put("govt_value_words", IndianCurrencyToWords.convertToWords(data.getGovernmentValue()));
+            map.put("government_rate", IndianNumberFormatter.format(data.getGovernmentRate()));
+            map.put("guideline_rate", IndianNumberFormatter.format(data.getGovernmentRate()));
             map.put("composite_government_rate", IndianNumberFormatter.format(data.getCompositeGovernmentRate()));
 
             map.put("insurable_value", IndianNumberFormatter.format(data.getInsurableValue()));
@@ -883,6 +896,13 @@ public class ValuationEngineService {
             map.put("report_fair_value_words", IndianCurrencyToWords.convertToWords(sayVal));
             map.put("fair_value", IndianNumberFormatter.format(sayVal));
             map.put("fair_value_words", IndianCurrencyToWords.convertToWords(sayVal));
+            map.put("final_valuation_amount", IndianNumberFormatter.format(sayVal));
+            map.put("final_valuation_amount_words", IndianCurrencyToWords.convertToWords(sayVal));
+            map.put("FINAL_VALUATION_AMOUNT", IndianNumberFormatter.format(sayVal));
+            map.put("total_valuation", IndianNumberFormatter.format(sayVal));
+            map.put("TOTAL_VALUATION", IndianNumberFormatter.format(sayVal));
+            map.put("fair_market_value", IndianNumberFormatter.format(sayVal));
+            map.put("FAIR_MARKET_VALUE", IndianNumberFormatter.format(sayVal));
             map.put("market_value", IndianNumberFormatter.format(sayVal));
             map.put("market_value_words", IndianCurrencyToWords.convertToWords(sayVal));
             map.put("property_value", IndianNumberFormatter.format(sayVal));
@@ -939,22 +959,23 @@ public class ValuationEngineService {
             map.put("distress_sale_value_words", IndianCurrencyToWords.convertToWords(totalDistVal));
 
             // Insurable Value (Business Rule: Insurable Value = Total Replacement Cost of Buildings)
-            BigDecimal insurableVal = (data.getInsurableValue() != null && data.getInsurableValue().signum() > 0)
+            // Land has zero insurable value
+            BigDecimal insurableVal = (buildingItems == null || buildingItems.isEmpty())
+                    ? BigDecimal.ZERO
+                    : ((data.getInsurableValue() != null && data.getInsurableValue().signum() > 0)
                     ? data.getInsurableValue()
-                    : (data.getTotalReplacementCost() != null ? data.getTotalReplacementCost() : BigDecimal.ZERO);
+                    : (data.getTotalReplacementCost() != null ? data.getTotalReplacementCost() : BigDecimal.ZERO));
             map.put("insurable_value", IndianNumberFormatter.format(insurableVal));
             map.put("insurable_value_words", IndianCurrencyToWords.convertToWords(insurableVal));
 
             // Government Value (Independent Guideline / Statutory Value)
             BigDecimal landGovt = data.getLandGovernmentValue() != null && data.getLandGovernmentValue().compareTo(BigDecimal.ZERO) > 0
                     ? data.getLandGovernmentValue()
-                    : formulaService.calculateLandGovernmentValue(landItems, new BigDecimal("5500"));
+                    : formulaService.calculateLandGovernmentValue(landItems, data.getGovernmentRate());
             BigDecimal bldgGovt = data.getBuildingGovernmentValue() != null && data.getBuildingGovernmentValue().compareTo(BigDecimal.ZERO) > 0
                     ? data.getBuildingGovernmentValue()
                     : formulaService.calculateBuildingGovernmentValue(buildingItems, new BigDecimal("2400"), new BigDecimal("1900"));
-            BigDecimal totalGovt = (data.getGovernmentValue() != null && data.getGovernmentValue().compareTo(BigDecimal.ZERO) > 0)
-                    ? data.getGovernmentValue()
-                    : landGovt.add(bldgGovt);
+            BigDecimal totalGovt = landGovt.add(bldgGovt);
 
             map.put("land_government_value", IndianNumberFormatter.format(landGovt));
             map.put("land_government_value_words", IndianCurrencyToWords.convertToWords(landGovt));
@@ -962,8 +983,15 @@ public class ValuationEngineService {
             map.put("building_government_value_words", IndianCurrencyToWords.convertToWords(bldgGovt));
             map.put("government_value", IndianNumberFormatter.format(totalGovt));
             map.put("government_value_words", IndianCurrencyToWords.convertToWords(totalGovt));
+            map.put("total_government_value", IndianNumberFormatter.format(totalGovt));
+            map.put("total_government_value_words", IndianCurrencyToWords.convertToWords(totalGovt));
+            map.put("guideline_value", IndianNumberFormatter.format(totalGovt));
+            map.put("guideline_value_words", IndianCurrencyToWords.convertToWords(totalGovt));
             map.put("govt_value", IndianNumberFormatter.format(totalGovt));
             map.put("govt_value_words", IndianCurrencyToWords.convertToWords(totalGovt));
+            map.put("government_rate", IndianNumberFormatter.format(data.getGovernmentRate()));
+            map.put("guideline_rate", IndianNumberFormatter.format(data.getGovernmentRate()));
+            map.put("circle_rate", IndianNumberFormatter.format(data.getGovernmentRate()));
 
             // Say Value already populated above
 

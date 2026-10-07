@@ -90,6 +90,9 @@ public class ValuationData {
     @Column(name = "building_government_value", precision = 19, scale = 2, nullable = false)
     private BigDecimal buildingGovernmentValue = BigDecimal.ZERO;
 
+    @Transient
+    private BigDecimal governmentRate = BigDecimal.ZERO;
+
     @Column(name = "valuation_methodology", nullable = false)
     private String valuationMethodology = "LAND_BUILDING"; // LAND_BUILDING or COMPOSITE_RATE
 
@@ -235,6 +238,9 @@ public class ValuationData {
 
     public BigDecimal getBuildingGovernmentValue() { return buildingGovernmentValue; }
     public void setBuildingGovernmentValue(BigDecimal buildingGovernmentValue) { this.buildingGovernmentValue = buildingGovernmentValue; }
+
+    public BigDecimal getGovernmentRate() { return governmentRate; }
+    public void setGovernmentRate(BigDecimal governmentRate) { this.governmentRate = governmentRate; }
 
     public String getValuationMethodology() { return valuationMethodology; }
     public void setValuationMethodology(String valuationMethodology) { this.valuationMethodology = valuationMethodology; }

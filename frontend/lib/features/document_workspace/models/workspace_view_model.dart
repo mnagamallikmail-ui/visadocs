@@ -541,6 +541,12 @@ bool isCalculatedValuationKey(String key) {
       upper == 'TOTAL_FAIR_VALUE' ||
       upper == 'TOTAL_FAIR_VALUE_WORDS' ||
       upper == 'TOTAL_FAIR_VALUE_NUMERIC' ||
+      upper == 'FAIR_MARKET_VALUE' ||
+      upper == 'FAIR_MARKET_VALUE_WORDS' ||
+      upper == 'FINAL_VALUATION_AMOUNT' ||
+      upper == 'FINAL_VALUATION_AMOUNT_WORDS' ||
+      upper == 'TOTAL_VALUATION' ||
+      upper == 'TOTAL_VALUATION_WORDS' ||
       upper == 'FAIR_VALUE' ||
       upper == 'FAIR_VALUE_WORDS' ||
       upper == 'FAIR_VALUE_NUMERIC' ||
@@ -572,6 +578,19 @@ bool isCalculatedValuationKey(String key) {
       upper == 'INSURABLE_VALUE_WORDS' ||
       upper == 'GOVERNMENT_VALUE' ||
       upper == 'GOVERNMENT_VALUE_WORDS' ||
+      upper == 'TOTAL_GOVERNMENT_VALUE' ||
+      upper == 'TOTAL_GOVERNMENT_VALUE_WORDS' ||
+      upper == 'LAND_GOVERNMENT_VALUE' ||
+      upper == 'LAND_GOVERNMENT_VALUE_WORDS' ||
+      upper == 'BUILDING_GOVERNMENT_VALUE' ||
+      upper == 'BUILDING_GOVERNMENT_VALUE_WORDS' ||
+      upper == 'GUIDELINE_VALUE' ||
+      upper == 'GUIDELINE_VALUE_WORDS' ||
+      upper == 'GOVT_VALUE' ||
+      upper == 'GOVT_VALUE_WORDS' ||
+      upper == 'GOVERNMENT_RATE' ||
+      upper == 'GUIDELINE_RATE' ||
+      upper == 'CIRCLE_RATE' ||
       upper == 'COMPOSITE_VALUE' ||
       upper == 'COMPOSITE_VALUE_WORDS' ||
       upper == 'REALIZABLE_PERCENTAGE' ||

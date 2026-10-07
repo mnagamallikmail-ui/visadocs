@@ -1460,7 +1460,7 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
                     'Government / Guideline Value',
                     '₹ ${IndianNumberFormatter.format(data.landGovernmentValue)}',
                     '₹ ${IndianNumberFormatter.format(data.buildingGovernmentValue)}',
-                    '₹ ${IndianNumberFormatter.format(data.governmentValue)}',
+                    '₹ ${IndianNumberFormatter.format(data.landGovernmentValue + data.buildingGovernmentValue)}',
                     isHighlight: true,
                   ),
                   // Row 5: Insurable Value (Only displayed for properties with buildings)

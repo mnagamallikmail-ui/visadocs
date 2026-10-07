@@ -300,7 +300,11 @@ class ValuationCalculator {
     // 8. Government Values (Phase 12)
     double landGovt = 0;
     for (final l in landItems) {
-      landGovt += (l.standardAreaSqft * 5500.0);
+      if (data.governmentRate > 0) {
+        landGovt += (l.enteredArea * data.governmentRate);
+      } else {
+        landGovt += (l.standardAreaSqft * 5500.0);
+      }
     }
     double bldgGovt = 0;
     for (final b in buildingItems) {
@@ -311,10 +315,21 @@ class ValuationCalculator {
         bldgGovt += (b.standardAreaSqft * 2400.0);
       }
     }
-    data.landGovernmentValue = landGovt;
-    data.buildingGovernmentValue = bldgGovt;
 
-    if (data.governmentValue <= 0) {
+    if (data.governmentRate > 0) {
+      data.landGovernmentValue = landGovt;
+      data.buildingGovernmentValue = bldgGovt;
+      data.governmentValue = landGovt + bldgGovt;
+    } else if (data.governmentValue > 0) {
+      // Custom statutory Government Value override preservation
+      data.buildingGovernmentValue = bldgGovt;
+      data.landGovernmentValue = buildingItems.isEmpty
+          ? data.governmentValue
+          : (data.governmentValue - bldgGovt).clamp(0.0, double.infinity);
+      data.governmentValue = data.landGovernmentValue + data.buildingGovernmentValue;
+    } else {
+      data.landGovernmentValue = landGovt;
+      data.buildingGovernmentValue = bldgGovt;
       data.governmentValue = landGovt + bldgGovt;
     }
   }
@@ -371,6 +386,18 @@ class ValuationCalculator {
       map['report_fair_value_words'] = sayValWords;
 
       // UNIFIED REPORT-FACING VALUATION: All aliases MUST equal SAY_VALUE
+      map['final_valuation_amount'] = sayValStr;
+      map['final_valuation_amount_words'] = sayValWords;
+      map['total_valuation'] = sayValStr;
+      map['total_valuation_words'] = sayValWords;
+      map['fair_market_value'] = sayValStr;
+      map['fair_market_value_words'] = sayValWords;
+      map['FINAL_VALUATION_AMOUNT'] = sayValStr;
+      map['FINAL_VALUATION_AMOUNT_WORDS'] = sayValWords;
+      map['TOTAL_VALUATION'] = sayValStr;
+      map['TOTAL_VALUATION_WORDS'] = sayValWords;
+      map['FAIR_MARKET_VALUE'] = sayValStr;
+      map['FAIR_MARKET_VALUE_WORDS'] = sayValWords;
       map['fair_value'] = sayValStr;
       map['fair_value_words'] = sayValWords;
       map['fair_value_numeric'] = numericSayVal;
@@ -400,9 +427,18 @@ class ValuationCalculator {
 
       map['government_value'] = IndianNumberFormatter.format(data.governmentValue);
       map['government_value_words'] = IndianCurrencyToWords.convertToWords(data.governmentValue);
-      // D5: explicit GOVT_VALUE aliases so backend resolvePlaceholderValue() finds them
+      map['total_government_value'] = map['government_value']!;
+      map['total_government_value_words'] = map['government_value_words']!;
+      map['guideline_value'] = map['government_value']!;
+      map['guideline_value_words'] = map['government_value_words']!;
       map['govt_value'] = map['government_value']!;
       map['govt_value_words'] = map['government_value_words']!;
+      map['government_rate'] = IndianNumberFormatter.format(data.governmentRate);
+      map['guideline_rate'] = IndianNumberFormatter.format(data.governmentRate);
+      map['circle_rate'] = IndianNumberFormatter.format(data.governmentRate);
+      map['GOVERNMENT_RATE'] = map['government_rate']!;
+      map['GUIDELINE_RATE'] = map['guideline_rate']!;
+      map['CIRCLE_RATE'] = map['circle_rate']!;
 
       map['composite_government_rate'] = IndianNumberFormatter.format(data.compositeGovernmentRate);
       map['composite_construction_cost'] = IndianNumberFormatter.format(data.compositeConstructionCost);
@@ -565,6 +601,18 @@ class ValuationCalculator {
       map['report_fair_value_words'] = sayValWords;
 
       // UNIFIED REPORT-FACING VALUATION: All aliases MUST equal SAY_VALUE
+      map['final_valuation_amount'] = sayValStr;
+      map['final_valuation_amount_words'] = sayValWords;
+      map['total_valuation'] = sayValStr;
+      map['total_valuation_words'] = sayValWords;
+      map['fair_market_value'] = sayValStr;
+      map['fair_market_value_words'] = sayValWords;
+      map['FINAL_VALUATION_AMOUNT'] = sayValStr;
+      map['FINAL_VALUATION_AMOUNT_WORDS'] = sayValWords;
+      map['TOTAL_VALUATION'] = sayValStr;
+      map['TOTAL_VALUATION_WORDS'] = sayValWords;
+      map['FAIR_MARKET_VALUE'] = sayValStr;
+      map['FAIR_MARKET_VALUE_WORDS'] = sayValWords;
       map['fair_value'] = sayValStr;
       map['fair_value_words'] = sayValWords;
       map['fair_value_numeric'] = numericSayVal;
@@ -617,16 +665,26 @@ class ValuationCalculator {
       map['insurable_value_words'] = IndianCurrencyToWords.convertToWords(insurable);
 
       // Government Value (Independent Guideline / Statutory Value)
-      final totalGovt = data.governmentValue > 0 ? data.governmentValue : (data.landGovernmentValue + data.buildingGovernmentValue);
+      final totalGovt = data.landGovernmentValue + data.buildingGovernmentValue;
+      data.governmentValue = totalGovt > 0 ? totalGovt : data.governmentValue;
       map['land_government_value'] = IndianNumberFormatter.format(data.landGovernmentValue);
       map['land_government_value_words'] = IndianCurrencyToWords.convertToWords(data.landGovernmentValue);
       map['building_government_value'] = IndianNumberFormatter.format(data.buildingGovernmentValue);
       map['building_government_value_words'] = IndianCurrencyToWords.convertToWords(data.buildingGovernmentValue);
-      map['government_value'] = IndianNumberFormatter.format(totalGovt);
-      map['government_value_words'] = IndianCurrencyToWords.convertToWords(totalGovt);
-      // D5: explicit GOVT_VALUE aliases so backend resolvePlaceholderValue() finds them
+      map['government_value'] = IndianNumberFormatter.format(data.governmentValue);
+      map['government_value_words'] = IndianCurrencyToWords.convertToWords(data.governmentValue);
+      map['total_government_value'] = map['government_value']!;
+      map['total_government_value_words'] = map['government_value_words']!;
+      map['guideline_value'] = map['government_value']!;
+      map['guideline_value_words'] = map['government_value_words']!;
       map['govt_value'] = map['government_value']!;
       map['govt_value_words'] = map['government_value_words']!;
+      map['government_rate'] = IndianNumberFormatter.format(data.governmentRate);
+      map['guideline_rate'] = IndianNumberFormatter.format(data.governmentRate);
+      map['circle_rate'] = IndianNumberFormatter.format(data.governmentRate);
+      map['GOVERNMENT_RATE'] = map['government_rate']!;
+      map['GUIDELINE_RATE'] = map['guideline_rate']!;
+      map['CIRCLE_RATE'] = map['circle_rate']!;
     }
 
     // Single Parcel / Building backward compatibility

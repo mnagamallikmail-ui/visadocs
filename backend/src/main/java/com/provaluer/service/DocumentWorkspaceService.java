@@ -11,6 +11,7 @@ import com.provaluer.repository.*;
 import com.provaluer.security.UserDetailsImpl;
 import com.provaluer.util.DocxStructureParser;
 import com.provaluer.util.DocxTemplateEngine;
+import com.provaluer.util.NumericFormulaEngine;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -576,17 +577,39 @@ public class DocumentWorkspaceService {
         // 3. Formula & Valuation Calculation
         BigDecimal estVal = order.getEstimatedValue();
         BigDecimal finVal = order.getFinalValue();
-        if ((estVal == null || estVal.compareTo(BigDecimal.ZERO) <= 0) && (finVal == null || finVal.compareTo(BigDecimal.ZERO) <= 0)) {
-            String totalValStr = consolidatedValues.get("FINAL_VALUATION_AMOUNT");
-            if (totalValStr == null || totalValStr.trim().isEmpty()) {
-                totalValStr = consolidatedValues.get("TOTAL_VALUATION");
+        BigDecimal effectiveVal = BigDecimal.ZERO;
+        if (finVal != null && finVal.compareTo(BigDecimal.ZERO) > 0) {
+            effectiveVal = finVal;
+        } else if (estVal != null && estVal.compareTo(BigDecimal.ZERO) > 0) {
+            effectiveVal = estVal;
+        } else {
+            String[] valKeys = new String[]{
+                "FINAL_VALUATION_AMOUNT", "TOTAL_VALUATION", "FAIR_MARKET_VALUE",
+                "FAIR_VALUE", "FINAL_VALUE", "MARKET_VALUE", "VALUATION_AMOUNT",
+                "SAY_VALUE", "SAY_FAIR_VALUE", "REPORT_FAIR_VALUE", "PROPERTY_VALUE",
+                "TOTAL_FAIR_VALUE", "COMPOSITE_VALUE"
+            };
+            for (String key : valKeys) {
+                String str = consolidatedValues.get(key);
+                if (str == null || str.trim().isEmpty()) {
+                    str = consolidatedValues.get(key.toLowerCase());
+                }
+                if (str != null && !str.trim().isEmpty()) {
+                    try {
+                        String clean = str.replaceAll("[^0-9.]", "");
+                        if (!clean.isEmpty()) {
+                            double parsed = Double.parseDouble(clean);
+                            if (parsed > 0) {
+                                effectiveVal = BigDecimal.valueOf(parsed);
+                                break;
+                            }
+                        }
+                    } catch (Exception ignored) {}
+                }
             }
-            if (totalValStr == null || totalValStr.trim().isEmpty()) {
-                totalValStr = consolidatedValues.get("FAIR_MARKET_VALUE");
-            }
-            if (totalValStr == null || totalValStr.trim().isEmpty()) {
-                calculationErrors.add("Final valuation amount must be greater than zero.");
-            }
+        }
+        if (effectiveVal.compareTo(BigDecimal.ZERO) <= 0) {
+            calculationErrors.add("Final valuation amount must be greater than zero.");
         }
 
         // 4. Placeholder & Unresolved Syntax Validation

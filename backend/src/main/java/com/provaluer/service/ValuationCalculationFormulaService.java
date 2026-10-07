@@ -177,29 +177,33 @@ public class ValuationCalculationFormulaService {
         data.setDistressSaleValue(totalDistVal);
 
         // 7. Insurable Value = Total Replacement Cost of Buildings (Phase 13)
-        BigDecimal insurableValue = totalReplCost.setScale(2, RoundingMode.HALF_UP);
+        // Land has zero insurable value (land is indestructible).
+        BigDecimal insurableValue = (buildingItems == null || buildingItems.isEmpty())
+                ? BigDecimal.ZERO
+                : totalReplCost.setScale(2, RoundingMode.HALF_UP);
         data.setInsurableValue(insurableValue);
 
         // 8. Government Values (Phase 12)
-        BigDecimal landGovt = calculateLandGovernmentValue(landItems, new BigDecimal("5500"));
+        BigDecimal landGovt = calculateLandGovernmentValue(landItems, data.getGovernmentRate());
         BigDecimal bldgGovt = calculateBuildingGovernmentValue(buildingItems, new BigDecimal("2400"), new BigDecimal("1900"));
         data.setLandGovernmentValue(landGovt);
         data.setBuildingGovernmentValue(bldgGovt);
-
-        if (data.getGovernmentValue() == null || data.getGovernmentValue().compareTo(BigDecimal.ZERO) == 0) {
-            data.setGovernmentValue(landGovt.add(bldgGovt).setScale(2, RoundingMode.HALF_UP));
-        }
+        data.setGovernmentValue(landGovt.add(bldgGovt).setScale(2, RoundingMode.HALF_UP));
     }
 
     public BigDecimal calculateLandGovernmentValue(List<ValuationLandItem> landItems, BigDecimal govtLandRate) {
         BigDecimal totalGovt = BigDecimal.ZERO;
-        BigDecimal landRate = (govtLandRate != null && govtLandRate.compareTo(BigDecimal.ZERO) > 0)
-                ? govtLandRate : new BigDecimal("5500");
+        boolean hasCustomRate = (govtLandRate != null && govtLandRate.compareTo(BigDecimal.ZERO) > 0);
 
         if (landItems != null) {
             for (ValuationLandItem l : landItems) {
-                BigDecimal area = l.getStandardAreaSqft() != null ? l.getStandardAreaSqft() : BigDecimal.ZERO;
-                totalGovt = totalGovt.add(area.multiply(landRate));
+                if (hasCustomRate) {
+                    BigDecimal area = l.getEnteredArea() != null ? l.getEnteredArea() : (l.getStandardAreaSqft() != null ? l.getStandardAreaSqft() : BigDecimal.ZERO);
+                    totalGovt = totalGovt.add(area.multiply(govtLandRate));
+                } else {
+                    BigDecimal area = l.getStandardAreaSqft() != null ? l.getStandardAreaSqft() : BigDecimal.ZERO;
+                    totalGovt = totalGovt.add(area.multiply(new BigDecimal("5500")));
+                }
             }
         }
         return totalGovt.setScale(2, RoundingMode.HALF_UP);

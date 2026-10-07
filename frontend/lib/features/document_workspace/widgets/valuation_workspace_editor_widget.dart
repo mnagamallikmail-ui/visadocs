@@ -1126,7 +1126,7 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
                     'Government / Guideline Value',
                     '₹ ${IndianNumberFormatter.format(data.landGovernmentValue)}',
                     '₹ ${IndianNumberFormatter.format(data.buildingGovernmentValue)}',
-                    '₹ ${IndianNumberFormatter.format(data.governmentValue)}',
+                    '₹ ${IndianNumberFormatter.format(data.landGovernmentValue + data.buildingGovernmentValue)}',
                     isHighlight: true,
                   ),
                   const Divider(height: 1),

@@ -25,6 +25,7 @@ class ValuationDataModel {
   double landGovernmentValue;
   double buildingGovernmentValue;
   double governmentValue;
+  double governmentRate;
   double insurableValue;
   String valuationStatus;
   int currentVersion;
@@ -76,6 +77,7 @@ class ValuationDataModel {
     this.landGovernmentValue = 0,
     this.buildingGovernmentValue = 0,
     this.governmentValue = 0,
+    this.governmentRate = 0,
     this.insurableValue = 0,
     this.valuationStatus = 'DRAFT',
     this.currentVersion = 1,
@@ -134,6 +136,7 @@ class ValuationDataModel {
       landGovernmentValue: (json['landGovernmentValue'] as num?)?.toDouble() ?? 0,
       buildingGovernmentValue: (json['buildingGovernmentValue'] as num?)?.toDouble() ?? 0,
       governmentValue: (json['governmentValue'] as num?)?.toDouble() ?? 0,
+      governmentRate: (json['governmentRate'] as num?)?.toDouble() ?? 0,
       insurableValue: (json['insurableValue'] as num?)?.toDouble() ?? (json['totalReplacementCost'] as num?)?.toDouble() ?? 0,
       valuationStatus: json['valuationStatus']?.toString() ?? 'DRAFT',
       currentVersion: (json['currentVersion'] as num?)?.toInt() ?? 1,
@@ -187,6 +190,7 @@ class ValuationDataModel {
     'landGovernmentValue': landGovernmentValue,
     'buildingGovernmentValue': buildingGovernmentValue,
     'governmentValue': governmentValue,
+    'governmentRate': governmentRate,
     'insurableValue': insurableValue,
     'valuationStatus': valuationStatus,
     'currentVersion': currentVersion,
