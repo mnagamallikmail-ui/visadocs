@@ -21,6 +21,7 @@ import '../quotations/admin_request_review_modal.dart';
 import '../quotations/admin_payment_review_modal.dart';
 import '../quotations/admin_quote_creation_modal.dart';
 import '../../providers/order_provider.dart';
+import 'widgets/order_dossier_card.dart';
 
 // ─── Shared helpers ───────────────────────────────────────────
 
@@ -754,6 +755,7 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
   String _searchQuery = '';
   String _sortBy = 'date_desc';
   String _quickFilter = 'ALL';
+  final Set<int> _expandedOrderIds = <int>{};
 
   @override
   void dispose() {
@@ -2034,294 +2036,61 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                   child: Column(
                     children: [
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: const BoxDecoration(
-                          color: AppColors.surface,
-                          borderRadius: BorderRadius.only(topLeft: Radius.circular(8), topRight: Radius.circular(8)),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                        margin: const EdgeInsets.only(bottom: 8),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF1F5F9),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
                         ),
                         child: Row(
                           children: [
                             SizedBox(
-                              width: 165,
-                              child: Text('Report # / SLA / Docs', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text('Client Name', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
+                              width: 170,
+                              child: Text('REPORT / REFERENCE', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B), letterSpacing: 0.5)),
                             ),
                             Expanded(
                               flex: 3,
-                              child: Text('Quotation & Payment', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
+                              child: Text('CLIENT / PROPERTY LOCATION', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B), letterSpacing: 0.5)),
                             ),
                             SizedBox(
-                              width: 130,
-                              child: Text('Status', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
+                              width: 175,
+                              child: Text('LIFECYCLE STATUS & AGE', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B), letterSpacing: 0.5)),
                             ),
                             SizedBox(
-                              width: 380,
-                              child: Text('Actions', style: AppTypography.captionBold().copyWith(color: AppColors.slate), textAlign: TextAlign.right),
+                              width: 160,
+                              child: Text('RESPONSIBLE DESK / OWNER', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B), letterSpacing: 0.5)),
                             ),
+                            Text('OPERATIONS & ACTIONS', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B), letterSpacing: 0.5)),
                           ],
                         ),
                       ),
                       ...displayOrders.map((o) {
                         final canDelete = ReportListHelper.canDeleteReport(o, authProvider);
-                        final reportNum = o['reportNumber'] ?? 'PV-${o['id']}';
-                        final dateStr = ReportListHelper.formatReportDate(o['createdAt']);
-                        final isPaymentSubmitted = o['status'] == 'PAYMENT_SUBMITTED';
-                        final docCount = (o['documentCount'] as num?)?.toInt() ?? 0;
+                        final int orderId = (o['id'] as num).toInt();
+                        final isExpanded = _expandedOrderIds.contains(orderId);
 
-                        final clientDisplay = (o['clientName'] != null && o['clientName'].toString().trim().isNotEmpty)
-                            ? o['clientName'].toString().trim()
-                            : (o['clientFullName']?.toString().trim().isNotEmpty == true
-                                ? o['clientFullName'].toString().trim()
-                                : (o['clientUsername']?.toString().trim().isNotEmpty == true
-                                    ? o['clientUsername'].toString().trim()
-                                    : 'Client #${o['clientId'] ?? o['id']}'));
-
-                        final quoteNum = o['quoteNumber']?.toString();
-                        final quoteTotal = o['quoteTotal'] ?? o['quoteAmount'];
-                        final quoteBase = o['quoteAmount'];
-                        final quoteTax = o['quoteTax'];
-                        final paymentStatus = (o['paymentStatus']?.toString() ?? (isPaymentSubmitted ? 'SUBMITTED' : '')).toUpperCase();
-                        final utr = o['utrNumber'] ?? o['paymentUtr'];
-                        final hasProof = o['paymentProofDocumentId'] != null || isPaymentSubmitted;
-
-                        Widget quoteFeeWidget;
-                        if (quoteNum != null && quoteNum.isNotEmpty) {
-                          quoteFeeWidget = Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Text(
-                                    quoteNum,
-                                    style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 12, fontWeight: FontWeight.bold),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    quoteTotal != null ? _formatCurrency(quoteTotal) : '—',
-                                    style: AppTypography.caption(color: const Color(0xFF047857)).copyWith(fontWeight: FontWeight.w800, fontSize: 12),
-                                  ),
-                                ],
-                              ),
-                              if (quoteBase != null && quoteTax != null) ...[
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Base: ${_formatCurrency(quoteBase)} + GST: ${_formatCurrency(quoteTax)}',
-                                  style: AppTypography.caption(color: AppColors.slate).copyWith(fontSize: 10),
-                                ),
-                              ],
-                              const SizedBox(height: 3),
-                              // Payment indicator
-                              if (paymentStatus == 'VERIFIED') ...[
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                                      decoration: BoxDecoration(color: const Color(0xFFECFDF5), borderRadius: BorderRadius.circular(3), border: Border.all(color: const Color(0xFF86EFAC))),
-                                      child: const Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.check_circle, size: 9, color: Color(0xFF047857)),
-                                          SizedBox(width: 3),
-                                          Text('PAID', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFF047857))),
-                                        ],
-                                      ),
-                                    ),
-                                    if (utr != null && utr.toString().isNotEmpty) ...[
-                                      const SizedBox(width: 5),
-                                      Text('UTR: $utr', style: AppTypography.caption(color: AppColors.ink).copyWith(fontSize: 10, fontWeight: FontWeight.w600)),
-                                    ],
-                                  ],
-                                ),
-                              ] else if (paymentStatus == 'SUBMITTED' || isPaymentSubmitted) ...[
-                                Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                                      decoration: BoxDecoration(color: const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(3), border: Border.all(color: const Color(0xFFFCD34D))),
-                                      child: const Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          Icon(Icons.hourglass_top_rounded, size: 9, color: Color(0xFFB45309)),
-                                          SizedBox(width: 3),
-                                          Text('SUBMITTED', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFB45309))),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 4),
-                                    Text('UTR: ${utr ?? "—"}', style: AppTypography.caption(color: const Color(0xFFB45309)).copyWith(fontSize: 10, fontWeight: FontWeight.bold)),
-                                    if (hasProof) ...[
-                                      const SizedBox(width: 4),
-                                      const Tooltip(
-                                        message: "Payment receipt proof attached",
-                                        child: Icon(Icons.receipt_long, size: 12, color: Color(0xFF1D4ED8)),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Submitted: ${_formatDateTime(o['paymentSubmittedAt'] ?? o['updatedAt'])}',
-                                  style: AppTypography.caption(color: AppColors.slate).copyWith(fontSize: 9.5),
-                                ),
-                              ] else if (paymentStatus == 'REJECTED') ...[
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
-                                  decoration: BoxDecoration(color: const Color(0xFFFEF2F2), borderRadius: BorderRadius.circular(3)),
-                                  child: const Text('PAYMENT REJECTED', style: TextStyle(fontSize: 9, fontWeight: FontWeight.bold, color: Color(0xFFDC2626))),
-                                ),
-                              ] else ...[
-                                Text('Payment Pending', style: AppTypography.caption(color: AppColors.slate).copyWith(fontSize: 10, fontStyle: FontStyle.italic)),
-                              ],
-                            ],
-                          );
-                        } else {
-                          quoteFeeWidget = Text(
-                            'Pending Quote',
-                            style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 12, fontStyle: FontStyle.italic),
-                          );
-                        }
-
-                        Widget statusWidget;
-                        if (isPaymentSubmitted) {
-                          statusWidget = Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFFEF3C7),
-                              border: Border.all(color: const Color(0xFFD97706)),
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              'AWAITING VERIFICATION',
-                              style: AppTypography.bodySm().copyWith(
-                                color: const Color(0xFFB45309),
-                                fontSize: 9.5,
-                                fontWeight: FontWeight.w800,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          );
-                        } else {
-                          statusWidget = Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: AppColors.surface,
-                              borderRadius: BorderRadius.circular(4),
-                            ),
-                            child: Text(
-                              '${o['status']}'.replaceAll('_', ' '),
-                              style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 11, fontWeight: FontWeight.w600),
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.center,
-                            ),
-                          );
-                        }
-
-                        final rowDecoration = isPaymentSubmitted
-                            ? const BoxDecoration(
-                                color: Color(0xFFFFFBEB),
-                                border: Border(
-                                  top: BorderSide(color: Color(0xFFFDE68A), width: 1),
-                                  bottom: BorderSide(color: Color(0xFFFDE68A), width: 1),
-                                  left: BorderSide(color: Color(0xFFD97706), width: 4),
-                                  right: BorderSide(color: Color(0xFFFDE68A), width: 1),
-                                ),
-                              )
-                            : const BoxDecoration(
-                                color: Colors.white,
-                                border: Border(
-                                  bottom: BorderSide(color: AppColors.hairlineSoft),
-                                  left: BorderSide(color: AppColors.hairlineSoft),
-                                  right: BorderSide(color: AppColors.hairlineSoft),
-                                ),
-                              );
-
-                        return Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: rowDecoration,
-                          child: Row(
-                            children: [
-                              SizedBox(
-                                width: 165,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      reportNum,
-                                      style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 13, fontWeight: FontWeight.bold),
-                                    ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      dateStr,
-                                      style: AppTypography.caption(color: AppColors.slate),
-                                    ),
-                                    const SizedBox(height: 3),
-                                    _buildSlaChip(o),
-                                    const SizedBox(height: 4),
-                                    // Document count & badge
-                                    InkWell(
-                                      onTap: () => AdminRequestReviewModal.show(context: context, order: o, onRefresh: _load),
-                                      borderRadius: BorderRadius.circular(4),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                        decoration: BoxDecoration(
-                                          color: docCount > 0 ? const Color(0xFFEFF6FF) : const Color(0xFFF1F5F9),
-                                          borderRadius: BorderRadius.circular(4),
-                                          border: Border.all(color: docCount > 0 ? const Color(0xFF93C5FD) : const Color(0xFFCBD5E1)),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Icon(Icons.attach_file, size: 11, color: docCount > 0 ? const Color(0xFF1D4ED8) : const Color(0xFF64748B)),
-                                            const SizedBox(width: 3),
-                                            Text(
-                                              '$docCount doc${docCount == 1 ? '' : 's'}',
-                                              style: TextStyle(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.bold,
-                                                color: docCount > 0 ? const Color(0xFF1D4ED8) : const Color(0xFF64748B),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Expanded(
-                                flex: 2,
-                                child: Text(
-                                  clientDisplay,
-                                  style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 13, fontWeight: FontWeight.w500),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ),
-                              Expanded(
-                                flex: 3,
-                                child: quoteFeeWidget,
-                              ),
-                              SizedBox(
-                                width: 130,
-                                child: statusWidget,
-                              ),
-                              SizedBox(
-                                width: 380,
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  reverse: true,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.end,
-                                    children: _buildRowActions(context, o, canDelete),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
+                        return OrderDossierCard(
+                          order: o,
+                          isExpanded: isExpanded,
+                          onToggleExpand: () {
+                            setState(() {
+                              if (isExpanded) {
+                                _expandedOrderIds.remove(orderId);
+                              } else {
+                                _expandedOrderIds.add(orderId);
+                              }
+                            });
+                          },
+                          onRefresh: _load,
+                          canDelete: canDelete,
+                          onReassign: _showReassignDialog,
+                          onForceRecovery: _forceRecovery,
+                          onChangeStatus: _showChangeStatusDialog,
+                          onDelete: _deleteOrder,
+                          onWaivePayment: _waivePayment,
+                          onResendQuote: _resendQuote,
+                          onViewInvoice: _viewInvoice,
                         );
                       }),
                     ],
@@ -4557,6 +4326,7 @@ class _AdminReportSectionState extends State<AdminReportSection> {
   String _searchQuery = '';
   String _sortBy = 'date_desc';
   String _filter = 'ALL';
+  final Set<int> _expandedOrderIds = <int>{};
 
   @override
   void dispose() {
@@ -5294,158 +5064,30 @@ class _AdminReportSectionState extends State<AdminReportSection> {
                   itemBuilder: (_, i) {
                     final o = displayOrders[i];
                     final canDelete = ReportListHelper.canDeleteReport(o, authProvider);
-                    final reportNum = o['reportNumber'] ?? 'PV-${o['id']}';
-                    final dateStr = ReportListHelper.formatReportDate(o['createdAt']);
-                    final quoteNum = o['quoteNumber']?.toString();
-                    final quoteTotal = o['quoteTotal'] ?? o['quoteAmount'];
-                    final isPaymentSubmitted = o['status'] == 'PAYMENT_SUBMITTED';
+                    final int orderId = (o['id'] as num).toInt();
+                    final isExpanded = _expandedOrderIds.contains(orderId);
 
-                    return Container(
-                      margin: const EdgeInsets.only(bottom: 8),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: BoxDecoration(
-                        color: isPaymentSubmitted
-                            ? const Color(0xFFFFFBEB)
-                            : AppColors.surface,
-                        borderRadius: AppRadius.brLg,
-                        border: Border.all(
-                          color: isPaymentSubmitted
-                              ? const Color(0xFFFCD34D)
-                              : AppColors.hairlineSoft,
-                          width: isPaymentSubmitted ? 1.5 : 1,
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          // Col 1 – Report # / Date
-                          SizedBox(
-                            width: 130,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(reportNum,
-                                    style: AppTypography.bodySm().copyWith(
-                                        color: AppColors.ink,
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.bold)),
-                                const SizedBox(height: 3),
-                                Text(dateStr,
-                                    style: AppTypography.bodySm()
-                                        .copyWith(color: AppColors.slate, fontSize: 11)),
-                              ],
-                            ),
-                          ),
-                          // Col 2 – Client / Ref
-                          Expanded(
-                            flex: 3,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  o['clientName'] ?? 'Client #${o['id']}',
-                                  style: AppTypography.bodySm().copyWith(
-                                      color: AppColors.ink,
-                                      fontSize: 12.5,
-                                      fontWeight: FontWeight.w600),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  o['referenceCode'] ?? '—',
-                                  style: AppTypography.bodySm()
-                                      .copyWith(color: AppColors.slate, fontSize: 11),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              ],
-                            ),
-                          ),
-                          // Col 3 – Quotation & Fee
-                          Expanded(
-                            flex: 3,
-                            child: Builder(builder: (ctx) {
-                              if (isPaymentSubmitted) {
-                                final utr = o['utrNumber'] ?? o['paymentUtr'] ?? '—';
-                                final amt = quoteTotal != null
-                                    ? '₹${(quoteTotal as num).toStringAsFixed(0)}'
-                                    : '—';
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('UTR: $utr',
-                                        style: AppTypography.bodySm().copyWith(
-                                            color: AppColors.ink,
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.bold)),
-                                    Text('Amt: $amt',
-                                        style: AppTypography.bodySm().copyWith(
-                                            color: const Color(0xFFB45309),
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w700)),
-                                  ],
-                                );
-                              }
-                              if (quoteNum != null && quoteNum.isNotEmpty) {
-                                return Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(quoteNum,
-                                        style: AppTypography.bodySm().copyWith(
-                                            color: AppColors.ink,
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600)),
-                                    if (quoteTotal != null)
-                                      Text('₹${(quoteTotal as num).toStringAsFixed(0)}',
-                                          style: AppTypography.bodySm().copyWith(
-                                              color: const Color(0xFF059669),
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w700)),
-                                  ],
-                                );
-                              }
-                              return Text('—',
-                                  style: AppTypography.bodySm()
-                                      .copyWith(color: AppColors.slate, fontSize: 11));
-                            }),
-                          ),
-                          // Col 4 – Status badge & SLA/Abandonment Indicators
-                          SizedBox(
-                            width: 150,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary.withOpacity(0.08),
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: Text(
-                                    '${o['status']}',
-                                    style: AppTypography.bodySm().copyWith(
-                                        color: AppColors.primary,
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.bold),
-                                  ),
-                                ),
-                                _buildSlaChip(o),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          // Col 5 – Status-aware actions
-                          SizedBox(
-                            width: 320,
-                            child: SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              reverse: true,
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.end,
-                                children: _buildReportRowActions(context, o, canDelete),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
+                    return OrderDossierCard(
+                      order: o,
+                      isExpanded: isExpanded,
+                      onToggleExpand: () {
+                        setState(() {
+                          if (isExpanded) {
+                            _expandedOrderIds.remove(orderId);
+                          } else {
+                            _expandedOrderIds.add(orderId);
+                          }
+                        });
+                      },
+                      onRefresh: _load,
+                      canDelete: canDelete,
+                      onReassign: _showReassignDialog,
+                      onForceRecovery: _forceRecovery,
+                      onChangeStatus: _showChangeStatusDialog,
+                      onDelete: _deleteOrder,
+                      onWaivePayment: _waivePayment,
+                      onResendQuote: _resendQuote,
+                      onViewInvoice: (order) => AdminRequestReviewModal.show(context: context, order: order, onRefresh: _load),
                     );
                   },
                 );
