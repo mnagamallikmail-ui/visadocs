@@ -1193,7 +1193,7 @@ class _OrderDossierCardState extends State<OrderDossierCard> with SingleTickerPr
       mainAxisSize: MainAxisSize.min,
       children: [
         IconButton(
-          onPressed: _loadLazyData,
+          onPressed: _loadDataForActiveTab,
           icon: const Icon(Icons.refresh_rounded, size: 16, color: Color(0xFF64748B)),
           tooltip: 'Refresh Dossier Data',
           splashRadius: 16,
