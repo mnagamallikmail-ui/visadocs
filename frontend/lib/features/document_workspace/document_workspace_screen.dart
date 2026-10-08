@@ -212,6 +212,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
     if (!mounted) return;
 
     if (success) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Valuation report approved and compiled successfully!'),
@@ -221,9 +222,14 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
       );
       Navigator.of(context).pop(true);
     } else {
+      // BUG 2: Do not display stale _provider.errorMessage from previous operations
+      final approveError = _provider.errorMessage;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(_provider.errorMessage ?? 'Failed to approve valuation report'),
+          content: Text(approveError != null && approveError.isNotEmpty
+              ? approveError
+              : 'Failed to approve valuation report. Please try again.'),
           backgroundColor: AppColors.workspaceErrorText,
         ),
       );
@@ -576,7 +582,9 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
                   )
                 : const Icon(Icons.verified_rounded, size: 14),
             label: Text(
-              provider.isSubmitting ? 'Approving...' : 'APPROVE & COMPILE',
+              provider.isSubmitting
+                  ? (provider.compileStatusMessage ?? 'Compiling report...')
+                  : 'APPROVE & COMPILE',
               style: AppTypography.workspaceButton(
                 color: Colors.white,
                 weight: FontWeight.w700,
@@ -606,7 +614,9 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
                   )
                 : const Icon(Icons.auto_fix_high_rounded, size: 14),
             label: Text(
-              provider.isSubmitting ? 'Recompiling...' : 'RECOMPILE & REGENERATE',
+              provider.isSubmitting
+                  ? (provider.compileStatusMessage ?? 'Compiling report...')
+                  : 'RECOMPILE & REGENERATE',
               style: AppTypography.workspaceButton(
                 color: Colors.white,
                 weight: FontWeight.w700,
@@ -865,6 +875,31 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
 
   /// SPRINT 6 EMERGENCY HOTFIX: Visible Autosave Status Area (Phase 6)
   Widget _buildAutosaveStatusIndicator(DocumentWorkspaceProvider provider) {
+    if (provider.isSubmitting && provider.compileStatusMessage != null) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+        decoration: BoxDecoration(
+          color: AppColors.primaryBlue.withOpacity(0.08),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(
+              width: 12,
+              height: 12,
+              child: CircularProgressIndicator(strokeWidth: 1.8, color: AppColors.primaryBlue),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              provider.compileStatusMessage!,
+              style: AppTypography.workspaceMicro(color: AppColors.primaryBlue, weight: FontWeight.w600),
+            ),
+          ],
+        ),
+      );
+    }
+
     final api = ApiService();
     final isSessionExpired = api.isSessionExpired ||
         (provider.saveErrorMessage != null && provider.saveErrorMessage!.contains('Session expired'));

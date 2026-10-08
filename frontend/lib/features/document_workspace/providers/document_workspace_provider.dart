@@ -15,6 +15,7 @@ import '../services/placeholder_normalization_registry.dart';
 import '../services/value_normalization_engine.dart';
 import '../services/numeric_formula_engine.dart';
 import '../../../services/token_storage.dart';
+import '../../../services/api_service.dart';
 
 enum SaveState {
   saved,
@@ -41,6 +42,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   bool _isCompilingPreview = false;
   bool _isDirty = false;
   String? _errorMessage;
+  String? _compileStatusMessage;
   DateTime? _lastSavedAt;
 
   // SPRINT 6 EMERGENCY HOTFIX: Zero Data Loss state machine
@@ -103,6 +105,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   bool get isCompilingPreview => _isCompilingPreview;
   bool get isDirty => _isDirty;
   String? get errorMessage => _errorMessage;
+  String? get compileStatusMessage => _compileStatusMessage;
   DateTime? get lastSavedAt => _lastSavedAt;
 
   WorkspaceViewMode get viewMode => _viewMode;
@@ -1026,6 +1029,11 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setErrorMessageForTest(String? msg) {
+    _errorMessage = msg;
+    notifyListeners();
+  }
+
   /// Switches between [Table Edit] and [Compiled Preview]
   Future<void> setViewMode(WorkspaceViewMode mode) async {
     if (_viewMode == mode) return;
@@ -1615,8 +1623,27 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   Future<bool> spaApprove(double finalValue) async {
     if (_workspaceModel == null) return false;
 
+    // BUG 1: Must begin with _errorMessage = null before any network activity
+    _errorMessage = null;
+    _compileStatusMessage = 'Compiling report...';
     _isSubmitting = true;
     notifyListeners();
+
+    // BUG 3: Long-running compile status progressive states (~13s)
+    Timer? compileTimer;
+    compileTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
+      if (!_isSubmitting) {
+        timer.cancel();
+        return;
+      }
+      if (timer.tick == 1) {
+        _compileStatusMessage = 'Generating PDF...';
+        notifyListeners();
+      } else if (timer.tick == 2) {
+        _compileStatusMessage = 'Applying digital signature...';
+        notifyListeners();
+      }
+    });
 
     try {
       final modifiedValues = _deltaValues.isNotEmpty ? Map<String, String>.from(_deltaValues) : null;
@@ -1626,17 +1653,34 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         modifiedValues: modifiedValues,
       );
 
+      compileTimer.cancel();
+
+      // BUG 4: If backend returns HTTP 200 (status: SPA_CONFIRMED)
       if (result['status'] == 'SPA_CONFIRMED') {
+        _errorMessage = null;
         _deltaValues.clear();
         _isDirty = false;
         _workspaceModel = _workspaceModel!.copyWith(status: 'SPA_CONFIRMED');
+
+        // Immediately refresh workspace, order state, documents & preview
+        try {
+          await loadWorkspace(_workspaceModel!.orderId);
+        } catch (_) {
+          // Status is already confirmed locally and on server
+        }
+        _errorMessage = null;
         return true;
       }
+
+      _errorMessage = 'Unexpected approval status: ${result['status']}';
       return false;
     } catch (e) {
-      _errorMessage = 'Failed to approve report: $e';
+      compileTimer.cancel();
+      _errorMessage = ApiService.getErrorMessage(e);
       return false;
     } finally {
+      compileTimer.cancel();
+      _compileStatusMessage = null;
       _isSubmitting = false;
       notifyListeners();
     }
