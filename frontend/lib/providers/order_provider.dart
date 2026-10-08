@@ -517,6 +517,46 @@ class OrderProvider extends ChangeNotifier {
     return null;
   }
 
+  String? _lastPdfError;
+  String? get lastPdfError => _lastPdfError;
+
+  Future<Uint8List?> downloadReportPdf(int orderId) async {
+    _lastPdfError = null;
+    try {
+      final response = await _apiService.dio.get(
+        '/api/v1/orders/$orderId/download-pdf',
+        options: Options(
+          responseType: ResponseType.bytes,
+          headers: {
+            'Accept': 'application/pdf, application/octet-stream, */*',
+          },
+        ),
+      );
+      if (response.statusCode == 200) {
+        return Uint8List.fromList(response.data);
+      }
+      _lastPdfError = 'Server returned status ${response.statusCode}';
+    } on DioException catch (e) {
+      if (e.response?.data != null) {
+        try {
+          final raw = e.response!.data;
+          if (raw is List<int>) {
+            _lastPdfError = String.fromCharCodes(raw);
+          } else {
+            _lastPdfError = raw.toString();
+          }
+        } catch (_) {
+          _lastPdfError = e.message ?? 'PDF download failed (${e.response?.statusCode})';
+        }
+      } else {
+        _lastPdfError = e.message ?? 'PDF download failed';
+      }
+    } catch (e) {
+      _lastPdfError = e.toString();
+    }
+    return null;
+  }
+
   Future<List<dynamic>?> fetchOrderDocuments(int orderId) async {
     try {
       final response = await _apiService.dio.get('/api/v1/orders/$orderId/documents');

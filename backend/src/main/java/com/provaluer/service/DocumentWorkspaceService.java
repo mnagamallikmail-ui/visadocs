@@ -1390,12 +1390,7 @@ public class DocumentWorkspaceService {
                     // Hydrate DOCX
                     byte[] docxBytes = docxTemplateEngine.generateReport(tplBytes, inputsMap, imagesMap);
                     
-                    // Stamp digital signature and convert to PDF
-                    String signerName = principal != null ? principal.getUsername() : "Senior Property Analyst (SPA)";
-                    String timestamp = LocalDateTime.now().toString();
-                    byte[] signedDocxBytes = docxTemplateEngine.stampDigitalSignature(docxBytes, signerName, timestamp);
-                    byte[] pdfBytes = docxTemplateEngine.convertDocxToPdf(signedDocxBytes);
-
+                    // Word-first generation: Generate DOCX only (no digital signatures, no automatic PDF)
                     // Option A Revision Governance:
                     // Revision 0 = Original generation
                     // Revision 1 = First recompilation
@@ -1412,11 +1407,10 @@ public class DocumentWorkspaceService {
                     }
                     order.setRevisionCount(nextRevision);
 
-                    // Save as final documents
+                    // Save as final Word document (DOCX only)
                     User uploader = principal != null ? userRepository.findById(principal.getId()).orElse(null) : null;
                     if (uploader != null) {
-                        saveOrderDocument(order, "FINAL_DOCX", "Report_" + orderId + ".docx", signedDocxBytes, uploader);
-                        saveOrderDocument(order, "FINAL_SIGNED_PDF", "Report_" + orderId + ".pdf", pdfBytes, uploader);
+                        saveOrderDocument(order, "FINAL_DOCX", "Report_" + orderId + ".docx", docxBytes, uploader);
                     }
 
                     // Create immutable ValuationSnapshot record (Option A Mandate: never overwrite history)
@@ -1424,8 +1418,8 @@ public class DocumentWorkspaceService {
                     snapshot.setOrderId(order.getId());
                     snapshot.setVersionNumber(nextRevision);
                     snapshot.setSnapshotTrigger(nextRevision == 0 ? "REPORT_GENERATED" : "REPORT_RECOMPILED");
-                    snapshot.setDocxContent(signedDocxBytes);
-                    snapshot.setPdfContent(pdfBytes);
+                    snapshot.setDocxContent(docxBytes);
+                    snapshot.setPdfContent(null);
                     String snapHash = computePreviewContentHash(templateId, nextRevision, inputsMap, Collections.emptyMap());
                     snapshot.setSnapshotHash(snapHash);
                     snapshot.setDocumentHash(snapHash);
@@ -1481,6 +1475,115 @@ public class DocumentWorkspaceService {
         result.put("finalValue", order.getFinalValue());
         result.put("feeCharged", order.getFeeCharged());
         return result;
+    }
+
+    /**
+     * POST /api/v1/orders/{id}/generate-pdf
+     * On-demand PDF compilation. Completely separate action from approval flow.
+     * Generates PDF from stored FINAL_DOCX (or freshly hydrated DOCX), without digital signatures.
+     */
+    @Transactional
+    public Map<String, Object> generatePdfOnDemand(Long orderId, UserDetailsImpl principal) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new NoSuchElementException("Order not found with ID: " + orderId));
+
+        validateOrderAccess(order, principal, "GENERATE_PDF");
+
+        List<OrderDocument> docs = orderDocumentRepository.findAllByOrderId(orderId);
+        Optional<OrderDocument> finalDocxOpt = docs.stream()
+                .filter(d -> "FINAL_DOCX".equalsIgnoreCase(d.getCategory()))
+                .findFirst();
+
+        byte[] docxBytes = null;
+        if (finalDocxOpt.isPresent() && finalDocxOpt.get().getFileContent() != null && finalDocxOpt.get().getFileContent().length > 0) {
+            docxBytes = finalDocxOpt.get().getFileContent();
+        } else {
+            // Fallback: If FINAL_DOCX not yet saved, hydrate from template
+            Long templateId = order.getTemplateId();
+            if (templateId == null) {
+                throw new IllegalStateException("Order #" + orderId + " has no assigned template.");
+            }
+            Template template = templateRepository.findById(templateId).orElse(null);
+            byte[] tplBytes = resolveOrderTemplateBytes(order, template);
+            if (tplBytes == null || tplBytes.length == 0) {
+                throw new IllegalStateException("Template binary content missing for order #" + orderId);
+            }
+            Map<String, String> inputsMap = getConsolidatedValues(orderId);
+            Map<String, byte[]> imagesMap = new HashMap<>();
+            List<OrderInput> inputsList = orderInputRepository.findAllByOrderId(orderId);
+            for (OrderInput input : inputsList) {
+                String key = input.getFieldKey().toUpperCase();
+                String val = input.getFieldValue();
+                if ((key.contains("DATE_") || key.contains("_DATE") || key.equals("DATE")) && (val == null || val.trim().isEmpty())) {
+                    inputsMap.put(key, java.time.LocalDate.now().format(DateTimeFormatter.ofPattern("dd-MM-yyyy")));
+                }
+                if (input.getImageValue() != null) {
+                    imagesMap.put(key, input.getImageValue());
+                }
+            }
+            if (imagesMap.containsKey("IMG_COVER_PAGE") && !imagesMap.containsKey("IMG_FRONT_PAGE")) {
+                imagesMap.put("IMG_FRONT_PAGE", imagesMap.get("IMG_COVER_PAGE"));
+            } else if (imagesMap.containsKey("IMG_FRONT_PAGE") && !imagesMap.containsKey("IMG_COVER_PAGE")) {
+                imagesMap.put("IMG_COVER_PAGE", imagesMap.get("IMG_FRONT_PAGE"));
+            }
+            if (imagesMap.containsKey("COVER_IMAGE") && !imagesMap.containsKey("IMG_COVER_PAGE")) {
+                imagesMap.put("IMG_COVER_PAGE", imagesMap.get("COVER_IMAGE"));
+            }
+            try {
+                docxBytes = docxTemplateEngine.generateReport(tplBytes, inputsMap, imagesMap);
+                User uploader = principal != null ? userRepository.findById(principal.getId()).orElse(null) : null;
+                if (uploader != null) {
+                    saveOrderDocument(order, "FINAL_DOCX", "Report_" + orderId + ".docx", docxBytes, uploader);
+                }
+            } catch (Exception e) {
+                throw new RuntimeException("Failed to generate DOCX for PDF conversion: " + e.getMessage(), e);
+            }
+        }
+
+        // Convert DOCX to PDF (Without any digital signatures)
+        byte[] pdfBytes;
+        try {
+            pdfBytes = docxTemplateEngine.convertDocxToPdf(docxBytes);
+        } catch (Exception e) {
+            log.error("Failed to convert DOCX to PDF on demand for order #{}: {}", orderId, e.getMessage(), e);
+            throw new RuntimeException("PDF conversion failed: " + e.getMessage(), e);
+        }
+
+        // Store PDF document
+        User uploader = principal != null ? userRepository.findById(principal.getId()).orElse(null) : null;
+        if (uploader != null) {
+            saveOrderDocument(order, "FINAL_SIGNED_PDF", "Report_" + orderId + ".pdf", pdfBytes, uploader);
+        }
+
+        // Update latest valuation snapshot if present
+        List<ValuationSnapshot> snapshots = valuationSnapshotRepository.findByOrderIdOrderByVersionNumberDesc(orderId);
+        if (!snapshots.isEmpty()) {
+            ValuationSnapshot latestSnapshot = snapshots.get(0);
+            latestSnapshot.setPdfContent(pdfBytes);
+            valuationSnapshotRepository.save(latestSnapshot);
+        }
+
+        // Create Audit Log for on-demand PDF generation
+        try {
+            valuationAuditLogRepository.save(new ValuationAuditLog(
+                    orderId,
+                    "pdf_generation",
+                    null,
+                    null,
+                    "GENERATE_PDF",
+                    "On-demand PDF generation requested and completed",
+                    principal != null ? principal.getId() : null
+            ));
+        } catch (Exception e) {
+            log.warn("Failed to save audit log for on-demand PDF generation on order #{}: {}", orderId, e.getMessage());
+        }
+
+        Map<String, Object> resp = new HashMap<>();
+        resp.put("orderId", orderId);
+        resp.put("status", order.getStatus());
+        resp.put("pdfSize", pdfBytes.length);
+        resp.put("message", "PDF generated successfully on demand.");
+        return resp;
     }
 
     /**

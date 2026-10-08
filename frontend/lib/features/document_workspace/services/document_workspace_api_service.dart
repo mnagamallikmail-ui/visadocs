@@ -162,6 +162,20 @@ class DocumentWorkspaceApiService {
     );
   }
 
+  /// Generates PDF on-demand as a separate post-approval action
+  Future<Map<String, dynamic>> generatePdf(int orderId) async {
+    final response = await _api.dio.post('/api/v1/orders/$orderId/generate-pdf');
+    if (response.statusCode == 200 && response.data != null) {
+      final dynamic raw = response.data is String ? jsonDecode(response.data as String) : response.data;
+      return raw as Map<String, dynamic>;
+    }
+    throw DioException(
+      requestOptions: response.requestOptions,
+      response: response,
+      error: 'Failed to generate PDF: HTTP ${response.statusCode}',
+    );
+  }
+
   /// Compiles live hydrated preview PDF and returns rendered page metadata.
   Future<VisualPreviewModel> compileLivePreview(int orderId) async {
     final response = await _api.dio.post('/api/v1/orders/$orderId/compile-live-preview');

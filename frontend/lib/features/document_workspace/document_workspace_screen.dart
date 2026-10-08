@@ -2,6 +2,9 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+// ignore: avoid_web_libraries_in_flutter
+import 'dart:html' as html;
+import '../../providers/order_provider.dart';
 import '../../services/unload_protection_stub.dart'
     if (dart.library.html) '../../services/unload_protection_web.dart';
 import '../../services/api_service.dart';
@@ -215,14 +218,13 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Valuation report approved and compiled successfully!'),
+          content: Text('Valuation report approved (Word generated successfully)!'),
           backgroundColor: AppColors.workspaceSuccess,
           duration: Duration(seconds: 3),
         ),
       );
       Navigator.of(context).pop(true);
     } else {
-      // BUG 2: Do not display stale _provider.errorMessage from previous operations
       final approveError = _provider.errorMessage;
       ScaffoldMessenger.of(context).hideCurrentSnackBar();
       ScaffoldMessenger.of(context).showSnackBar(
@@ -230,6 +232,138 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
           content: Text(approveError != null && approveError.isNotEmpty
               ? approveError
               : 'Failed to approve valuation report. Please try again.'),
+          backgroundColor: AppColors.workspaceErrorText,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleRecompileWord() async {
+    final finalVal = _provider.valuationData?.fairValue ?? 0.0;
+    final success = await _provider.spaApprove(finalVal);
+    if (!mounted) return;
+
+    if (success) {
+      final rev = _provider.workspaceModel?.workspaceRevision ?? 0;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Word report recompiled successfully! (Revision $rev)'),
+          backgroundColor: AppColors.workspaceSuccess,
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } else {
+      final err = _provider.errorMessage;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(err != null && err.isNotEmpty ? err : 'Failed to recompile Word document.'),
+          backgroundColor: AppColors.workspaceErrorText,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleDownloadWord() async {
+    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+    final bytes = await orderProvider.downloadReportDocx(widget.orderId);
+    if (!mounted) return;
+
+    if (bytes == null) {
+      final errMsg = orderProvider.lastDocxError ?? 'Failed to download Word document.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errMsg),
+          backgroundColor: AppColors.workspaceErrorText,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final blob = html.Blob([bytes], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', 'Report_${widget.orderId}.docx')
+        ..style.display = 'none';
+      html.document.body!.append(anchor);
+      anchor.click();
+      anchor.remove();
+      html.Url.revokeObjectUrl(url);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Word document downloaded successfully!'),
+          backgroundColor: AppColors.workspaceSuccess,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error downloading Word document: $e'),
+          backgroundColor: AppColors.workspaceErrorText,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleGeneratePdf() async {
+    final success = await _provider.generatePdfOnDemand();
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('PDF generated successfully! Downloading...'),
+          backgroundColor: AppColors.workspaceSuccess,
+          duration: Duration(seconds: 4),
+        ),
+      );
+      await _handleDownloadPdf();
+    } else {
+      final err = _provider.errorMessage;
+      ScaffoldMessenger.of(context).hideCurrentSnackBar();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(err != null && err.isNotEmpty ? err : 'Failed to generate PDF. Please try again.'),
+          backgroundColor: AppColors.workspaceErrorText,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleDownloadPdf() async {
+    final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+    final bytes = await orderProvider.downloadReportPdf(widget.orderId);
+    if (!mounted) return;
+
+    if (bytes == null) {
+      final errMsg = orderProvider.lastPdfError ?? 'Failed to download PDF.';
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(errMsg),
+          backgroundColor: AppColors.workspaceErrorText,
+        ),
+      );
+      return;
+    }
+
+    try {
+      final blob = html.Blob([bytes], 'application/pdf');
+      final url = html.Url.createObjectUrlFromBlob(blob);
+      final anchor = html.AnchorElement(href: url)
+        ..setAttribute('download', 'Report_${widget.orderId}.pdf')
+        ..style.display = 'none';
+      html.document.body!.append(anchor);
+      anchor.click();
+      anchor.remove();
+      html.Url.revokeObjectUrl(url);
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Error downloading PDF: $e'),
           backgroundColor: AppColors.workspaceErrorText,
         ),
       );
@@ -571,7 +705,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
           const SizedBox(width: 10),
         ],
 
-        // SINGLE DOMINANT PRIMARY ACTION: SPA Approve Report
+        // SINGLE DOMINANT PRIMARY ACTION: SPA Approve Report (Word-First)
         if ((isSpa || isAdmin) && (status == 'SPA_GATE' || status == 'ASSIGNED')) ...[
           ElevatedButton.icon(
             icon: provider.isSubmitting
@@ -583,8 +717,8 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
                 : const Icon(Icons.verified_rounded, size: 14),
             label: Text(
               provider.isSubmitting
-                  ? (provider.compileStatusMessage ?? 'Compiling report...')
-                  : 'APPROVE & COMPILE',
+                  ? (provider.compileStatusMessage ?? 'Compiling Word document...')
+                  : 'APPROVE REPORT',
               style: AppTypography.workspaceButton(
                 color: Colors.white,
                 weight: FontWeight.w700,
@@ -603,8 +737,30 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
           const SizedBox(width: 10),
         ],
 
-        // REVISION MODE ACTION: SPA / Super Admin Recompile & Regenerate
+        // AFTER APPROVAL ACTIONS: Download Word | Recompile Word | Generate PDF
         if ((isSpa || isAdmin) && (status == 'SPA_CONFIRMED' || status == 'FINAL_DELIVERY' || status == 'CLIENT_DOWNLOADED' || status == 'CLOSED')) ...[
+          // 1. Download Word
+          OutlinedButton.icon(
+            icon: const Icon(Icons.description_outlined, size: 14),
+            label: Text(
+              'Download Word',
+              style: AppTypography.workspaceButton(
+                color: AppColors.workspaceCorporateNavy,
+                weight: FontWeight.w600,
+                letterSpacing: 0.2,
+              ),
+            ),
+            onPressed: provider.isSubmitting || provider.isGeneratingPdf ? null : _handleDownloadWord,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.workspaceCorporateNavy,
+              side: const BorderSide(color: AppColors.workspaceBorder),
+              padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // 2. Recompile Word
           ElevatedButton.icon(
             icon: provider.isSubmitting
                 ? const SizedBox(
@@ -615,20 +771,48 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
                 : const Icon(Icons.auto_fix_high_rounded, size: 14),
             label: Text(
               provider.isSubmitting
-                  ? (provider.compileStatusMessage ?? 'Compiling report...')
-                  : 'RECOMPILE & REGENERATE',
+                  ? (provider.compileStatusMessage ?? 'Recompiling Word...')
+                  : 'Recompile Word',
               style: AppTypography.workspaceButton(
                 color: Colors.white,
                 weight: FontWeight.w700,
                 letterSpacing: 0.3,
               ),
             ),
-            onPressed: provider.isSubmitting ? null : _handleSpaApprove,
+            onPressed: provider.isSubmitting || provider.isGeneratingPdf ? null : _handleRecompileWord,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.workspaceCorporateNavy,
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // 3. Generate PDF (Completely separate on-demand action)
+          ElevatedButton.icon(
+            icon: provider.isGeneratingPdf
+                ? const SizedBox(
+                    width: 13,
+                    height: 13,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                  )
+                : const Icon(Icons.picture_as_pdf_rounded, size: 14),
+            label: Text(
+              provider.isGeneratingPdf ? 'Generating PDF...' : 'Generate PDF',
+              style: AppTypography.workspaceButton(
+                color: Colors.white,
+                weight: FontWeight.w700,
+                letterSpacing: 0.3,
+              ),
+            ),
+            onPressed: provider.isGeneratingPdf || provider.isSubmitting ? null : _handleGeneratePdf,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.workspaceSuccess,
               foregroundColor: Colors.white,
               elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
             ),
           ),

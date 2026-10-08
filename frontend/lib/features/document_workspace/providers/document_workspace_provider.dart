@@ -1619,31 +1619,14 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     }
   }
 
-  /// Approves report and triggers final PDF/DOCX compilation (SPA Action)
+  /// Approves report and triggers DOCX report compilation (Word-First SPA Action)
   Future<bool> spaApprove(double finalValue) async {
     if (_workspaceModel == null) return false;
 
-    // BUG 1: Must begin with _errorMessage = null before any network activity
     _errorMessage = null;
-    _compileStatusMessage = 'Compiling report...';
+    _compileStatusMessage = 'Compiling Word document...';
     _isSubmitting = true;
     notifyListeners();
-
-    // BUG 3: Long-running compile status progressive states (~13s)
-    Timer? compileTimer;
-    compileTimer = Timer.periodic(const Duration(seconds: 4), (timer) {
-      if (!_isSubmitting) {
-        timer.cancel();
-        return;
-      }
-      if (timer.tick == 1) {
-        _compileStatusMessage = 'Generating PDF...';
-        notifyListeners();
-      } else if (timer.tick == 2) {
-        _compileStatusMessage = 'Applying digital signature...';
-        notifyListeners();
-      }
-    });
 
     try {
       final modifiedValues = _deltaValues.isNotEmpty ? Map<String, String>.from(_deltaValues) : null;
@@ -1653,9 +1636,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         modifiedValues: modifiedValues,
       );
 
-      compileTimer.cancel();
-
-      // BUG 4: If backend returns HTTP 200 (status: SPA_CONFIRMED)
+      // If backend returns HTTP 200 (status: SPA_CONFIRMED)
       if (result['status'] == 'SPA_CONFIRMED') {
         _errorMessage = null;
         _deltaValues.clear();
@@ -1675,13 +1656,39 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       _errorMessage = 'Unexpected approval status: ${result['status']}';
       return false;
     } catch (e) {
-      compileTimer.cancel();
       _errorMessage = ApiService.getErrorMessage(e);
       return false;
     } finally {
-      compileTimer.cancel();
       _compileStatusMessage = null;
       _isSubmitting = false;
+      notifyListeners();
+    }
+  }
+
+  bool _isGeneratingPdf = false;
+  bool get isGeneratingPdf => _isGeneratingPdf;
+
+  /// Generates PDF on-demand as a completely separate action after approval
+  Future<bool> generatePdfOnDemand() async {
+    if (_workspaceModel == null) return false;
+
+    _errorMessage = null;
+    _isGeneratingPdf = true;
+    notifyListeners();
+
+    try {
+      await _apiService.generatePdf(_workspaceModel!.orderId);
+      _errorMessage = null;
+      // Reload workspace to pull newly saved PDF document and updated snapshot
+      try {
+        await loadWorkspace(_workspaceModel!.orderId);
+      } catch (_) {}
+      return true;
+    } catch (e) {
+      _errorMessage = ApiService.getErrorMessage(e);
+      return false;
+    } finally {
+      _isGeneratingPdf = false;
       notifyListeners();
     }
   }

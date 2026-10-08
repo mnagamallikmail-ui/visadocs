@@ -1347,13 +1347,8 @@ public class OrderController {
                     // 1. Hydrate the DOCX template
                     byte[] docxBytes = docxTemplateEngine.generateReport(templateBytes, inputsMap, imagesMap);
                     
-                    // 2. Stamp the visual digital signature block
-                    String signerName = "Senior Property Analyst (SPA)";
-                    String timestamp = java.time.LocalDateTime.now().toString();
-                    byte[] signedDocxBytes = docxTemplateEngine.stampDigitalSignature(docxBytes, signerName, timestamp);
-                    
-                    // 3. Convert Hydrated DOCX to PDF
-                    reportBytes = docxTemplateEngine.convertDocxToPdf(signedDocxBytes);
+                    // 2. Convert Hydrated DOCX to PDF (no digital signature)
+                    reportBytes = docxTemplateEngine.convertDocxToPdf(docxBytes);
                 } catch (Exception e) {
                     return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Report compilation or PDF conversion failed: " + e.getMessage());
                 }
@@ -1453,19 +1448,14 @@ public class OrderController {
             }
 
             try {
-                // 1. Hydrate the DOCX template
+                // 1. Hydrate the DOCX template (Word-first, no digital signature)
                 byte[] docxBytes = docxTemplateEngine.generateReport(templateBytes, inputsMap, imagesMap);
-
-                // 2. Stamp the visual digital signature block
-                String signerName = "Senior Property Analyst (SPA)";
-                String timestamp = java.time.LocalDateTime.now().toString();
-                byte[] signedDocxBytes = docxTemplateEngine.stampDigitalSignature(docxBytes, signerName, timestamp);
 
                 return ResponseEntity.ok()
                         .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Report_" + id + ".docx\"")
                         .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
-                        .contentLength(signedDocxBytes.length)
-                        .body(signedDocxBytes);
+                        .contentLength(docxBytes.length)
+                        .body(docxBytes);
             } catch (Exception e) {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("DOCX compilation failed: " + e.getMessage());
             }
@@ -1948,6 +1938,8 @@ public class OrderController {
             UserDetailsImpl principal = getCurrentPrincipal();
             var response = documentWorkspaceService.spaApprove(id, request, principal);
             return ResponseEntity.ok(response);
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", e.getReason() != null ? e.getReason() : e.getMessage()));
         } catch (org.springframework.security.access.AccessDeniedException e) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
         } catch (NoSuchElementException e) {
@@ -1955,6 +1947,69 @@ public class OrderController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
         }
+    }
+
+    /**
+     * POST /api/v1/orders/{id}/generate-pdf
+     * On-demand PDF compilation. Completely separate action from approval flow.
+     */
+    @PostMapping("/{id}/generate-pdf")
+    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN')")
+    public ResponseEntity<?> generatePdf(@PathVariable Long id) {
+        try {
+            UserDetailsImpl principal = getCurrentPrincipal();
+            var response = documentWorkspaceService.generatePdfOnDemand(id, principal);
+            return ResponseEntity.ok(response);
+        } catch (org.springframework.web.server.ResponseStatusException e) {
+            return ResponseEntity.status(e.getStatusCode()).body(Map.of("error", e.getReason() != null ? e.getReason() : e.getMessage()));
+        } catch (org.springframework.security.access.AccessDeniedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", e.getMessage()));
+        } catch (NoSuchElementException e) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body(Map.of("error", e.getMessage()));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * GET /api/v1/orders/{id}/download-pdf
+     * Direct binary PDF download for authorized roles once generated on demand.
+     */
+    @GetMapping("/{id}/download-pdf")
+    public ResponseEntity<?> downloadPdfReport(@PathVariable Long id) {
+        UserDetailsImpl principal = getCurrentPrincipal();
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
+        }
+        Optional<Order> orderOpt = orderRepository.findById(id);
+        if (orderOpt.isPresent()) {
+            Order order = orderOpt.get();
+            boolean isSpaOrAdmin = principal.getAuthorities().stream().anyMatch(a ->
+                    a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SPA"));
+            boolean isAssignedPa = order.getPaId() != null && order.getPaId().equals(principal.getId());
+            boolean isOwner = order.getClientId() != null && order.getClientId().equals(principal.getId());
+            if (!isSpaOrAdmin && !isAssignedPa && !isOwner) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Access denied: You are not authorized for Order #" + id));
+            }
+
+            List<OrderDocument> docs = orderDocumentRepository.findAllByOrderId(id);
+            Optional<OrderDocument> finalPdfOpt = docs.stream()
+                    .filter(d -> "FINAL_SIGNED_PDF".equalsIgnoreCase(d.getCategory()))
+                    .findFirst();
+
+            if (finalPdfOpt.isPresent() && finalPdfOpt.get().getFileContent() != null) {
+                byte[] pdfContent = finalPdfOpt.get().getFileContent();
+                return ResponseEntity.ok()
+                        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Report_" + id + ".pdf\"")
+                        .contentType(MediaType.APPLICATION_PDF)
+                        .contentLength(pdfContent.length)
+                        .body(pdfContent);
+            }
+
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(Map.of("error", "PDF not generated yet. Please generate PDF first."));
+        }
+        return ResponseEntity.notFound().build();
     }
 
     /**
