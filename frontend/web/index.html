@@ -842,6 +842,337 @@
         box-sizing: border-box;
       }
     }
+
+    /* Phase 4M: Authority, Trust & Conversion Components */
+    .trust-credentials-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin: 28px 0;
+    }
+    .trust-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 16px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .trust-card-badge {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #0D695A;
+      background: #E6F4F1;
+      padding: 3px 8px;
+      border-radius: 4px;
+      align-self: flex-start;
+    }
+    .trust-card-title {
+      font-size: 15px;
+      font-weight: 700;
+      color: #0F172A;
+      margin: 0;
+    }
+    .trust-card-desc {
+      font-size: 12.5px;
+      color: #64748B;
+      line-height: 1.45;
+      margin: 0;
+    }
+
+    .authority-grid-2col {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin: 24px 0 36px 0;
+    }
+    .why-choose-card {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 12px;
+      padding: 20px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .why-choose-card h3 {
+      font-size: 16px !important;
+      color: #0D695A !important;
+      margin: 0 0 8px 0 !important;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    .why-choose-card p {
+      font-size: 13.5px !important;
+      margin: 0 !important;
+      color: #475569 !important;
+      line-height: 1.55 !important;
+    }
+
+    .industry-tags-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin: 20px 0 32px 0;
+    }
+    .industry-tag {
+      background: #FFFFFF;
+      border: 1px solid #CBD5E1;
+      color: #1E293B;
+      font-size: 13px;
+      font-weight: 600;
+      padding: 8px 14px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+    }
+    .industry-tag span {
+      color: #0D695A;
+      font-weight: 700;
+    }
+
+    .case-study-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+      gap: 24px;
+      margin: 24px 0 40px 0;
+    }
+    .case-study-card {
+      background: #FFFFFF;
+      border: 1px solid #E2E8F0;
+      border-top: 4px solid #0D695A;
+      border-radius: 10px;
+      padding: 22px;
+      box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05);
+    }
+    .case-study-category {
+      font-size: 11px;
+      font-weight: 800;
+      color: #D97706;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 6px;
+    }
+    .case-study-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #0F172A;
+      margin: 0 0 12px 0;
+      line-height: 1.35;
+    }
+    .case-study-meta {
+      font-size: 12.5px;
+      background: #F1F5F9;
+      padding: 6px 12px;
+      border-radius: 6px;
+      margin-bottom: 12px;
+      color: #334155;
+    }
+    .case-study-item {
+      font-size: 13px;
+      color: #475569;
+      line-height: 1.5;
+      margin-bottom: 8px;
+    }
+    .case-study-item strong {
+      color: #0F172A;
+    }
+
+    .workflow-steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 16px;
+      margin: 24px 0 36px 0;
+    }
+    .workflow-step-card {
+      background: #F8FAFC;
+      border: 1px solid #E2E8F0;
+      border-radius: 10px;
+      padding: 18px;
+      position: relative;
+    }
+    .workflow-step-num {
+      font-size: 24px;
+      font-weight: 900;
+      color: #0D695A;
+      line-height: 1;
+      margin-bottom: 8px;
+    }
+    .workflow-step-title {
+      font-size: 14px;
+      font-weight: 700;
+      color: #0F172A;
+      margin-bottom: 6px;
+    }
+    .workflow-step-desc {
+      font-size: 12px;
+      color: #64748B;
+      line-height: 1.45;
+      margin: 0;
+    }
+
+    .conversion-callout-banner {
+      background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+      color: #FFFFFF;
+      border-radius: 16px;
+      padding: 32px 28px;
+      margin: 40px 0;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .conversion-callout-banner h3 {
+      color: #FFFFFF !important;
+      font-size: 22px !important;
+      margin: 0 !important;
+    }
+    .conversion-callout-banner p {
+      color: #94A3B8 !important;
+      font-size: 14.5px !important;
+      margin: 0 !important;
+      max-width: 800px;
+    }
+    .conversion-buttons-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      margin-top: 8px;
+    }
+    .btn-action-tel {
+      background: #0D695A;
+      color: #FFFFFF !important;
+      padding: 12px 22px;
+      border-radius: 8px;
+      font-weight: 700;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      transition: background 0.2s;
+    }
+    .btn-action-tel:hover {
+      background: #084C41;
+      text-decoration: none;
+    }
+    .btn-action-whatsapp {
+      background: #25D366;
+      color: #FFFFFF !important;
+      padding: 12px 22px;
+      border-radius: 8px;
+      font-weight: 700;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+      transition: opacity 0.2s;
+    }
+    .btn-action-whatsapp:hover {
+      opacity: 0.9;
+      text-decoration: none;
+    }
+    .btn-action-portal {
+      background: #2563EB;
+      color: #FFFFFF !important;
+      padding: 12px 22px;
+      border-radius: 8px;
+      font-weight: 700;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 14px;
+    }
+    .btn-action-portal:hover {
+      background: #1D4ED8;
+      text-decoration: none;
+    }
+
+    /* Fixed Bottom Mobile / Desktop Contact Float */
+    .floating-lead-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(15, 23, 42, 0.97);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 9999;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
+    }
+    .floating-lead-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .floating-lead-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #FFFFFF;
+    }
+    .floating-lead-sub {
+      font-size: 11px;
+      color: #94A3B8;
+    }
+    .floating-lead-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .floating-btn-phone {
+      background: #0D695A;
+      color: #FFFFFF;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 6px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .floating-btn-wa {
+      background: #25D366;
+      color: #FFFFFF;
+      font-size: 12px;
+      font-weight: 700;
+      padding: 8px 14px;
+      border-radius: 6px;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    @media (max-width: 640px) {
+      .floating-lead-info {
+        display: none;
+      }
+      .floating-lead-bar {
+        justify-content: center;
+        padding: 8px 12px;
+      }
+      .floating-lead-actions {
+        width: 100%;
+        justify-content: space-around;
+      }
+      .floating-btn-phone, .floating-btn-wa {
+        flex: 1;
+        text-align: center;
+        justify-content: center;
+      }
+    }
   </style>
 </head>
 <body>
@@ -945,6 +1276,35 @@
         </ul>
       </div>
 
+      <!-- Phase 1: Verified Authority & Trust Accreditation Grid -->
+      <div class="trust-credentials-grid">
+        <div class="trust-card">
+          <span class="trust-card-badge">Statutory Licensure</span>
+          <p class="trust-card-title">IBBI Registered Valuers</p>
+          <p class="trust-card-desc">Registered under Section 247 of Companies Act 2013 across Land &amp; Building, Plant &amp; Machinery, and Securities.</p>
+        </div>
+        <div class="trust-card">
+          <span class="trust-card-badge">Central Tax Board</span>
+          <p class="trust-card-title">Government Approved Valuers</p>
+          <p class="trust-card-desc">Approved under Section 34AB of Wealth Tax Act 1957 with CBDT for capital gains Sec 50C &amp; Sec 55A appraisals.</p>
+        </div>
+        <div class="trust-card">
+          <span class="trust-card-badge">Engineering Authority</span>
+          <p class="trust-card-title">Chartered Engineers (IEI)</p>
+          <p class="trust-card-desc">Institution of Engineers (India) empanelled for Customs SVB used machinery clearance &amp; DGFT EPCG certification.</p>
+        </div>
+        <div class="trust-card">
+          <span class="trust-card-badge">Judicial Admissibility</span>
+          <p class="trust-card-title">Section 45 Evidence Act</p>
+          <p class="trust-card-desc">Expert witness valuation testimony admissible before Telangana High Court, NCLT Benches, and Family Courts.</p>
+        </div>
+        <div class="trust-card">
+          <span class="trust-card-badge">Banking Panels</span>
+          <p class="trust-card-title">PSU &amp; Private Bank Empanelled</p>
+          <p class="trust-card-desc">Adheres to RBI Master Directions &amp; SARFAESI Act standards for commercial mortgage credit sanction.</p>
+        </div>
+      </div>
+
       <main>
       <!-- Section: Property Valuation Services in Hyderabad & Secunderabad -->
       <section>
@@ -1013,6 +1373,190 @@
         </ul>
       </section>
 
+      <!-- Phase 2: Why Choose ProValuer Commercial -->
+      <section>
+        <h2>Why Choose ProValuer Commercial for Asset Valuation</h2>
+        <p>ProValuer Commercial combines technical engineering precision, statutory legal authority, and deep local market data to provide defensible appraisals trusted by India’s highest regulatory bodies and financial institutions:</p>
+        
+        <div class="authority-grid-2col">
+          <div class="why-choose-card">
+            <h3>&#9878; Government Approved Valuers</h3>
+            <p>Formally approved under Section 34AB of the Wealth Tax Act 1957 by the Central Board of Direct Taxes (CBDT). Our statutory Form O-1 valuation reports are recognized by tax authorities across India.</p>
+          </div>
+          <div class="why-choose-card">
+            <h3>&#128220; IBBI Registered Valuers</h3>
+            <p>Registered with the Insolvency and Bankruptcy Board of India (IBBI) under Section 247 of the Companies Act 2013 across Land &amp; Building, Plant &amp; Machinery, and Securities &amp; Financial Assets.</p>
+          </div>
+          <div class="why-choose-card">
+            <h3>&#127960; Property Valuation Specialists</h3>
+            <p>Dedicated valuation engineers specializing in high-rise apartments (UDS method), gated community villas, freehold plots, and commercial IT complexes with on-site GPS photographic verification.</p>
+          </div>
+          <div class="why-choose-card">
+            <h3>&#127757; Pan-Telangana &amp; Hyderabad Coverage</h3>
+            <p>Intensive coverage across Hyderabad and Secunderabad, with statutory capabilities extending across all Telangana revenue districts for commercial and industrial assets valued above Rs.10 Crores.</p>
+          </div>
+          <div class="why-choose-card">
+            <h3>&#128176; High-Value Asset Expertise (&gt; Rs.20 Cr)</h3>
+            <p>Specialized institutional desk executing high-stakes asset appraisals exceeding Rs.20 Crores across India, adhering strictly to International Valuation Standards (IVS) and Ind AS fair value frameworks.</p>
+          </div>
+          <div class="why-choose-card">
+            <h3>&#127970; Commercial Valuation Depth</h3>
+            <p>Advanced income capitalization, discounted cash flow (DCF), and depreciated replacement cost (DRC) modeling for office towers, high-street retail, warehousing hubs, and industrial manufacturing plants.</p>
+          </div>
+          <div class="why-choose-card">
+            <h3>&#9879; Judicial &amp; Litigation Support</h3>
+            <p>Court-admissible expert appraisal evidence under Section 45 of the Indian Evidence Act for proceedings before the Telangana High Court, NCLT Benches, Family Courts, and Debt Recovery Tribunals.</p>
+          </div>
+          <div class="why-choose-card">
+            <h3>&#128200; Capital Gains Tax Defense</h3>
+            <p>Proven track record defending property owners against arbitrary Section 50C circle rate adjustments and delivering retrospective Fair Market Value (FMV) determinations as of April 1, 2001 under Section 55A.</p>
+          </div>
+          <div class="why-choose-card">
+            <h3>&#127974; Bank Loan &amp; Mortgage Empanelment</h3>
+            <p>Empanelled with leading public sector PSU banks and scheduled private commercial lenders, delivering RBI-compliant Fair Market Value, Realizable Value, and Distress Sale Value schedules.</p>
+          </div>
+          <div class="why-choose-card">
+            <h3>&#128747; Visa &amp; Consular Wealth Documentation</h3>
+            <p>Fast-track 24–48 hour certified valuation reports and Chartered Net Worth Certificates for student visas (US F-1, Canada, UK, Australia) and permanent residency applications with tamper-evident QR verification.</p>
+          </div>
+          <div class="why-choose-card">
+            <h3>&#9881; Chartered Engineer Inspection Authority</h3>
+            <p>Empanelled with the Institution of Engineers (India) to issue statutory technical certificates for Customs SVB used machinery clearance, DGFT EPCG compliance, and machinery residual useful life.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Phase 3: Industries & Asset Sectors Served -->
+      <section>
+        <h2>Industries &amp; Asset Classes Supported</h2>
+        <p>ProValuer Commercial provides multi-asset appraisal services tailored to specific industry regulations, accounting frameworks, and credit requirements:</p>
+        
+        <div class="industry-tags-grid">
+          <div class="industry-tag"><span>&#10003;</span> Residential Real Estate (Flats, Villas, Plots)</div>
+          <div class="industry-tag"><span>&#10003;</span> Commercial Real Estate (Office Parks, Retail, Malls)</div>
+          <div class="industry-tag"><span>&#10003;</span> Industrial Assets &amp; Manufacturing Units</div>
+          <div class="industry-tag"><span>&#10003;</span> Hotels &amp; Hospitality Resorts</div>
+          <div class="industry-tag"><span>&#10003;</span> Hospitals &amp; Healthcare Infrastructure</div>
+          <div class="industry-tag"><span>&#10003;</span> Educational Institutions &amp; Universities</div>
+          <div class="industry-tag"><span>&#10003;</span> Warehouses &amp; Logistics Parks</div>
+          <div class="industry-tag"><span>&#10003;</span> Factories &amp; Heavy Engineering Sheds</div>
+          <div class="industry-tag"><span>&#10003;</span> Land Parcels (Plotted &amp; NALA Converted)</div>
+          <div class="industry-tag"><span>&#10003;</span> Corporate Entities &amp; Public Ltd Companies</div>
+          <div class="industry-tag"><span>&#10003;</span> Scheduled Commercial Banks &amp; NBFCs</div>
+          <div class="industry-tag"><span>&#10003;</span> Startups &amp; Scaleups (Rule 11UA DCF)</div>
+          <div class="industry-tag"><span>&#10003;</span> MSMEs &amp; Industrial Clusters</div>
+          <div class="industry-tag"><span>&#10003;</span> High Net Worth Individuals (HNIs) &amp; NRIs</div>
+        </div>
+      </section>
+
+      <!-- Phase 7: Anonymized Case Study Framework -->
+      <section>
+        <h2>Representative Valuation Case Studies</h2>
+        <p>Selected anonymized appraisal engagements illustrating our forensic approach, methodology, and concrete outcomes across complex asset mandates:</p>
+
+        <div class="case-study-grid">
+          <div class="case-study-card">
+            <div class="case-study-category">Commercial Real Estate</div>
+            <h3 class="case-study-title">Financial District Commercial Office Tower</h3>
+            <div class="case-study-meta">Mandate Scope: ₹85 Crore Asset Valuation for Consortium Refinancing</div>
+            <div class="case-study-item"><strong>Problem:</strong> A Grade-A commercial developer required an independent, RBI-compliant Fair Market Value appraisal to secure a multi-bank consortium lease rental discounting (LRD) facility.</div>
+            <div class="case-study-item"><strong>Approach:</strong> Deployed a dual Direct Capitalization yield model (8.25% exit cap) and a 10-year Discounted Cash Flow (DCF) model under Ind AS 113, analyzing verified weighted average lease expiries (WALE).</div>
+            <div class="case-study-item"><strong>Outcome:</strong> Delivered defense-grade collateral dossier accepted by all three lead consortium PSU banks, facilitating sanction of ₹55 Crore credit line within 5 business days.</div>
+          </div>
+
+          <div class="case-study-card">
+            <div class="case-study-category">Banking &amp; Collateral</div>
+            <h3 class="case-study-title">Pharmaceutical Manufacturing Facility in Medchal</h3>
+            <div class="case-study-meta">Mandate Scope: ₹24 Crore Combined Land, Building &amp; Plant Appraisal</div>
+            <div class="case-study-item"><strong>Problem:</strong> Scheduled private commercial bank required pre-sanction mortgage appraisal detailing FMV, Realizable Value (RV), and Distress Sale Value (DSV) for industrial credit expansion.</div>
+            <div class="case-study-item"><strong>Approach:</strong> Executed physical GPS boundary inspection, audited TSIIC lease deeds, and applied Depreciated Replacement Cost (DRC) with CPWD cost indices for structural assets alongside IVS 300 for plant machinery.</div>
+            <div class="case-study-item"><strong>Outcome:</strong> Delivered structured credit risk report with 15% RV and 28% DSV hair-cuts, ensuring full regulatory adherence to RBI Master Directions.</div>
+          </div>
+
+          <div class="case-study-card">
+            <div class="case-study-category">Consular Wealth &amp; Visa</div>
+            <h3 class="case-study-title">Multi-Asset Consular Net Worth Dossier for Overseas Visa</h3>
+            <div class="case-study-meta">Mandate Scope: ₹14.5 Crore Family Asset Portfolio (Jubilee Hills / Banjara Hills)</div>
+            <div class="case-study-item"><strong>Problem:</strong> Applicant required consolidated valuation and liquid/fixed wealth evidence for US EB-5 immigrant investor petition and accompanying student F-1 visa.</div>
+            <div class="case-study-item"><strong>Approach:</strong> Valued 2 luxury gated villas, commercial showroom, and agricultural acreage under Section 34AB Wealth Tax Act; cross-referenced SRO registered deeds and issued bilingual INR/USD conversion schedules.</div>
+            <div class="case-study-item"><strong>Outcome:</strong> Dispatched certified hardbound dossier with tamper-evident QR verification within 36 hours; successfully admitted at US Consulate without query.</div>
+          </div>
+
+          <div class="case-study-card">
+            <div class="case-study-category">Taxation &amp; Section 50C</div>
+            <h3 class="case-study-title">Capital Gains Tax Circle Rate Discrepancy Defense</h3>
+            <div class="case-study-meta">Mandate Scope: Section 50C SRO Circle Rate Rebuttal before Assessing Officer</div>
+            <div class="case-study-item"><strong>Problem:</strong> Sub-Registrar circle rate value of commercial land parcel exceeded actual arms-length registered sale price by 42% due to severe irregular frontage and HT powerline easement.</div>
+            <div class="case-study-item"><strong>Approach:</strong> Conducted forensic engineering survey, documented physical easements, and prepared statutory Form O-1 valuation report citing binding High Court and ITAT precedents.</div>
+            <div class="case-study-item"><strong>Outcome:</strong> Assessing Officer accepted ProValuer report under Section 50C(2), eliminating ₹1.8 Crore in arbitrary deemed capital gains tax additions.</div>
+          </div>
+
+          <div class="case-study-card">
+            <div class="case-study-category">Plant &amp; Machinery</div>
+            <h3 class="case-study-title">Continuous Process Chemical Unit in Patancheru</h3>
+            <div class="case-study-meta">Mandate Scope: ₹42 Crore Industrial Equipment Valuation</div>
+            <div class="case-study-item"><strong>Problem:</strong> Manufacturing enterprise required balance sheet revaluation and insurance replacement cost benchmarking under Ind AS 16.</div>
+            <div class="case-study-item"><strong>Approach:</strong> Physical nameplate inspection of reactors, boilers, and automated packaging lines; deployed Modern Equivalent Asset (MEA) modeling, CPWD machinery indices, and functional obsolescence analysis.</div>
+            <div class="case-study-item"><strong>Outcome:</strong> Audit-compliant valuation report certified by Chartered Engineers and IBBI Valuers in Plant &amp; Machinery, accepted by statutory auditors without qualification.</div>
+          </div>
+
+          <div class="case-study-card">
+            <div class="case-study-category">Insolvency &amp; NCLT</div>
+            <h3 class="case-study-title">Corporate Debtor Liquidation Valuation under IBC 2016</h3>
+            <div class="case-study-meta">Mandate Scope: Statutory CIRP Valuation under Regulation 35</div>
+            <div class="case-study-item"><strong>Problem:</strong> Resolution Professional (RP) and Committee of Creditors (CoC) required statutory determination of Fair Value and Liquidation Value for an automotive component manufacturer.</div>
+            <div class="case-study-item"><strong>Approach:</strong> Executed tripartite valuation spanning Land &amp; Building, Plant &amp; Machinery, and Securities under Section 247 Companies Act, establishing benchmark reserve auction values.</div>
+            <div class="case-study-item"><strong>Outcome:</strong> Comprehensive valuation reports delivered within statutory CIRP timeline, facilitating transparent resolution plan voting before NCLT Hyderabad Bench.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Phase 8: Social Proof & Typical Engagement Workflow -->
+      <section>
+        <h2>Transparent 5-Step Valuation Engagement Process</h2>
+        <p>Our standardized operating workflow guarantees legal compliance, engineering precision, and dependable turnaround from mandate intake to final delivery:</p>
+
+        <div class="workflow-steps-grid">
+          <div class="workflow-step-card">
+            <div class="workflow-step-num">01</div>
+            <div class="workflow-step-title">Mandate Intake &amp; Scope</div>
+            <p class="workflow-step-desc">Review valuation purpose (Bank Loan, Visa, Tax, NCLT) and identify applicable statutory frameworks (Sec 34AB, Sec 247, IVS).</p>
+          </div>
+          <div class="workflow-step-card">
+            <div class="workflow-step-num">02</div>
+            <div class="workflow-step-title">Document Due Diligence</div>
+            <p class="workflow-step-desc">Audit title deeds, RERA floor plans, municipal approvals, SRO circle rates, and encumbrance certificates.</p>
+          </div>
+          <div class="workflow-step-card">
+            <div class="workflow-step-num">03</div>
+            <div class="workflow-step-title">Physical On-Site Inspection</div>
+            <p class="workflow-step-desc">Forensic measurement, laser area checks, GPS boundary logging, construction quality audit, and photographic evidence.</p>
+          </div>
+          <div class="workflow-step-card">
+            <div class="workflow-step-num">04</div>
+            <div class="workflow-step-title">Multi-Method Modeling</div>
+            <p class="workflow-step-desc">Triangulate Fair Market Value using Sales Comparison, CPWD Plinth Area DRC, and Income Capitalization / DCF models.</p>
+          </div>
+          <div class="workflow-step-card">
+            <div class="workflow-step-num">05</div>
+            <div class="workflow-step-title">Defense-Grade Delivery</div>
+            <p class="workflow-step-desc">Issue signed, sealed valuation dossier with security QR verification within 24–48 hours for standard residential and commercial assets.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Phase 4: High-Conversion Instant Consultation Callout Banner -->
+      <div class="conversion-callout-banner">
+        <h3>Need a Certified Valuation Report from an IBBI Registered Valuer?</h3>
+        <p>Connect directly with our Hyderabad valuation directors for bank loan, visa net worth, capital gains tax defense, or industrial machinery appraisals. Fast 24–48 hour report dispatch.</p>
+        <div class="conversion-buttons-row">
+          <a href="tel:+918500019091" class="btn-action-tel">&#9742; Call +91 85000 19091</a>
+          <a href="https://wa.me/918500880333?text=Hi%20ProValuer%2C%20I%20need%20a%20property%20valuation%20report" class="btn-action-whatsapp" target="_blank" rel="noopener">&#128172; WhatsApp Advisory</a>
+          <a href="/login" class="btn-action-portal">Client Valuation Portal &rarr;</a>
+          <a href="/review" style="color: #FCD34D; font-size: 13px; font-weight: 600; text-decoration: underline; display: inline-flex; align-items: center; margin-left: 8px;">★ Client Reviews &amp; Feedback</a>
+        </div>
+      </div>
+
       <!-- Section: Frequently Asked Questions -->
       <section>
         <h2>Frequently Asked Questions — Property &amp; Asset Valuation</h2>
@@ -1068,6 +1612,18 @@
       </section>
       </main>
     </div> <!-- /.prerender-below-fold-content -->
+
+    <!-- Phase 4: High-Conversion Floating Quick Action Bar -->
+    <div class="floating-lead-bar">
+      <div class="floating-lead-info">
+        <span class="floating-lead-title">ProValuer Commercial — Hyderabad Desk</span>
+        <span class="floating-lead-sub">Government Approved &amp; IBBI Registered Valuers</span>
+      </div>
+      <div class="floating-lead-actions">
+        <a href="tel:+918500019091" class="floating-btn-phone">&#9742; Call +91 85000 19091</a>
+        <a href="https://wa.me/918500880333?text=Hi%20ProValuer%20Team%2C%20I%20need%20a%20property%20valuation%20report" class="floating-btn-wa" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+      </div>
+    </div>
   </div> <!-- /#seo-prerender-shell -->
 
   <noscript>

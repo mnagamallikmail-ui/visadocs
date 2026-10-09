@@ -214,6 +214,47 @@
     .feature-card h3 { margin-top: 0; color: #0F172A; }
     .faq-item { border-bottom: 1px solid #E2E8F0; padding: 16px 0; }
     .faq-question { font-weight: 700; font-size: 16px; color: #0F172A; margin-bottom: 8px; }
+
+    /* Phase 4M Trust, Case Studies & Floating Action Bar */
+    .trust-credentials-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 14px; margin: 24px 0; }
+    .trust-card { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 4px; }
+    .trust-card-badge { font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: #065F46; background: #ECFDF5; padding: 2px 6px; border-radius: 4px; align-self: flex-start; }
+    .trust-card-title { font-size: 14px; font-weight: 700; color: #0F172A; margin: 0; }
+    .trust-card-desc { font-size: 12px; color: #64748B; line-height: 1.4; margin: 0; }
+
+    .case-study-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin: 24px 0; }
+    .case-study-card { background: #FFFFFF; border: 1px solid #E2E8F0; border-top: 4px solid #0D695A; border-radius: 8px; padding: 18px; box-shadow: 0 2px 4px rgba(0,0,0,0.04); }
+    .case-study-category { font-size: 10px; font-weight: 800; color: #D97706; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+    .case-study-title { font-size: 15px; font-weight: 700; color: #0F172A; margin: 0 0 8px 0; }
+    .case-study-meta { font-size: 12px; background: #F1F5F9; padding: 4px 8px; border-radius: 4px; margin-bottom: 8px; color: #334155; }
+    .case-study-item { font-size: 12.5px; color: #475569; line-height: 1.45; margin-bottom: 6px; }
+
+    .floating-lead-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(15, 23, 42, 0.97);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 9999;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
+    }
+    .floating-lead-title { font-size: 13px; font-weight: 700; color: #FFFFFF; }
+    .floating-lead-sub { font-size: 11px; color: #94A3B8; }
+    .floating-lead-actions { display: flex; align-items: center; gap: 10px; }
+    .floating-btn-phone { background: #0D695A; color: #FFFFFF !important; font-size: 12px; font-weight: 700; padding: 8px 14px; border-radius: 6px; text-decoration: none !important; display: inline-flex; align-items: center; gap: 6px; }
+    .floating-btn-wa { background: #25D366; color: #FFFFFF !important; font-size: 12px; font-weight: 700; padding: 8px 14px; border-radius: 6px; text-decoration: none !important; display: inline-flex; align-items: center; gap: 6px; }
+
+    @media (max-width: 640px) {
+      .floating-lead-bar { justify-content: center; padding: 8px 12px; }
+      .floating-lead-actions { width: 100%; justify-content: space-around; }
+      .floating-btn-phone, .floating-btn-wa { flex: 1; text-align: center; justify-content: center; }
+    }
   </style>
 </head>
 <body>
@@ -228,8 +269,32 @@
         </div>
         <h1>Property Valuation in Hyderabad — Government Approved &amp; IBBI Registered Valuers</h1>
         <p><strong>ProValuer Commercial</strong> is Hyderabad's trusted valuation firm delivering certified, defense-grade property valuation reports for residential, commercial, and industrial real estate. Governed by Section 34AB of the Wealth Tax Act 1957, Section 247 of the Companies Act 2013, and International Valuation Standards (IVS), our valuation opinions are recognized by commercial banks, tax authorities, embassies, and judicial tribunals.</p>
-        <p>Direct Hotline: <a href="tel:+918500019091">+91 85000 19091</a> | WhatsApp Advisory: <a href="https://wa.me/918500880333">+91 85008 80333</a> | Main Portal: <a href="https://www.provaluer.in/">ProValuer Home</a></p>
+        <p>Direct Hotline: <a href="tel:+918500019091">+91 85000 19091</a> | WhatsApp Advisory: <a href="https://wa.me/918500880333">+91 85008 80333</a> | Main Portal: <a href="https://www.provaluer.in/">ProValuer Home</a> | <a href="/review" style="color: #D97706;">★ Verified Reviews</a></p>
       </header>
+
+      <!-- Phase 1: Verified Authority & Trust Accreditation Grid -->
+      <div class="trust-credentials-grid">
+        <div class="trust-card">
+          <span class="trust-card-badge">Statutory Licensure</span>
+          <p class="trust-card-title">IBBI Registered Valuers</p>
+          <p class="trust-card-desc">Companies Act Section 247 registered for Land &amp; Building and Plant &amp; Machinery.</p>
+        </div>
+        <div class="trust-card">
+          <span class="trust-card-badge">Central Tax Board</span>
+          <p class="trust-card-title">Government Approved Valuers</p>
+          <p class="trust-card-desc">Section 34AB Wealth Tax Act approved for capital gains Sec 50C &amp; Sec 55A.</p>
+        </div>
+        <div class="trust-card">
+          <span class="trust-card-badge">Engineering Authority</span>
+          <p class="trust-card-title">Chartered Engineers (IEI)</p>
+          <p class="trust-card-desc">Institution of Engineers (India) empanelled for Customs and DGFT certification.</p>
+        </div>
+        <div class="trust-card">
+          <span class="trust-card-badge">Banking Panels</span>
+          <p class="trust-card-title">PSU &amp; Private Bank Empanelled</p>
+          <p class="trust-card-desc">Empanelled for home loans, commercial credit, and SARFAESI valuations.</p>
+        </div>
+      </div>
 
       <main>
         <section>
@@ -290,11 +355,45 @@
           <strong>Wider Telangana:</strong> Properties valued above Rs.10 Crores across Warangal, Karimnagar, Nizamabad, and Khammam.</p>
         </section>
 
+        <!-- Phase 7: Representative Hyderabad Valuation Case Studies -->
+        <section>
+          <h2>Representative Hyderabad Property Valuation Case Studies</h2>
+          <div class="case-study-grid">
+            <div class="case-study-card">
+              <div class="case-study-category">Commercial Real Estate</div>
+              <h3 class="case-study-title">Financial District Commercial Office Tower</h3>
+              <div class="case-study-meta">Scope: ₹85 Crore Fair Market Valuation for Consortium LRD</div>
+              <div class="case-study-item"><strong>Problem:</strong> Developer required an independent, RBI-compliant FMV appraisal to secure lease rental discounting.</div>
+              <div class="case-study-item"><strong>Approach:</strong> Dual Direct Capitalization (8.25% exit cap) and 10-year DCF modeling under Ind AS 113.</div>
+              <div class="case-study-item"><strong>Outcome:</strong> Report accepted by lead PSU lenders; credit line sanctioned in 5 business days.</div>
+            </div>
+
+            <div class="case-study-card">
+              <div class="case-study-category">Consular Wealth &amp; Visa</div>
+              <h3 class="case-study-title">Jubilee Hills &amp; Banjara Hills Multi-Asset Visa Dossier</h3>
+              <div class="case-study-meta">Scope: ₹14.5 Crore Family Portfolio for US Visa Interview</div>
+              <div class="case-study-item"><strong>Problem:</strong> Applicant required fast-track net worth proof for US EB-5 &amp; student visa.</div>
+              <div class="case-study-item"><strong>Approach:</strong> Section 34AB Wealth Tax Act valuation with SRO cross-reference and bilingual USD schedules.</div>
+              <div class="case-study-item"><strong>Outcome:</strong> Delivered hardbound dossier with QR verification in 36 hours; successfully approved.</div>
+            </div>
+
+            <div class="case-study-card">
+              <div class="case-study-category">Capital Gains &amp; Circle Rate</div>
+              <h3 class="case-study-title">Section 50C Sub-Registrar Circle Rate Rebuttal</h3>
+              <div class="case-study-meta">Scope: Circle Rate Dispute Defense before Income Tax Officer</div>
+              <div class="case-study-item"><strong>Problem:</strong> Sub-Registrar circle rate value exceeded actual market price by 42% due to irregular frontage.</div>
+              <div class="case-study-item"><strong>Approach:</strong> Prepared statutory Form O-1 report documenting physical land deformities.</div>
+              <div class="case-study-item"><strong>Outcome:</strong> Accepted under Section 50C(2), saving assessee ₹1.8 Crore in deemed tax additions.</div>
+            </div>
+          </div>
+        </section>
+
         <section class="cta-card">
           <h2>Request a Certified Property Valuation in Hyderabad</h2>
           <p>Physical site inspection within 24 hours. Certified statutory valuation reports signed by Government Approved Valuers under Section 34AB &amp; IBBI Registered Valuers delivered in 24–48 hours.</p>
           <a href="tel:+918500019091" class="cta-btn">&#9742; Call +91 85000 19091</a>
-          <a href="https://wa.me/918500880333" class="cta-btn-alt">&#128172; WhatsApp +91 85008 80333</a>
+          <a href="https://wa.me/918500880333?text=Hi%20ProValuer%2C%20I%20need%20a%20property%20valuation%20in%20Hyderabad" class="cta-btn-alt" target="_blank" rel="noopener">&#128172; WhatsApp +91 85008 80333</a>
+          <a href="/review" style="display: inline-block; color: #FDE68A; margin-left: 14px; font-weight: 700; font-size: 13px;">★ Client Reviews</a>
         </section>
 
         <section>
@@ -355,6 +454,18 @@
           </p>
         </section>
       </main>
+    </div>
+
+    <!-- Phase 4: High-Conversion Floating Quick Action Bar -->
+    <div class="floating-lead-bar">
+      <div class="floating-lead-info">
+        <span class="floating-lead-title">ProValuer Commercial — Hyderabad Desk</span>
+        <span class="floating-lead-sub">Government Approved &amp; IBBI Registered Valuers</span>
+      </div>
+      <div class="floating-lead-actions">
+        <a href="tel:+918500019091" class="floating-btn-phone">&#9742; Call +91 85000 19091</a>
+        <a href="https://wa.me/918500880333?text=Hi%20ProValuer%2C%20I%20need%20a%20property%20valuation%20in%20Hyderabad" class="floating-btn-wa" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+      </div>
     </div>
   </div>
 
