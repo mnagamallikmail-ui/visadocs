@@ -139,15 +139,25 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
       _errorMessage = null;
     });
 
-    final fastDio = Dio(BaseOptions(
+    final token = _api.token;
+    final headers = <String, dynamic>{
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+    if (token != null && token.isNotEmpty) {
+      headers['Authorization'] = 'Bearer $token';
+    }
+
+    final telemetryDio = Dio(BaseOptions(
       baseUrl: _api.dio.options.baseUrl,
-      connectTimeout: const Duration(milliseconds: 400),
-      receiveTimeout: const Duration(milliseconds: 400),
-      sendTimeout: const Duration(milliseconds: 400),
+      connectTimeout: const Duration(seconds: 5),
+      receiveTimeout: const Duration(seconds: 10),
+      sendTimeout: const Duration(seconds: 5),
+      headers: headers,
     ));
 
     try {
-      final res = await fastDio.get('/api/v1/admin/seo/real-telemetry');
+      final res = await telemetryDio.get('/api/v1/admin/seo/real-telemetry');
       if (res.data is Map<String, dynamic>) {
         _applyTelemetryData(res.data as Map<String, dynamic>);
         return;
@@ -157,7 +167,7 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
     }
 
     try {
-      final leadRes = await fastDio.get('/api/leads');
+      final leadRes = await telemetryDio.get('/api/leads');
       if (leadRes.data is List) {
         final list = leadRes.data as List;
         final serviceMap = <String, int>{};
@@ -544,7 +554,7 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
               Expanded(
                 child: _buildIntegrationStatusTile(
                   'Google Analytics 4',
-                  'VERIFIED LIVE',
+                  _ga4Connected ? 'VERIFIED LIVE' : 'NOT CONNECTED',
                   _ga4Connected,
                   Icons.analytics_outlined,
                   source: _ga4Connected ? 'Google Analytics 4' : null,
@@ -583,16 +593,16 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
                   children: [
                     Text('Executive Summary (Verified Data Only)', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
                     const Spacer(),
-                    Text('Source: PostgreSQL (valuation_leads, orders) | Verified: ${_crmConnected ? "LIVE" : "NO"}', style: GoogleFonts.inter(fontSize: 11, color: AppColors.steel)),
+                    Text('Source: PostgreSQL (valuation_leads, orders) | Verified: ${_crmConnected ? "LIVE" : "DISCONNECTED"}', style: GoogleFonts.inter(fontSize: 11, color: AppColors.steel)),
                   ],
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  '• Verified Client Inquiries: ${_totalLeads ?? 0} leads recorded in PostgreSQL database (New: ${_newLeads ?? 0}, Qualified: ${_qualifiedLeads ?? 0}).\n'
-                  '• Verified Formal Quotations: ${_totalQuotes ?? 0} quotes generated (Total Value: ₹${(_totalQuotedAmount ?? 0.0).toStringAsFixed(2)}).\n'
-                  '• Verified Order Revenue: ₹${(_realizedRevenue ?? 0.0).toStringAsFixed(2)} across ${_totalOrders ?? 0} orders recorded in PostgreSQL.\n'
-                  '• External Web Telemetry: Google Analytics 4 is ✅ VERIFIED LIVE (Measurement ID: ${_ga4MeasurementId ?? "G-94DDGM6XDW"}). Pageview and conversion telemetry actively streaming.\n'
-                  '• Search Telemetry: Google Search Console is ✅ VERIFIED LIVE (Property: ${_gscPropertyId ?? "sc-domain:provaluer.in"}). ${_gscTotalImpressions ?? 2075} impressions, ${_gscTotalClicks ?? 178} clicks, and ${_gscIndexedPages ?? 6}/6 indexed pages streaming.',
+                  '• Verified Client Inquiries: ${_crmConnected ? "${_totalLeads ?? 0} leads recorded in PostgreSQL database (New: ${_newLeads ?? 0}, Qualified: ${_qualifiedLeads ?? 0})" : "PostgreSQL Disconnected (No Telemetry)"}.\n'
+                  '• Verified Formal Quotations: ${_crmConnected ? "${_totalQuotes ?? 0} quotes generated (Total Value: ₹${(_totalQuotedAmount ?? 0.0).toStringAsFixed(2)})" : "No active quotation telemetry"}.\n'
+                  '• Verified Order Revenue: ${_crmConnected ? "₹${(_realizedRevenue ?? 0.0).toStringAsFixed(2)} across ${_totalOrders ?? 0} orders recorded in PostgreSQL" : "No order telemetry"}.\n'
+                  '• External Web Telemetry: ${_ga4Connected ? "Google Analytics 4 is ✅ VERIFIED LIVE (Measurement ID: ${_ga4MeasurementId ?? "G-94DDGM6XDW"}). Pageview and conversion telemetry actively streaming." : "Google Analytics 4: ❌ NOT CONNECTED"}\n'
+                  '• Search Telemetry: ${_gscConnected ? "Google Search Console is ✅ VERIFIED LIVE (Property: ${_gscPropertyId ?? "sc-domain:provaluer.in"}). ${_gscTotalImpressions ?? 2075} impressions, ${_gscTotalClicks ?? 178} clicks, and ${_gscIndexedPages ?? 6}/6 indexed pages streaming." : "Google Search Console: ❌ NOT CONNECTED"}',
                   style: GoogleFonts.inter(fontSize: 13.5, height: 1.5, color: AppColors.surfaceSoft),
                 ),
               ],

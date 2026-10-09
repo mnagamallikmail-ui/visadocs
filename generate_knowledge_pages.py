@@ -6,15 +6,15 @@ ARTICLES = [
     {
         "file": "digital-marketing/articles/government-approved-valuers-complete-guide.md",
         "slug": "government-approved-valuers-complete-guide",
-        "default_title": "Government Approved Valuers in India: Section 34AB Complete Guide | ProValuer",
-        "default_desc": "Definitive guide to Government Approved Valuers under Section 34AB of Wealth Tax Act. Form O-1 reports, FMV 2001, Section 50C capital gains disputes, and probate appraisals.",
+        "default_title": "Government Approved Valuers Guide | Section 34AB Valuers | ProValuer",
+        "default_desc": "Definitive guide to Government Approved Valuers under Section 34AB Wealth Tax Act. Form O-1 reports, FMV 2001, Section 50C capital gains disputes & tax appeals.",
         "category": "Statutory Law & Section 34AB Wealth Tax Act",
         "read_time": "35 min read"
     },
     {
         "file": "digital-marketing/articles/rule-11ua-complete-guide.md",
         "slug": "rule-11ua-complete-guide",
-        "default_title": "Rule 11UA Valuation Complete Guide: DCF, NAV & Tax Defense | ProValuer",
+        "default_title": "Share Valuation & Rule 11UA Guide | DCF Valuation | ProValuer",
         "default_desc": "Statutory guide to Rule 11UA valuation under Income Tax Rules: DCF modeling, Adjusted NAV formulas, Section 56(2)(viib) Angel Tax, 50CA, and safe harbor bands.",
         "category": "Corporate Finance & Rule 11UA Valuation",
         "read_time": "38 min read"
@@ -22,7 +22,7 @@ ARTICLES = [
     {
         "file": "digital-marketing/articles/property-valuation-methods-complete-guide.md",
         "slug": "property-valuation-methods-complete-guide",
-        "default_title": "Property Valuation Methods Complete Guide: Models, IVS & Indian Practice | ProValuer",
+        "default_title": "Property Valuation Methods Guide | Land & Building Valuation | ProValuer",
         "default_desc": "Master Indian property valuation methods: Sales Comparison, Land & Building DRC, Income Capitalization, DCF, and Residual Land under IVS and Section 34AB rules.",
         "category": "Real Estate & Land Appraisals",
         "read_time": "36 min read"
@@ -30,7 +30,7 @@ ARTICLES = [
     {
         "file": "digital-marketing/articles/plant-and-machinery-valuation-complete-guide.md",
         "slug": "plant-and-machinery-valuation-complete-guide",
-        "default_title": "Plant & Machinery Valuation Complete Guide: DRC, Methods & IBC Compliance | ProValuer",
+        "default_title": "Plant and Machinery Valuation Guide | Industrial Appraiser | ProValuer",
         "default_desc": "Complete guide to Plant & Machinery valuation in India: Depreciated Replacement Cost (DRC), MEA modeling, obsolescence, bank haircuts, IBC CIRP, and IVS 300 rules.",
         "category": "Industrial Engineering & Machinery Appraisals",
         "read_time": "32 min read"
@@ -38,7 +38,7 @@ ARTICLES = [
     {
         "file": "digital-marketing/articles/angel-tax-complete-guide.md",
         "slug": "angel-tax-complete-guide",
-        "default_title": "Angel Tax Complete Guide: Section 56(2)(viib), Rule 11UA DCF & Scrutiny Defense | ProValuer",
+        "default_title": "Business Valuation & Angel Tax Guide | Section 56(2)(viib) | ProValuer",
         "default_desc": "Master Angel Tax under Section 56(2)(viib): Rule 11UA DCF methods, SEBI Merchant Banker reports, 10% safe harbor band, abolition, and legacy audit defense.",
         "category": "Direct Taxation & Startup Valuation",
         "read_time": "40 min read"
@@ -46,7 +46,7 @@ ARTICLES = [
     {
         "file": "digital-marketing/articles/visa-and-immigration-valuation-complete-guide.md",
         "slug": "visa-and-immigration-valuation-complete-guide",
-        "default_title": "Visa & Immigration Valuation Guide India: Property Valuation & CA Net Worth | ProValuer",
+        "default_title": "Valuation for Visa Complete Guide | Visa Property Valuation | ProValuer",
         "default_desc": "Complete guide to visa property valuation reports & CA net worth certificates in India for US INA 214(b), Canada, UK, Australia, and UAE Golden Visa compliance.",
         "category": "Cross-Border Wealth & Immigration Valuation",
         "read_time": "42 min read"
@@ -759,10 +759,10 @@ def build_page(article_meta):
       </div>
     </a>
     <ul class="nav-links">
-      <li><a href="https://www.provaluer.in/services/property-valuation">Services</a></li>
+      <li><a href="https://www.provaluer.in/property-valuation-hyderabad">Property Valuation</a></li>
       <li><a href="https://www.provaluer.in/government-approved-valuers">Approved Valuers</a></li>
-      <li><a href="https://www.provaluer.in/knowledge-sitemap.xml">Knowledge Base</a></li>
-      <li><a href="https://www.provaluer.in/login">Valuation Portal</a></li>
+      <li><a href="https://www.provaluer.in/services/plant-and-machinery-valuation">Plant &amp; Machinery</a></li>
+      <li><a href="https://www.provaluer.in/chartered-engineer-certificate">Chartered Engineer</a></li>
       <li><a href="https://www.provaluer.in/login" class="btn-cta">Request Valuation</a></li>
     </ul>
   </nav>
@@ -841,11 +841,13 @@ def build_page(article_meta):
       <div class="footer-col">
         <h4>Statutory Practice Areas</h4>
         <ul>
-          <li><a href="https://www.provaluer.in/services/property-valuation">Commercial Property Valuation</a></li>
+          <li><a href="https://www.provaluer.in/property-valuation-hyderabad">Property Valuation Hyderabad</a></li>
+          <li><a href="https://www.provaluer.in/services/plant-and-machinery-valuation">Plant &amp; Machinery Valuation</a></li>
+          <li><a href="https://www.provaluer.in/chartered-engineer-certificate">Chartered Engineer Certificate</a></li>
           <li><a href="https://www.provaluer.in/services/bank-collateral-valuation">Bank Collateral Appraisal</a></li>
-          <li><a href="https://www.provaluer.in/services/nclt-ibc-valuation">NCLT & IBC Liquidation</a></li>
-          <li><a href="https://www.provaluer.in/services/share-valuation">Share & Equity Valuation (Rule 11UA)</a></li>
-          <li><a href="https://www.provaluer.in/services/visa-and-immigration-valuations">Visa & Immigration Net Worth</a></li>
+          <li><a href="https://www.provaluer.in/services/nclt-ibc-valuation">NCLT &amp; IBC Liquidation</a></li>
+          <li><a href="https://www.provaluer.in/services/share-valuation">Share &amp; Equity Valuation (Rule 11UA)</a></li>
+          <li><a href="https://www.provaluer.in/services/visa-and-immigration-valuations">Visa &amp; Immigration Net Worth</a></li>
         </ul>
       </div>
       <div class="footer-col">

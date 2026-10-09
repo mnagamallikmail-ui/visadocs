@@ -74,11 +74,22 @@
 - **Asset Classes:** Land & Building (industrial parks, SEZs), Plant & Machinery (heavy continuous process, chemical, pharma, steel), Securities & Financial Assets, Intangibles & Avoidance Transactions (Sections 43, 45, 50, 66).
 - **Regional Jurisdictions:** NCLT Hyderabad Bench, NCLT Bengaluru, NCLT Chennai, NCLT Amaravati, and Pan-India Benches with 30-45 day delivery SLA.
 
-### 9. Technical Practice — Engineering & Industrial Assets
-- **Canonical Service Page:** https://www.provaluer.in/services/plant-machinery-technical-valuation
-- **Focus:** Plant & Machinery Technical Certification
-- **Client Base:** Heavy Manufacturing, Infrastructure, SEZ Developers, and Energy Assets.
-### 10. Authority Cluster V1 — Cornerstone Statutory Knowledge Treatises
+### 9. Technical & Engineering Practice — Plant & Machinery Valuation
+- **Canonical Service Page:** https://www.provaluer.in/services/plant-and-machinery-valuation
+- **Focus:** Industrial Plant & Machinery Valuation, Depreciated Replacement Cost (DRC), Modern Equivalent Asset (MEA), Remaining Useful Life (RUL), IBC Section 247 Liquidation Appraisals, Bank Asset Inspections.
+- **Client Base:** Manufacturing Plants, EPC Contractors, Industrialists, Insolvency Professionals, Commercial Banks.
+
+### 10. Regulatory & Customs Engineering — Chartered Engineer Certificate
+- **Canonical Service Page:** https://www.provaluer.in/chartered-engineer-certificate
+- **Focus:** Chartered Engineer (CE) Inspection Certification, Customs SVB Used Machinery Clearance, Visa Student Solvency & Asset Valuation, DGFT EPCG / Advance Authorization, Machinery Life Expectancy & Residual Value Certification.
+- **Client Base:** Importers, Exporters, International Students, Industrialists, EPC Contractors.
+
+### 11. Regional Real Estate Hub — Property Valuation Hyderabad
+- **Canonical Service Page:** https://www.provaluer.in/property-valuation-hyderabad
+- **Focus:** Hyper-local Hyderabad & Secunderabad property valuations, Flat & Apartment valuation (UDS method), Freehold House & Villa appraisals, Commercial Property valuation, Capital Gains Sec 50C/55A, Visa & Bank Loan valuation.
+- **Micro-Markets:** Gachibowli, Financial District, Kokapet, Madhapur, Hitech City, Jubilee Hills, Banjara Hills, Kondapur, Kukatpally, Begumpet, Secunderabad.
+
+### 12. Authority Cluster V1 — Cornerstone Statutory Knowledge Treatises
 
 1. **Government Approved Valuers Complete Guide**
    - Canonical URL: https://www.provaluer.in/knowledge/government-approved-valuers-complete-guide

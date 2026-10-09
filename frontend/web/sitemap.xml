@@ -3,101 +3,119 @@
         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
         xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9
         http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd">
+    <!-- Homepage -->
     <url>
         <loc>https://www.provaluer.in/</loc>
-        <lastmod>2026-09-24</lastmod>
-        <changefreq>weekly</changefreq>
+        <lastmod>2026-10-09</lastmod>
+        <changefreq>daily</changefreq>
         <priority>1.0</priority>
+    </url>
+
+    <!-- High-Impact Commercial Landing Pages -->
+    <url>
+        <loc>https://www.provaluer.in/property-valuation-hyderabad</loc>
+        <lastmod>2026-10-09</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.95</priority>
     </url>
     <url>
         <loc>https://www.provaluer.in/government-approved-valuers</loc>
-        <lastmod>2026-09-24</lastmod>
+        <lastmod>2026-10-09</lastmod>
         <changefreq>weekly</changefreq>
-        <priority>0.85</priority>
+        <priority>0.95</priority>
     </url>
     <url>
+        <loc>https://www.provaluer.in/chartered-engineer-certificate</loc>
+        <lastmod>2026-10-09</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.90</priority>
+    </url>
+    <url>
+        <loc>https://www.provaluer.in/services/plant-and-machinery-valuation</loc>
+        <lastmod>2026-10-09</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.90</priority>
+    </url>
+
+    <!-- Practice Area Service Pages -->
+    <url>
         <loc>https://www.provaluer.in/services/property-valuation</loc>
-        <lastmod>2026-09-24</lastmod>
+        <lastmod>2026-10-09</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.85</priority>
     </url>
     <url>
         <loc>https://www.provaluer.in/services/bank-collateral-valuation</loc>
-        <lastmod>2026-09-24</lastmod>
+        <lastmod>2026-10-09</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.85</priority>
     </url>
     <url>
         <loc>https://www.provaluer.in/services/nclt-ibc-valuation</loc>
-        <lastmod>2026-09-24</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>0.85</priority>
-    </url>
-    <url>
-        <loc>https://www.provaluer.in/services/visa-and-immigration-valuations</loc>
-        <lastmod>2026-09-24</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>0.85</priority>
-    </url>
-    <url>
-        <loc>https://www.provaluer.in/services/divorce-matrimonial-valuation</loc>
-        <lastmod>2026-09-24</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>0.85</priority>
-    </url>
-    <url>
-        <loc>https://www.provaluer.in/services/probate-inheritance-valuation</loc>
-        <lastmod>2026-09-24</lastmod>
-        <changefreq>weekly</changefreq>
-        <priority>0.85</priority>
-    </url>
-    <url>
-        <loc>https://www.provaluer.in/services/plant-and-machinery-valuation</loc>
-        <lastmod>2026-09-24</lastmod>
+        <lastmod>2026-10-09</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.85</priority>
     </url>
     <url>
         <loc>https://www.provaluer.in/services/share-valuation</loc>
-        <lastmod>2026-09-24</lastmod>
+        <lastmod>2026-10-09</lastmod>
         <changefreq>weekly</changefreq>
         <priority>0.85</priority>
     </url>
-    <!-- ProValuer Authority Cluster V1 Cornerstone Knowledge Guides -->
+    <url>
+        <loc>https://www.provaluer.in/services/visa-and-immigration-valuations</loc>
+        <lastmod>2026-10-09</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.85</priority>
+    </url>
+    <url>
+        <loc>https://www.provaluer.in/services/probate-inheritance-valuation</loc>
+        <lastmod>2026-10-09</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.80</priority>
+    </url>
+    <url>
+        <loc>https://www.provaluer.in/services/divorce-matrimonial-valuation</loc>
+        <lastmod>2026-10-09</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.80</priority>
+    </url>
+
+    <!-- ProValuer Authority Cluster Cornerstone Knowledge Guides -->
     <url>
         <loc>https://www.provaluer.in/knowledge/government-approved-valuers-complete-guide</loc>
-        <lastmod>2026-09-24</lastmod>
+        <lastmod>2026-10-09</lastmod>
         <changefreq>weekly</changefreq>
-        <priority>0.7</priority>
+        <priority>0.75</priority>
     </url>
     <url>
         <loc>https://www.provaluer.in/knowledge/rule-11ua-complete-guide</loc>
-        <lastmod>2026-09-24</lastmod>
+        <lastmod>2026-10-09</lastmod>
         <changefreq>weekly</changefreq>
-        <priority>0.7</priority>
+        <priority>0.75</priority>
     </url>
     <url>
         <loc>https://www.provaluer.in/knowledge/property-valuation-methods-complete-guide</loc>
-        <lastmod>2026-09-24</lastmod>
+        <lastmod>2026-10-09</lastmod>
         <changefreq>weekly</changefreq>
-        <priority>0.7</priority>
+        <priority>0.75</priority>
     </url>
     <url>
         <loc>https://www.provaluer.in/knowledge/plant-and-machinery-valuation-complete-guide</loc>
-        <lastmod>2026-09-24</lastmod>
+        <lastmod>2026-10-09</lastmod>
         <changefreq>weekly</changefreq>
-        <priority>0.7</priority>
+        <priority>0.75</priority>
     </url>
     <url>
         <loc>https://www.provaluer.in/knowledge/angel-tax-complete-guide</loc>
-        <lastmod>2026-09-24</lastmod>
+        <lastmod>2026-10-09</lastmod>
         <changefreq>weekly</changefreq>
-        <priority>0.7</priority>
+        <priority>0.75</priority>
     </url>
     <url>
         <loc>https://www.provaluer.in/knowledge/visa-and-immigration-valuation-complete-guide</loc>
-        <lastmod>2026-09-24</lastmod>
+        <lastmod>2026-10-09</lastmod>
         <changefreq>weekly</changefreq>
-        <priority>0.7</priority>
+        <priority>0.75</priority>
     </url>
 </urlset>
