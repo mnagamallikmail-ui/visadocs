@@ -70,6 +70,8 @@ public class SeoIntelligenceService {
         dto.setLastUpdated(LocalDateTime.now());
         dto.setSource("PostgreSQL (valuation_leads, lead_quotations, orders, transactions)");
         dto.setVerificationStatus("VERIFIED LIVE");
+        dto.setCrmConnected(true);
+        dto.setCrmStatus("VERIFIED LIVE");
 
         // 1. Google Analytics 4 Check
         String ga4Env = System.getenv("GA4_MEASUREMENT_ID");
@@ -168,38 +170,46 @@ public class SeoIntelligenceService {
         }
 
         // 4. PostgreSQL CRM Live Data (Zero mock data, zero estimates)
-        long leadCount = valuationLeadRepository.count();
-        dto.setTotalLeads(leadCount);
-        dto.setNewLeads(valuationLeadRepository.countNewLeads());
-        dto.setUrgentLeads(valuationLeadRepository.countUrgentLeads());
+        try {
+            long leadCount = valuationLeadRepository.count();
+            dto.setTotalLeads(leadCount);
+            dto.setNewLeads(valuationLeadRepository.countNewLeads());
+            dto.setUrgentLeads(valuationLeadRepository.countUrgentLeads());
 
-        List<ValuationLead> leads = valuationLeadRepository.findAll();
-        Map<String, Long> byService = leads.stream()
-                .filter(l -> l.getServiceVertical() != null && !l.getServiceVertical().isBlank())
-                .collect(Collectors.groupingBy(ValuationLead::getServiceVertical, Collectors.counting()));
-        dto.setLeadsByService(byService);
+            List<ValuationLead> leads = valuationLeadRepository.findAll();
+            Map<String, Long> byService = leads.stream()
+                    .filter(l -> l.getServiceVertical() != null && !l.getServiceVertical().isBlank())
+                    .collect(Collectors.groupingBy(ValuationLead::getServiceVertical, Collectors.counting()));
+            dto.setLeadsByService(byService);
 
-        Map<String, Long> byLocation = leads.stream()
-                .filter(l -> l.getAssetLocation() != null && !l.getAssetLocation().isBlank())
-                .collect(Collectors.groupingBy(ValuationLead::getAssetLocation, Collectors.counting()));
-        dto.setLeadsByLocation(byLocation);
+            Map<String, Long> byLocation = leads.stream()
+                    .filter(l -> l.getAssetLocation() != null && !l.getAssetLocation().isBlank())
+                    .collect(Collectors.groupingBy(ValuationLead::getAssetLocation, Collectors.counting()));
+            dto.setLeadsByLocation(byLocation);
 
-        Map<String, Long> byStatus = leads.stream()
-                .filter(l -> l.getStatus() != null && !l.getStatus().isBlank())
-                .collect(Collectors.groupingBy(ValuationLead::getStatus, Collectors.counting()));
-        dto.setLeadsByStatus(byStatus);
+            Map<String, Long> byStatus = leads.stream()
+                    .filter(l -> l.getStatus() != null && !l.getStatus().isBlank())
+                    .collect(Collectors.groupingBy(ValuationLead::getStatus, Collectors.counting()));
+            dto.setLeadsByStatus(byStatus);
 
-        dto.setQualifiedLeads(byStatus.getOrDefault("QUALIFIED", 0L));
+            dto.setQualifiedLeads(byStatus.getOrDefault("QUALIFIED", 0L));
 
-        // Quotations
-        dto.setTotalQuotes(leadQuotationRepository.count());
-        dto.setTotalQuotedAmount(leadQuotationRepository.sumTotalFee());
-        dto.setAcceptedQuotes(leadQuotationRepository.countByIsAcceptedTrue());
+            // Quotations
+            dto.setTotalQuotes(leadQuotationRepository.count());
+            dto.setTotalQuotedAmount(leadQuotationRepository.sumTotalFee());
+            dto.setAcceptedQuotes(leadQuotationRepository.countByIsAcceptedTrue());
 
-        // Orders & Revenue
-        dto.setTotalOrders(orderRepository.countByIsDeletedFalse());
-        dto.setCompletedOrders(orderRepository.countByIsDeletedFalseAndStatus("FINAL_DELIVERY"));
-        dto.setRealizedRevenue(orderRepository.sumRealizedRevenue());
+            // Orders & Revenue
+            dto.setTotalOrders(orderRepository.countByIsDeletedFalse());
+            dto.setCompletedOrders(orderRepository.countByIsDeletedFalseAndStatus("FINAL_DELIVERY"));
+            dto.setRealizedRevenue(orderRepository.sumRealizedRevenue());
+            dto.setCrmConnected(true);
+            dto.setCrmStatus("VERIFIED LIVE");
+        } catch (Exception e) {
+            log.error("Failed to query PostgreSQL CRM tables: {}", e.getMessage(), e);
+            dto.setCrmConnected(false);
+            dto.setCrmStatus("DISCONNECTED: " + e.getMessage());
+        }
 
         return dto;
     }

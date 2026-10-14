@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:dio/dio.dart';
@@ -88,7 +89,7 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
 
   void _applyTelemetryData(Map<String, dynamic> data) {
     setState(() {
-      _crmConnected = true;
+      _crmConnected = data['crmConnected'] != false;
       _totalLeads = (data['totalLeads'] as num?)?.toInt() ?? 0;
       _newLeads = (data['newLeads'] as num?)?.toInt() ?? 0;
       _qualifiedLeads = (data['qualifiedLeads'] as num?)?.toInt() ?? 0;
@@ -150,63 +151,32 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
 
     final telemetryDio = Dio(BaseOptions(
       baseUrl: _api.dio.options.baseUrl,
-      connectTimeout: const Duration(seconds: 5),
-      receiveTimeout: const Duration(seconds: 10),
-      sendTimeout: const Duration(seconds: 5),
+      connectTimeout: const Duration(seconds: 3),
+      receiveTimeout: const Duration(seconds: 4),
+      sendTimeout: const Duration(seconds: 3),
       headers: headers,
     ));
 
     try {
       final res = await telemetryDio.get('/api/v1/admin/seo/real-telemetry');
-      if (res.data is Map<String, dynamic>) {
-        _applyTelemetryData(res.data as Map<String, dynamic>);
+      dynamic rawData = res.data;
+      if (rawData is String) {
+        try {
+          rawData = jsonDecode(rawData);
+        } catch (_) {}
+      }
+      if (rawData is Map) {
+        _applyTelemetryData(Map<String, dynamic>.from(rawData));
         return;
       }
-    } catch (_) {
-      // Fallback: Fetch directly from /api/leads
-    }
-
-    try {
-      final leadRes = await telemetryDio.get('/api/leads');
-      if (leadRes.data is List) {
-        final list = leadRes.data as List;
-        final serviceMap = <String, int>{};
-        final locationMap = <String, int>{};
-        final statusMap = <String, int>{};
-
-        for (var item in list) {
-          if (item is Map) {
-            final s = item['serviceVertical']?.toString() ?? 'OTHER';
-            serviceMap[s] = (serviceMap[s] ?? 0) + 1;
-            final loc = item['assetLocation']?.toString() ?? 'Unspecified';
-            locationMap[loc] = (locationMap[loc] ?? 0) + 1;
-            final st = item['status']?.toString() ?? 'NEW';
-            statusMap[st] = (statusMap[st] ?? 0) + 1;
-          }
-        }
-
-        setState(() {
-          _crmConnected = true;
-          _totalLeads = list.length;
-          _leadsByService = serviceMap;
-          _leadsByLocation = locationMap;
-          _leadsByStatus = statusMap;
-          _newLeads = statusMap['NEW'] ?? 0;
-          _qualifiedLeads = statusMap['QUALIFIED'] ?? 0;
-          _totalQuotes = 0;
-          _totalQuotedAmount = 0.0;
-          _realizedRevenue = 0.0;
-          _totalOrders = 0;
-          _ga4Connected = false;
-          _ga4MeasurementId = 'G-94DDGM6XDW';
-          _lastTelemetryFetch = DateTime.now();
-          _loading = false;
-        });
-        return;
-      }
+      setState(() {
+        _errorMessage = 'PostgreSQL CRM Telemetry returned unexpected payload format.';
+        _crmConnected = false;
+        _loading = false;
+      });
     } catch (e) {
       setState(() {
-        _errorMessage = 'Could not establish connection to PostgreSQL CRM tables: $e';
+        _errorMessage = e.toString();
         _crmConnected = false;
         _loading = false;
       });
@@ -575,7 +545,15 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
                 ),
               ),
               const SizedBox(width: 12),
-              Expanded(child: _buildIntegrationStatusTile('PostgreSQL CRM Tables', _crmConnected ? 'VERIFIED LIVE' : 'DISCONNECTED', _crmConnected, Icons.storage_rounded)),
+              Expanded(
+                child: _buildIntegrationStatusTile(
+                  'PostgreSQL CRM Tables',
+                  _crmConnected ? 'VERIFIED LIVE' : 'DISCONNECTED',
+                  _crmConnected,
+                  Icons.storage_rounded,
+                  source: _crmConnected ? 'PostgreSQL (valuation_leads, orders)' : (_errorMessage ?? 'Database Connection Failure'),
+                ),
+              ),
             ],
           ),
           const SizedBox(height: 20),
@@ -598,9 +576,9 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  '• Verified Client Inquiries: ${_crmConnected ? "${_totalLeads ?? 0} leads recorded in PostgreSQL database (New: ${_newLeads ?? 0}, Qualified: ${_qualifiedLeads ?? 0})" : "PostgreSQL Disconnected (No Telemetry)"}.\n'
-                  '• Verified Formal Quotations: ${_crmConnected ? "${_totalQuotes ?? 0} quotes generated (Total Value: ₹${(_totalQuotedAmount ?? 0.0).toStringAsFixed(2)})" : "No active quotation telemetry"}.\n'
-                  '• Verified Order Revenue: ${_crmConnected ? "₹${(_realizedRevenue ?? 0.0).toStringAsFixed(2)} across ${_totalOrders ?? 0} orders recorded in PostgreSQL" : "No order telemetry"}.\n'
+                  '• Verified Client Inquiries: ${_crmConnected ? "${_totalLeads ?? 0} leads recorded in PostgreSQL database (New: ${_newLeads ?? 0}, Qualified: ${_qualifiedLeads ?? 0})" : (_errorMessage != null ? "PostgreSQL Disconnected ($_errorMessage)" : "PostgreSQL Disconnected (No Telemetry)")}.\n'
+                  '• Verified Formal Quotations: ${_crmConnected ? "${_totalQuotes ?? 0} quotes generated (Total Value: ₹${(_totalQuotedAmount ?? 0.0).toStringAsFixed(2)})" : (_errorMessage != null ? "No active quotation telemetry ($_errorMessage)" : "No active quotation telemetry")}.\n'
+                  '• Verified Order Revenue: ${_crmConnected ? "₹${(_realizedRevenue ?? 0.0).toStringAsFixed(2)} across ${_totalOrders ?? 0} orders recorded in PostgreSQL" : (_errorMessage != null ? "No order telemetry ($_errorMessage)" : "No order telemetry")}.\n'
                   '• External Web Telemetry: ${_ga4Connected ? "Google Analytics 4 is ✅ VERIFIED LIVE (Measurement ID: ${_ga4MeasurementId ?? "G-94DDGM6XDW"}). Pageview and conversion telemetry actively streaming." : "Google Analytics 4 Reporting API: ❌ NOT CONNECTED (Tag G-94DDGM6XDW injected in web head; Google Analytics Data API pending)"}\n'
                   '• Search Telemetry: ${_gscConnected ? "Google Search Console is ✅ VERIFIED LIVE (Property: ${_gscPropertyId ?? "sc-domain:provaluer.in"}). ${_gscTotalImpressions ?? 0} impressions, ${_gscTotalClicks ?? 0} clicks, and ${_gscIndexedPages ?? 0} indexed pages streaming." : "Google Search Console: ❌ NOT CONNECTED (OAuth2 API credentials pending)"}',
                   style: GoogleFonts.inter(fontSize: 13.5, height: 1.5, color: AppColors.surfaceSoft),

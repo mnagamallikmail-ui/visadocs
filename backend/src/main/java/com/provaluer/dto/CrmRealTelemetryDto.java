@@ -9,6 +9,10 @@ public class CrmRealTelemetryDto {
     private String verificationStatus = "VERIFIED LIVE";
     private LocalDateTime lastUpdated = LocalDateTime.now();
 
+    // 0. PostgreSQL CRM Connection Status
+    private boolean crmConnected = true;
+    private String crmStatus = "VERIFIED LIVE";
+
     // 1. Google Analytics 4 Status
     private boolean ga4Connected = false;
     private String ga4Source = "Google Analytics 4 (GA4)";
@@ -61,6 +65,12 @@ public class CrmRealTelemetryDto {
 
     public String getSource() { return source; }
     public void setSource(String source) { this.source = source; }
+
+    public boolean isCrmConnected() { return crmConnected; }
+    public void setCrmConnected(boolean crmConnected) { this.crmConnected = crmConnected; }
+
+    public String getCrmStatus() { return crmStatus; }
+    public void setCrmStatus(String crmStatus) { this.crmStatus = crmStatus; }
 
     public String getVerificationStatus() { return verificationStatus; }
     public void setVerificationStatus(String verificationStatus) { this.verificationStatus = verificationStatus; }
