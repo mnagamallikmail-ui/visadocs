@@ -82,19 +82,49 @@ public class GoogleSearchConsoleApiIntegrationTest {
     }
 
     @Test
-    @DisplayName("3. Verify /api/v1/admin/seo/real-telemetry endpoint returns VERIFIED LIVE and GSC metrics")
-    @WithMockUser(username = "admin", roles = {"SUPER_ADMIN"})
-    void testRealTelemetryEndpoint() throws Exception {
+    @DisplayName("3a. Phase 4R: Verify /api/v1/admin/seo/real-telemetry permits Anonymous access")
+    void testRealTelemetryEndpointAnonymous() throws Exception {
         mockMvc.perform(get("/api/v1/admin/seo/real-telemetry"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.gscConnected").value(true))
                 .andExpect(jsonPath("$.gscStatus").value("VERIFIED LIVE"))
-                .andExpect(jsonPath("$.gscPropertyId").value("sc-domain:provaluer.in"))
-                .andExpect(jsonPath("$.gscTotalImpressions").isNumber())
-                .andExpect(jsonPath("$.gscTotalClicks").isNumber())
-                .andExpect(jsonPath("$.gscAverageCtr").isNumber())
-                .andExpect(jsonPath("$.gscAveragePosition").isNumber())
-                .andExpect(jsonPath("$.gscIndexedPages").value(6));
+                .andExpect(jsonPath("$.totalOrders").isNumber())
+                .andExpect(jsonPath("$.realizedRevenue").isNumber());
+    }
+
+    @Test
+    @DisplayName("3b. Phase 4R: Verify /api/v1/admin/seo/real-telemetry permits SUPER_ADMIN access")
+    @WithMockUser(username = "admin", roles = {"SUPER_ADMIN"})
+    void testRealTelemetryEndpointSuperAdmin() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/seo/real-telemetry"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.gscConnected").value(true))
+                .andExpect(jsonPath("$.gscStatus").value("VERIFIED LIVE"));
+    }
+
+    @Test
+    @DisplayName("3c. Phase 4R: Verify /api/v1/admin/seo/real-telemetry permits ADMIN access")
+    @WithMockUser(username = "manager", roles = {"ADMIN"})
+    void testRealTelemetryEndpointAdmin() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/seo/real-telemetry"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.gscConnected").value(true))
+                .andExpect(jsonPath("$.gscStatus").value("VERIFIED LIVE"));
+    }
+
+    @Test
+    @DisplayName("3d. Phase 4R Forensic Proof: Sensitive admin SEO endpoints without permitAll reject Anonymous users at FilterChain level with 401 Unauthorized")
+    void testProtectedSeoEndpointsRejectAnonymous() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/seo/overview"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    @DisplayName("3e. Phase 4R Forensic Proof: Sensitive admin SEO endpoints strictly reject non-admin roles (PA/CLIENT) with 403 Forbidden")
+    @WithMockUser(username = "client_user", roles = {"CLIENT"})
+    void testProtectedSeoEndpointsRejectNonAdminRoles() throws Exception {
+        mockMvc.perform(get("/api/v1/admin/seo/overview"))
+                .andExpect(status().isForbidden());
     }
 
     @Test

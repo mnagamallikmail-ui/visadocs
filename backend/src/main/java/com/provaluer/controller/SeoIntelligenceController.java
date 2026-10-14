@@ -39,8 +39,10 @@ public class SeoIntelligenceController {
     }
 
     /**
-     * Phase 4C: Verified Live Telemetry from PostgreSQL CRM & Third-party integrations
+     * Phase 4C & 4R: Verified Live Telemetry from PostgreSQL CRM & Third-party integrations
+     * Method-level permitAll overrides class-level PreAuthorize to align with SecurityConfig filterChain
      */
+    @PreAuthorize("permitAll()")
     @GetMapping("/real-telemetry")
     public ResponseEntity<com.provaluer.dto.CrmRealTelemetryDto> getRealTelemetry() {
         return ResponseEntity.ok(seoIntelligenceService.getRealTelemetry());
