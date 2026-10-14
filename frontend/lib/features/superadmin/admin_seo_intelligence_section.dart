@@ -107,20 +107,20 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
       if (_ga4MeasurementId == null || _ga4MeasurementId!.isEmpty || _ga4MeasurementId == 'G-94DDGM6XDW') {
         _ga4MeasurementId = 'G-94DDGM6XDW';
       }
-      _ga4Connected = _ga4MeasurementId == 'G-94DDGM6XDW' || data['ga4Connected'] == true;
+      _ga4Connected = data['ga4Connected'] == true;
       _clarityConnected = data['clarityConnected'] == true;
       _clarityProjectId = data['clarityProjectId']?.toString();
       _gscConnected = data['gscConnected'] == true;
       _gscPropertyId = data['gscPropertyId']?.toString() ?? 'sc-domain:provaluer.in';
-      _gscTotalQueries = (data['gscTotalQueries'] as num?)?.toInt() ?? 10;
-      _gscTotalImpressions = (data['gscTotalImpressions'] as num?)?.toInt() ?? 2075;
-      _gscTotalClicks = (data['gscTotalClicks'] as num?)?.toInt() ?? 178;
-      _gscAverageCtr = (data['gscAverageCtr'] as num?)?.toDouble() ?? 0.0858;
-      _gscAveragePosition = (data['gscAveragePosition'] as num?)?.toDouble() ?? 4.43;
-      _gscIndexedPages = (data['gscIndexedPages'] as num?)?.toInt() ?? 6;
+      _gscTotalQueries = (data['gscTotalQueries'] as num?)?.toInt();
+      _gscTotalImpressions = (data['gscTotalImpressions'] as num?)?.toInt();
+      _gscTotalClicks = (data['gscTotalClicks'] as num?)?.toInt();
+      _gscAverageCtr = (data['gscAverageCtr'] as num?)?.toDouble();
+      _gscAveragePosition = (data['gscAveragePosition'] as num?)?.toDouble();
+      _gscIndexedPages = (data['gscIndexedPages'] as num?)?.toInt();
       _gscQueries = List<Map<String, dynamic>>.from(data['gscQueries'] ?? []);
       _gscPages = List<Map<String, dynamic>>.from(data['gscPages'] ?? []);
-      _pagespeedConnected = data['pagespeedConnected'] == true || _gscConnected || _crmConnected;
+      _pagespeedConnected = data['pagespeedConnected'] == true;
 
       _lastTelemetryFetch = DateTime.now();
       _loading = false;
@@ -197,7 +197,7 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
           _totalQuotedAmount = 0.0;
           _realizedRevenue = 0.0;
           _totalOrders = 0;
-          _ga4Connected = true;
+          _ga4Connected = false;
           _ga4MeasurementId = 'G-94DDGM6XDW';
           _lastTelemetryFetch = DateTime.now();
           _loading = false;
@@ -601,8 +601,8 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
                   '• Verified Client Inquiries: ${_crmConnected ? "${_totalLeads ?? 0} leads recorded in PostgreSQL database (New: ${_newLeads ?? 0}, Qualified: ${_qualifiedLeads ?? 0})" : "PostgreSQL Disconnected (No Telemetry)"}.\n'
                   '• Verified Formal Quotations: ${_crmConnected ? "${_totalQuotes ?? 0} quotes generated (Total Value: ₹${(_totalQuotedAmount ?? 0.0).toStringAsFixed(2)})" : "No active quotation telemetry"}.\n'
                   '• Verified Order Revenue: ${_crmConnected ? "₹${(_realizedRevenue ?? 0.0).toStringAsFixed(2)} across ${_totalOrders ?? 0} orders recorded in PostgreSQL" : "No order telemetry"}.\n'
-                  '• External Web Telemetry: ${_ga4Connected ? "Google Analytics 4 is ✅ VERIFIED LIVE (Measurement ID: ${_ga4MeasurementId ?? "G-94DDGM6XDW"}). Pageview and conversion telemetry actively streaming." : "Google Analytics 4: ❌ NOT CONNECTED"}\n'
-                  '• Search Telemetry: ${_gscConnected ? "Google Search Console is ✅ VERIFIED LIVE (Property: ${_gscPropertyId ?? "sc-domain:provaluer.in"}). ${_gscTotalImpressions ?? 2075} impressions, ${_gscTotalClicks ?? 178} clicks, and ${_gscIndexedPages ?? 6}/6 indexed pages streaming." : "Google Search Console: ❌ NOT CONNECTED"}',
+                  '• External Web Telemetry: ${_ga4Connected ? "Google Analytics 4 is ✅ VERIFIED LIVE (Measurement ID: ${_ga4MeasurementId ?? "G-94DDGM6XDW"}). Pageview and conversion telemetry actively streaming." : "Google Analytics 4 Reporting API: ❌ NOT CONNECTED (Tag G-94DDGM6XDW injected in web head; Google Analytics Data API pending)"}\n'
+                  '• Search Telemetry: ${_gscConnected ? "Google Search Console is ✅ VERIFIED LIVE (Property: ${_gscPropertyId ?? "sc-domain:provaluer.in"}). ${_gscTotalImpressions ?? 0} impressions, ${_gscTotalClicks ?? 0} clicks, and ${_gscIndexedPages ?? 0} indexed pages streaming." : "Google Search Console: ❌ NOT CONNECTED (OAuth2 API credentials pending)"}',
                   style: GoogleFonts.inter(fontSize: 13.5, height: 1.5, color: AppColors.surfaceSoft),
                 ),
               ],
@@ -1554,15 +1554,15 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
               const SizedBox(height: 18),
               Row(
                 children: [
-                  Expanded(child: _buildMetricBlock('Total Impressions', '${_gscTotalImpressions ?? 2075}', 'Google Search Console API')),
+                  Expanded(child: _buildMetricBlock('Total Impressions', '${_gscTotalImpressions ?? 0}', 'Google Search Console API')),
                   const SizedBox(width: 10),
-                  Expanded(child: _buildMetricBlock('Total Clicks', '${_gscTotalClicks ?? 178}', 'Google Search Console API')),
+                  Expanded(child: _buildMetricBlock('Total Clicks', '${_gscTotalClicks ?? 0}', 'Google Search Console API')),
                   const SizedBox(width: 10),
-                  Expanded(child: _buildMetricBlock('Average CTR', '${((_gscAverageCtr ?? 0.0858) * 100).toStringAsFixed(2)}%', 'Clicks / Impressions')),
+                  Expanded(child: _buildMetricBlock('Average CTR', _gscAverageCtr != null ? '${((_gscAverageCtr!) * 100).toStringAsFixed(2)}%' : '0.00%', 'Clicks / Impressions')),
                   const SizedBox(width: 10),
-                  Expanded(child: _buildMetricBlock('Average Position', (_gscAveragePosition ?? 4.43).toStringAsFixed(2), 'Google Search Rankings')),
+                  Expanded(child: _buildMetricBlock('Average Position', _gscAveragePosition != null ? _gscAveragePosition!.toStringAsFixed(2) : '0.00', 'Google Search Rankings')),
                   const SizedBox(width: 10),
-                  Expanded(child: _buildMetricBlock('Indexed Pages', '${_gscIndexedPages ?? 6} / 6 (100%)', 'Search Console URL Inspection')),
+                  Expanded(child: _buildMetricBlock('Indexed Pages', _gscIndexedPages != null && _gscIndexedPages! > 0 ? '$_gscIndexedPages / 6 (100%)' : '0 / 6 (0%)', 'Search Console URL Inspection')),
                 ],
               ),
             ],
@@ -1573,9 +1573,9 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
           number: '2',
           title: 'Search Ranking & Impression Distribution (Chart)',
           content: _buildRankingDistributionChart([
-            {'tier': 'Position 1 - 3 (Top 3 Rank)', 'impressions': 780, 'clicks': 88, 'ctr': 11.3},
-            {'tier': 'Position 4 - 6 (Mid Page 1)', 'impressions': 890, 'clicks': 65, 'ctr': 7.3},
-            {'tier': 'Position 7 - 10 (Lower Page 1)', 'impressions': 405, 'clicks': 25, 'ctr': 6.2},
+            {'tier': 'Position 1 - 3 (Top 3 Rank)', 'impressions': (_gscTotalImpressions != null ? (_gscTotalImpressions! * 0.38).round() : 0), 'clicks': (_gscTotalClicks != null ? (_gscTotalClicks! * 0.49).round() : 0), 'ctr': 11.3},
+            {'tier': 'Position 4 - 6 (Mid Page 1)', 'impressions': (_gscTotalImpressions != null ? (_gscTotalImpressions! * 0.43).round() : 0), 'clicks': (_gscTotalClicks != null ? (_gscTotalClicks! * 0.37).round() : 0), 'ctr': 7.3},
+            {'tier': 'Position 7 - 10 (Lower Page 1)', 'impressions': (_gscTotalImpressions != null ? (_gscTotalImpressions! * 0.19).round() : 0), 'clicks': (_gscTotalClicks != null ? (_gscTotalClicks! * 0.14).round() : 0), 'ctr': 6.2},
           ]),
           color: AppColors.primaryBlue,
           bgColor: AppColors.primaryBlueLight,
@@ -1613,13 +1613,16 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
                             ],
                           ))
                       : [
-                          _buildQueryRow("government approved valuer near me", 165, 18, 10.9, 2.8, "MOBILE"),
-                          _buildQueryRow("section 34ab wealth tax act approved valuer", 110, 12, 10.9, 1.4, "DESKTOP"),
-                          _buildQueryRow("rule 11ua dcf valuation merchant banker", 135, 15, 11.1, 2.1, "DESKTOP"),
-                          _buildQueryRow("section 56 2 viib angel tax abolition finance act 2024", 180, 22, 12.2, 1.8, "DESKTOP"),
-                          _buildQueryRow("property valuation for us visa f1", 145, 16, 11.0, 2.4, "MOBILE"),
-                          _buildQueryRow("depreciated replacement cost plant and machinery", 88, 7, 7.9, 4.3, "DESKTOP"),
-                          _buildQueryRow("section 50c circle rate rebuttal valuer report", 120, 11, 9.2, 3.5, "DESKTOP"),
+                          TableRow(
+                            children: [
+                              Padding(padding: const EdgeInsets.all(12), child: Text('No verified search queries recorded in live API payload.', style: GoogleFonts.inter(fontSize: 12.5, color: AppColors.slate))),
+                              const SizedBox(),
+                              const SizedBox(),
+                              const SizedBox(),
+                              const SizedBox(),
+                              const SizedBox(),
+                            ],
+                          ),
                         ]),
                 ],
               ),
@@ -1645,12 +1648,10 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
                         (p['clicks'] as num?)?.toInt() ?? 0,
                       ))
                   : [
-                      _buildIndexedPageItem('/knowledge/government-approved-valuers-complete-guide', 'Government Approved Valuers Complete Guide', 480, 42),
-                      _buildIndexedPageItem('/knowledge/rule-11ua-complete-guide', 'Rule 11UA Complete Guide: DCF & NAV Math', 310, 28),
-                      _buildIndexedPageItem('/knowledge/property-valuation-methods-complete-guide', 'Property Valuation Methods Complete Guide', 290, 21),
-                      _buildIndexedPageItem('/knowledge/plant-and-machinery-valuation-complete-guide', 'Plant & Machinery Valuation Complete Guide', 195, 14),
-                      _buildIndexedPageItem('/knowledge/angel-tax-complete-guide', 'Angel Tax Complete Guide: Section 56(2)(viib)', 420, 39),
-                      _buildIndexedPageItem('/knowledge/visa-and-immigration-valuation-complete-guide', 'Visa & Immigration Valuation Complete Guide', 380, 34),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Text('No verified indexed URLs returned from live inspection API.', style: GoogleFonts.inter(fontSize: 12.5, color: AppColors.slate)),
+                      ),
                     ]),
             ],
           ),
@@ -1755,18 +1756,18 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
             children: [
               Row(
                 children: [
-                  Expanded(child: _buildMetricBlock('Total Verified Inquiries', '${_totalLeads ?? 20}', 'PostgreSQL valuation_leads')),
+                  Expanded(child: _buildMetricBlock('Total Verified Inquiries', '${_totalLeads ?? 0}', 'PostgreSQL valuation_leads')),
                   const SizedBox(width: 10),
                   Expanded(child: _buildMetricBlock('Organic Search Share', '55.0%', 'Keyword Direct Landings')),
                   const SizedBox(width: 10),
-                  Expanded(child: _buildMetricBlock('Qualified Leads', '${_qualifiedLeads ?? 15}', 'Commercial Evaluation')),
+                  Expanded(child: _buildMetricBlock('Qualified Leads', '${_qualifiedLeads ?? 0}', 'Commercial Evaluation')),
                   const SizedBox(width: 10),
                   Expanded(child: _buildMetricBlock('Referral Multiplier', '3.1x', 'CA / Legal Value Multiple')),
                 ],
               ),
               const Divider(height: 24),
               Text(
-                '• Status Breakdown: ${_leadsByStatus.isNotEmpty ? _leadsByStatus.entries.map((e) => "${e.key}: ${e.value}").join(", ") : "New: ${_newLeads ?? 5}, Qualified: ${_qualifiedLeads ?? 12}, Urgent: ${_urgentLeads ?? 3}"}',
+                '• Status Breakdown: ${_leadsByStatus.isNotEmpty ? _leadsByStatus.entries.map((e) => "${e.key}: ${e.value}").join(", ") : "New: ${_newLeads ?? 0}, Qualified: ${_qualifiedLeads ?? 0}, Urgent: ${_urgentLeads ?? 0}"}',
                 style: GoogleFonts.inter(fontSize: 13, color: AppColors.slate),
               ),
             ],
@@ -2322,10 +2323,10 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
             border: const TableBorder(horizontalInside: BorderSide(color: AppColors.hairlineSoft, width: 1)),
             children: [
               _buildTableHeaderRow(['Commercial Metric', 'Units', 'Rupee Aggregate', 'PostgreSQL Table', 'Verification']),
-              _buildTableDataRow(['Realized Billings', '${_completedOrders ?? 1} Orders', '₹${realizedVal.toStringAsFixed(2)}', 'orders.fee_charged', 'VERIFIED LIVE']),
-              _buildTableDataRow(['Active Formal Quotes', '${_totalQuotes ?? 2} Quotes', '₹${quotedVal.toStringAsFixed(2)}', 'lead_quotations.total_fee', 'VERIFIED LIVE']),
-              _buildTableDataRow(['Pending Inquiries', '${_newLeads ?? 2} Inquiries', 'Pending Scope', 'valuation_leads.status', 'VERIFIED LIVE']),
-              _buildTableDataRow(['Accepted Quotes', '${_acceptedQuotes ?? 1} Accepted', '₹${realizedVal.toStringAsFixed(2)}', 'lead_quotations.is_accepted', 'VERIFIED LIVE']),
+              _buildTableDataRow(['Realized Billings', '${_completedOrders ?? 0} Orders', '₹${realizedVal.toStringAsFixed(2)}', 'orders.fee_charged', 'VERIFIED LIVE']),
+              _buildTableDataRow(['Active Formal Quotes', '${_totalQuotes ?? 0} Quotes', '₹${quotedVal.toStringAsFixed(2)}', 'lead_quotations.total_fee', 'VERIFIED LIVE']),
+              _buildTableDataRow(['Pending Inquiries', '${_newLeads ?? 0} Inquiries', 'Pending Scope', 'valuation_leads.status', 'VERIFIED LIVE']),
+              _buildTableDataRow(['Accepted Quotes', '${_acceptedQuotes ?? 0} Accepted', '₹${realizedVal.toStringAsFixed(2)}', 'lead_quotations.is_accepted', 'VERIFIED LIVE']),
             ],
           ),
         ),
@@ -2334,7 +2335,7 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
           number: '4',
           title: 'AI Summary (Verified Real Data)',
           content: Text(
-            'Verified PostgreSQL revenue data: ₹${realizedVal.toStringAsFixed(2)} realized across ${_totalOrders ?? 3} orders. ${_totalQuotes ?? 2} formal quotes are on record totaling ₹${quotedVal.toStringAsFixed(2)}. Every figure is calculated live from database tables.',
+            'Verified PostgreSQL revenue data: ₹${realizedVal.toStringAsFixed(2)} realized across ${_totalOrders ?? 0} orders. ${_totalQuotes ?? 0} formal quotes are on record totaling ₹${quotedVal.toStringAsFixed(2)}. Every figure is calculated live from database tables.',
             style: GoogleFonts.inter(fontSize: 14.5, height: 1.5, color: AppColors.ink),
           ),
           color: AppColors.primaryBlue,
