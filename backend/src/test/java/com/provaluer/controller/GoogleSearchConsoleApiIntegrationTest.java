@@ -86,8 +86,14 @@ public class GoogleSearchConsoleApiIntegrationTest {
     void testRealTelemetryEndpointAnonymous() throws Exception {
         mockMvc.perform(get("/api/v1/admin/seo/real-telemetry"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.gscConnected").value(true))
-                .andExpect(jsonPath("$.gscStatus").value("VERIFIED LIVE"))
+                .andExpect(jsonPath("$.crmConnected").value(true))
+                .andExpect(jsonPath("$.crmStatus").value("VERIFIED LIVE"))
+                .andExpect(jsonPath("$.gscConnected").value(false))
+                .andExpect(jsonPath("$.gscStatus").value("NOT CONNECTED"))
+                .andExpect(jsonPath("$.ga4Connected").value(false))
+                .andExpect(jsonPath("$.ga4Status").value("NOT CONNECTED"))
+                .andExpect(jsonPath("$.clarityConnected").value(false))
+                .andExpect(jsonPath("$.clarityStatus").value("NOT CONNECTED"))
                 .andExpect(jsonPath("$.totalOrders").isNumber())
                 .andExpect(jsonPath("$.realizedRevenue").isNumber());
     }
@@ -98,8 +104,8 @@ public class GoogleSearchConsoleApiIntegrationTest {
     void testRealTelemetryEndpointSuperAdmin() throws Exception {
         mockMvc.perform(get("/api/v1/admin/seo/real-telemetry"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.gscConnected").value(true))
-                .andExpect(jsonPath("$.gscStatus").value("VERIFIED LIVE"));
+                .andExpect(jsonPath("$.crmConnected").value(true))
+                .andExpect(jsonPath("$.crmStatus").value("VERIFIED LIVE"));
     }
 
     @Test
@@ -108,8 +114,8 @@ public class GoogleSearchConsoleApiIntegrationTest {
     void testRealTelemetryEndpointAdmin() throws Exception {
         mockMvc.perform(get("/api/v1/admin/seo/real-telemetry"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.gscConnected").value(true))
-                .andExpect(jsonPath("$.gscStatus").value("VERIFIED LIVE"));
+                .andExpect(jsonPath("$.crmConnected").value(true))
+                .andExpect(jsonPath("$.crmStatus").value("VERIFIED LIVE"));
     }
 
     @Test

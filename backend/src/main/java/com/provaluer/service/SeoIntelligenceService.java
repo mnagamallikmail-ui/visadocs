@@ -73,56 +73,22 @@ public class SeoIntelligenceService {
         dto.setCrmConnected(true);
         dto.setCrmStatus("VERIFIED LIVE");
 
-        // 1. Google Analytics 4 Check
-        String ga4Env = System.getenv("GA4_MEASUREMENT_ID");
-        if (ga4Env == null || ga4Env.isBlank()) {
-            ga4Env = "G-94DDGM6XDW";
-        }
-        if (ga4Env != null && !ga4Env.isBlank()) {
-            dto.setGa4Connected(true);
-            dto.setGa4Status("VERIFIED LIVE");
-            dto.setGa4MeasurementId(ga4Env);
-            dto.setGa4LastUpdated(LocalDateTime.now().toString());
-        } else {
-            dto.setGa4Connected(false);
-            dto.setGa4Status("NOT CONNECTED");
-        }
+        // 1. Google Analytics 4 Check (Phase 4N/4R Truth Audit: External API Disconnected)
+        dto.setGa4Connected(false);
+        dto.setGa4Status("NOT CONNECTED");
+        dto.setGa4MeasurementId(null);
 
-        // 2. Microsoft Clarity Check
-        String clarityEnv = System.getenv("CLARITY_PROJECT_ID");
-        if (clarityEnv != null && !clarityEnv.isBlank()) {
-            dto.setClarityConnected(true);
-            dto.setClarityStatus("VERIFIED LIVE");
-            dto.setClarityProjectId(clarityEnv);
-            dto.setClarityLastUpdated(LocalDateTime.now().toString());
-        } else {
-            dto.setClarityConnected(false);
-            dto.setClarityStatus("NOT CONNECTED");
-        }
+        // 2. Microsoft Clarity Check (Phase 4N/4R Truth Audit: External API Disconnected)
+        dto.setClarityConnected(false);
+        dto.setClarityStatus("NOT CONNECTED");
+        dto.setClarityProjectId(null);
 
-        // 3. Google Search Console Check (Verified Property Ownership & API Connectivity)
-        SeoCredential gscCred = credentialRepository.findByProvider("GSC").orElse(null);
-        boolean isSiteVerified = siteRepository.findByDomain("https://www.provaluer.in")
-                .map(s -> Boolean.TRUE.equals(s.getVerified())).orElse(true);
-
+        // 3. Google Search Console Check (Phase 4N/4R Truth Audit: External API Disconnected)
         boolean isGscLive = false;
-        if (gscCred != null) {
-            boolean hasToken = gscCred.getAccessToken() != null && !gscCred.getAccessToken().isBlank() && !gscCred.getAccessToken().contains("mock");
-            boolean hasOwnership = "SITE_OWNER".equalsIgnoreCase(gscCred.getOwnerPermissions()) || isSiteVerified;
-            isGscLive = Boolean.TRUE.equals(gscCred.getConnected()) && (hasToken || hasOwnership);
-            if (!hasToken && hasOwnership) {
-                gscCred = gscService.ensureVerifiedLiveConnection();
-                isGscLive = true;
-            }
-        } else {
-            gscCred = gscService.ensureVerifiedLiveConnection();
-            isGscLive = true;
-        }
-
-        dto.setGscConnected(isGscLive);
-        dto.setGscStatus(isGscLive ? "VERIFIED LIVE" : "NOT CONNECTED");
-        dto.setGscPropertyId(gscCred != null && gscCred.getPropertyId() != null ? gscCred.getPropertyId() : "sc-domain:provaluer.in");
-        dto.setGscLastUpdated(gscCred != null && gscCred.getLastSyncAt() != null ? gscCred.getLastSyncAt().toString() : LocalDateTime.now().toString());
+        dto.setGscConnected(false);
+        dto.setGscStatus("NOT CONNECTED");
+        dto.setGscPropertyId("sc-domain:provaluer.in");
+        dto.setGscLastUpdated(LocalDateTime.now().toString());
 
         if (isGscLive) {
             Long gscClicks = dailyMetricRepository.sumTotalClicksBySource("GSC");
