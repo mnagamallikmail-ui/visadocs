@@ -50,9 +50,6 @@ public class SeoIntelligenceService {
     private BingWebmasterService bingService;
 
     @Autowired
-    private com.provaluer.repository.SeoSiteRepository siteRepository;
-
-    @Autowired
     private ValuationLeadRepository valuationLeadRepository;
 
     @Autowired
