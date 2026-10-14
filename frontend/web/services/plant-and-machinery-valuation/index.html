@@ -164,6 +164,34 @@
     .feature-card h3 { margin-top: 0; color: #0F172A; }
     .faq-item { border-bottom: 1px solid #E2E8F0; padding: 16px 0; }
     .faq-question { font-weight: 700; font-size: 16px; color: #0F172A; margin-bottom: 8px; }
+
+    .floating-lead-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(15, 23, 42, 0.97);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 9999;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
+    }
+    .floating-lead-title { font-size: 13px; font-weight: 700; color: #FFFFFF; }
+    .floating-lead-sub { font-size: 11px; color: #94A3B8; }
+    .floating-lead-actions { display: flex; align-items: center; gap: 10px; }
+    .floating-btn-phone { background: #0D695A; color: #FFFFFF !important; font-size: 12px; font-weight: 700; padding: 8px 14px; border-radius: 6px; text-decoration: none !important; display: inline-flex; align-items: center; gap: 6px; }
+    .floating-btn-wa { background: #25D366; color: #FFFFFF !important; font-size: 12px; font-weight: 700; padding: 8px 14px; border-radius: 6px; text-decoration: none !important; display: inline-flex; align-items: center; gap: 6px; }
+
+    @media (max-width: 640px) {
+      .floating-lead-info { display: none; }
+      .floating-lead-bar { justify-content: center; padding: 8px 12px; }
+      .floating-lead-actions { width: 100%; justify-content: space-around; }
+      .floating-btn-phone, .floating-btn-wa { flex: 1; text-align: center; justify-content: center; }
+    }
   </style>
 </head>
 <body>
@@ -233,7 +261,7 @@
           <h2>Schedule an Industrial Plant &amp; Machinery Valuation</h2>
           <p>Forensic physical engineering inspection with verified asset tagging. Certified reports delivered by IBBI Registered Valuers and Chartered Engineers.</p>
           <a href="tel:+918500019091" class="cta-btn">&#9742; Call +91 85000 19091</a>
-          <a href="https://wa.me/918500880333" class="cta-btn-alt">&#128172; WhatsApp +91 85008 80333</a>
+          <a href="https://wa.me/918500880333?text=Hi%20ProValuer%2C%20I%20need%20a%20Plant%20and%20Machinery%20Valuation%20in%20Hyderabad" class="cta-btn-alt" target="_blank" rel="noopener">&#128172; WhatsApp +91 85008 80333</a>
         </section>
 
         <section>
@@ -272,6 +300,18 @@
           </p>
         </section>
       </main>
+    </div>
+
+    <!-- Phase 4: High-Conversion Floating Quick Action Bar -->
+    <div class="floating-lead-bar">
+      <div class="floating-lead-info">
+        <span class="floating-lead-title">Plant &amp; Machinery Valuation Desk — Hyderabad</span>
+        <span class="floating-lead-sub">IBBI Registered Valuers (P&amp;M) • Chartered Engineers (India)</span>
+      </div>
+      <div class="floating-lead-actions">
+        <a href="tel:+918500019091" class="floating-btn-phone">&#9742; Call +91 85000 19091</a>
+        <a href="https://wa.me/918500880333?text=Hi%20ProValuer%2C%20I%20need%20a%20Plant%20and%20Machinery%20Valuation%20in%20Hyderabad" class="floating-btn-wa" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+      </div>
     </div>
   </div>
 

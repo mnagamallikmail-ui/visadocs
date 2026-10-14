@@ -215,6 +215,36 @@
     ]
   }
   </script>
+  <style>
+    .floating-lead-bar {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: rgba(15, 23, 42, 0.97);
+      backdrop-filter: blur(8px);
+      border-top: 1px solid rgba(255, 255, 255, 0.15);
+      padding: 10px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      z-index: 9999;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.15);
+      font-family: 'Inter', -apple-system, sans-serif;
+    }
+    .floating-lead-title { font-size: 13px; font-weight: 700; color: #FFFFFF; display: block; }
+    .floating-lead-sub { font-size: 11px; color: #94A3B8; display: block; }
+    .floating-lead-actions { display: flex; align-items: center; gap: 10px; }
+    .floating-btn-phone { background: #0D695A; color: #FFFFFF !important; font-size: 12px; font-weight: 700; padding: 8px 14px; border-radius: 6px; text-decoration: none !important; display: inline-flex; align-items: center; gap: 6px; }
+    .floating-btn-wa { background: #25D366; color: #FFFFFF !important; font-size: 12px; font-weight: 700; padding: 8px 14px; border-radius: 6px; text-decoration: none !important; display: inline-flex; align-items: center; gap: 6px; }
+
+    @media (max-width: 640px) {
+      .floating-lead-info { display: none; }
+      .floating-lead-bar { justify-content: center; padding: 8px 12px; }
+      .floating-lead-actions { width: 100%; justify-content: space-around; }
+      .floating-btn-phone, .floating-btn-wa { flex: 1; text-align: center; justify-content: center; }
+    }
+  </style>
 </head>
 <body style="margin: 0; padding: 0; background-color: #FFFFFF; font-family: 'Inter', sans-serif; color: #111827;">
 
@@ -352,7 +382,7 @@
       <section>
         <h2>Consult a Government Approved Valuer Today</h2>
         <p>Ensure 100% acceptance before the Income Tax Department, Indian Courts, Banks, and Foreign Embassies. Connect directly with our Senior Valuers under complete professional confidentiality.</p>
-        <p>Telephone: <a href="tel:+918500019091">+91 85000 19091</a> | WhatsApp: <a href="https://wa.me/918500880333">+91 85008 80333</a></p>
+        <p>Telephone: <a href="tel:+918500019091">+91 85000 19091</a> | WhatsApp: <a href="https://wa.me/918500880333?text=Hi%20ProValuer%2C%20I%20need%20a%20Government%20Approved%20Valuation%20Report" target="_blank" rel="noopener">+91 85008 80333</a></p>
       </section>
     </main>
 
@@ -360,6 +390,18 @@
       <p>© 2026 ProValuer Commercial. All Rights Reserved. Canonical: https://www.provaluer.in</p>
       <p><a href="/">Home</a> | <a href="/government-approved-valuers">Government Approved Valuers</a> | <a href="/services/bank-collateral-valuation">Bank Collateral Valuation</a> | <a href="/services/nclt-ibc-valuation">NCLT & IBC Valuation</a> | <a href="/services/plant-machinery-technical-valuation">Plant & Machinery Certification</a></p>
     </footer>
+
+    <!-- Phase 4: High-Conversion Floating Quick Action Bar -->
+    <div class="floating-lead-bar">
+      <div class="floating-lead-info">
+        <span class="floating-lead-title">Government Approved Valuers — Statutory Practice</span>
+        <span class="floating-lead-sub">Wealth Tax Sec 34AB • IBBI Companies Act Sec 247 • Court Admissible</span>
+      </div>
+      <div class="floating-lead-actions">
+        <a href="tel:+918500019091" class="floating-btn-phone">&#9742; Call +91 85000 19091</a>
+        <a href="https://wa.me/918500880333?text=Hi%20ProValuer%2C%20I%20need%20a%20Government%20Approved%20Valuation%20Report" class="floating-btn-wa" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+      </div>
+    </div>
   </div>
 
   <!-- Flutter Web Application Bootstrap -->
