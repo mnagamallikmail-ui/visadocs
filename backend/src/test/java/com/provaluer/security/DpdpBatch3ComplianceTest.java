@@ -40,7 +40,6 @@ public class DpdpBatch3ComplianceTest {
     private PrivacyNomineeRepository nomineeRepository;
     private GrievanceCaseRepository grievanceRepository;
     private OrderRepository orderRepository;
-    private LeadDocumentRepository leadDocumentRepository;
     private DocumentAccessLogRepository accessLogRepository;
     private RetentionPolicyRepository retentionPolicyRepository;
     private RetentionEventRepository retentionEventRepository;
@@ -66,7 +65,6 @@ public class DpdpBatch3ComplianceTest {
         nomineeRepository = mock(PrivacyNomineeRepository.class);
         grievanceRepository = mock(GrievanceCaseRepository.class);
         orderRepository = mock(OrderRepository.class);
-        leadDocumentRepository = mock(LeadDocumentRepository.class);
         accessLogRepository = mock(DocumentAccessLogRepository.class);
         retentionPolicyRepository = mock(RetentionPolicyRepository.class);
         retentionEventRepository = mock(RetentionEventRepository.class);

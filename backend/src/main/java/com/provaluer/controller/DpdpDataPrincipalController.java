@@ -4,7 +4,6 @@ import com.provaluer.model.*;
 import com.provaluer.security.UserDetailsImpl;
 import com.provaluer.service.AgeVerificationService;
 import com.provaluer.service.DataPrincipalRightsService;
-import com.provaluer.service.SecureDeletionService;
 import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpHeaders;
