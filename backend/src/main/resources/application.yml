@@ -58,7 +58,7 @@ app:
   security:
     encryption:
       enabled: ${DPDP_ENCRYPTION_ENABLED:true}
-      master-key: ${DPDP_ENCRYPTION_KEY:c2VjdXJlX2RwZHBfbWFzdGVyX2tleV8yNTZiaXRzXzEyMw==}
+      master-key: ${DPDP_ENCRYPTION_KEY:c2VjdXJlX2RwZHBfbWFzdGVyX2tleV8yNTZiaXRzXzE=}
       key-version: ${DPDP_KEY_VERSION:v1-aes256-gcm}
   dpdp:
     dpo:

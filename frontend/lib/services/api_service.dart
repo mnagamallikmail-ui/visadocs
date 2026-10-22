@@ -62,8 +62,10 @@ class ApiService {
           return handler.next(options);
         },
         onError: (DioException e, handler) {
-          // Centralized error tracking
-          GlobalErrorService.recordDioError(e);
+          // Centralized error tracking (exclude telemetry requests to prevent cascading recursion)
+          if (!e.requestOptions.path.contains('/telemetry')) {
+            GlobalErrorService.recordDioError(e);
+          }
 
           if (e.response?.statusCode == 401) {
             isSessionExpired = true;

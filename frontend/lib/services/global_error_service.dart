@@ -52,6 +52,12 @@ class GlobalErrorService {
     int? orderId,
     String? reportNumber,
   }) {
+    // Exclude telemetry endpoint errors to prevent infinite cascading loops
+    final path = e.requestOptions.path;
+    if (path.contains('/telemetry') || (e.requestOptions.extra['isTelemetry'] == true)) {
+      return;
+    }
+
     final status = e.response?.statusCode;
     ErrorSeverity severity;
     if (status == 401 || status == 403) {
@@ -118,6 +124,7 @@ class GlobalErrorService {
             headers: {'Content-Type': 'application/json'},
             sendTimeout: const Duration(seconds: 5),
             receiveTimeout: const Duration(seconds: 5),
+            extra: {'isTelemetry': true},
           ),
         );
       } catch (_) {
