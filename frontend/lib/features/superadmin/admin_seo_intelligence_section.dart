@@ -386,20 +386,9 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
               _buildAiAnswerCard(isDesktop),
             ],
             const SizedBox(height: 32),
-            Row(
-              children: [
-                Container(width: 4, height: 22, decoration: BoxDecoration(color: AppColors.primaryBlue, borderRadius: BorderRadius.circular(2))),
-                const SizedBox(width: 10),
-                Text(
-                  'Verified Telemetry Reports',
-                  style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.ink),
-                ),
-                const SizedBox(width: 8),
-                Text('(Click any card to open complete interactive report)', style: GoogleFonts.inter(fontSize: 13, color: AppColors.slate)),
-              ],
-            ),
-            const SizedBox(height: 16),
-            _buildNavigationButtonsGrid(isDesktop),
+            _buildCrmTelemetrySection(isDesktop),
+            const SizedBox(height: 36),
+            _buildSeoIntelligenceSection(isDesktop),
           ],
         ],
       ),
@@ -455,10 +444,29 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
                         ],
                       ),
                     ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: (_gscConnected || _ga4Connected) ? AppColors.successBg : AppColors.brandRed,
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(color: (_gscConnected || _ga4Connected) ? AppColors.successBorder : AppColors.errorBorder),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(width: 8, height: 8, decoration: BoxDecoration(color: (_gscConnected || _ga4Connected) ? AppColors.successAccent : AppColors.brandRedDark, shape: BoxShape.circle)),
+                          const SizedBox(width: 6),
+                          Text(
+                            (_gscConnected || _ga4Connected) ? 'External SEO: CONNECTED' : 'External SEO: NOT CONNECTED',
+                            style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: (_gscConnected || _ga4Connected) ? AppColors.successAccent : AppColors.brandRedDark),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text('Real telemetry only. Zero mock, zero estimated, and zero generated values.', style: GoogleFonts.inter(fontSize: 13, color: AppColors.slate)),
+                Text('Real telemetry only. Zero mock, zero estimated, and zero generated values. CRM Revenue Telemetry is isolated from SEO Intelligence.', style: GoogleFonts.inter(fontSize: 13, color: AppColors.slate)),
               ],
             ),
           ),
@@ -576,11 +584,13 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
                 ),
                 const SizedBox(height: 10),
                 Text(
-                  '• Verified Client Inquiries: ${_crmConnected ? "${_totalLeads ?? 0} leads recorded in PostgreSQL database (New: ${_newLeads ?? 0}, Qualified: ${_qualifiedLeads ?? 0})" : (_errorMessage != null ? "PostgreSQL Disconnected ($_errorMessage)" : "PostgreSQL Disconnected (No Telemetry)")}.\n'
-                  '• Verified Formal Quotations: ${_crmConnected ? "${_totalQuotes ?? 0} quotes generated (Total Value: ₹${(_totalQuotedAmount ?? 0.0).toStringAsFixed(2)})" : (_errorMessage != null ? "No active quotation telemetry ($_errorMessage)" : "No active quotation telemetry")}.\n'
-                  '• Verified Order Revenue: ${_crmConnected ? "₹${(_realizedRevenue ?? 0.0).toStringAsFixed(2)} across ${_totalOrders ?? 0} orders recorded in PostgreSQL" : (_errorMessage != null ? "No order telemetry ($_errorMessage)" : "No order telemetry")}.\n'
-                  '• External Web Telemetry: ${_ga4Connected ? "Google Analytics 4 is ✅ VERIFIED LIVE (Measurement ID: ${_ga4MeasurementId ?? "G-94DDGM6XDW"}). Pageview and conversion telemetry actively streaming." : "Google Analytics 4 Reporting API: ❌ NOT CONNECTED (Tag G-94DDGM6XDW injected in web head; Google Analytics Data API pending)"}\n'
-                  '• Search Telemetry: ${_gscConnected ? "Google Search Console is ✅ VERIFIED LIVE (Property: ${_gscPropertyId ?? "sc-domain:provaluer.in"}). ${_gscTotalImpressions ?? 0} impressions, ${_gscTotalClicks ?? 0} clicks, and ${_gscIndexedPages ?? 0} indexed pages streaming." : "Google Search Console: ❌ NOT CONNECTED (OAuth2 API credentials pending)"}',
+                  '• SECTION 1: CRM REVENUE TELEMETRY (PostgreSQL Verified):\n'
+                  '  - Verified Client Inquiries: ${_crmConnected ? "${_totalLeads ?? 0} leads recorded in PostgreSQL database (New: ${_newLeads ?? 0}, Qualified: ${_qualifiedLeads ?? 0})" : (_errorMessage != null ? "PostgreSQL Disconnected ($_errorMessage)" : "PostgreSQL Disconnected (No Telemetry)")}.\n'
+                  '  - Verified Formal Quotations: ${_crmConnected ? "${_totalQuotes ?? 0} quotes generated (Total Value: ₹${(_totalQuotedAmount ?? 0.0).toStringAsFixed(2)})" : (_errorMessage != null ? "No active quotation telemetry ($_errorMessage)" : "No active quotation telemetry")}.\n'
+                  '  - Verified Order Revenue: ${_crmConnected ? "₹${(_realizedRevenue ?? 0.0).toStringAsFixed(2)} across ${_totalOrders ?? 0} orders recorded in PostgreSQL" : (_errorMessage != null ? "No order telemetry ($_errorMessage)" : "No order telemetry")}.\n\n'
+                  '• SECTION 2: SEO INTELLIGENCE (External Search & Analytics Sources):\n'
+                  '  - External Web Telemetry: ${_ga4Connected ? "Google Analytics 4 is ✅ VERIFIED LIVE (Measurement ID: ${_ga4MeasurementId ?? "G-94DDGM6XDW"}). Pageview and conversion telemetry actively streaming." : "Google Analytics 4 Reporting API: ❌ NOT CONNECTED (Tag G-94DDGM6XDW injected in web head; Google Analytics Data API pending)"}\n'
+                  '  - Search Telemetry: ${_gscConnected ? "Google Search Console is ✅ VERIFIED LIVE (Property: ${_gscPropertyId ?? "sc-domain:provaluer.in"}). ${_gscTotalImpressions ?? 0} impressions, ${_gscTotalClicks ?? 0} clicks, and ${_gscIndexedPages ?? 0} indexed pages streaming." : "SEO Data Unavailable - External SEO Sources Not Connected (Google Search Console & GA4 not connected)"}',
                   style: GoogleFonts.inter(fontSize: 13.5, height: 1.5, color: AppColors.surfaceSoft),
                 ),
               ],
@@ -781,26 +791,236 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
   }
 
   // ─── 10 Large Navigation Cards / Buttons ──────────────────────────────────
-  Widget _buildNavigationButtonsGrid(bool isDesktop) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final crossAxisCount = constraints.maxWidth >= 1200 ? 3 : constraints.maxWidth >= 768 ? 2 : 1;
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: 10,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: crossAxisCount,
-            crossAxisSpacing: 18,
-            mainAxisSpacing: 18,
-            mainAxisExtent: 195,
+  // ─── SECTION 1: CRM REVENUE TELEMETRY ─────────────────────────────────────
+  Widget _buildCrmTelemetrySection(bool isDesktop) {
+    const crmReportIndices = [1, 2, 4, 9]; // Reports 2, 3, 5, 10
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(width: 4, height: 22, decoration: BoxDecoration(color: AppColors.primaryBlue, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(width: 10),
+            Text(
+              '1. CRM Revenue Telemetry',
+              style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.ink),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: _crmConnected ? AppColors.successBg : AppColors.brandRed,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: _crmConnected ? AppColors.successBorder : AppColors.errorBorder),
+              ),
+              child: Text(
+                _crmConnected ? 'PostgreSQL CRM: VERIFIED LIVE' : 'PostgreSQL CRM: DISCONNECTED',
+                style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w700, color: _crmConnected ? AppColors.successAccent : AppColors.brandRedDark),
+              ),
+            ),
+            const Spacer(),
+            Text('(PostgreSQL database records)', style: GoogleFonts.inter(fontSize: 12.5, color: AppColors.slate)),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Verified client inquiries, practice areas, formal quotations, orders, and realized revenue sourced directly from PostgreSQL database tables.',
+          style: GoogleFonts.inter(fontSize: 13, color: AppColors.slate),
+        ),
+        const SizedBox(height: 12),
+        // Strict boundary notice: CRM metrics do not imply SEO analytics capability
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.surfaceSoft,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.hairlineSoft),
           ),
-          itemBuilder: (context, index) {
-            final btn = _getReportMeta(index);
-            return _buildLargeNavigationCard(index, btn);
+          child: Row(
+            children: [
+              const Icon(Icons.info_outline_rounded, size: 18, color: AppColors.primaryBlue),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Notice: CRM Revenue Telemetry accurately reports valuation intake, fee quotations, and accounting revenue. Revenue metrics do not measure, reflect, or imply website search engine optimization (SEO) performance or search traffic.',
+                  style: GoogleFonts.inter(fontSize: 12.5, color: AppColors.ink, height: 1.4),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 16),
+        // Grid of CRM reports (2. Visitor Locations, 3. Popular Services, 5. Lead Sources, 10. Business Impact)
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final crossAxisCount = constraints.maxWidth >= 1200 ? 2 : constraints.maxWidth >= 768 ? 2 : 1;
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: crmReportIndices.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 18,
+                mainAxisSpacing: 18,
+                mainAxisExtent: 195,
+              ),
+              itemBuilder: (context, i) {
+                final reportIndex = crmReportIndices[i];
+                final btn = _getReportMeta(reportIndex);
+                return _buildLargeNavigationCard(reportIndex, btn);
+              },
+            );
           },
-        );
-      },
+        ),
+      ],
+    );
+  }
+
+  // ─── SECTION 2: SEO INTELLIGENCE ──────────────────────────────────────────
+  Widget _buildSeoIntelligenceSection(bool isDesktop) {
+    const seoReportIndices = [0, 3, 5, 6, 7, 8]; // Reports 1, 4, 6, 7, 8, 9
+    final bool hasExternalSeo = _gscConnected || _ga4Connected;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Container(width: 4, height: 22, decoration: BoxDecoration(color: AppColors.brandNavy, borderRadius: BorderRadius.circular(2))),
+            const SizedBox(width: 10),
+            Text(
+              '2. SEO Intelligence',
+              style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w700, color: AppColors.ink),
+            ),
+            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: hasExternalSeo ? AppColors.successBg : AppColors.brandRed,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: hasExternalSeo ? AppColors.successBorder : AppColors.errorBorder),
+              ),
+              child: Text(
+                hasExternalSeo ? 'EXTERNAL SOURCES CONNECTED' : 'EXTERNAL SOURCES NOT CONNECTED',
+                style: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w700, color: hasExternalSeo ? AppColors.successAccent : AppColors.brandRedDark),
+              ),
+            ),
+            const Spacer(),
+            Text('(Google Analytics 4, Search Console, Clarity)', style: GoogleFonts.inter(fontSize: 12.5, color: AppColors.slate)),
+          ],
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Search engine rankings, organic queries, impressions, CTR, indexed pages, and web visitor analytics.',
+          style: GoogleFonts.inter(fontSize: 13, color: AppColors.slate),
+        ),
+        const SizedBox(height: 12),
+
+        // Prominent Alert Banner when External SEO sources are not connected
+        if (!hasExternalSeo) ...[
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: AppColors.brandRed,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.errorBorder),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                const Icon(Icons.cloud_off_rounded, color: AppColors.brandRedDark, size: 24),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'SEO Data Unavailable - External SEO Sources Not Connected',
+                        style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.bold, color: AppColors.brandRedDark),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Actual SEO telemetry is unavailable because external search sources are currently disconnected:\n'
+                        '• Google Analytics 4 (GA4): Not connected\n'
+                        '• Google Search Console (GSC): Not connected\n'
+                        '• Microsoft Clarity: Not connected\n\n'
+                        'Search-related KPIs (impressions, clicks, organic search queries, CTR, ranking positions) are displayed only when sourced from authenticated, connected Google Search Console or Google Analytics 4 APIs. Revenue metrics and CRM database records do not represent or substitute for SEO intelligence.',
+                        style: GoogleFonts.inter(fontSize: 13, height: 1.45, color: AppColors.brandRedDark),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+        ] else ...[
+          // Sourced from connected GSC or GA4 APIs only
+          Container(
+            padding: const EdgeInsets.all(16),
+            margin: const EdgeInsets.only(bottom: 16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: AppColors.successBorder),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.check_circle_rounded, color: AppColors.successAccent, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Live Search-Related KPIs (Sourced from Connected Google Search Console & GA4)',
+                      style: GoogleFonts.inter(fontSize: 13.5, fontWeight: FontWeight.w700, color: AppColors.ink),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(child: _buildMetricBlock('Total Impressions', '${_gscTotalImpressions ?? 0}', 'Google Search Console API')),
+                    const SizedBox(width: 10),
+                    Expanded(child: _buildMetricBlock('Total Clicks', '${_gscTotalClicks ?? 0}', 'Google Search Console API')),
+                    const SizedBox(width: 10),
+                    Expanded(child: _buildMetricBlock('Average CTR', _gscAverageCtr != null ? '${((_gscAverageCtr!) * 100).toStringAsFixed(2)}%' : '0.00%', 'GSC API')),
+                    const SizedBox(width: 10),
+                    Expanded(child: _buildMetricBlock('Average Position', _gscAveragePosition != null ? _gscAveragePosition!.toStringAsFixed(2) : '0.00', 'GSC API')),
+                    const SizedBox(width: 10),
+                    Expanded(child: _buildMetricBlock('Indexed Pages', '${_gscIndexedPages ?? 0} / 6', 'GSC URL Inspection')),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        // Grid of SEO reports (1. Website Visitors, 4. Google Search Terms, 6. Page Performance, 7. Visitor Journey, 8. User Clicks & Heatmaps, 9. Website Health)
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final crossAxisCount = constraints.maxWidth >= 1200 ? 3 : constraints.maxWidth >= 768 ? 2 : 1;
+            return GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: seoReportIndices.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: 18,
+                mainAxisSpacing: 18,
+                mainAxisExtent: 195,
+              ),
+              itemBuilder: (context, i) {
+                final reportIndex = seoReportIndices[i];
+                final btn = _getReportMeta(reportIndex);
+                return _buildLargeNavigationCard(reportIndex, btn);
+              },
+            );
+          },
+        ),
+      ],
     );
   }
 
@@ -1007,8 +1227,21 @@ class _AdminSeoIntelligenceSectionState extends State<AdminSeoIntelligenceSectio
           const SizedBox(height: 16),
           Text('Data Source Not Connected', style: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.bold, color: AppColors.ink)),
           const SizedBox(height: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: AppColors.brandRed,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: AppColors.errorBorder),
+            ),
+            child: Text(
+              'SEO Data Unavailable - External SEO Sources Not Connected',
+              style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.brandRedDark),
+            ),
+          ),
+          const SizedBox(height: 10),
           Text(
-            'This report requires a verified connection to $sourceName.\nIn strict adherence to Phase 4C, estimated, random, placeholder, or generated values are prohibited.',
+            'This report requires a verified connection to $sourceName.\nActual SEO telemetry is unavailable because external SEO sources (GA4, GSC, Clarity) are not connected.\nIn strict adherence to Phase 4C, estimated, random, placeholder, or generated values are prohibited.',
             textAlign: TextAlign.center,
             style: GoogleFonts.inter(fontSize: 14, color: AppColors.slate, height: 1.5),
           ),

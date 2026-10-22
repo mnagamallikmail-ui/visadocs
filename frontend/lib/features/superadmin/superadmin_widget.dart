@@ -651,7 +651,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
   static const _menuItems = [
     {'key': 'overview', 'label': 'Overview', 'icon': Icons.dashboard_outlined},
     {'key': 'leads_crm', 'label': 'Leads CRM', 'icon': Icons.leaderboard_rounded},
-    {'key': 'seo_intelligence', 'label': 'SEO Intelligence', 'icon': Icons.insights_rounded},
+    {'key': 'seo_intelligence', 'label': 'CRM Revenue & SEO Intelligence', 'icon': Icons.insights_rounded},
     {'key': 'valuation_portal', 'label': 'Valuation Portal', 'icon': Icons.swap_horiz_outlined},
     {'key': 'users', 'label': 'User Management', 'icon': Icons.manage_accounts_outlined},
     {'key': 'queue', 'label': 'Queue Management', 'icon': Icons.queue_play_next_outlined},
