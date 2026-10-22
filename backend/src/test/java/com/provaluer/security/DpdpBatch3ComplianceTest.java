@@ -86,7 +86,6 @@ public class DpdpBatch3ComplianceTest {
         inject(principalRightsService, "nomineeRepository", nomineeRepository);
         inject(principalRightsService, "grievanceRepository", grievanceRepository);
         inject(principalRightsService, "orderRepository", orderRepository);
-        inject(principalRightsService, "leadDocumentRepository", leadDocumentRepository);
         inject(principalRightsService, "accessLogRepository", accessLogRepository);
         inject(principalRightsService, "retentionPolicyRepository", retentionPolicyRepository);
         inject(principalRightsService, "breachRepository", breachRepository);
@@ -97,7 +96,6 @@ public class DpdpBatch3ComplianceTest {
         inject(secureDeletionService, "erasureRequestRepository", erasureRepository);
         inject(secureDeletionService, "certificateRepository", deletionCertificateRepository);
         inject(secureDeletionService, "userRepository", userRepository);
-        inject(secureDeletionService, "leadDocumentRepository", leadDocumentRepository);
         inject(secureDeletionService, "grievanceCaseRepository", grievanceRepository);
 
         // 3. DataRetentionScheduler

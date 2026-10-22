@@ -1,7 +1,6 @@
 package com.provaluer.service;
 
 import com.provaluer.model.DeletionCertificate;
-import com.provaluer.model.LeadDocument;
 import com.provaluer.model.PrivacyErasureRequest;
 import com.provaluer.model.User;
 import com.provaluer.repository.*;
@@ -11,7 +10,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -20,7 +18,6 @@ import java.security.MessageDigest;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.HexFormat;
-import java.util.List;
 import java.util.UUID;
 
 /**
@@ -41,9 +38,6 @@ public class SecureDeletionService {
 
     @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private LeadDocumentRepository leadDocumentRepository;
 
     @Autowired
     private GrievanceCaseRepository grievanceCaseRepository;

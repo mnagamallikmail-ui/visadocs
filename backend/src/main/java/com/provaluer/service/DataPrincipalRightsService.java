@@ -5,8 +5,6 @@ import com.fasterxml.jackson.databind.SerializationFeature;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.provaluer.model.*;
 import com.provaluer.repository.*;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,8 +24,6 @@ import java.util.zip.ZipOutputStream;
 @Service
 public class DataPrincipalRightsService {
 
-    private static final Logger log = LoggerFactory.getLogger(DataPrincipalRightsService.class);
-
     @Autowired private UserRepository userRepository;
     @Autowired private ConsentLedgerRepository consentLedgerRepository;
     @Autowired private PrivacyCorrectionRequestRepository correctionRepository;
@@ -35,7 +31,6 @@ public class DataPrincipalRightsService {
     @Autowired private PrivacyNomineeRepository nomineeRepository;
     @Autowired private GrievanceCaseRepository grievanceRepository;
     @Autowired private OrderRepository orderRepository;
-    @Autowired private LeadDocumentRepository leadDocumentRepository;
     @Autowired private DocumentAccessLogRepository accessLogRepository;
     @Autowired private RetentionPolicyRepository retentionPolicyRepository;
     @Autowired private DataBreachIncidentRepository breachRepository;

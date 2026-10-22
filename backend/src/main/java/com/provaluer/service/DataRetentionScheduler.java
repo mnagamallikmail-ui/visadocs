@@ -84,7 +84,7 @@ public class DataRetentionScheduler {
 
                         eventRepository.save(new RetentionEvent(
                                 policy.getId(), entityType, String.valueOf(leadId),
-                                "ARCHIVED", "Lead record expired under policy (" + days + " days)"
+                                "ARCHIVED", "Lead record " + (ref != null ? ref : leadId) + " expired under policy (" + days + " days)"
                         ));
                         totalArchived++;
                     }
