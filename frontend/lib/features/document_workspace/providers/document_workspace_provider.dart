@@ -30,7 +30,10 @@ enum DocumentScrollMode {
 }
 
 class DocumentWorkspaceProvider extends ChangeNotifier {
-  final DocumentWorkspaceApiService _apiService = DocumentWorkspaceApiService();
+  final DocumentWorkspaceApiService _apiService;
+
+  DocumentWorkspaceProvider({DocumentWorkspaceApiService? apiService})
+      : _apiService = apiService ?? DocumentWorkspaceApiService();
 
   String? _validationError;
   String? get validationError => _validationError;
@@ -341,11 +344,34 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     });
   }
 
-  void takeOverSession() {
+  /// FIX 2: Reclaim session with Two-Phase Safe Reload & Reapplication (Zero Data Loss)
+  Future<void> takeOverSession() async {
     if (_workspaceModel == null) return;
-    TokenStorage.claimActiveWorkspaceSession(_workspaceModel!.orderId, _tabSessionId);
+    final orderId = _workspaceModel!.orderId;
+
+    // 1. Capture pending _deltaValues to prevent data loss
+    final pendingDeltas = Map<String, String>.from(_deltaValues);
+
+    // 2. Claim session lease
+    TokenStorage.claimActiveWorkspaceSession(orderId, _tabSessionId);
     hasActiveSessionConflict = false;
     sessionTakenOver = false;
+
+    // 3. Reload latest authoritative workspace from server
+    await loadWorkspace(orderId);
+
+    // 4. Reapply pending local edits onto refreshed model
+    if (pendingDeltas.isNotEmpty) {
+      _activeValues.addAll(pendingDeltas);
+      _deltaValues.addAll(pendingDeltas);
+      _isDirty = true;
+      hasRecoveredLocalDraft = true;
+
+      // 5. Persist local draft under new server revision
+      _persistLocalDraft();
+    }
+
+    // 6. Resume autosave
     initAutoSave();
     notifyListeners();
   }
@@ -1034,6 +1060,14 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  void setSavingForTest(bool saving) {
+    _isSaving = saving;
+  }
+
+  void setAutoSavingForTest(bool autoSaving) {
+    _isAutoSaving = autoSaving;
+  }
+
   /// Switches between [Table Edit] and [Compiled Preview]
   Future<void> setViewMode(WorkspaceViewMode mode) async {
     if (_viewMode == mode) return;
@@ -1057,11 +1091,13 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Flush unsaved delta values to backend first
+      // FIX 1: Route all preview-triggered save operations through saveChanges() to synchronize revision tokens
       if (_deltaValues.isNotEmpty) {
-        await _apiService.saveDocumentValues(_workspaceModel!.orderId, _deltaValues);
-        _deltaValues.clear();
-        _isDirty = false;
+        final saveOk = await saveChanges(isAutoSave: false);
+        if (!saveOk) {
+          _errorMessage = saveErrorMessage ?? 'Live preview paused: draft save encountered conflict.';
+          return;
+        }
       }
 
       final preview = await _apiService.compileLivePreview(_workspaceModel!.orderId);
@@ -1491,6 +1527,11 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
 
   /// Saves changed delta values to backend with robust error visibility & concurrency protection
   Future<bool> saveChanges({bool isAutoSave = false}) async {
+    // FIX 3: Re-entrancy protection - only one save may execute at a time
+    if (_isSaving || _isAutoSaving) {
+      return false;
+    }
+
     if (_workspaceModel == null || _deltaValues.isEmpty) {
       _isDirty = false;
       _saveState = SaveState.saved;
@@ -1553,7 +1594,10 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       if (dioErr.response?.statusCode == 409) {
         hasRevisionConflict = true;
         _saveState = SaveState.error;
-        saveErrorMessage = 'Workspace updated elsewhere. Refresh required.';
+        final serverMsg = dioErr.response?.data is Map
+            ? dioErr.response?.data['error']?.toString()
+            : null;
+        saveErrorMessage = serverMsg ?? 'Workspace updated elsewhere. Refresh required.';
         _errorMessage = saveErrorMessage;
         _autoSaveTimer?.cancel();
         notifyListeners();

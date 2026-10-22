@@ -416,7 +416,8 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
                     _buildStaleDraftQuarantineBanner(provider),
 
                   // SPRINT 6 EMERGENCY HOTFIX: Persistent Save Failure Banner (Phase 5)
-                  if (provider.saveState == SaveState.error || _showPersistentSaveFailure)
+                  // FIX 5: When 409 revision conflict occurs, hide generic save failure banner
+                  if ((provider.saveState == SaveState.error || _showPersistentSaveFailure) && !provider.hasRevisionConflict)
                     _buildPersistentSaveFailureBanner(provider),
 
                   // SPRINT 6 EMERGENCY HOTFIX: Recovered Local Draft Banner (Phase 9)
@@ -635,7 +636,8 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
               weight: FontWeight.w600,
             ),
           ),
-          onPressed: (provider.isDirty && !provider.isSaving && !provider.isReadOnly)
+          // FIX 3: Disable manual save while save or auto-save is in progress
+          onPressed: (provider.isDirty && !provider.isSaving && !provider.isAutoSaving && !provider.isReadOnly)
               ? () async {
                   final success = await provider.saveChanges();
                   if (!context.mounted) return;
@@ -1227,7 +1229,13 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
                 style: const TextStyle(fontSize: 13, color: Color(0xFF991B1B)),
                 children: [
                   const TextSpan(text: '⚠ Save Failed: ', style: TextStyle(fontWeight: FontWeight.bold)),
-                  const TextSpan(text: 'Session expired or connection unavailable. '),
+                  TextSpan(
+                    text: provider.saveErrorMessage != null
+                        ? '${provider.saveErrorMessage} '
+                        : (ApiService().isSessionExpired
+                            ? 'Session expired. '
+                            : 'Connection unavailable. '),
+                  ),
                   TextSpan(
                     text: 'Your edits have been preserved locally.',
                     style: TextStyle(fontWeight: FontWeight.w600, color: Colors.green.shade900),
@@ -1393,10 +1401,11 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
         children: [
           const Icon(Icons.sync_problem_rounded, color: Color(0xFFDC2626), size: 20),
           const SizedBox(width: 10),
-          const Expanded(
+          Expanded(
             child: Text(
-              'Workspace updated elsewhere. Newer revision exists on server. Refresh required to prevent overwrite.',
-              style: TextStyle(fontSize: 13, color: Color(0xFF991B1B), fontWeight: FontWeight.bold),
+              provider.saveErrorMessage ??
+                  'Workspace updated elsewhere. Newer revision exists on server. Refresh required to prevent overwrite.',
+              style: const TextStyle(fontSize: 13, color: Color(0xFF991B1B), fontWeight: FontWeight.bold),
             ),
           ),
           ElevatedButton.icon(
