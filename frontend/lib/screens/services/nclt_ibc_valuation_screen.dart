@@ -241,14 +241,30 @@ class _NcltIbcValuationScreenState extends State<NcltIbcValuationScreen> {
                               ),
                             ),
                             const SizedBox(width: 10),
-                            Text(
-                              'Pro Valuer',
-                              style: GoogleFonts.montserrat(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
-                                color: _obsidian,
-                                letterSpacing: -0.5,
-                              ),
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Pro Valuer OPC Pvt Ltd',
+                                  style: GoogleFonts.montserrat(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: _obsidian,
+                                    letterSpacing: -0.4,
+                                  ),
+                                ),
+                                if (isDesktop)
+                                  Text(
+                                    'Professional Registered & Govt Approved Valuers',
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: LandingTheme.brandTeal,
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ],
                         ),
@@ -2196,7 +2212,7 @@ class _NcltIbcValuationScreenState extends State<NcltIbcValuationScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '© 2026 ProValuer Commercial. All Rights Reserved. Canonical: https://www.provaluer.in',
+                    '© 2026 Pro Valuer OPC Pvt Ltd. All Rights Reserved. Canonical: https://www.provaluer.in',
                     style: GoogleFonts.inter(
                       fontSize: 11,
                       color: const Color(0xFF64748B),

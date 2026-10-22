@@ -239,14 +239,30 @@ class _VisaImmigrationValuationScreenState extends State<VisaImmigrationValuatio
                               ),
                             ),
                             const SizedBox(width: 10),
-                            Text(
-                              'ProValuer',
-                              style: GoogleFonts.montserrat(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                                color: _obsidian,
-                                letterSpacing: -0.3,
-                              ),
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Pro Valuer OPC Pvt Ltd',
+                                  style: GoogleFonts.montserrat(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: _obsidian,
+                                    letterSpacing: -0.4,
+                                  ),
+                                ),
+                                if (isDesktop)
+                                  Text(
+                                    'Professional Registered & Govt Approved Valuers',
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: LandingTheme.brandTeal,
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ],
                         ),
@@ -2253,7 +2269,7 @@ class _VisaImmigrationValuationScreenState extends State<VisaImmigrationValuatio
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '© 2026 ProValuer Commercial. Canonical: https://www.provaluer.in',
+                    '© 2026 Pro Valuer OPC Pvt Ltd. Canonical: https://www.provaluer.in',
                     style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
                   ),
                   Text(

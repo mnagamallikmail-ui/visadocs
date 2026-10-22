@@ -1,11 +1,11 @@
 {
-    "name": "ProValuer Commercial",
-    "short_name": "ProValuer",
+    "name": "Pro Valuer OPC Pvt Ltd",
+    "short_name": "Pro Valuer",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#FFFFFF",
     "theme_color": "#0F172A",
-    "description": "Government Approved & IBBI Registered Valuers providing bank collateral, corporate equity, NCLT/IBC resolution, and plant & machinery technical valuation reports.",
+    "description": "Professional Registered & Govt Approved Valuers providing bank collateral, corporate equity, NCLT/IBC resolution, and plant & machinery technical valuation reports.",
     "orientation": "portrait-primary",
     "prefer_related_applications": false,
     "icons": [

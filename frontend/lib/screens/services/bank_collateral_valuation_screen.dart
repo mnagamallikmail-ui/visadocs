@@ -247,14 +247,30 @@ class _BankCollateralValuationScreenState extends State<BankCollateralValuationS
                               ),
                             ),
                             const SizedBox(width: 10),
-                            Text(
-                              'Pro Valuer',
-                              style: GoogleFonts.montserrat(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
-                                color: LandingTheme.textPrimary,
-                                letterSpacing: -0.5,
-                              ),
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Pro Valuer OPC Pvt Ltd',
+                                  style: GoogleFonts.montserrat(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: LandingTheme.textPrimary,
+                                    letterSpacing: -0.4,
+                                  ),
+                                ),
+                                if (isDesktop)
+                                  Text(
+                                    'Professional Registered & Govt Approved Valuers',
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: LandingTheme.brandTeal,
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ],
                         ),
@@ -1396,15 +1412,25 @@ class _BankCollateralValuationScreenState extends State<BankCollateralValuationS
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Text(
-                              'ProValuer Commercial',
-                              style: GoogleFonts.montserrat(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Pro Valuer OPC Pvt Ltd',
+                                  style: GoogleFonts.montserrat(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
+                                ),
+                                Text(
+                                  'Professional Registered & Govt Approved Valuers',
+                                  style: GoogleFonts.montserrat(fontSize: 10, fontWeight: FontWeight.w600, color: LandingTheme.brandTeal),
+                                ),
+                              ],
                             ),
                           ],
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'Government Approved & IBBI Registered Valuers providing bank collateral, corporate equity, NCLT/IBC resolution, and plant & machinery technical valuation reports across India.',
+                          'Professional Registered & Govt Approved Valuers providing bank collateral, corporate equity, NCLT/IBC resolution, and plant & machinery technical valuation reports across India.',
                           style: GoogleFonts.montserrat(fontSize: 12.5, color: const Color(0xFF94A3B8), height: 1.6),
                         ),
                       ],
@@ -1430,7 +1456,7 @@ class _BankCollateralValuationScreenState extends State<BankCollateralValuationS
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '© 2026 ProValuer Commercial. All statutory rights reserved.',
+                    '© 2026 Pro Valuer OPC Pvt Ltd. All statutory rights reserved.',
                     style: GoogleFonts.montserrat(fontSize: 11.5, color: const Color(0xFF64748B)),
                   ),
                   Text(

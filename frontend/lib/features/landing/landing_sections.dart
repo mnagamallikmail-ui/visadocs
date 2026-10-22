@@ -210,8 +210,8 @@ class LandingHeader extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
-                              width: 32,
-                              height: 32,
+                              width: 34,
+                              height: 34,
                               decoration: BoxDecoration(
                                 color: LandingTheme.brandGreen,
                                 borderRadius: BorderRadius.circular(8),
@@ -236,14 +236,30 @@ class LandingHeader extends StatelessWidget {
                               ),
                             ),
                             const SizedBox(width: 10),
-                            Text(
-                              'Pro Valuer',
-                              style: GoogleFonts.montserrat(
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
-                                color: LandingTheme.textPrimary,
-                                letterSpacing: -0.5,
-                              ),
+                            Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Pro Valuer OPC Pvt Ltd',
+                                  style: GoogleFonts.montserrat(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w800,
+                                    color: LandingTheme.textPrimary,
+                                    letterSpacing: -0.4,
+                                  ),
+                                ),
+                                if (isDesktop)
+                                  Text(
+                                    'Professional Registered & Govt Approved Valuers',
+                                    style: GoogleFonts.montserrat(
+                                      fontSize: 9.5,
+                                      fontWeight: FontWeight.w600,
+                                      color: LandingTheme.brandTeal,
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ],
                         ),
@@ -2732,8 +2748,8 @@ class LandingFooter extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Container(
-                        width: 24,
-                        height: 24,
+                        width: 28,
+                        height: 28,
                         decoration: BoxDecoration(
                           gradient: LandingTheme.platinumButtonGradient,
                           borderRadius: BorderRadius.circular(6),
@@ -2743,26 +2759,41 @@ class LandingFooter extends StatelessWidget {
                             'PV',
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: 10,
+                              fontSize: 11,
                               fontWeight: FontWeight.w800,
                             ),
                           ),
                         ),
                       ),
                       const SizedBox(width: 10),
-                      Text(
-                        'Pro Valuer',
-                        style: GoogleFonts.montserrat(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
-                          color: LandingTheme.textPrimary,
-                          letterSpacing: -0.3,
-                        ),
+                      Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Pro Valuer OPC Pvt Ltd',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w800,
+                              color: LandingTheme.textPrimary,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          Text(
+                            'Professional Registered & Govt Approved Valuers',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w600,
+                              color: LandingTheme.brandTeal,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
                   Text(
-                    '© ${DateTime.now().year} Pro Valuer. All rights reserved. IBBI Registered Valuers.',
+                    '© ${DateTime.now().year} Pro Valuer OPC Pvt Ltd. All rights reserved. Professional Registered & Govt Approved Valuers.',
                     style: GoogleFonts.montserrat(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w400,
@@ -2823,13 +2854,51 @@ class MobileMenuDrawer extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text(
-                    'Pro Valuer',
-                    style: GoogleFonts.montserrat(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: LandingTheme.textPrimary,
-                    ),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 30,
+                        height: 30,
+                        decoration: BoxDecoration(
+                          color: LandingTheme.brandGreen,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Center(
+                          child: Text(
+                            'PV',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Pro Valuer OPC Pvt Ltd',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w800,
+                              color: LandingTheme.textPrimary,
+                            ),
+                          ),
+                          Text(
+                            'Govt Approved Valuers',
+                            style: GoogleFonts.montserrat(
+                              fontSize: 9,
+                              fontWeight: FontWeight.w600,
+                              color: LandingTheme.brandTeal,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                   IconButton(
                     onPressed: () => Navigator.of(context).pop(),

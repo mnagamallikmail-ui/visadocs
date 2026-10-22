@@ -228,22 +228,22 @@ class AnalyticsService {
   }
 
   static String _derivePageTitle(String path) {
-    if (path == '/') return 'Homepage | ProValuer Commercial';
-    if (path == '/government-approved-valuers') return 'Government Approved Valuers | ProValuer';
+    if (path == '/') return 'Pro Valuer OPC Pvt Ltd | Professional Registered & Govt Approved Valuers';
+    if (path == '/government-approved-valuers') return 'Government Approved Valuers | Pro Valuer OPC Pvt Ltd';
     if (path.startsWith('/services/')) {
       final slug = path.replaceFirst('/services/', '');
       final formatted = slug.split('-').map((s) => s.isNotEmpty ? '${s[0].toUpperCase()}${s.substring(1)}' : '').join(' ');
-      return '$formatted Valuation | ProValuer Commercial';
+      return '$formatted Valuation | Pro Valuer OPC Pvt Ltd';
     }
-    if (path == '/login') return 'Account Sign In | ProValuer';
-    if (path == '/client') return 'Client Mandate Dashboard | ProValuer';
-    if (path == '/pa') return 'Partner Appraiser Dashboard | ProValuer';
-    if (path == '/spa') return 'Senior Partner Review Dashboard | ProValuer';
-    if (path == '/admin') return 'Super Admin Governance Console | ProValuer';
+    if (path == '/login') return 'Account Sign In | Pro Valuer';
+    if (path == '/client') return 'Client Mandate Dashboard | Pro Valuer';
+    if (path == '/pa') return 'Partner Appraiser Dashboard | Pro Valuer';
+    if (path == '/spa') return 'Senior Partner Review Dashboard | Pro Valuer';
+    if (path == '/admin') return 'Super Admin Governance Console | Pro Valuer';
     if (path.startsWith('/admin/')) {
       final sub = path.replaceFirst('/admin/', '');
       return '${sub.toUpperCase()} | Admin Console';
     }
-    return 'ProValuer Commercial';
+    return 'Pro Valuer OPC Pvt Ltd';
   }
 }

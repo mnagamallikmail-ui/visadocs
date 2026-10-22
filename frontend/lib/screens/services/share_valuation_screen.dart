@@ -226,21 +226,21 @@ class _ShareValuationScreenState extends State<ShareValuationScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'PROVALUER',
+                          'Pro Valuer OPC Pvt Ltd',
                           style: GoogleFonts.montserrat(
                             fontSize: 15,
                             fontWeight: FontWeight.w800,
                             color: _obsidian,
-                            letterSpacing: 1.5,
+                            letterSpacing: -0.4,
                           ),
                         ),
                         Text(
-                          'CORPORATE & EQUITY INTELLIGENCE',
+                          'Professional Registered & Govt Approved Valuers',
                           style: GoogleFonts.inter(
                             fontSize: 9,
                             fontWeight: FontWeight.w700,
                             color: LandingTheme.brandGreen,
-                            letterSpacing: 1.2,
+                            letterSpacing: 0.2,
                           ),
                         ),
                       ],
@@ -2275,7 +2275,7 @@ class _ShareValuationScreenState extends State<ShareValuationScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    '© 2026 ProValuer Commercial. All Rights Reserved.',
+                    '© 2026 Pro Valuer OPC Pvt Ltd. All Rights Reserved.',
                     style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
                   ),
                   Text(

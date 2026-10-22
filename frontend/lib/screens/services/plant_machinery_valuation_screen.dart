@@ -672,7 +672,7 @@ class _PlantMachineryValuationScreenState extends State<PlantMachineryValuationS
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                '© 2026 ProValuer Commercial. All statutory rights reserved.',
+                '© 2026 Pro Valuer OPC Pvt Ltd. All statutory rights reserved.',
                 style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF64748B)),
               ),
               InkWell(
@@ -704,9 +704,44 @@ class _PlantMachineryValuationScreenState extends State<PlantMachineryValuationS
         children: [
           InkWell(
             onTap: () => context.go('/'),
-            child: Text(
-              'PROVALUER COMMERCIAL',
-              style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: 0.5),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 28,
+                  height: 28,
+                  decoration: BoxDecoration(
+                    color: LandingTheme.brandGreen,
+                    borderRadius: BorderRadius.circular(6),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'PV',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pro Valuer OPC Pvt Ltd',
+                      style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white, letterSpacing: -0.2),
+                    ),
+                    if (isDesktop)
+                      Text(
+                        'Professional Registered & Govt Approved Valuers',
+                        style: GoogleFonts.montserrat(fontSize: 9, fontWeight: FontWeight.w600, color: LandingTheme.brandTeal),
+                      ),
+                  ],
+                ),
+              ],
             ),
           ),
           Row(
