@@ -366,10 +366,17 @@
             <input type="password" id="authPassword" class="form-control" value="••••••••••••" required>
           </div>
 
+          <div style="margin-bottom: 12px;">
+            <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 12px; color: var(--text-muted); cursor: pointer;">
+              <input type="checkbox" id="authTermsAgree" style="margin-top: 3px;">
+              <span>I have read and unconditionally accept the <a href="javascript:void(0)" onclick="switchView('terms')" style="color: #38BDF8; text-decoration: underline;">Terms & Conditions (v2.4)</a> governing valuation advisory and portal services.</span>
+            </label>
+          </div>
+
           <div style="margin-bottom: 20px;">
-            <label style="display: flex; align-items: flex-start; gap: 8px; font-size: 12px; color: var(--text-muted); cursor: pointer;">
-              <input type="checkbox" id="authTermsAgree" checked style="margin-top: 3px;">
-              <span>I agree to the <a href="javascript:void(0)" style="color: #38BDF8;">Terms & Conditions (v2.4)</a> and Privacy Guidelines as governed by ProValuer.</span>
+            <label style="display: flex; align-items: flex-start; gap: 10px; font-size: 12px; color: var(--text-muted); cursor: pointer;">
+              <input type="checkbox" id="authDpdpConsent" style="margin-top: 3px;">
+              <span>I provide free, specific, informed, and affirmative consent under the <a href="javascript:void(0)" onclick="switchView('notice')" style="color: #38BDF8; text-decoration: underline;">DPDP Statutory Notice (Section 5)</a> and <a href="javascript:void(0)" onclick="switchView('privacy')" style="color: #38BDF8; text-decoration: underline;">Privacy Policy</a> for processing my personal and property data.</span>
             </label>
           </div>
 
@@ -694,6 +701,290 @@
       </section>
     </div>
   </main>
+
+  <!-- =====================================================================
+       VIEW 5: PRIVACY POLICY (DPDP ACT 2023 COMPLIANT)
+       ===================================================================== -->
+  <section id="viewPrivacy" class="view-section">
+    <div class="statutory-page">
+      <div class="statutory-header">
+        <div class="statutory-header-badge">Statutory Compliance • DPDP Act 2023</div>
+        <h1 class="statutory-title">Privacy Policy & Personal Data Governance</h1>
+        <div class="statutory-meta">
+          <span><strong>Effective Date:</strong> October 2026</span>
+          <span><strong>Policy Version:</strong> v2026.1 (DPDP Aligned)</span>
+          <span><strong>Data Fiduciary:</strong> ProValuer Commercial Advisory Pvt. Ltd.</span>
+        </div>
+      </div>
+
+      <div class="statutory-content-card">
+        <div class="statutory-callout">
+          <strong>Notice to Data Principals:</strong> This policy is issued under the <strong>Digital Personal Data Protection Act (DPDP), 2023 (India)</strong> and governing rules. ProValuer acts as a Data Fiduciary regarding the personal data of clients, property owners, and authorized representatives.
+        </div>
+
+        <h2>1. Identity of the Data Fiduciary</h2>
+        <p>
+          <strong>ProValuer Commercial Services & Advisory Pvt. Ltd.</strong> ("ProValuer", "we", "us", or "our") is a specialized property valuation practice and corporate advisory firm governed by the Companies Act, 2013, the Wealth Tax Act, 1957 (Section 34AB), and the Insolvency and Bankruptcy Board of India (IBBI) valuation framework.
+        </p>
+        <p>
+          Registered Office: Level 5, Cyber Towers, HITEC City, Madhapur, Hyderabad, Telangana - 500081, India. Corporate Identity: U74140TG2020PTC145678.
+        </p>
+
+        <h2>2. Categories of Personal Data Collected</h2>
+        <p>To deliver certified appraisal reports and satisfy statutory requirements, we collect and process:</p>
+        <ul>
+          <li><strong>Identity & KYC Information:</strong> Full name, corporate title, email address, mobile phone number, Permanent Account Number (PAN), and GST registration details.</li>
+          <li><strong>Property & Title Documentation:</strong> Registered title deeds, sale deeds, link documents, encumbrance certificates (EC), land conversion orders, building permission sanctions, property tax receipts, and site boundary coordinates.</li>
+          <li><strong>Financial & Transaction Records:</strong> Invoicing data, quotation approvals, bank UTR transfer numbers, and payment receipt verifications.</li>
+          <li><strong>Technical Telemetry:</strong> Log records of portal access, including client IP addresses, browser user agent strings, and timestamped actions recorded in our statutory immutable ledger.</li>
+        </ul>
+
+        <h2>3. Lawful Grounds and Specified Purposes for Processing</h2>
+        <p>Under Section 4 and Section 6 of the DPDP Act, 2023, data is processed solely for lawful purposes on the basis of your explicit, affirmative consent or for legitimate uses recognized under Section 7:</p>
+        <ul>
+          <li><strong>Valuation Mandate Execution:</strong> Conducting desk analysis, circle rate verification, physical site survey scheduling, and generating authenticated appraisal certificates.</li>
+          <li><strong>Statutory Compliance & Tax Accounting:</strong> Fulfilling mandatory book-keeping, GST tax invoicing, and audit obligations under Indian corporate and taxation laws.</li>
+          <li><strong>Operational Communications:</strong> Issuing quotation notices, report delivery notifications, and critical mandate updates via SMS, email, and secure portal alerts.</li>
+        </ul>
+
+        <h2>4. Data Principal Rights Under Chapter III</h2>
+        <p>Under the DPDP Act 2023, you enjoy statutory rights as a Data Principal:</p>
+        <ul>
+          <li><strong>Right to Access Information (Section 11):</strong> Request a summary of your personal data being processed and the identities of any authorized processors with whom it has been shared.</li>
+          <li><strong>Right to Correction and Erasure (Section 12):</strong> Request correction of inaccurate personal data, completion of incomplete data, or erasure of data that is no longer necessary for the specified purpose.</li>
+          <li><strong>Right of Grievance Redressal (Section 13):</strong> Redressal of any grievance through our designated Data Protection Officer within 7 working days.</li>
+          <li><strong>Right to Nominate (Section 14):</strong> Nominate an individual to exercise rights on your behalf in the event of death or incapacity.</li>
+          <li><strong>Right to Withdraw Consent (Section 6(4)):</strong> Withdraw consent at any time via your Client Profile dashboard or written notice. Withdrawal operates prospectively and does not invalidate prior lawful processing.</li>
+        </ul>
+
+        <h2>5. Data Retention & Secure Disposal</h2>
+        <p>
+          Valuation dossiers and accompanying title deeds are retained for a statutory audit window of <strong>8 years</strong> from the date of certificate issuance, conforming to Section 128 of the Companies Act, 2013 and Rule 11UA of the Income Tax Rules. Uncompleted drafts or abandoned inquiries are permanently purged after 90 days.
+        </p>
+
+        <h2>6. Technical Safeguards & Encryption Standards</h2>
+        <p>
+          All personal data at rest is secured using <strong>AES-256 encryption</strong>. Data in transit across all public endpoints is strictly transmitted over <strong>TLS 1.3</strong>. Access within ProValuer is governed by strict Role-Based Access Controls (RBAC), and administrative queries are recorded in tamper-evident audit logs.
+        </p>
+
+        <h2>7. Data Protection Officer (DPO) & Grievance Redressal</h2>
+        <div class="statutory-callout success">
+          <strong>Designated Statutory Officer:</strong><br>
+          <strong>CS / Adv. R. Parthasarathy</strong> — Data Protection Officer & Grievance Officer<br>
+          Email: <a href="mailto:dpo@provaluer.com" style="color: #0EA5E9;">dpo@provaluer.com</a> / <a href="mailto:grievance@provaluer.com" style="color: #0EA5E9;">grievance@provaluer.com</a><br>
+          Address: Level 5, Cyber Towers, HITEC City, Hyderabad, Telangana - 500081, India<br>
+          Grievance SLA: Initial acknowledgement within <strong>24 hours</strong>; statutory resolution within <strong>7 working days</strong>.<br>
+          Appellate Body: If dissatisfied with redressal, Data Principals may lodge a complaint with the <strong>Data Protection Board of India (DPBI)</strong>.
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       VIEW 6: TERMS & CONDITIONS (VERSION 2.4 - DPDP ALIGNED)
+       ===================================================================== -->
+  <section id="viewTerms" class="view-section">
+    <div class="statutory-page">
+      <div class="statutory-header">
+        <div class="statutory-header-badge">Legal Terms of Engagement</div>
+        <h1 class="statutory-title">Terms & Conditions of Service</h1>
+        <div class="statutory-meta">
+          <span><strong>Effective Version:</strong> v2.4</span>
+          <span><strong>Statutory Alignment:</strong> DPDP Act 2023 & IBBI Valuation Rules</span>
+          <span><strong>Jurisdiction:</strong> Hyderabad, Telangana, India</span>
+        </div>
+      </div>
+
+      <div class="statutory-content-card">
+        <h2>1. Acceptance of Terms</h2>
+        <p>
+          By creating an account, requesting a commercial valuation, or uploading property documentation to the ProValuer portal, you enter into a legally binding contract governed by these Terms & Conditions (v2.4).
+        </p>
+
+        <h2>2. Scope of Valuation Services</h2>
+        <p>
+          ProValuer provides independent property appraisals, asset valuations, Net Worth Certificates for visa/immigration, and Chartered Engineer machinery certifications conducted by Certified Government Approved Valuers under Section 34AB of the Wealth Tax Act and Registered Valuers under Section 247 of the Companies Act, 2013.
+        </p>
+
+        <h2>3. Client Representations & Authentic Document Warranties</h2>
+        <p>You expressly represent, warrant, and covenant that:</p>
+        <ul>
+          <li>All documents, deeds, site measurements, encumbrance statements, and financial information uploaded by you are authentic, valid, and legally obtained.</li>
+          <li>You are the lawful owner, authorized corporate representative, or legitimate prospective buyer/borrower with legal standing to mandate the appraisal.</li>
+          <li>Uploaded deeds contain no fraudulent alterations. ProValuer reserves the right to immediately terminate the mandate and report suspected forgery to competent authorities.</li>
+        </ul>
+
+        <h2>4. Independent Professional Opinion & Limitation of Liability</h2>
+        <p>
+          The appraisal report represents an independent professional opinion of Fair Market Value, Realizable Value, or Distress Sale Value based on circle rates, verified comparable transactions, and prevailing market conditions. The report does not constitute a title guarantee, structural stability warranty, or legal certificate of clear title.
+        </p>
+        <p>
+          To the maximum extent permitted by Indian law, ProValuer's aggregate liability arising out of any valuation mandate shall not exceed the total professional fee actually paid by the client for that specific report.
+        </p>
+
+        <h2>5. Fee Schedules, Retainers & Cancellation Policy</h2>
+        <p>
+          Quoted professional fees are exclusive of applicable Goods & Services Tax (GST 18%). Intake processing fees cover preliminary title due diligence, GIS satellite verification, and circle rate analysis. Once desk research has commenced, intake retainers are non-refundable.
+        </p>
+
+        <h2>6. Confidentiality & Data Protection</h2>
+        <p>
+          All information disclosed during the appraisal process shall be maintained in strict confidence and processed in strict adherence to our Privacy Policy and the Digital Personal Data Protection Act, 2023.
+        </p>
+
+        <h2>7. Governing Law & Dispute Resolution</h2>
+        <p>
+          These Terms and any dispute arising hereunder shall be governed by and construed in accordance with the laws of India. The courts of competent jurisdiction in <strong>Hyderabad, Telangana, India</strong> shall have exclusive jurisdiction over all matters.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       VIEW 7: STATUTORY DPDP NOTICE (SECTION 5)
+       ===================================================================== -->
+  <section id="viewDpdpNotice" class="view-section">
+    <div class="statutory-page">
+      <div class="statutory-header">
+        <div class="statutory-header-badge">Statutory Notice • Section 5 DPDP Act 2023</div>
+        <h1 class="statutory-title">Digital Personal Data Protection Notice</h1>
+        <div class="statutory-meta">
+          <span><strong>Notice Version:</strong> DPDP-NOTICE-V1.0</span>
+          <span><strong>Statutory Act:</strong> Digital Personal Data Protection Act, 2023 (No. 22 of 2023)</span>
+          <span><strong>Language:</strong> English (Bilingual Notice v1.0)</span>
+        </div>
+      </div>
+
+      <div class="statutory-content-card">
+        <div class="statutory-callout success">
+          <strong>Mandatory Notice Prior to Collection:</strong> Under Section 5(1) of the Digital Personal Data Protection Act, 2023, every request for consent must be accompanied or preceded by a notice informing the Data Principal of the personal data to be processed, the specified purpose, and the manner of exercising statutory rights.
+        </div>
+
+        <h2>1. Specific Personal Data Requested</h2>
+        <p>For the execution of your property valuation mandate, we request the following items of personal data:</p>
+        <ul>
+          <li><strong>Contact & Signatory Information:</strong> Name, professional email, phone number, and organization identifier.</li>
+          <li><strong>Property Ownership Records:</strong> Registered sale deed, link document copies, patta/khata certificates, and municipal property tax records.</li>
+          <li><strong>Identity & Verification Proofs:</strong> Permanent Account Number (PAN) or corporate GSTIN for legal invoicing.</li>
+          <li><strong>Session & Audit Metadata:</strong> IP address, user-agent string, and timestamp of consent.</li>
+        </ul>
+
+        <h2>2. Specified Purposes of Processing</h2>
+        <p>Your personal data will be processed strictly and solely for:</p>
+        <ol style="padding-left: 20px; margin-bottom: 16px;">
+          <li style="margin-bottom: 8px;"><strong>Valuation Execution:</strong> Inspecting property boundaries, researching comparable sub-registrar registry data, calculating land/building depreciation, and compiling the certified valuation report.</li>
+          <li style="margin-bottom: 8px;"><strong>Statutory Invoicing:</strong> Generating GST-compliant tax invoices and managing verifiable bank UTR payment reconciliations.</li>
+          <li style="margin-bottom: 8px;"><strong>Mandate Communications:</strong> Delivering quotation terms, milestone notifications, and the final encrypted delivery package.</li>
+        </ol>
+
+        <h2>3. Manner of Exercising Rights (Sections 11–14)</h2>
+        <p>You may exercise your statutory rights at any time:</p>
+        <ul>
+          <li><strong>Portal Consent Manager:</strong> Navigate to your <strong>Client Profile</strong> in the portal to view active consents, review your immutable consent ledger entries, or withdraw consent with a single click.</li>
+          <li><strong>Written Communication:</strong> Transmit an email to our Data Protection Officer at <a href="mailto:dpo@provaluer.com" style="color: #0EA5E9;">dpo@provaluer.com</a> specifying the nature of your request (Access, Correction, Erasure, or Nomination).</li>
+        </ul>
+
+        <h2>4. Right to Withdraw Consent (Section 6(4))</h2>
+        <p>
+          You have the statutory right to withdraw your consent at any time. Withdrawal of consent does not affect the legality of any processing performed prior to withdrawal. Withdrawal can be executed instantly via the Client Profile or by contacting the DPO.
+        </p>
+
+        <h2>5. Grievance Redressal & Supervisory Escalation</h2>
+        <p>
+          If you have questions, concerns, or grievances concerning your personal data, you may reach our designated officer:
+        </p>
+        <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 16px; margin: 16px 0;">
+          <div><strong>Designated DPO:</strong> CS / Adv. R. Parthasarathy</div>
+          <div><strong>Grievance Desk Email:</strong> <a href="mailto:grievance@provaluer.com" style="color: #38BDF8;">grievance@provaluer.com</a></div>
+          <div><strong>Statutory SLA:</strong> Acknowledged within 24 hours; resolved within 7 working days.</div>
+        </div>
+        <p>
+          If your grievance is not redressed within the statutory period, you have the right to register a formal complaint with the <strong>Data Protection Board of India (DPBI)</strong> in accordance with Section 13 and Section 27 of the DPDP Act, 2023.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- =====================================================================
+       GLOBAL INSTITUTIONAL FOOTER (WITH DPO & GRIEVANCE SECTION)
+       ===================================================================== -->
+  <footer class="institutional-footer">
+    <div class="footer-inner">
+      <!-- Col 1: Brand & Valuer Authority -->
+      <div class="footer-col">
+        <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 14px;">
+          <div style="width: 32px; height: 32px; background: linear-gradient(135deg, #1E57A4, #0EA5E9); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 14px; color: #fff;">PV</div>
+          <h3 style="font-family: var(--font-heading); font-size: 17px; font-weight: 700; color: #fff; margin: 0;">ProValuer Commercial</h3>
+        </div>
+        <p style="font-size: 12.5px; line-height: 1.6; color: var(--text-muted); margin-bottom: 14px;">
+          Certified Government Approved Valuers (Wealth Tax Sec 34AB / Companies Act Sec 247). Independent commercial appraisals, net worth certificates, and machinery audits across India.
+        </p>
+        <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+          <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; background: rgba(16, 185, 129, 0.12); color: #10B981; border: 1px solid rgba(16, 185, 129, 0.3);">DPDP 2023 Compliant</span>
+          <span style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; background: rgba(56, 189, 248, 0.12); color: #38BDF8; border: 1px solid rgba(56, 189, 248, 0.3);">AES-256 Cloud Vault</span>
+        </div>
+      </div>
+
+      <!-- Col 2: Navigation Links -->
+      <div class="footer-col">
+        <h4>Client Portal</h4>
+        <ul class="footer-links">
+          <li><a href="javascript:void(0)" onclick="switchView('landing')">Home & Services</a></li>
+          <li><a href="javascript:void(0)" onclick="switchView('request')">Request Valuation</a></li>
+          <li><a href="javascript:void(0)" onclick="switchView('auth')">Client Login</a></li>
+          <li><a href="javascript:void(0)" onclick="switchView('dashboard')">Client Dashboard</a></li>
+          <li><a href="javascript:void(0)" onclick="openSupportModal()">Concierge Desk</a></li>
+        </ul>
+      </div>
+
+      <!-- Col 3: Statutory & Legal Links -->
+      <div class="footer-col">
+        <h4>Statutory Governance</h4>
+        <ul class="footer-links">
+          <li><a href="javascript:void(0)" onclick="switchView('privacy')">Privacy Policy (DPDP)</a></li>
+          <li><a href="javascript:void(0)" onclick="switchView('terms')">Terms & Conditions (v2.4)</a></li>
+          <li><a href="javascript:void(0)" onclick="switchView('notice')">DPDP Statutory Notice</a></li>
+          <li><a href="javascript:void(0)" onclick="openAnalyticsConsentBanner()">Cookie & Telemetry Settings</a></li>
+          <li><a href="javascript:void(0)" onclick="openProfileModal()">Consent Manager</a></li>
+        </ul>
+      </div>
+
+      <!-- Col 4: DPO & Grievance Redressal (Requirement 11) -->
+      <div class="footer-col">
+        <h4>Data Protection Officer</h4>
+        <div class="dpo-card">
+          <div style="margin-bottom: 6px;">
+            <strong>CS / Adv. R. Parthasarathy</strong>
+            <div style="color: var(--text-dim); font-size: 11.5px;">Data Protection & Grievance Officer</div>
+          </div>
+          <div style="margin-bottom: 4px;">
+            ✉️ <a href="mailto:dpo@provaluer.com" style="color: #38BDF8; text-decoration: none;">dpo@provaluer.com</a>
+          </div>
+          <div style="margin-bottom: 6px;">
+            ⚖️ <a href="mailto:grievance@provaluer.com" style="color: #38BDF8; text-decoration: none;">grievance@provaluer.com</a>
+          </div>
+          <div style="font-size: 11.5px; color: var(--text-dim); margin-bottom: 6px;">
+            Level 5, Cyber Towers, HITEC City, Hyderabad, Telangana - 500081
+          </div>
+          <div style="font-size: 11px; color: #10B981; font-weight: 600;">
+            ✓ Grievance SLA: 24h Ack • 7-Day Resolution
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Bottom Bar -->
+    <div class="footer-bottom-bar">
+      <div>
+        © 2026 ProValuer Commercial Advisory Pvt. Ltd. All rights reserved.
+      </div>
+      <div style="display: flex; gap: 16px;">
+        <a href="javascript:void(0)" onclick="switchView('privacy')" style="color: var(--text-dim); text-decoration: none;">Privacy</a>
+        <a href="javascript:void(0)" onclick="switchView('terms')" style="color: var(--text-dim); text-decoration: none;">Terms</a>
+        <a href="javascript:void(0)" onclick="switchView('notice')" style="color: var(--text-dim); text-decoration: none;">DPDP Notice</a>
+      </div>
+    </div>
+  </footer>
 
   <!-- =====================================================================
        INTERACTIVE MODALS FOR NEXT VALID ACTIONS
@@ -1080,6 +1371,49 @@
         <div style="margin-bottom: 12px;"><span style="color: var(--text-dim);">Registered Email:</span> <strong style="color: #fff; display: block; margin-top: 2px;">anand.mehta@enterprise.in</strong></div>
         <div style="margin-bottom: 12px;"><span style="color: var(--text-dim);">Phone:</span> <strong style="color: #fff; display: block; margin-top: 2px;">+91 98490 12345</strong></div>
         <div><span style="color: var(--text-dim);">Account Type:</span> <strong style="color: #10B981; display: block; margin-top: 2px;">Corporate Client • Verified</strong></div>
+
+        <!-- Statutory Privacy & Consent Section (DPDP Act 2023) -->
+        <div class="profile-dpdp-section">
+          <div class="profile-dpdp-header">
+            <h4 style="font-family: var(--font-heading); font-size: 13px; font-weight: 700; color: #38BDF8; margin: 0; text-transform: uppercase; letter-spacing: 0.5px;">DPDP Privacy & Consent Records</h4>
+            <span style="font-size: 10px; background: rgba(16, 185, 129, 0.15); color: #10B981; border: 1px solid #10B981; padding: 2px 6px; border-radius: 4px; font-weight: 600;">Notice v2026.1 Active</span>
+          </div>
+
+          <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 12px;">
+            Statutory records tracked in tamper-evident consent ledger under Section 6 of the Digital Personal Data Protection Act, 2023.
+          </div>
+
+          <!-- Consent Item 1: Valuation Processing -->
+          <div class="profile-consent-card" id="consentCardValuation">
+            <div>
+              <div class="consent-info-title">Valuation & Assessment Processing</div>
+              <div class="consent-info-sub" id="consentStatusValuation">Status: <span style="color: #10B981; font-weight: 600;">ACTIVE ✓</span> • Granted via Portal Auth</div>
+            </div>
+            <button class="btn-withdraw-consent" id="btnWithdrawValuation" onclick="triggerWithdrawConsent('VALUATION_PROCESSING')">Withdraw</button>
+          </div>
+
+          <!-- Consent Item 2: Operational Communications -->
+          <div class="profile-consent-card" id="consentCardMarketing">
+            <div>
+              <div class="consent-info-title">Operational & Milestone Alerts</div>
+              <div class="consent-info-sub" id="consentStatusMarketing">Status: <span style="color: #10B981; font-weight: 600;">ACTIVE ✓</span> • SMS & Email Updates</div>
+            </div>
+            <button class="btn-withdraw-consent" id="btnWithdrawMarketing" onclick="triggerWithdrawConsent('MARKETING')">Withdraw</button>
+          </div>
+
+          <!-- Consent Item 3: Analytics Telemetry -->
+          <div class="profile-consent-card" id="consentCardAnalytics">
+            <div>
+              <div class="consent-info-title">Web Telemetry (GA4 & Clarity)</div>
+              <div class="consent-info-sub" id="consentStatusAnalytics">Status: <span style="color: #38BDF8; font-weight: 600;">CHECKING...</span></div>
+            </div>
+            <button class="btn-withdraw-consent" id="btnWithdrawAnalytics" onclick="triggerWithdrawConsent('ANALYTICS_TRACKING')">Withdraw</button>
+          </div>
+
+          <div style="font-size: 11px; color: var(--text-dim); line-height: 1.4; margin-top: 10px;">
+            ℹ️ Under DPDP Act Section 6(4), you may withdraw consent at any time. Withdrawal does not affect lawful processing conducted prior to withdrawal.
+          </div>
+        </div>
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('profileModal')">Close</button>
@@ -1140,6 +1474,22 @@
   <div class="toast-notice" id="globalToast">
     <span id="toastIcon">✓</span>
     <span id="toastMessage">Action completed successfully.</span>
+  </div>
+
+  <!-- =====================================================================
+       DPDP STATUTORY ANALYTICS CONSENT BANNER (GA4 & CLARITY)
+       ===================================================================== -->
+  <div id="analyticsConsentBanner" class="analytics-banner">
+    <div class="analytics-banner-inner">
+      <div class="analytics-banner-text">
+        <strong style="color: #38BDF8; display: block; margin-bottom: 2px;">🍪 Statutory Telemetry & Analytics Notice (DPDP Act, 2023)</strong>
+        We use performance analytics (Google Analytics 4 & Microsoft Clarity) to monitor portal reliability, page speed, and delivery security. In compliance with Section 6 of the DPDP Act 2023, telemetry is only activated with your affirmative consent.
+      </div>
+      <div class="analytics-banner-actions">
+        <button class="btn-banner-reject" onclick="rejectAnalyticsConsent()">Essential Only (Reject Analytics)</button>
+        <button class="btn-banner-accept" onclick="acceptAnalyticsConsent()">Accept All Telemetry</button>
+      </div>
+    </div>
   </div>
 
   <!-- Application Logic -->

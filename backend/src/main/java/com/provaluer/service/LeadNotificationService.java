@@ -20,10 +20,15 @@ public class LeadNotificationService {
     }
 
     public void alertPartnersOfHighIntentLead(ValuationLead lead) {
-        log.warn("[PARTNER URGENT ALERT] 🔥 {} INTENT LEAD RECEIVED! Ref: {}, Client: {} ({}), Role: {}, Service: {}, Value: {}, SLA: {}, Phone: {}",
-                lead.getIntentLevel(), lead.getReferenceCode(), lead.getContactName(),
-                lead.getCompanyName() != null ? lead.getCompanyName() : "Individual",
+        log.warn("[PARTNER URGENT ALERT] 🔥 {} INTENT LEAD RECEIVED! Ref: {}, Entity: {}, Role: {}, Service: {}, Value: {}, SLA: {}, Phone: {}",
+                lead.getIntentLevel(), lead.getReferenceCode(),
+                lead.getCompanyName() != null ? lead.getCompanyName() : "Corporate Entity",
                 lead.getContactRole(), lead.getServiceVertical(), lead.getValueBracket(),
-                lead.getUrgencySla(), lead.getContactPhone());
+                lead.getUrgencySla(), maskPhone(lead.getContactPhone()));
+    }
+
+    private String maskPhone(String phone) {
+        if (phone == null || phone.length() < 4) return "XXXX";
+        return phone.substring(0, Math.min(3, phone.length())) + "****" + phone.substring(Math.max(phone.length() - 3, 0));
     }
 }

@@ -26,7 +26,7 @@ public class TcInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull Object handler) throws Exception {
         String path = request.getRequestURI();
-        if (path.startsWith("/api/v1/auth") || path.startsWith("/swagger-ui") || path.startsWith("/v3/api-docs")) {
+        if (path.startsWith("/api/v1/auth") || path.startsWith("/api/v1/privacy") || path.startsWith("/swagger-ui") || path.startsWith("/v3/api-docs")) {
             return true;
         }
 

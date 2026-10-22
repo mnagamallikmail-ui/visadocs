@@ -74,27 +74,24 @@ public class TelegramNotificationService {
             log.info("[TELEGRAM NOTIFICATION] Bot token or chat ID not set. Simulation mode for Ref: {}", referenceCode);
             log.info("[SIMULATED TELEGRAM MESSAGE]\n" +
                     "🔔 NEW REQUEST RECEIVED\n" +
-                    "Reference: {}\nClient: {}\nService: {}\nAsset: {}\nPurpose: {}\nDocuments: {}\nMobile: {}",
-                    referenceCode, clientName, service, asset, purpose, documentCount, mobile);
+                    "Reference: {}\nService: {}\nAsset: {}\nPurpose: {}\nDocuments: {}",
+                    referenceCode, service, asset, purpose, documentCount);
             return CompletableFuture.completedFuture(false);
         }
 
         String messageText = String.format(
                 "🔔 <b>NEW REQUEST RECEIVED</b>\n\n" +
                 "<b>Reference:</b> %s\n" +
-                "<b>Client:</b> %s\n" +
                 "<b>Service:</b> %s\n" +
                 "<b>Asset:</b> %s\n" +
                 "<b>Purpose:</b> %s\n" +
                 "<b>Document Count:</b> %d\n" +
-                "<b>Mobile:</b> %s",
+                "<i>[PII Redacted - DPDP Act 2023]</i>",
                 escapeHtml(referenceCode),
-                escapeHtml(clientName != null ? clientName : "Individual Client"),
                 escapeHtml(service != null ? service : "Valuation Report"),
                 escapeHtml(asset != null ? asset : "Land & Building"),
                 escapeHtml(purpose != null ? purpose : "Bank Collateral / Loan"),
-                documentCount,
-                escapeHtml(mobile != null ? mobile : "N/A")
+                documentCount
         );
 
         int maxAttempts = 3;
@@ -162,8 +159,8 @@ public class TelegramNotificationService {
             log.info("[TELEGRAM NOTIFICATION] Bot token or chat ID not set. Simulation mode for Quote: {} (Ref: {})", quoteNumber, referenceCode);
             log.info("[SIMULATED TELEGRAM MESSAGE]\n" +
                     "📋 QUOTATION ISSUED\n" +
-                    "Quote: {}\nReference: {}\nClient: {}\nService: {}\nTotal Amount: INR {}\nTurnaround: {}\nQuoted By: {}",
-                    quoteNumber, referenceCode, clientName, service, totalAmount, turnaround, quotedBy);
+                    "Quote: {}\nReference: {}\nService: {}\nTotal Amount: INR {}\nTurnaround: {}\nQuoted By: {}",
+                    quoteNumber, referenceCode, service, totalAmount, turnaround, quotedBy);
             return CompletableFuture.completedFuture(false);
         }
 
@@ -171,7 +168,6 @@ public class TelegramNotificationService {
                 "📋 <b>QUOTATION ISSUED</b>\n\n" +
                 "<b>Quote Number:</b> %s\n" +
                 "<b>Reference:</b> %s\n" +
-                "<b>Client:</b> %s\n" +
                 "<b>Service:</b> %s\n" +
                 "<b>Total Quoted Fee:</b> ₹ %s\n" +
                 "<b>Committed Turnaround:</b> %s\n" +
@@ -179,7 +175,6 @@ public class TelegramNotificationService {
                 "<b>Status:</b> QUOTE_PROVIDED",
                 escapeHtml(quoteNumber),
                 escapeHtml(referenceCode),
-                escapeHtml(clientName != null ? clientName : "Client"),
                 escapeHtml(service != null ? service : "Valuation Report"),
                 escapeHtml(totalAmount != null ? totalAmount : "0.00"),
                 escapeHtml(turnaround != null ? turnaround : "3-5 Working Days"),
@@ -254,17 +249,14 @@ public class TelegramNotificationService {
                 "━━━━━━━━━━━━━━━━━━━━%n" +
                 "<b>Order Ref:</b> <code>%s</code>%n" +
                 "<b>Quote No:</b> <code>%s</code>%n" +
-                "<b>Client:</b> %s (%s)%n" +
                 "<b>Amount Paid:</b> ₹ %.2f%n" +
                 "<b>Method:</b> %s%n" +
                 "<b>UTR:</b> <code>%s</code>%n" +
                 "<b>Date:</b> %s%n" +
                 "━━━━━━━━━━━━━━━━━━━━%n" +
-                "<i>Awaiting administrative verification in portal.</i>",
+                "<i>Awaiting administrative verification in portal. [PII Redacted - DPDP Act 2023]</i>",
                 escapeHtml(referenceCode),
                 escapeHtml(quoteNumber != null ? quoteNumber : "N/A"),
-                escapeHtml(clientName != null ? clientName : "Client"),
-                escapeHtml(clientEmail != null ? clientEmail : "N/A"),
                 amountPaid != null ? amountPaid.doubleValue() : 0.0,
                 escapeHtml(paymentMethod != null ? paymentMethod : "N/A"),
                 escapeHtml(utrNumber != null ? utrNumber : "N/A"),
@@ -293,7 +285,6 @@ public class TelegramNotificationService {
                 "━━━━━━━━━━━━━━━━━━━━%n" +
                 "<b>Order Ref:</b> <code>%s</code>%n" +
                 "<b>Quote No:</b> <code>%s</code>%n" +
-                "<b>Client:</b> %s%n" +
                 "<b>Amount Paid:</b> ₹ %.2f%n" +
                 "<b>Verified In Bank:</b> ₹ %.2f%n" +
                 "<b>UTR:</b> <code>%s</code>%n" +
@@ -302,7 +293,6 @@ public class TelegramNotificationService {
                 "<i>Quotation payment confirmed. Status: PAYMENT_VERIFIED</i>",
                 escapeHtml(referenceCode),
                 escapeHtml(quoteNumber != null ? quoteNumber : "N/A"),
-                escapeHtml(clientName != null ? clientName : "Client"),
                 amountPaid != null ? amountPaid.doubleValue() : 0.0,
                 verifiedAmount != null ? verifiedAmount.doubleValue() : (amountPaid != null ? amountPaid.doubleValue() : 0.0),
                 escapeHtml(utrNumber != null ? utrNumber : "N/A"),
@@ -330,7 +320,6 @@ public class TelegramNotificationService {
                 "━━━━━━━━━━━━━━━━━━━━%n" +
                 "<b>Order Ref:</b> <code>%s</code>%n" +
                 "<b>Quote No:</b> <code>%s</code>%n" +
-                "<b>Client:</b> %s%n" +
                 "<b>UTR:</b> <code>%s</code>%n" +
                 "<b>Reason:</b> %s%n" +
                 "<b>Rejected By:</b> %s%n" +
@@ -338,7 +327,6 @@ public class TelegramNotificationService {
                 "<i>Client has been alerted to re-submit proof. Status: PAYMENT_REJECTED</i>",
                 escapeHtml(referenceCode),
                 escapeHtml(quoteNumber != null ? quoteNumber : "N/A"),
-                escapeHtml(clientName != null ? clientName : "Client"),
                 escapeHtml(utrNumber != null ? utrNumber : "N/A"),
                 escapeHtml(rejectionReason != null ? rejectionReason : "Verification failed"),
                 escapeHtml(verifiedBy != null ? verifiedBy : "Admin")
@@ -371,7 +359,6 @@ public class TelegramNotificationService {
                 "<b>Order Ref:</b> <code>%s</code>%n" +
                 "<b>Quote No:</b> <code>%s</code>%n" +
                 "<b>Report No:</b> <code>%s</code>%n" +
-                "<b>Client:</b> %s%n" +
                 "<b>Service:</b> %s%n" +
                 "<b>Released By:</b> %s%n" +
                 "━━━━━━━━━━━━━━━━━━━━%n" +
@@ -379,7 +366,6 @@ public class TelegramNotificationService {
                 escapeHtml(referenceCode),
                 escapeHtml(quoteNumber != null ? quoteNumber : "N/A"),
                 escapeHtml(reportNumber != null ? reportNumber : "N/A"),
-                escapeHtml(clientName != null ? clientName : "Client"),
                 escapeHtml(serviceCategory != null ? serviceCategory : "Valuation Report"),
                 escapeHtml(releasedBy != null ? releasedBy : "Admin")
         );
@@ -445,14 +431,12 @@ public class TelegramNotificationService {
                 "━━━━━━━━━━━━━━━━━━━━%n" +
                 "<b>Order Ref:</b> <code>%s</code>%n" +
                 "<b>Report No:</b> <code>%s</code>%n" +
-                "<b>Client:</b> %s%n" +
                 "<b>Submitted By:</b> %s (PA)%n" +
                 "<b>Status:</b> <b>SPA_GATE</b>%n" +
                 "━━━━━━━━━━━━━━━━━━━━%n" +
-                "<i>All mandatory validations satisfied. Draft is now locked in SPA review gate.</i>",
+                "<i>All mandatory validations satisfied. Draft is now locked in SPA review gate. [PII Redacted]</i>",
                 escapeHtml(referenceCode),
                 escapeHtml(reportNumber != null ? reportNumber : "N/A"),
-                escapeHtml(clientName != null ? clientName : "N/A"),
                 escapeHtml(paUsername != null ? paUsername : "Assigned PA")
         );
 
@@ -519,13 +503,11 @@ public class TelegramNotificationService {
         String message = String.format(
                 "🚀 <b>COMMERCIAL DELIVERY RELEASED</b>%n%n" +
                 "<b>Reference:</b> <code>%s</code>%n" +
-                "<b>Client:</b> %s%n" +
                 "<b>Tax Invoice:</b> <code>%s</code>%n" +
                 "<b>Status:</b> <b>FINAL_DELIVERY</b>%n" +
                 "<b>Package:</b> AES-256 Encrypted PDF + GST Tax Invoice%n%n" +
-                "<i>Client download portal session active. Ephemeral tokens ready.</i>",
+                "<i>Client download portal session active. Ephemeral tokens ready. [PII Redacted]</i>",
                 escapeHtml(referenceCode),
-                escapeHtml(clientName),
                 escapeHtml(invoiceNumber)
         );
 

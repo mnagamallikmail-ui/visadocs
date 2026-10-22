@@ -47,6 +47,15 @@ public class User {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
+    @Column(name = "dpdp_consent_given", nullable = false)
+    private boolean dpdpConsentGiven = false;
+
+    @Column(name = "dpdp_consent_version", length = 32)
+    private String dpdpConsentVersion;
+
+    @Column(name = "dpdp_consent_timestamp")
+    private LocalDateTime dpdpConsentTimestamp;
+
     @PrePersist
     public void prePersist() {
         if ((username == null || username.trim().isEmpty()) && email != null && !email.trim().isEmpty()) {
@@ -109,4 +118,13 @@ public class User {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public boolean isDpdpConsentGiven() { return dpdpConsentGiven; }
+    public void setDpdpConsentGiven(boolean dpdpConsentGiven) { this.dpdpConsentGiven = dpdpConsentGiven; }
+
+    public String getDpdpConsentVersion() { return dpdpConsentVersion; }
+    public void setDpdpConsentVersion(String dpdpConsentVersion) { this.dpdpConsentVersion = dpdpConsentVersion; }
+
+    public LocalDateTime getDpdpConsentTimestamp() { return dpdpConsentTimestamp; }
+    public void setDpdpConsentTimestamp(LocalDateTime dpdpConsentTimestamp) { this.dpdpConsentTimestamp = dpdpConsentTimestamp; }
 }

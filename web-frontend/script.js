@@ -182,7 +182,10 @@ function switchView(viewName) {
     'landing': document.getElementById('viewLanding'),
     'request': document.getElementById('viewRequest'),
     'auth': document.getElementById('viewAuth'),
-    'dashboard': document.getElementById('viewDashboard')
+    'dashboard': document.getElementById('viewDashboard'),
+    'privacy': document.getElementById('viewPrivacy'),
+    'terms': document.getElementById('viewTerms'),
+    'notice': document.getElementById('viewDpdpNotice')
   };
 
   const navButtons = {
@@ -562,21 +565,41 @@ function switchAuthTab(mode) {
 
 function performDemoLogin() {
   document.getElementById('authEmail').value = 'anand.mehta@visadocs.com';
-  document.getElementById('authTermsAgree').checked = true;
-  showToast('Demo Client Verified. Redirecting to Client Dashboard...');
+  // Explicitly check for demo convenience while verifying both statutory boxes
+  const termsCb = document.getElementById('authTermsAgree');
+  const dpdpCb = document.getElementById('authDpdpConsent');
+  if (termsCb) termsCb.checked = true;
+  if (dpdpCb) dpdpCb.checked = true;
+
+  recordConsentToBackend('TERMS_ACCEPTANCE', true);
+  recordConsentToBackend('VALUATION_PROCESSING', true);
+
+  showToast('Demo Client Verified & Statutory Consents Recorded. Entering Portal...');
   setTimeout(() => {
     switchView('dashboard');
     showClientSection('inProgress');
   }, 400);
 }
 
-function handleAuthSubmit() {
-  const termsAgree = document.getElementById('authTermsAgree').checked;
+function handleAuthSubmit(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const termsAgree = document.getElementById('authTermsAgree') ? document.getElementById('authTermsAgree').checked : false;
+  const dpdpConsent = document.getElementById('authDpdpConsent') ? document.getElementById('authDpdpConsent').checked : false;
+
   if (!termsAgree) {
-    alert('You must accept the Terms & Conditions (v2.4) to enter the portal.');
+    alert('Please review and accept the Terms & Conditions (v2.4) to enter the portal.');
     return;
   }
-  showToast('Authentication successful!');
+  if (!dpdpConsent) {
+    alert('Mandatory Statutory Consent Required under DPDP Act 2023:\nPlease check the second box to provide affirmative consent for personal and property data processing.');
+    return;
+  }
+
+  // Record separate consents in consent_ledger
+  recordConsentToBackend('TERMS_ACCEPTANCE', true);
+  recordConsentToBackend('VALUATION_PROCESSING', true);
+
+  showToast('Authentication & Statutory DPDP Consent Recorded!');
   switchView('dashboard');
   showClientSection('inProgress');
 }
@@ -1303,6 +1326,7 @@ function submitWizardRequest() {
 
 // User Profile & Support Modals
 function openProfileModal() {
+  updateProfileConsentUI();
   openModal('profileModal');
 }
 
@@ -1336,9 +1360,177 @@ function downloadSamplePdf(filename) {
   showToast(`Downloading: ${filename}`);
 }
 
-// Set initial screen
+// =============================================================================
+// DPDP ACT 2023 STATUTORY CONSENT & TELEMETRY CONTROLLERS (BATCH 1)
+// =============================================================================
+
+async function recordConsentToBackend(consentType, consentGiven) {
+  try {
+    const email = document.getElementById('authEmail') ? document.getElementById('authEmail').value : 'anand.mehta@visadocs.com';
+    const payload = {
+      actorIdentifier: email,
+      consentType: consentType,
+      consentGiven: consentGiven,
+      noticeVersion: 'DPDP-NOTICE-V1.0',
+      termsVersion: 'v2.4'
+    };
+    await fetch('/api/v1/privacy/consent', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (err) {
+    console.warn('[DPDP Consent Ledger] Telemetry logged locally:', consentType, consentGiven);
+  }
+}
+
+async function triggerWithdrawConsent(consentType) {
+  const label = consentType === 'VALUATION_PROCESSING' ? 'Valuation & Assessment Processing' :
+                consentType === 'MARKETING' ? 'Operational & Milestone Alerts' : 'Web Analytics Telemetry';
+
+  const confirmMsg = `Statutory Consent Withdrawal (DPDP Act Section 6(4)):\n\n` +
+    `Are you sure you wish to withdraw consent for "${label}"?\n\n` +
+    `• If Valuation Processing is withdrawn, ongoing valuation reports cannot proceed.\n` +
+    `• Prior processing conducted before this timestamp remains lawful under the Act.`;
+
+  if (!confirm(confirmMsg)) return;
+
+  try {
+    const email = document.getElementById('authEmail') ? document.getElementById('authEmail').value : 'anand.mehta@visadocs.com';
+    await fetch('/api/v1/privacy/consent/withdraw', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        actorIdentifier: email,
+        consentType: consentType,
+        reason: 'Client requested statutory withdrawal via portal profile'
+      })
+    });
+  } catch (e) {
+    console.warn('[DPDP Withdrawal] Synced locally:', consentType);
+  }
+
+  if (consentType === 'ANALYTICS_TRACKING') {
+    localStorage.setItem('dpdp_analytics_consent', 'rejected');
+    disableAnalyticsTelemetry();
+  }
+
+  // Update UI status in profile modal
+  if (consentType === 'VALUATION_PROCESSING') {
+    const el = document.getElementById('consentStatusValuation');
+    const btn = document.getElementById('btnWithdrawValuation');
+    if (el) el.innerHTML = 'Status: <span style="color: #EF4444; font-weight: 600;">WITHDRAWN (Sec 6(4))</span>';
+    if (btn) {
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      btn.style.cursor = 'not-allowed';
+    }
+  } else if (consentType === 'MARKETING') {
+    const el = document.getElementById('consentStatusMarketing');
+    const btn = document.getElementById('btnWithdrawMarketing');
+    if (el) el.innerHTML = 'Status: <span style="color: #EF4444; font-weight: 600;">WITHDRAWN (Opted Out)</span>';
+    if (btn) {
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      btn.style.cursor = 'not-allowed';
+    }
+  } else if (consentType === 'ANALYTICS_TRACKING') {
+    const el = document.getElementById('consentStatusAnalytics');
+    const btn = document.getElementById('btnWithdrawAnalytics');
+    if (el) el.innerHTML = 'Status: <span style="color: #EF4444; font-weight: 600;">OPTED OUT (Blocked)</span>';
+    if (btn) {
+      btn.disabled = true;
+      btn.style.opacity = '0.5';
+      btn.style.cursor = 'not-allowed';
+    }
+  }
+
+  showToast(`Statutory consent for ${label} withdrawn.`);
+}
+
+function updateProfileConsentUI() {
+  const analyticsStatus = localStorage.getItem('dpdp_analytics_consent');
+  const analyticsEl = document.getElementById('consentStatusAnalytics');
+  const analyticsBtn = document.getElementById('btnWithdrawAnalytics');
+  if (analyticsEl) {
+    if (analyticsStatus === 'granted') {
+      analyticsEl.innerHTML = 'Status: <span style="color: #10B981; font-weight: 600;">OPTED IN (Active) ✓</span>';
+      if (analyticsBtn) {
+        analyticsBtn.disabled = false;
+        analyticsBtn.style.opacity = '1';
+        analyticsBtn.style.cursor = 'pointer';
+      }
+    } else {
+      analyticsEl.innerHTML = 'Status: <span style="color: #EF4444; font-weight: 600;">OPTED OUT (Blocked)</span>';
+      if (analyticsBtn) {
+        analyticsBtn.disabled = true;
+        analyticsBtn.style.opacity = '0.5';
+        analyticsBtn.style.cursor = 'not-allowed';
+      }
+    }
+  }
+}
+
+// -----------------------------------------------------------------------------
+// ANALYTICS CONSENT BANNER (GA4 & CLARITY TELEMETRY)
+// -----------------------------------------------------------------------------
+function initAnalyticsBanner() {
+  const consent = localStorage.getItem('dpdp_analytics_consent');
+  const banner = document.getElementById('analyticsConsentBanner');
+  if (!consent && banner) {
+    banner.style.display = 'block';
+  } else if (consent === 'granted') {
+    enableAnalyticsTelemetry();
+  } else {
+    disableAnalyticsTelemetry();
+  }
+}
+
+function acceptAnalyticsConsent() {
+  localStorage.setItem('dpdp_analytics_consent', 'granted');
+  const banner = document.getElementById('analyticsConsentBanner');
+  if (banner) banner.style.display = 'none';
+  enableAnalyticsTelemetry();
+  recordConsentToBackend('ANALYTICS_TRACKING', true);
+  updateProfileConsentUI();
+  showToast('Consent Saved: Analytics Telemetry (GA4 & Clarity) Activated.');
+}
+
+function rejectAnalyticsConsent() {
+  localStorage.setItem('dpdp_analytics_consent', 'rejected');
+  const banner = document.getElementById('analyticsConsentBanner');
+  if (banner) banner.style.display = 'none';
+  disableAnalyticsTelemetry();
+  recordConsentToBackend('ANALYTICS_TRACKING', false);
+  updateProfileConsentUI();
+  showToast('Consent Saved: Analytics Blocked. Essential cookies only.');
+}
+
+function openAnalyticsConsentBanner() {
+  const banner = document.getElementById('analyticsConsentBanner');
+  if (banner) banner.style.display = 'block';
+}
+
+function enableAnalyticsTelemetry() {
+  window['ga-disable-G-XXXX'] = false;
+  // Initialize Clarity only when affirmative consent is given
+  if (window.__PROVALUER_CLARITY_ID__) {
+    (function(c,l,a,r,i,t,y){
+      c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+      t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+      y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+    })(window, document, "clarity", "script", window.__PROVALUER_CLARITY_ID__);
+  }
+}
+
+function disableAnalyticsTelemetry() {
+  window['ga-disable-G-XXXX'] = true;
+}
+
+// Set initial screen and initialize DPDP Banner
 document.addEventListener('DOMContentLoaded', () => {
   renderActiveReportsGrid();
   renderCompletedReportsGrid();
+  initAnalyticsBanner();
 });
 
