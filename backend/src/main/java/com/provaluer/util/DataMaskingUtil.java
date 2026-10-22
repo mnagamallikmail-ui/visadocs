@@ -26,8 +26,7 @@ public final class DataMaskingUtil {
         if (pan == null || pan.trim().isEmpty()) return pan;
         String trimmed = pan.trim();
         if (trimmed.length() < 6) return "XXXXXX";
-        int len = trimmed.length();
-        // Mask first 5 characters and retain last 4 (e.g. XXXXX1234F -> XXXXXXX234F or XXXXX1234F)
+        // Mask first 5 characters and retain remainder (e.g. ABCDE1234F -> XXXXX1234F)
         return "XXXXX" + trimmed.substring(5);
     }
 

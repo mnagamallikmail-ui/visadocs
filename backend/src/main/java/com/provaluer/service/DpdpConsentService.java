@@ -1,7 +1,6 @@
 package com.provaluer.service;
 
 import com.provaluer.model.ConsentLedger;
-import com.provaluer.model.User;
 import com.provaluer.repository.ConsentLedgerRepository;
 import com.provaluer.repository.UserRepository;
 import org.slf4j.Logger;
