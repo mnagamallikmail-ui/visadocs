@@ -32,19 +32,22 @@ public class DpdpConsentService {
     @Autowired
     private AuditLogService auditLogService;
 
-    @org.springframework.beans.factory.annotation.Value("${app.dpdp.dpo.name:Data Protection Officer}")
+    @org.springframework.beans.factory.annotation.Value("${app.dpdp.dpo.name:Naga Mallik}")
     private String dpoName;
 
-    @org.springframework.beans.factory.annotation.Value("${app.dpdp.dpo.title:Designated Data Protection Officer}")
+    @org.springframework.beans.factory.annotation.Value("${app.dpdp.dpo.title:Data Protection Officer}")
     private String dpoTitle;
 
-    @org.springframework.beans.factory.annotation.Value("${app.dpdp.dpo.email:dpo@provaluer.com}")
+    @org.springframework.beans.factory.annotation.Value("${app.dpdp.dpo.email:provaluer.india@gmail.com}")
     private String dpoEmail;
 
-    @org.springframework.beans.factory.annotation.Value("${app.dpdp.dpo.address:Corporate Compliance Cell, ProValuer Advisory Services Pvt Ltd, India}")
+    @org.springframework.beans.factory.annotation.Value("${app.dpdp.dpo.phone:+91 85000 19091}")
+    private String dpoPhone;
+
+    @org.springframework.beans.factory.annotation.Value("${app.dpdp.dpo.address:11th Floor, Vasavi MPM Grand Mall, Ameerpet, Hyderabad, Telangana, India}")
     private String dpoAddress;
 
-    @org.springframework.beans.factory.annotation.Value("${app.dpdp.grievance-officer.email:grievance@provaluer.com}")
+    @org.springframework.beans.factory.annotation.Value("${app.dpdp.grievance-officer.email:provaluer.india@gmail.com}")
     private String grievanceEmail;
 
     @Transactional
@@ -158,6 +161,7 @@ public class DpdpConsentService {
         meta.put("dpoName", dpoName);
         meta.put("dpoTitle", dpoTitle);
         meta.put("dpoEmail", dpoEmail);
+        meta.put("dpoPhone", dpoPhone);
         meta.put("grievanceEmail", grievanceEmail);
         meta.put("dpoAddress", dpoAddress);
         meta.put("grievanceSlaDays", 7);
