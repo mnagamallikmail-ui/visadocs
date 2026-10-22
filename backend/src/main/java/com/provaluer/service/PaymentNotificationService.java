@@ -41,7 +41,7 @@ public class PaymentNotificationService {
 
         // 2. Client transactional email & portal toast simulated delivery
         log.info("[CLIENT EMAIL SENT] To: {} | Subject: Payment Proof Received: {} [Ref: {}] | Amount: INR {}",
-                client != null ? client.getEmail() : "N/A",
+                client != null ? com.provaluer.util.DataMaskingUtil.maskEmail(client.getEmail()) : "N/A",
                 payment.getQuoteNumber(),
                 order.getReferenceCode(),
                 amountPaid);
@@ -50,7 +50,7 @@ public class PaymentNotificationService {
     @Async
     public void notifyPaymentVerified(Order order, OrderPayment payment, User client, String verifiedBy) {
         log.info("[PAYMENT NOTIFICATION] Processing verification alerts for orderId={} refCode={} utr={}",
-                order.getId(), order.getReferenceCode(), payment.getUtrNumber());
+                order.getId(), order.getReferenceCode(), com.provaluer.util.DataMaskingUtil.maskBankAccount(payment.getUtrNumber()));
 
         // 1. Internal Telegram alert
         BigDecimal amountPaid = payment.getAmountPaid();
@@ -67,7 +67,7 @@ public class PaymentNotificationService {
 
         // 2. Client transactional email
         log.info("[CLIENT EMAIL SENT] To: {} | Subject: Payment Verified & Confirmed: {} [Ref: {}] | Verified Amount: INR {}",
-                client != null ? client.getEmail() : "N/A",
+                client != null ? com.provaluer.util.DataMaskingUtil.maskEmail(client.getEmail()) : "N/A",
                 payment.getQuoteNumber(),
                 order.getReferenceCode(),
                 payment.getVerifiedAmount());
@@ -76,7 +76,7 @@ public class PaymentNotificationService {
     @Async
     public void notifyPaymentRejected(Order order, OrderPayment payment, User client, String rejectionReason, String verifiedBy) {
         log.info("[PAYMENT NOTIFICATION] Processing rejection alerts for orderId={} refCode={} utr={}",
-                order.getId(), order.getReferenceCode(), payment.getUtrNumber());
+                order.getId(), order.getReferenceCode(), com.provaluer.util.DataMaskingUtil.maskBankAccount(payment.getUtrNumber()));
 
         // 1. Internal Telegram alert
         telegramService.sendPaymentRejectedNotification(
@@ -90,7 +90,7 @@ public class PaymentNotificationService {
 
         // 2. Client transactional email
         log.info("[CLIENT EMAIL SENT] To: {} | Subject: Action Required: Payment Proof Rejected [Ref: {}] | Reason: {}",
-                client != null ? client.getEmail() : "N/A",
+                client != null ? com.provaluer.util.DataMaskingUtil.maskEmail(client.getEmail()) : "N/A",
                 order.getReferenceCode(),
                 rejectionReason);
     }

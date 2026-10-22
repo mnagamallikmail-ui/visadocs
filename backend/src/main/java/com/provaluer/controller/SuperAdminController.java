@@ -1249,4 +1249,26 @@ public class SuperAdminController {
         Map<String, Object> result = documentWorkspaceService.auditAndRebuildDomSnapshots();
         return ResponseEntity.ok(result);
     }
+
+    @Autowired private com.provaluer.service.EncryptionStatusService encryptionStatusService;
+
+    // ─────────────────────────────────────────────
+    // DPDP ACT 2023 SECURITY DASHBOARD
+    // ─────────────────────────────────────────────
+
+    /**
+     * GET /api/v1/admin/security/encryption-status
+     *
+     * DPDP Act 2023 - Super Admin Security Dashboard:
+     * - Encryption enabled
+     * - Key version
+     * - Last rotation
+     * - Protected fields count
+     * - Health check status
+     * - Backup encryption validation
+     */
+    @GetMapping("/security/encryption-status")
+    public ResponseEntity<?> getEncryptionStatus() {
+        return ResponseEntity.ok(encryptionStatusService.getSecurityDashboardSummary());
+    }
 }

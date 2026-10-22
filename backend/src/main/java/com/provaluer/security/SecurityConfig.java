@@ -90,6 +90,7 @@ public class SecurityConfig {
                     .requestMatchers("/api/leads", "/api/leads/**", "/api/v1/leads", "/api/v1/leads/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
                     .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/error",
                             "/client/delivery/stream", "/api/v1/client/delivery/stream",
+                            "/api/v1/documents/download",
                             "/api/v1/telemetry/**", "/api/v1/governance/health", "/api/v1/governance/metrics",
                             "/api/v1/admin/seo/real-telemetry",
                             "/api/v1/privacy/**").permitAll()

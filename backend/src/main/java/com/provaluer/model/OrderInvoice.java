@@ -1,5 +1,6 @@
 package com.provaluer.model;
 
+import com.provaluer.security.encryption.AesGcmEncryptionConverter;
 import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -37,7 +38,8 @@ public class OrderInvoice {
     @Column(name = "client_gstin", length = 32)
     private String clientGstin;
 
-    @Column(name = "client_pan", length = 32)
+    @Convert(converter = AesGcmEncryptionConverter.class)
+    @Column(name = "client_pan", length = 255)
     private String clientPan;
 
     @Column(name = "place_of_supply", nullable = false, length = 100)

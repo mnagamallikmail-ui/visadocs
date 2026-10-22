@@ -249,7 +249,7 @@ public class PoolReleaseService {
                     ? clientUser.getFullName() : (clientUser != null ? clientUser.getUsername() : "Client");
             log.info("[CLIENT EMAIL SENT] To: {} | Subject: Your Valuation Request Has Been Accepted [Ref: {}] | " +
                      "ReportNo: {} | Status: Processing In Progress",
-                    clientEmail, order.getReferenceCode(), reportNumber);
+                    com.provaluer.util.DataMaskingUtil.maskEmail(clientEmail), order.getReferenceCode(), reportNumber);
 
             // Operations Telegram alert
             telegramNotificationService.sendPoolReleaseNotification(

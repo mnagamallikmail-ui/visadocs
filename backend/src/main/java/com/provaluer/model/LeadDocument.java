@@ -32,6 +32,15 @@ public class LeadDocument {
     @Column(name = "is_confidential", nullable = false)
     private boolean isConfidential = true;
 
+    @Column(name = "is_encrypted", nullable = false)
+    private boolean isEncrypted = true;
+
+    @Column(name = "encryption_iv", length = 64)
+    private String encryptionIv;
+
+    @Column(name = "key_version", length = 32)
+    private String keyVersion = "v1-aes256-gcm";
+
     @Column(name = "uploaded_at", nullable = false)
     private LocalDateTime uploadedAt = LocalDateTime.now();
 
@@ -57,6 +66,15 @@ public class LeadDocument {
 
     public boolean isConfidential() { return isConfidential; }
     public void setConfidential(boolean confidential) { isConfidential = confidential; }
+
+    public boolean isEncrypted() { return isEncrypted; }
+    public void setEncrypted(boolean encrypted) { isEncrypted = encrypted; }
+
+    public String getEncryptionIv() { return encryptionIv; }
+    public void setEncryptionIv(String encryptionIv) { this.encryptionIv = encryptionIv; }
+
+    public String getKeyVersion() { return keyVersion; }
+    public void setKeyVersion(String keyVersion) { this.keyVersion = keyVersion; }
 
     public LocalDateTime getUploadedAt() { return uploadedAt; }
     public void setUploadedAt(LocalDateTime uploadedAt) { this.uploadedAt = uploadedAt; }

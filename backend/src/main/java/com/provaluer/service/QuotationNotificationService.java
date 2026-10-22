@@ -43,7 +43,7 @@ public class QuotationNotificationService {
 
         // 1. Client Email Notification
         log.info("[EMAIL NOTIFICATION] To: {}, Subject: Commercial Valuation Quotation Issued — Ref: {} (Quote: {})",
-                clientEmail, refCode, quoteNumber);
+                com.provaluer.util.DataMaskingUtil.maskEmail(clientEmail), refCode, quoteNumber);
         log.info("[EMAIL BODY] Dear {},\n" +
                         "Your quotation for valuation mandate '{}' (Ref: {}) is ready.\n" +
                         "Quote Number: {}\n" +

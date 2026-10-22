@@ -1,6 +1,7 @@
 package com.provaluer.service;
 
 import com.provaluer.model.ValuationLead;
+import com.provaluer.util.DataMaskingUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -12,10 +13,10 @@ public class LeadNotificationService {
 
     public void sendLeadAcknowledgement(ValuationLead lead) {
         log.info("[EMAIL NOTIFICATION] To: {}, Subject: Valuation Request Acknowledged — Ref: {}",
-                lead.getContactEmail(), lead.getReferenceCode());
-        log.info("[EMAIL BODY] Dear {}, your valuation mandate for '{}' ({}) has been received. " +
+                DataMaskingUtil.maskEmail(lead.getContactEmail()), lead.getReferenceCode());
+        log.info("[EMAIL BODY] Valuation mandate for '{}' ({}) has been received. " +
                 "Estimated SLA: {}. Your lead reference code is {}. Our valuation desk is reviewing your documents.",
-                lead.getContactName(), lead.getAssetName(), lead.getServiceVertical(),
+                lead.getAssetName(), lead.getServiceVertical(),
                 lead.getUrgencySla(), lead.getReferenceCode());
     }
 
@@ -24,11 +25,6 @@ public class LeadNotificationService {
                 lead.getIntentLevel(), lead.getReferenceCode(),
                 lead.getCompanyName() != null ? lead.getCompanyName() : "Corporate Entity",
                 lead.getContactRole(), lead.getServiceVertical(), lead.getValueBracket(),
-                lead.getUrgencySla(), maskPhone(lead.getContactPhone()));
-    }
-
-    private String maskPhone(String phone) {
-        if (phone == null || phone.length() < 4) return "XXXX";
-        return phone.substring(0, Math.min(3, phone.length())) + "****" + phone.substring(Math.max(phone.length() - 3, 0));
+                lead.getUrgencySla(), DataMaskingUtil.maskPhone(lead.getContactPhone()));
     }
 }

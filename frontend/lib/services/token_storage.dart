@@ -67,7 +67,26 @@ class TokenStorage {
   static String _draftKey(int orderId) => 'pv_draft_order_$orderId';
   static String _activeSessionKey(int orderId) => 'pv_active_workspace_session_$orderId';
 
-  /// FIX 6: Local Storage Sanitization - includes workspaceRevision, timestamp, and owner
+  /// DPDP Act 2023 Batch 2: Checks if a field contains Class A Sensitive Personal Data
+  static bool isSensitiveField(String key) {
+    final upper = key.toUpperCase();
+    return upper.contains('PAN') ||
+           upper.contains('AADHAAR') ||
+           upper.contains('ADHAAR') ||
+           upper.contains('PASSPORT') ||
+           upper.contains('BANK') ||
+           upper.contains('ACCOUNT') ||
+           upper.contains('NET_WORTH') ||
+           upper.contains('FINANCIAL') ||
+           upper.contains('LOAN') ||
+           upper.contains('INCOME') ||
+           upper.contains('SALARY') ||
+           upper.contains('UTR') ||
+           upper.contains('DEED');
+  }
+
+  /// FIX 6 & DPDP Batch 2: Local Storage Sanitization - includes workspaceRevision, timestamp, and owner
+  /// Strictly prevents plain-text storage of PAN, Aadhaar, Passport, Bank, Financials, or Net Worth.
   static void saveDraftToStorage(
     int orderId,
     Map<String, String> values, {
@@ -78,7 +97,8 @@ class TokenStorage {
       final clean = <String, String>{};
       values.forEach((k, v) {
         // Exclude large binary/base64 images to conserve localStorage
-        if (!v.startsWith('data:image')) {
+        // Exclude Class A Sensitive Personal Data to maintain DPDP compliance
+        if (!v.startsWith('data:image') && !isSensitiveField(k)) {
           clean[k] = v;
         }
       });

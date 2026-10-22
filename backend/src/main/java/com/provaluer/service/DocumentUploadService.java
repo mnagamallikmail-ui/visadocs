@@ -38,6 +38,9 @@ public class DocumentUploadService {
     @Autowired
     private LeadDocumentRepository leadDocumentRepository;
 
+    @Autowired
+    private EncryptedFileStorageService encryptedFileStorageService;
+
     public DocumentUploadService() {
         try {
             Files.createDirectories(rootStorage);
@@ -80,7 +83,11 @@ public class DocumentUploadService {
 
             String safeName = UUID.randomUUID() + "_" + originalName.replaceAll("[^a-zA-Z0-9.-]", "_");
             Path targetPath = leadFolder.resolve(safeName);
-            Files.copy(file.getInputStream(), targetPath);
+            if (encryptedFileStorageService != null) {
+                encryptedFileStorageService.storeEncrypted(file.getInputStream(), targetPath);
+            } else {
+                Files.copy(file.getInputStream(), targetPath);
+            }
 
             LeadDocument doc = new LeadDocument();
             doc.setLead(lead);
@@ -89,6 +96,8 @@ public class DocumentUploadService {
             doc.setFileSizeBytes(file.getSize());
             doc.setStoragePath(targetPath.toString());
             doc.setConfidential(true);
+            doc.setEncrypted(true);
+            doc.setKeyVersion("v1-aes256-gcm");
 
             savedDocs.add(leadDocumentRepository.save(doc));
         }

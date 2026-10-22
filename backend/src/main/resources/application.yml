@@ -55,6 +55,11 @@ app:
     account-number: ${PAYMENT_ACCOUNT_NUMBER:50200088912345}
     ifsc: ${PAYMENT_IFSC:HDFC0001234}
     upi-id: ${PAYMENT_UPI_ID:provaluer.commercial@hdfcbank}
+  security:
+    encryption:
+      enabled: ${DPDP_ENCRYPTION_ENABLED:true}
+      master-key: ${DPDP_ENCRYPTION_KEY:c2VjdXJlX2RwZHBfbWFzdGVyX2tleV8yNTZiaXRzXzEyMw==}
+      key-version: ${DPDP_KEY_VERSION:v1-aes256-gcm}
 
 ---
 # Test Configuration Profile

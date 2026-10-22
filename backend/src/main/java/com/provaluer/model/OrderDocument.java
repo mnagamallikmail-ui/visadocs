@@ -23,6 +23,23 @@ public class OrderDocument {
     @Column(name = "file_content", columnDefinition = "bytea", nullable = false)
     private byte[] fileContent;
 
+    @PrePersist
+    @PreUpdate
+    public void prePersistOrUpdate() {
+        if (fileContent != null && !com.provaluer.service.EncryptedFileStorageService.isEncryptedDataStatic(fileContent)) {
+            this.fileContent = com.provaluer.service.EncryptedFileStorageService.encryptData(this.fileContent);
+        }
+    }
+
+    @PostPersist
+    @PostUpdate
+    @PostLoad
+    public void postLoadOrPersist() {
+        if (fileContent != null && com.provaluer.service.EncryptedFileStorageService.isEncryptedDataStatic(fileContent)) {
+            this.fileContent = com.provaluer.service.EncryptedFileStorageService.decryptData(this.fileContent);
+        }
+    }
+
     @ManyToOne(optional = false)
     @JoinColumn(name = "uploaded_by", nullable = false)
     private User uploadedBy;
