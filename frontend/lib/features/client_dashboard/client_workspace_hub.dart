@@ -20,12 +20,15 @@ import '../../utils/build_info.dart';
 import '../../utils/report_list_helper.dart';
 import '../request_intake/service_taxonomy.dart';
 
+import '../privacy/privacy_dashboard_widget.dart';
+
 // ─── Simplified Client Navigation ─────────────────────────────────────────────
 enum _ClientNav {
   welcome,
   createReport,
   reportsInProgress,
   completedReports,
+  privacy,
 }
 
 extension _ClientNavMeta on _ClientNav {
@@ -34,6 +37,7 @@ extension _ClientNavMeta on _ClientNav {
         _ClientNav.createReport => 'New Request',
         _ClientNav.reportsInProgress => 'Reports',
         _ClientNav.completedReports => 'Delivered Reports',
+        _ClientNav.privacy => 'Privacy & My Data',
       };
 
   IconData get icon => switch (this) {
@@ -41,6 +45,7 @@ extension _ClientNavMeta on _ClientNav {
         _ClientNav.createReport => Icons.add_circle_outline_rounded,
         _ClientNav.reportsInProgress => Icons.hourglass_top_rounded,
         _ClientNav.completedReports => Icons.check_circle_outline_rounded,
+        _ClientNav.privacy => Icons.shield_outlined,
       };
 }
 
@@ -818,6 +823,7 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
                     _ClientNav.completedReports => _focusedCompletedOrder == null
                         ? 'Delivered Reports'
                         : 'Delivered Report • ${_focusedCompletedOrder['referenceCode'] ?? 'PV-${_focusedCompletedOrder['id']}'}',
+                    _ClientNav.privacy => 'Privacy & My Data',
                   },
                   leading: isMobile
                       ? Builder(
@@ -857,6 +863,8 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
           return _buildCompletedReportWorkspace(_focusedCompletedOrder, orders);
         }
         return _buildCompletedReportsGallery(orders);
+      case _ClientNav.privacy:
+        return const PrivacyDashboardWidget();
     }
   }
 
@@ -4970,6 +4978,11 @@ class _ClientSidebar extends StatelessWidget {
             nav: _ClientNav.completedReports,
             label: _ClientNav.completedReports.label,
             icon: _ClientNav.completedReports.icon,
+          ),
+          _navTile(
+            nav: _ClientNav.privacy,
+            label: _ClientNav.privacy.label,
+            icon: _ClientNav.privacy.icon,
           ),
 
           const Spacer(),

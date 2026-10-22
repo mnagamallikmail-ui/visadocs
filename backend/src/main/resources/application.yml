@@ -60,6 +60,18 @@ app:
       enabled: ${DPDP_ENCRYPTION_ENABLED:true}
       master-key: ${DPDP_ENCRYPTION_KEY:c2VjdXJlX2RwZHBfbWFzdGVyX2tleV8yNTZiaXRzXzEyMw==}
       key-version: ${DPDP_KEY_VERSION:v1-aes256-gcm}
+  dpdp:
+    dpo:
+      name: ${DPDP_DPO_NAME:Data Protection Officer}
+      title: ${DPDP_DPO_TITLE:Designated Data Protection Officer}
+      email: ${DPDP_DPO_EMAIL:dpo@provaluer.com}
+      phone: ${DPDP_DPO_PHONE:+91 80 4567 8900}
+      address: ${DPDP_DPO_ADDRESS:Corporate Compliance Cell, ProValuer Advisory Services Pvt Ltd, India}
+    grievance-officer:
+      name: ${DPDP_GRIEVANCE_OFFICER_NAME:Grievance Redressal Officer}
+      email: ${DPDP_GRIEVANCE_OFFICER_EMAIL:grievance@provaluer.com}
+    retention:
+      cron: ${DPDP_RETENTION_CRON:0 0 2 * * ?}
 
 ---
 # Test Configuration Profile

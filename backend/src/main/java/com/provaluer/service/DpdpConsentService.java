@@ -32,6 +32,21 @@ public class DpdpConsentService {
     @Autowired
     private AuditLogService auditLogService;
 
+    @org.springframework.beans.factory.annotation.Value("${app.dpdp.dpo.name:Data Protection Officer}")
+    private String dpoName;
+
+    @org.springframework.beans.factory.annotation.Value("${app.dpdp.dpo.title:Designated Data Protection Officer}")
+    private String dpoTitle;
+
+    @org.springframework.beans.factory.annotation.Value("${app.dpdp.dpo.email:dpo@provaluer.com}")
+    private String dpoEmail;
+
+    @org.springframework.beans.factory.annotation.Value("${app.dpdp.dpo.address:Corporate Compliance Cell, ProValuer Advisory Services Pvt Ltd, India}")
+    private String dpoAddress;
+
+    @org.springframework.beans.factory.annotation.Value("${app.dpdp.grievance-officer.email:grievance@provaluer.com}")
+    private String grievanceEmail;
+
     @Transactional
     public ConsentLedger recordConsent(Long userId, Long leadId, String actorIdentifier, 
                                         String consentType, boolean consentGiven, 
@@ -140,11 +155,11 @@ public class DpdpConsentService {
         Map<String, Object> meta = new HashMap<>();
         meta.put("noticeVersion", CURRENT_NOTICE_VERSION);
         meta.put("termsVersion", CURRENT_TERMS_VERSION);
-        meta.put("dpoName", "CS R. Parthasarathy");
-        meta.put("dpoTitle", "Designated Data Protection Officer");
-        meta.put("dpoEmail", "dpo@provaluer.com");
-        meta.put("grievanceEmail", "grievance@provaluer.com");
-        meta.put("dpoAddress", "Level 5, Cyber Towers, HITEC City, Hyderabad, Telangana - 500081, India");
+        meta.put("dpoName", dpoName);
+        meta.put("dpoTitle", dpoTitle);
+        meta.put("dpoEmail", dpoEmail);
+        meta.put("grievanceEmail", grievanceEmail);
+        meta.put("dpoAddress", dpoAddress);
         meta.put("grievanceSlaDays", 7);
         meta.put("statutoryAct", "Digital Personal Data Protection Act, 2023 (India)");
         meta.put("dpbiSupervisoryAuthority", "Data Protection Board of India");

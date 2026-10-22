@@ -9,6 +9,7 @@ import 'admin_sections.dart';
 import 'admin_seo_intelligence_section.dart';
 import 'admin_leads_crm_section.dart';
 import '../quotations/admin_release_queue_section.dart';
+import '../privacy/privacy_governance_dashboard.dart';
 import '../../utils/build_info.dart';
 
 class SuperAdminWidget extends StatefulWidget {
@@ -665,6 +666,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
     {'key': 'reports', 'label': 'Report Control', 'icon': Icons.summarize_outlined},
     {'key': 'trash', 'label': 'Trash Bin', 'icon': Icons.delete_outline_rounded},
     {'key': 'signing', 'label': 'Signing Monitor', 'icon': Icons.draw_outlined},
+    {'key': 'privacy_governance', 'label': 'Privacy Governance', 'icon': Icons.policy_outlined},
   ];
 
   List<Map<String, dynamic>> _getFilteredMenuItems() {
@@ -920,6 +922,8 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
         return const AdminTrashBinSection();
       case 'signing':
         return const AdminSigningSection();
+      case 'privacy_governance':
+        return const PrivacyGovernanceDashboard();
       default:
         return AdminOverviewSection(onNavigate: _navigateTo);
     }
