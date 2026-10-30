@@ -14,12 +14,44 @@ public class LeadRequestDto {
     private String contactPhone;
     private String preferredChannel = "EMAIL";
     private int documentCount = 0;
-    private boolean consentGiven = true;
+    private boolean consentGiven = false;
+    private boolean isMinor = false;
+    private String guardianName;
+    private String guardianRelationship;
+    private String guardianEmail;
+    private String guardianPhone;
+    private boolean guardianConsentGiven = false;
+    private String noticeVersion = "DPDP-NOTICE-V2.0";
+    private String uploadToken;
 
     public LeadRequestDto() {}
 
     public boolean isConsentGiven() { return consentGiven; }
     public void setConsentGiven(boolean consentGiven) { this.consentGiven = consentGiven; }
+
+    public boolean isMinor() { return isMinor; }
+    public void setMinor(boolean minor) { isMinor = minor; }
+
+    public String getGuardianName() { return guardianName; }
+    public void setGuardianName(String guardianName) { this.guardianName = guardianName; }
+
+    public String getGuardianRelationship() { return guardianRelationship; }
+    public void setGuardianRelationship(String guardianRelationship) { this.guardianRelationship = guardianRelationship; }
+
+    public String getGuardianEmail() { return guardianEmail; }
+    public void setGuardianEmail(String guardianEmail) { this.guardianEmail = guardianEmail; }
+
+    public String getGuardianPhone() { return guardianPhone; }
+    public void setGuardianPhone(String guardianPhone) { this.guardianPhone = guardianPhone; }
+
+    public boolean isGuardianConsentGiven() { return guardianConsentGiven; }
+    public void setGuardianConsentGiven(boolean guardianConsentGiven) { this.guardianConsentGiven = guardianConsentGiven; }
+
+    public String getNoticeVersion() { return noticeVersion; }
+    public void setNoticeVersion(String noticeVersion) { this.noticeVersion = noticeVersion; }
+
+    public String getUploadToken() { return uploadToken; }
+    public void setUploadToken(String uploadToken) { this.uploadToken = uploadToken; }
 
     public String getServiceVertical() { return serviceVertical; }
     public void setServiceVertical(String serviceVertical) { this.serviceVertical = serviceVertical; }

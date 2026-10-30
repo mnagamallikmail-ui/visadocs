@@ -388,6 +388,7 @@ body {
 .hero-content h1.hero-title .gradient-text {
   background: linear-gradient(135deg, #60A5FA 0%, #38BDF8 50%, #FABB1F 100%);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -1903,5 +1904,83 @@ body {
 .btn-withdraw-consent:hover {
   background: #EF4444;
   color: #fff;
+}
+
+/* Privacy Hub Modal & Navigation Styles */
+.modal-dialog-large {
+  max-width: 920px;
+  width: 95%;
+}
+
+.privacy-tabs-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  border-bottom: 1px solid var(--border-subtle);
+  padding: 0 0 12px;
+  margin-bottom: 20px;
+}
+
+.privacy-tab-btn {
+  background: transparent;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-muted);
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  transition: all var(--transition-fast);
+}
+
+.privacy-tab-btn:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: #fff;
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.privacy-tab-btn.active {
+  background: rgba(14, 165, 233, 0.15);
+  border-color: #0EA5E9;
+  color: #38BDF8;
+}
+
+.privacy-hub-panel {
+  display: none;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.privacy-hub-panel.active {
+  display: block;
+}
+
+.privacy-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12.5px;
+  margin-top: 12px;
+}
+
+.privacy-table th {
+  text-align: left;
+  padding: 10px 12px;
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text-dim);
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.privacy-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-main);
+}
+
+.privacy-table tr:hover td {
+  background: rgba(255, 255, 255, 0.02);
 }
 

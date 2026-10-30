@@ -23,11 +23,31 @@ public class User {
     @Column(nullable = false)
     private UserRole role;
 
-    @Column(name = "full_name")
+    @Convert(converter = com.provaluer.security.encryption.AesGcmEncryptionConverter.class)
+    @Column(name = "full_name", length = 1024)
     private String fullName;
 
-    @Column(name = "mobile_number")
+    @Convert(converter = com.provaluer.security.encryption.AesGcmEncryptionConverter.class)
+    @Column(name = "mobile_number", length = 1024)
     private String mobileNumber;
+
+    @Column(name = "email_hash", length = 128)
+    private String emailHash;
+
+    @Column(name = "mfa_enabled", nullable = false)
+    private boolean mfaEnabled = false;
+
+    @Column(name = "mfa_secret")
+    private String mfaSecret;
+
+    @Column(name = "mfa_recovery_codes", columnDefinition = "TEXT")
+    private String mfaRecoveryCodes;
+
+    @Column(name = "failed_login_attempts", nullable = false)
+    private int failedLoginAttempts = 0;
+
+    @Column(name = "lockout_until")
+    private LocalDateTime lockoutUntil;
 
     @Column(name = "accepted_tc_version")
     private String acceptedTcVersion;
@@ -63,6 +83,9 @@ public class User {
         } else if (username == null || username.trim().isEmpty()) {
             username = "user_" + System.currentTimeMillis();
         }
+        if (email != null) {
+            this.emailHash = com.provaluer.security.encryption.AesGcmEncryptionConverter.computeBlindIndex(this.email);
+        }
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }
@@ -73,6 +96,9 @@ public class User {
 
     @PreUpdate
     public void preUpdate() {
+        if (email != null) {
+            this.emailHash = com.provaluer.security.encryption.AesGcmEncryptionConverter.computeBlindIndex(this.email);
+        }
         updatedAt = LocalDateTime.now();
     }
 
@@ -85,6 +111,9 @@ public class User {
         this.role = role;
         this.mobileNumber = mobileNumber;
         this.acceptedTcVersion = acceptedTcVersion;
+        if (email != null) {
+            this.emailHash = com.provaluer.security.encryption.AesGcmEncryptionConverter.computeBlindIndex(email);
+        }
     }
 
     public User(String email, String password, UserRole role, String mobileNumber, String acceptedTcVersion) {
@@ -97,7 +126,14 @@ public class User {
     public String getUsername() { return username; }
     public void setUsername(String username) { this.username = username; }
     public String getEmail() { return email; }
-    public void setEmail(String email) { this.email = email; }
+    public void setEmail(String email) {
+        this.email = email;
+        if (email != null) {
+            this.emailHash = com.provaluer.security.encryption.AesGcmEncryptionConverter.computeBlindIndex(email);
+        }
+    }
+    public String getEmailHash() { return emailHash; }
+    public void setEmailHash(String emailHash) { this.emailHash = emailHash; }
     public String getPassword() { return password; }
     public void setPassword(String password) { this.password = password; }
     public UserRole getRole() { return role; }
@@ -118,6 +154,17 @@ public class User {
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public boolean isMfaEnabled() { return mfaEnabled; }
+    public void setMfaEnabled(boolean mfaEnabled) { this.mfaEnabled = mfaEnabled; }
+    public String getMfaSecret() { return mfaSecret; }
+    public void setMfaSecret(String mfaSecret) { this.mfaSecret = mfaSecret; }
+    public String getMfaRecoveryCodes() { return mfaRecoveryCodes; }
+    public void setMfaRecoveryCodes(String mfaRecoveryCodes) { this.mfaRecoveryCodes = mfaRecoveryCodes; }
+    public int getFailedLoginAttempts() { return failedLoginAttempts; }
+    public void setFailedLoginAttempts(int failedLoginAttempts) { this.failedLoginAttempts = failedLoginAttempts; }
+    public LocalDateTime getLockoutUntil() { return lockoutUntil; }
+    public void setLockoutUntil(LocalDateTime lockoutUntil) { this.lockoutUntil = lockoutUntil; }
 
     public boolean isDpdpConsentGiven() { return dpdpConsentGiven; }
     public void setDpdpConsentGiven(boolean dpdpConsentGiven) { this.dpdpConsentGiven = dpdpConsentGiven; }

@@ -12,6 +12,16 @@ public interface UserRepository extends JpaRepository<User, Long> {
     boolean existsByUsernameIgnoreCase(String username);
     Optional<User> findByEmail(String email);
     Optional<User> findByEmailIgnoreCase(String email);
+    Optional<User> findByEmailHash(String emailHash);
+    boolean existsByEmailHash(String emailHash);
+
+    default Optional<User> findByEmailLookup(String email) {
+        if (email == null || email.trim().isEmpty()) return Optional.empty();
+        String hash = com.provaluer.security.encryption.AesGcmEncryptionConverter.computeBlindIndex(email);
+        Optional<User> byHash = findByEmailHash(hash);
+        if (byHash.isPresent()) return byHash;
+        return findByEmailIgnoreCase(email.trim());
+    }
     List<User> findAllByRole(UserRole role);
     List<User> findAllByDeleted(boolean deleted);
     List<User> findAllByRoleIn(List<UserRole> roles);

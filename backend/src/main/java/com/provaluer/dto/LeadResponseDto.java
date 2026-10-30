@@ -26,6 +26,9 @@ public class LeadResponseDto {
     private Long assignedValuerId;
     private boolean consentGiven;
     private LocalDateTime consentTimestamp;
+    private String uploadToken;
+    private boolean isMinor;
+    private Long guardianConsentId;
     private LocalDateTime createdAt;
     private List<DocumentDto> documents;
     private List<QuotationDto> quotations;
@@ -75,6 +78,9 @@ public class LeadResponseDto {
         dto.setAssignedValuerId(lead.getAssignedValuerId());
         dto.setConsentGiven(lead.isConsentGiven());
         dto.setConsentTimestamp(lead.getConsentTimestamp());
+        dto.setUploadToken(lead.getUploadToken());
+        dto.setMinor(lead.isMinor());
+        dto.setGuardianConsentId(lead.getGuardianConsentId());
         dto.setCreatedAt(lead.getCreatedAt());
 
         if (lead.getDocuments() != null) {
@@ -156,4 +162,13 @@ public class LeadResponseDto {
     public void setDocuments(List<DocumentDto> documents) { this.documents = documents; }
     public List<QuotationDto> getQuotations() { return quotations; }
     public void setQuotations(List<QuotationDto> quotations) { this.quotations = quotations; }
+
+    public String getUploadToken() { return uploadToken; }
+    public void setUploadToken(String uploadToken) { this.uploadToken = uploadToken; }
+
+    public boolean isMinor() { return isMinor; }
+    public void setMinor(boolean minor) { isMinor = minor; }
+
+    public Long getGuardianConsentId() { return guardianConsentId; }
+    public void setGuardianConsentId(Long guardianConsentId) { this.guardianConsentId = guardianConsentId; }
 }

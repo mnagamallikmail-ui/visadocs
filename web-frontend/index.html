@@ -52,10 +52,23 @@
             Client Dashboard
           </button>
         </li>
+        <li>
+          <button class="nav-link-btn" id="navBtnPrivacyHub" onclick="openPrivacyDashboardModal()">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            Privacy Hub
+          </button>
+        </li>
       </ul>
     </nav>
 
     <div class="nav-actions">
+      <!-- Multilingual Notice Language Switcher -->
+      <select id="langSelector" class="form-control" style="width: auto; padding: 4px 8px; font-size: 12px; height: 32px; background: rgba(255,255,255,0.06); color: var(--text-main); border: 1px solid var(--border-subtle); border-radius: 6px; cursor: pointer;" onchange="changeLanguage(this.value)">
+        <option value="en">🌐 English (EN)</option>
+        <option value="hi">🌐 हिन्दी (HI)</option>
+        <option value="te">🌐 తెలుగు (TE)</option>
+      </select>
+
       <!-- Theme Switcher -->
       <button class="icon-btn" id="themeToggleBtn" onclick="toggleTheme()" title="Toggle Light/Dark Theme">
         <svg id="themeIconSun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
@@ -203,40 +216,139 @@
     <div class="intake-container">
       <div class="form-wizard-card">
         <div class="wizard-header">
-          <div style="font-size: 12px; color: #38BDF8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">Order Intake Wizard</div>
-          <h2>Request Valuation Report</h2>
-          <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 0;">Specify your valuation service, property classification, and upload legal records to generate your official quote.</p>
+          <div style="font-size: 12px; color: #38BDF8; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em;">DPDP Compliant Order Intake Wizard</div>
+          <h2>Request Property Valuation Report</h2>
+          <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 0;">Legally binding commercial &amp; visa property appraisal certified by IBBI &amp; Income Tax Approved Valuers.</p>
         </div>
 
         <form id="intakeForm" onsubmit="event.preventDefault(); submitIntakeRequest();">
-          <!-- Step 1: Select Service -->
+
+          <!-- STAGE 1: MANDATORY STATUTORY DPDP NOTICE (Section 5) -->
           <div class="form-section-title">
-            <span>1. Select Service Category</span>
+            <span style="color: #38BDF8;">1. Statutory Privacy Notice (DPDP Act, 2023 - Section 5)</span>
+          </div>
+          <div id="intakeNoticeBox" style="background: rgba(56, 189, 248, 0.04); border: 1px solid rgba(56, 189, 248, 0.25); border-radius: 12px; padding: 18px; margin-bottom: 20px; font-size: 13px; line-height: 1.6;">
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px;">
+              <strong style="color: #38BDF8; font-size: 14px;">🛡️ Data Fiduciary Notice — Pro Valuer OPC Pvt Ltd</strong>
+              <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10B981; border: 1px solid #10B981; padding: 2px 8px; border-radius: 6px; font-size: 11px;">DPDP-NOTICE-V2.0</span>
+            </div>
+            <p style="margin: 0 0 10px; color: var(--text-muted);" id="noticeSummaryText">
+              Pro Valuer OPC Pvt Ltd collects and processes your personal data (Name, Contact Details, Age/Guardian information) and property ownership records (Deeds, Tax Receipts) strictly for assessing property fair market value, verifying title encumbrances, and issuing legally certified valuation certificates for banks, court proceedings, and visa embassies.
+            </p>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; color: var(--text-dim); margin-bottom: 12px;">
+              <div><strong>Data Protection Officer:</strong> CS / Adv. R. Parthasarathy</div>
+              <div><strong>Grievance Desk:</strong> grievance@provaluer.in</div>
+            </div>
+            <div style="font-size: 12px; color: #94A3B8;">
+              Under Sections 11–14 of the DPDP Act 2023, you hold the statutory Right to Access, Right to Correction &amp; Erasure, Right to Grievance Redressal, and Right to Nominate.
+            </div>
+          </div>
+
+          <!-- STAGE 2: MANDATORY AFFIRMATIVE CONSENT (Section 6) -->
+          <div class="form-section-title">
+            <span style="color: #FABB1F;">2. Statutory Purpose-Wise Affirmative Consent (Section 6) *</span>
+          </div>
+          <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 14px 16px; margin-bottom: 24px;">
+            <label style="display: flex; align-items: flex-start; gap: 12px; cursor: pointer; margin: 0; font-size: 13px;">
+              <input type="checkbox" id="intakeConsentCheckbox" style="margin-top: 3px; width: 18px; height: 18px; accent-color: #0EA5E9; cursor: pointer;" required>
+              <span id="consentNoticeCheckboxLabel" style="color: var(--text-main);">
+                I have read the statutory notice above and unconditionally provide free, specific, informed, and affirmative consent under Section 6 of the DPDP Act 2023 for Pro Valuer OPC Pvt Ltd to collect, encrypt, and process my personal and property data strictly for this valuation engagement.
+              </span>
+            </label>
+          </div>
+
+          <!-- STAGE 3: AGE VERIFICATION & CHILD PROTECTION (Section 9) -->
+          <div class="form-section-title">
+            <span style="color: #A855F7;">3. Age Verification &amp; Minor Protection (Section 9) *</span>
+          </div>
+          <div style="background: rgba(0, 0, 0, 0.2); border: 1px solid var(--border-subtle); border-radius: 10px; padding: 16px; margin-bottom: 24px;">
+            <label style="font-size: 13px; font-weight: 600; color: #fff; display: block; margin-bottom: 10px;">
+              Are you 18 years of age or older? *
+            </label>
+            <div style="display: flex; gap: 24px; margin-bottom: 12px;">
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13.5px;">
+                <input type="radio" name="applicantAgeGroup" id="ageAdultRadio" value="ADULT" checked onchange="handleAgeSelection(false)" style="accent-color: #10B981;">
+                <span>Yes, I am 18 years or older</span>
+              </label>
+              <label style="display: flex; align-items: center; gap: 8px; cursor: pointer; font-size: 13.5px;">
+                <input type="radio" name="applicantAgeGroup" id="ageMinorRadio" value="MINOR" onchange="handleAgeSelection(true)" style="accent-color: #A855F7;">
+                <span>No, I am under 18 years (Student / Minor applicant)</span>
+              </label>
+            </div>
+
+            <!-- Expandable Minor & Guardian Workflow -->
+            <div id="guardianConsentSection" style="display: none; background: rgba(168, 85, 247, 0.06); border: 1px solid rgba(168, 85, 247, 0.3); border-radius: 10px; padding: 16px; margin-top: 14px;">
+              <div style="display: flex; align-items: center; gap: 8px; color: #C084FC; font-weight: 700; font-size: 13px; margin-bottom: 12px;">
+                <span>👶 DPDP Section 9 Guardian Consent &amp; Minor Verification</span>
+              </div>
+              <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px;">
+                Under Section 9 of the DPDP Act 2023, processing personal data of children requires verifiable parental or lawful guardian consent. All behavioral telemetry and web analytics are permanently suppressed for minors.
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="intakeApplicantDob">Minor Applicant Date of Birth *</label>
+                  <input type="date" id="intakeApplicantDob" class="form-control" onchange="validateMinorDob(this.value)">
+                </div>
+                <div class="form-group">
+                  <label for="intakeGuardianName">Parent / Legal Guardian Full Name *</label>
+                  <input type="text" id="intakeGuardianName" class="form-control" placeholder="Guardian Legal Name" data-clarity-mask="true">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="intakeGuardianRel">Relationship to Applicant *</label>
+                  <select id="intakeGuardianRel" class="form-control">
+                    <option value="Father">Father</option>
+                    <option value="Mother">Mother</option>
+                    <option value="Legal Guardian">Court Appointed Legal Guardian</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="intakeGuardianEmail">Guardian Contact Email *</label>
+                  <input type="email" id="intakeGuardianEmail" class="form-control" placeholder="guardian@example.com" data-clarity-mask="true">
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="intakeGuardianPhone">Guardian Contact Phone *</label>
+                  <input type="tel" id="intakeGuardianPhone" class="form-control" placeholder="+91 98765 43210" data-clarity-mask="true">
+                </div>
+              </div>
+              <div style="margin-top: 10px;">
+                <label style="display: flex; align-items: flex-start; gap: 10px; cursor: pointer; font-size: 12.5px;">
+                  <input type="checkbox" id="guardianAffirmativeConsentCb" style="margin-top: 2px; accent-color: #A855F7;">
+                  <span style="color: #E2E8F0;">
+                    As parent or court-appointed legal guardian, I provide verifiable affirmative consent under Section 9 of the DPDP Act 2023 for processing the minor applicant's data for property/visa valuation.
+                  </span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- STAGE 4: SERVICE & PROPERTY SELECTION -->
+          <div class="form-section-title">
+            <span>4. Select Valuation Purpose &amp; Asset Classification</span>
           </div>
           <div class="selection-grid-options" id="serviceOptions">
             <div class="select-card-option selected" onclick="selectServiceOption(this, 'Visa Immigrations & Study Abroad')">
-              <div class="option-title">Visa & Study Abroad</div>
-              <div class="option-sub">Certified for US, Canada, UK & Schengen embassy compliance.</div>
+              <div class="option-title">Visa &amp; Study Abroad</div>
+              <div class="option-sub">Certified for US, Canada, UK &amp; Schengen embassy compliance.</div>
             </div>
             <div class="select-card-option" onclick="selectServiceOption(this, 'Commercial Real Estate Valuation')">
               <div class="option-title">Commercial Real Estate</div>
               <div class="option-sub">Offices, retail complexes, shopping plazas, and lease assets.</div>
             </div>
             <div class="select-card-option" onclick="selectServiceOption(this, 'Bank Collateral & Solvency')">
-              <div class="option-title">Bank Collateral & Solvency</div>
+              <div class="option-title">Bank Collateral &amp; Solvency</div>
               <div class="option-sub">Mortgage financing, overdraft security, and net worth checks.</div>
             </div>
             <div class="select-card-option" onclick="selectServiceOption(this, 'Capital Gains & Tax Assessment')">
               <div class="option-title">Capital Gains / Tax</div>
-              <div class="option-sub">FMV calculation under Section 50C & 55(2)(b) Income Tax Act.</div>
+              <div class="option-sub">FMV calculation under Section 50C &amp; 55(2)(b) Income Tax Act.</div>
             </div>
           </div>
 
-          <!-- Step 2: Select Property Type -->
-          <div class="form-section-title">
-            <span>2. Select Property Type</span>
-          </div>
-          <div class="selection-grid-options" id="propertyOptions">
+          <div class="selection-grid-options" id="propertyOptions" style="margin-top: 14px;">
             <div class="select-card-option selected" onclick="selectPropertyOption(this, 'Commercial Office Unit')">
               <div class="option-title">🏢 Commercial Office Unit</div>
               <div class="option-sub">Corporate offices, IT park bays, co-working suites.</div>
@@ -255,62 +367,55 @@
             </div>
           </div>
 
-          <!-- Step 3: Property Details -->
+          <!-- STAGE 5: APPLICANT & PROPERTY PARTICULARS (PII MASKED) -->
           <div class="form-section-title">
-            <span>3. Property & Applicant Particulars</span>
+            <span>5. Applicant &amp; Property Particulars</span>
           </div>
           <div class="form-row">
             <div class="form-group">
-              <label for="intakeClientName">Applicant / Legal Owner Name</label>
-              <input type="text" id="intakeClientName" class="form-control" value="Anand Mehta" required>
+              <label for="intakeClientName">Applicant / Legal Owner Name *</label>
+              <input type="text" id="intakeClientName" class="form-control" placeholder="Full Legal Name" data-clarity-mask="true" required>
             </div>
             <div class="form-group">
-              <label for="intakeEmail">Contact Email Address</label>
-              <input type="email" id="intakeEmail" class="form-control" value="anand.mehta@visadocs.com" required>
+              <label for="intakeEmail">Contact Email Address *</label>
+              <input type="email" id="intakeEmail" class="form-control" placeholder="client@example.com" data-clarity-mask="true" required>
             </div>
           </div>
 
           <div class="form-row">
             <div class="form-group">
-              <label for="intakeAddress">Property Full Address & City</label>
-              <input type="text" id="intakeAddress" class="form-control" value="Cyber Towers Unit 402, HITEC City, Hyderabad" required>
+              <label for="intakePhone">Contact Mobile Number *</label>
+              <input type="tel" id="intakePhone" class="form-control" placeholder="+91 98765 43210" data-clarity-mask="true" required>
             </div>
+            <div class="form-group">
+              <label for="intakeAddress">Property Full Address &amp; City *</label>
+              <input type="text" id="intakeAddress" class="form-control" placeholder="Complete address, Plot/Flat number, City" data-clarity-mask="true" required>
+            </div>
+          </div>
+
+          <div class="form-row">
             <div class="form-group">
               <label for="intakeEstValue">Estimated Market Value (₹ / USD)</label>
-              <input type="text" id="intakeEstValue" class="form-control" value="₹ 1,85,00,000" required>
+              <input type="text" id="intakeEstValue" class="form-control" placeholder="e.g. ₹ 1,85,00,000" data-clarity-mask="true">
             </div>
           </div>
 
-          <!-- Step 4: Upload Documents -->
+          <!-- STAGE 6: UPLOAD MANDATORY VERIFICATION DOCUMENTS -->
           <div class="form-section-title">
-            <span>4. Upload Mandatory Verification Documents (Max 20MB / file)</span>
+            <span>6. Upload Mandatory Verification Documents (Max 25MB / file, 30MB total)</span>
           </div>
           <div class="upload-dropzone" onclick="document.getElementById('fileUploadInput').click()">
             <input type="file" id="fileUploadInput" multiple style="display: none;" onchange="handleFileSelected(event)">
             <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="#38BDF8" stroke-width="2" style="margin-bottom: 8px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-            <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Click to select or drag & drop files here</div>
-            <div style="font-size: 12px; color: var(--text-muted);">Required: Registered Sale Deed, Property Tax Receipt, Approved Floor Plan (PDF, DOCX, JPG)</div>
+            <div style="font-weight: 600; font-size: 14px; margin-bottom: 4px;">Click to select or drag &amp; drop files here</div>
+            <div style="font-size: 12px; color: var(--text-muted);">Required: Registered Sale Deed, Property Tax Receipt, Approved Floor Plan (PDF, DOCX, JPG, PNG)</div>
           </div>
 
           <div class="upload-list-items" id="uploadListPreview">
-            <div class="file-item-pill">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <span>📄</span>
-                <strong>Sale_Deed_CyberTowers_Unit402.pdf</strong>
-                <span style="font-size: 11px; color: var(--text-dim);">(4.8 MB)</span>
-              </div>
-              <span style="color: #10B981; font-weight: 600; font-size: 11px;">✓ Attached</span>
-            </div>
-            <div class="file-item-pill">
-              <div style="display: flex; align-items: center; gap: 8px;">
-                <span>📄</span>
-                <strong>Property_Tax_Receipt_2025_26.pdf</strong>
-                <span style="font-size: 11px; color: var(--text-dim);">(1.2 MB)</span>
-              </div>
-              <span style="color: #10B981; font-weight: 600; font-size: 11px;">✓ Attached</span>
-            </div>
+            <!-- Dynamically populated selected files -->
           </div>
 
+          <!-- SUBMISSION & QUOTE REVIEW -->
           <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border-subtle);">
             <div>
               <div style="font-size: 12px; color: var(--text-muted);">Estimated Intake Quote:</div>
@@ -318,8 +423,8 @@
             </div>
             <div style="display: flex; gap: 12px;">
               <button type="button" class="btn btn-secondary" onclick="switchView('landing')">Cancel</button>
-              <button type="submit" class="btn btn-primary btn-lg">
-                Continue to Login / Register →
+              <button type="submit" id="btnSubmitIntake" class="btn btn-primary btn-lg">
+                Submit Valuation Request →
               </button>
             </div>
           </div>
@@ -359,11 +464,11 @@
         <form id="authForm" onsubmit="event.preventDefault(); handleAuthSubmit();">
           <div class="form-group">
             <label for="authEmail">Email Address</label>
-            <input type="email" id="authEmail" class="form-control" value="anand.mehta@visadocs.com" required>
+            <input type="email" id="authEmail" class="form-control" placeholder="client@example.com" data-clarity-mask="true" required>
           </div>
           <div class="form-group">
             <label for="authPassword">Password</label>
-            <input type="password" id="authPassword" class="form-control" value="••••••••••••" required>
+            <input type="password" id="authPassword" class="form-control" placeholder="••••••••••••" data-clarity-mask="true" required>
           </div>
 
           <div style="margin-bottom: 12px;">
@@ -419,6 +524,10 @@
           <button class="client-nav-item" id="clientNavBtnCompleted" onclick="showClientSection('completed')">
             <span class="client-nav-icon">✅</span>
             <span class="client-nav-label">Completed Reports</span>
+          </button>
+          <button class="client-nav-item" id="clientNavBtnPrivacy" onclick="openPrivacyDashboardModal()">
+            <span class="client-nav-icon">🛡️</span>
+            <span class="client-nav-label">Privacy Hub (DPDP)</span>
           </button>
         </nav>
 
@@ -1293,25 +1402,25 @@
           <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">Tell us about the asset. Filling required fields automatically advances to documents.</p>
           <div class="form-group" style="margin-bottom: 12px;">
             <label style="font-size: 12px; font-weight: 600;">Asset Name *</label>
-            <input type="text" id="wzAssetName" class="form-control" placeholder="e.g. Cyber Towers Unit 402" oninput="wizardCheckStep4()">
+            <input type="text" id="wzAssetName" class="form-control" placeholder="e.g. Cyber Towers Unit 402" data-clarity-mask="true" oninput="wizardCheckStep4()">
           </div>
           <div class="form-group" style="margin-bottom: 12px;">
             <label style="font-size: 12px; font-weight: 600;">Property Address *</label>
-            <input type="text" id="wzPropertyAddress" class="form-control" placeholder="e.g. HITEC City, Madhapur" oninput="wizardCheckStep4()">
+            <input type="text" id="wzPropertyAddress" class="form-control" placeholder="e.g. HITEC City, Madhapur" data-clarity-mask="true" oninput="wizardCheckStep4()">
           </div>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
             <div class="form-group">
               <label style="font-size: 12px; font-weight: 600;">City *</label>
-              <input type="text" id="wzCity" class="form-control" placeholder="e.g. Hyderabad" oninput="wizardCheckStep4()">
+              <input type="text" id="wzCity" class="form-control" placeholder="e.g. Hyderabad" data-clarity-mask="true" oninput="wizardCheckStep4()">
             </div>
             <div class="form-group">
               <label style="font-size: 12px; font-weight: 600;">State *</label>
-              <input type="text" id="wzState" class="form-control" placeholder="e.g. Telangana" oninput="wizardCheckStep4()">
+              <input type="text" id="wzState" class="form-control" placeholder="e.g. Telangana" data-clarity-mask="true" oninput="wizardCheckStep4()">
             </div>
           </div>
           <div class="form-group">
             <label style="font-size: 12px; font-weight: 600;">Estimated Value (INR, Optional)</label>
-            <input type="text" id="wzEstimatedValue" class="form-control" placeholder="e.g. 18500000">
+            <input type="text" id="wzEstimatedValue" class="form-control" placeholder="e.g. 18500000" data-clarity-mask="true">
           </div>
           <div id="wzStep4Indicator" style="margin-top: 14px; font-size: 12px; color: var(--text-dim);">
             Fill Asset Name, Property Address, City, and State to continue.
@@ -1423,6 +1532,335 @@
       </div>
       <div class="modal-footer">
         <button class="btn btn-secondary" onclick="closeModal('profileModal')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- =====================================================================
+       STATUTORY PRIVACY HUB & DATA PRINCIPAL RIGHTS MODAL (DPDP ACT 2023)
+       Mirrors all 7 functional areas from Flutter PrivacyDashboardWidget
+       ===================================================================== -->
+  <div class="modal-overlay" id="privacyHubModal">
+    <div class="modal-dialog modal-dialog-large">
+      <div class="modal-header">
+        <div style="display: flex; align-items: center; gap: 10px;">
+          <span style="font-size: 20px;">🛡️</span>
+          <div>
+            <h3 style="font-family: var(--font-heading); font-size: 18px; margin: 0; color: #fff;">Privacy Hub &amp; Data Principal Rights</h3>
+            <span style="font-size: 11px; color: #38BDF8;">Digital Personal Data Protection Act, 2023 (DPDP Act, India)</span>
+          </div>
+        </div>
+        <button class="icon-btn" onclick="closeModal('privacyHubModal')">✕</button>
+      </div>
+
+      <div class="modal-body">
+        <!-- Privacy Hub Horizontal Tabs -->
+        <div class="privacy-tabs-bar">
+          <button class="privacy-tab-btn active" id="pTabBtnSummary" onclick="switchPrivacyTab('summary')">
+            <span>👤</span> Profile Summary
+          </button>
+          <button class="privacy-tab-btn" id="pTabBtnConsents" onclick="switchPrivacyTab('consents')">
+            <span>📜</span> My Consents
+          </button>
+          <button class="privacy-tab-btn" id="pTabBtnExport" onclick="switchPrivacyTab('export')">
+            <span>📦</span> Download My Data
+          </button>
+          <button class="privacy-tab-btn" id="pTabBtnCorrections" onclick="switchPrivacyTab('corrections')">
+            <span>✏️</span> Corrections
+          </button>
+          <button class="privacy-tab-btn" id="pTabBtnErasures" onclick="switchPrivacyTab('erasures')">
+            <span>🗑️</span> Erasure
+          </button>
+          <button class="privacy-tab-btn" id="pTabBtnNominees" onclick="switchPrivacyTab('nominees')">
+            <span>🤝</span> Nominees
+          </button>
+          <button class="privacy-tab-btn" id="pTabBtnGrievances" onclick="switchPrivacyTab('grievances')">
+            <span>⚖️</span> Grievance Desk
+          </button>
+        </div>
+
+        <!-- TAB 1: SUMMARY & UPDATE PROFILE (SECTIONS 11 & 12) -->
+        <div class="privacy-hub-panel active" id="pTabPanelSummary">
+          <div style="background: rgba(0, 0, 0, 0.25); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 18px; margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <h4 style="font-size: 14px; margin: 0; color: #38BDF8;">Personal Data Profile (Section 11)</h4>
+              <span class="badge" style="background: rgba(16, 185, 129, 0.15); color: #10B981; border: 1px solid #10B981; padding: 2px 8px; border-radius: 6px; font-size: 11px;">
+                AES-256-GCM Encrypted
+              </span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-size: 13px;">
+              <div><span style="color: var(--text-dim); display: block; font-size: 11px;">Full Legal Name:</span> <strong id="pvProfileName" style="color: #fff;">Loading...</strong></div>
+              <div><span style="color: var(--text-dim); display: block; font-size: 11px;">Registered Email:</span> <strong id="pvProfileEmail" style="color: #fff;">Loading...</strong></div>
+              <div><span style="color: var(--text-dim); display: block; font-size: 11px;">Mobile Contact:</span> <strong id="pvProfileMobile" style="color: #fff;">Loading...</strong></div>
+              <div><span style="color: var(--text-dim); display: block; font-size: 11px;">User Role &amp; Access:</span> <strong id="pvProfileRole" style="color: #10B981;">Loading...</strong></div>
+            </div>
+          </div>
+
+          <!-- Update Profile Details Form -->
+          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 18px;">
+            <h4 style="font-size: 14px; margin: 0 0 12px; color: #fff;">Update Personal Details (Section 12)</h4>
+            <form onsubmit="event.preventDefault(); submitProfileUpdate();">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="pvEditFullName" style="font-size: 12px;">Full Legal Name</label>
+                  <input type="text" id="pvEditFullName" class="form-control" data-clarity-mask="true" required>
+                </div>
+                <div class="form-group">
+                  <label for="pvEditMobile" style="font-size: 12px;">Mobile Contact Number</label>
+                  <input type="tel" id="pvEditMobile" class="form-control" data-clarity-mask="true" required>
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm" style="margin-top: 8px;">
+                Save Profile Changes
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- TAB 2: MY CONSENTS & WITHDRAWAL (SECTION 6) -->
+        <div class="privacy-hub-panel" id="pTabPanelConsents">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+            <div>
+              <h4 style="font-size: 14px; margin: 0; color: #fff;">Active Statutory Consents</h4>
+              <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0;">Manage or withdraw purpose-specific consents under DPDP Act Section 6(4).</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="loadPrivacyConsents()">Refresh</button>
+          </div>
+          <div id="pvConsentCardsContainer">
+            <!-- Dynamically populated consent cards -->
+          </div>
+        </div>
+
+        <!-- TAB 3: DOWNLOAD MY DATA / EXPORT (SECTION 11) -->
+        <div class="privacy-hub-panel" id="pTabPanelExport">
+          <div style="background: rgba(56, 189, 248, 0.05); border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 12px; padding: 20px; text-align: center;">
+            <div style="font-size: 40px; margin-bottom: 10px;">📦</div>
+            <h4 style="font-size: 16px; margin: 0 0 6px; color: #fff;">Statutory Personal Data Export Package</h4>
+            <p style="font-size: 13px; color: var(--text-muted); max-width: 520px; margin: 0 auto 18px; line-height: 1.5;">
+              Download a machine-readable, cryptographic ZIP archive of all personal information, statutory consent ledgers, document metadata, and access audit logs associated with your account under DPDP Act Section 11.
+            </p>
+            <button class="btn btn-primary" onclick="downloadMyDataZip()">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 6px;"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download Privacy Export (.zip)
+            </button>
+            <div style="font-size: 11px; color: var(--text-dim); margin-top: 12px;">
+              Protected by SHA-256 seal &amp; logged to statutory compliance audit trail. Rate limited to 5 exports/min.
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: CORRECTION REQUESTS (SECTION 12) -->
+        <div class="privacy-hub-panel" id="pTabPanelCorrections">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h4 style="font-size: 14px; margin: 0; color: #fff;">Data Correction History</h4>
+            <button class="btn btn-secondary btn-sm" onclick="loadCorrectionRequests()">Refresh</button>
+          </div>
+          <div style="overflow-x: auto; margin-bottom: 20px;">
+            <table class="privacy-table" id="pvCorrectionTable">
+              <thead>
+                <tr>
+                  <th>Field</th>
+                  <th>Existing Value</th>
+                  <th>Requested Value</th>
+                  <th>Status</th>
+                  <th>Submitted At</th>
+                </tr>
+              </thead>
+              <tbody id="pvCorrectionTableBody">
+                <tr><td colspan="5" style="text-align: center; color: var(--text-dim);">No active correction requests found.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 18px;">
+            <h4 style="font-size: 14px; margin: 0 0 12px; color: #38BDF8;">Submit New Correction Request</h4>
+            <form onsubmit="event.preventDefault(); submitCorrectionRequest();">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="pvCorrField" style="font-size: 12px;">Field Name *</label>
+                  <select id="pvCorrField" class="form-control" required>
+                    <option value="Full Name">Full Name</option>
+                    <option value="Mobile Number">Mobile Number</option>
+                    <option value="Property Address">Property Address</option>
+                    <option value="Other">Other Particulars</option>
+                  </select>
+                </div>
+                <div class="form-group">
+                  <label for="pvCorrExisting" style="font-size: 12px;">Current Inaccurate Value</label>
+                  <input type="text" id="pvCorrExisting" class="form-control" data-clarity-mask="true" required>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="pvCorrRequested" style="font-size: 12px;">Correct / Proposed Value *</label>
+                  <input type="text" id="pvCorrRequested" class="form-control" data-clarity-mask="true" required>
+                </div>
+                <div class="form-group">
+                  <label for="pvCorrReason" style="font-size: 12px;">Reason / Justification</label>
+                  <input type="text" id="pvCorrReason" class="form-control" placeholder="e.g. Typographical error in municipal deed">
+                </div>
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm">Submit Correction Request</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- TAB 5: ERASURE REQUESTS (SECTION 12) -->
+        <div class="privacy-hub-panel" id="pTabPanelErasures">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <h4 style="font-size: 14px; margin: 0; color: #fff;">Statutory Erasure Requests</h4>
+            <button class="btn btn-secondary btn-sm" onclick="loadErasureRequests()">Refresh</button>
+          </div>
+          <div style="overflow-x: auto; margin-bottom: 20px;">
+            <table class="privacy-table">
+              <thead>
+                <tr>
+                  <th>Request ID</th>
+                  <th>Reason</th>
+                  <th>Status</th>
+                  <th>Submitted At</th>
+                </tr>
+              </thead>
+              <tbody id="pvErasureTableBody">
+                <tr><td colspan="4" style="text-align: center; color: var(--text-dim);">No active erasure requests.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="background: rgba(239, 68, 68, 0.04); border: 1px solid rgba(239, 68, 68, 0.25); border-radius: 12px; padding: 18px;">
+            <h4 style="font-size: 14px; margin: 0 0 8px; color: #EF4444;">Request Data Erasure (Right to be Forgotten)</h4>
+            <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 14px; line-height: 1.5;">
+              Under DPDP Act Section 12(3), you may request erasure of personal data that is no longer necessary for the purpose collected. Please note: Certified valuation reports and issued certificates must be retained for 8 years under Section 247 Companies Act and IBBI Regulations.
+            </p>
+            <form onsubmit="event.preventDefault(); submitErasureRequest();">
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="pvErasureReason" style="font-size: 12px;">Reason for Erasure *</label>
+                <textarea id="pvErasureReason" class="form-control" rows="2" placeholder="Specify why data is no longer necessary..." required></textarea>
+              </div>
+              <button type="submit" class="btn btn-secondary btn-sm" style="border-color: #EF4444; color: #EF4444;">
+                Submit Statutory Erasure Request
+              </button>
+            </form>
+          </div>
+        </div>
+
+        <!-- TAB 6: NOMINEE MANAGEMENT (SECTION 14) -->
+        <div class="privacy-hub-panel" id="pTabPanelNominees">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div>
+              <h4 style="font-size: 14px; margin: 0; color: #fff;">Registered Privacy Nominees</h4>
+              <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0;">Nominate a person to exercise your data principal rights in case of death or incapacity (DPDP Section 14).</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="loadNominees()">Refresh</button>
+          </div>
+          <div style="overflow-x: auto; margin-bottom: 20px;">
+            <table class="privacy-table">
+              <thead>
+                <tr>
+                  <th>Nominee Name</th>
+                  <th>Relationship</th>
+                  <th>Mobile</th>
+                  <th>Email</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="pvNomineeTableBody">
+                <tr><td colspan="5" style="text-align: center; color: var(--text-dim);">No nominees registered.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 18px;">
+            <h4 style="font-size: 14px; margin: 0 0 12px; color: #38BDF8;">Register New Nominee</h4>
+            <form onsubmit="event.preventDefault(); submitNomineeRegistration();">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="pvNomineeName" style="font-size: 12px;">Nominee Full Name *</label>
+                  <input type="text" id="pvNomineeName" class="form-control" data-clarity-mask="true" required>
+                </div>
+                <div class="form-group">
+                  <label for="pvNomineeRel" style="font-size: 12px;">Relationship *</label>
+                  <select id="pvNomineeRel" class="form-control" required>
+                    <option value="Spouse">Spouse</option>
+                    <option value="Child">Child</option>
+                    <option value="Parent">Parent</option>
+                    <option value="Sibling">Sibling</option>
+                    <option value="Legal Representative">Legal Representative</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="pvNomineeMobile" style="font-size: 12px;">Mobile Contact Number *</label>
+                  <input type="tel" id="pvNomineeMobile" class="form-control" data-clarity-mask="true" required>
+                </div>
+                <div class="form-group">
+                  <label for="pvNomineeEmail" style="font-size: 12px;">Email Address</label>
+                  <input type="email" id="pvNomineeEmail" class="form-control" data-clarity-mask="true">
+                </div>
+              </div>
+              <div class="form-group" style="margin-bottom: 14px;">
+                <label for="pvNomineeAddress" style="font-size: 12px;">Residential Address</label>
+                <input type="text" id="pvNomineeAddress" class="form-control" data-clarity-mask="true">
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm">Register Nominee</button>
+            </form>
+          </div>
+        </div>
+
+        <!-- TAB 7: GRIEVANCE REDRESSAL DESK (SECTION 13) -->
+        <div class="privacy-hub-panel" id="pTabPanelGrievances">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+            <div>
+              <h4 style="font-size: 14px; margin: 0; color: #fff;">Statutory Privacy Grievance Records</h4>
+              <p style="font-size: 12px; color: var(--text-muted); margin: 2px 0 0;">Track resolution of privacy concerns under DPDP Act Section 13.</p>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="loadGrievances()">Refresh</button>
+          </div>
+          <div style="overflow-x: auto; margin-bottom: 20px;">
+            <table class="privacy-table">
+              <thead>
+                <tr>
+                  <th>Ticket Ref</th>
+                  <th>Category</th>
+                  <th>Status</th>
+                  <th>Filed At</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody id="pvGrievanceTableBody">
+                <tr><td colspan="5" style="text-align: center; color: var(--text-dim);">No grievances filed.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div style="background: rgba(255, 255, 255, 0.02); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 18px;">
+            <h4 style="font-size: 14px; margin: 0 0 12px; color: #38BDF8;">Lodge Privacy Grievance with Data Protection Officer</h4>
+            <form onsubmit="event.preventDefault(); submitGrievance();">
+              <div class="form-group" style="margin-bottom: 12px;">
+                <label for="pvGrvCategory" style="font-size: 12px;">Grievance Category *</label>
+                <select id="pvGrvCategory" class="form-control" required>
+                  <option value="CONSENT_WITHDRAWAL_DELAY">Delay in Honoring Consent Withdrawal</option>
+                  <option value="UNAUTHORIZED_PROCESSING">Suspected Unauthorized Processing</option>
+                  <option value="INACCURATE_DATA">Refusal / Delay in Correcting Personal Data</option>
+                  <option value="EXPORT_ACCESS_DENIED">Issues Accessing Personal Data Package</option>
+                  <option value="CHILD_DATA_PROTECTION">Child / Minor Data Concern</option>
+                  <option value="OTHER">Other Privacy Concern</option>
+                </select>
+              </div>
+              <div class="form-group" style="margin-bottom: 14px;">
+                <label for="pvGrvDescription" style="font-size: 12px;">Detailed Description &amp; Incident Particulars *</label>
+                <textarea id="pvGrvDescription" class="form-control" rows="3" placeholder="Provide full details of your concern..." required></textarea>
+              </div>
+              <button type="submit" class="btn btn-primary btn-sm">Lodge Grievance</button>
+            </form>
+          </div>
+        </div>
+
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" onclick="closeModal('privacyHubModal')">Close</button>
       </div>
     </div>
   </div>

@@ -34,7 +34,8 @@ public class ValuationLead {
     @Column(name = "urgency_sla", nullable = false, length = 50)
     private String urgencySla;
 
-    @Column(name = "contact_name", nullable = false)
+    @Convert(converter = com.provaluer.security.encryption.AesGcmEncryptionConverter.class)
+    @Column(name = "contact_name", nullable = false, length = 1024)
     private String contactName;
 
     @Column(name = "contact_role", length = 100)
@@ -43,14 +44,28 @@ public class ValuationLead {
     @Column(name = "company_name")
     private String companyName;
 
-    @Column(name = "contact_email", nullable = false)
+    @Convert(converter = com.provaluer.security.encryption.AesGcmEncryptionConverter.class)
+    @Column(name = "contact_email", nullable = false, length = 1024)
     private String contactEmail;
 
-    @Column(name = "contact_phone", nullable = false, length = 50)
+    @Column(name = "contact_email_hash", length = 128)
+    private String contactEmailHash;
+
+    @Convert(converter = com.provaluer.security.encryption.AesGcmEncryptionConverter.class)
+    @Column(name = "contact_phone", nullable = false, length = 1024)
     private String contactPhone;
 
     @Column(name = "preferred_channel", length = 50)
     private String preferredChannel = "EMAIL";
+
+    @Column(name = "upload_token", length = 128)
+    private String uploadToken;
+
+    @Column(name = "is_minor", nullable = false)
+    private boolean isMinor = false;
+
+    @Column(name = "guardian_consent_id")
+    private Long guardianConsentId;
 
     @Column(name = "lead_score", nullable = false)
     private int leadScore = 0;
@@ -65,7 +80,7 @@ public class ValuationLead {
     private Long assignedValuerId;
 
     @Column(name = "consent_given", nullable = false)
-    private boolean consentGiven = true;
+    private boolean consentGiven = false;
 
     @Column(name = "consent_timestamp", nullable = false)
     private LocalDateTime consentTimestamp = LocalDateTime.now();
@@ -168,4 +183,16 @@ public class ValuationLead {
 
     public List<LeadActivityLog> getActivityLogs() { return activityLogs; }
     public void setActivityLogs(List<LeadActivityLog> activityLogs) { this.activityLogs = activityLogs; }
+
+    public String getContactEmailHash() { return contactEmailHash; }
+    public void setContactEmailHash(String contactEmailHash) { this.contactEmailHash = contactEmailHash; }
+
+    public String getUploadToken() { return uploadToken; }
+    public void setUploadToken(String uploadToken) { this.uploadToken = uploadToken; }
+
+    public boolean isMinor() { return isMinor; }
+    public void setMinor(boolean minor) { isMinor = minor; }
+
+    public Long getGuardianConsentId() { return guardianConsentId; }
+    public void setGuardianConsentId(Long guardianConsentId) { this.guardianConsentId = guardianConsentId; }
 }

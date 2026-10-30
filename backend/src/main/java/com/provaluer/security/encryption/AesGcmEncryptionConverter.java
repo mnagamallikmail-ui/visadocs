@@ -134,4 +134,34 @@ public class AesGcmEncryptionConverter implements AttributeConverter<String, Str
     public static boolean isEncrypted(String value) {
         return value != null && value.startsWith(PREFIX);
     }
+
+    /**
+     * Computes a deterministic SHA-256 blind index for searchable encrypted fields (e.g. Email).
+     * Enables O(1) indexed lookups without exposing plaintext in database storage.
+     */
+    public static String computeBlindIndex(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            java.security.MessageDigest md = java.security.MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(value.trim().toLowerCase().getBytes(StandardCharsets.UTF_8));
+            return java.util.HexFormat.of().formatHex(digest);
+        } catch (Exception e) {
+            log.error("Blind index computation failed: {}", e.getMessage());
+            return null;
+        }
+    }
+
+    /**
+     * Decrypts ciphertext with old key and re-encrypts with active master key.
+     */
+    public static String reEncryptString(String existingCiphertext) {
+        if (!isEncrypted(existingCiphertext)) {
+            return encryptString(existingCiphertext);
+        }
+        String plaintext = decryptString(existingCiphertext);
+        // Force fresh encryption with new random IV and current active key
+        return encryptString(plaintext);
+    }
 }

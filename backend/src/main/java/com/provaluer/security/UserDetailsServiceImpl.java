@@ -16,7 +16,7 @@ public class UserDetailsServiceImpl implements UserDetailsService {
     @Transactional
     public UserDetails loadUserByUsername(String usernameOrEmail) throws UsernameNotFoundException {
         User user = userRepository.findByUsernameIgnoreCase(usernameOrEmail)
-                .or(() -> userRepository.findByEmailIgnoreCase(usernameOrEmail))
+                .or(() -> userRepository.findByEmailLookup(usernameOrEmail))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + usernameOrEmail));
         if (user.isDeleted()) {
             throw new UsernameNotFoundException("Account has been deactivated: " + usernameOrEmail);

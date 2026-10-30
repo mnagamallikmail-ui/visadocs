@@ -21,6 +21,9 @@ public class LeadIntakeRateLimitingFilter implements Filter {
     public static final int MAX_REQUESTS_PER_WINDOW = 10;
     public static final long WINDOW_DURATION_MS = 15 * 60 * 1000L; // 15 minutes
 
+    public static final int MAX_AUTH_PER_WINDOW = 5;
+    public static final long WINDOW_AUTH_MS = 60 * 1000L; // 1 minute
+
     public static class RequestTracker {
         public int count = 0;
         public long windowStartTime = System.currentTimeMillis();
@@ -41,6 +44,7 @@ public class LeadIntakeRateLimitingFilter implements Filter {
     }
 
     private final Map<String, RequestTracker> ipTracker = new ConcurrentHashMap<>();
+    private final Map<String, RequestTracker> authIpTracker = new ConcurrentHashMap<>();
 
     @Override
     public void doFilter(ServletRequest servletRequest, ServletResponse servletResponse, FilterChain filterChain)
@@ -51,6 +55,24 @@ public class LeadIntakeRateLimitingFilter implements Filter {
         String path = request.getRequestURI();
         String method = request.getMethod();
 
+        // 1. Strict Protection for Auth and Privacy Export Routes (5 req/min)
+        if (isSensitiveAuthOrExportUri(path)) {
+            String clientIp = extractClientIp(request);
+            long now = System.currentTimeMillis();
+
+            RequestTracker tracker = authIpTracker.computeIfAbsent(clientIp + ":" + path, k -> new RequestTracker());
+            boolean allowed = tracker.allowRequest(now, MAX_AUTH_PER_WINDOW, WINDOW_AUTH_MS);
+
+            if (!allowed) {
+                response.setStatus(429); // Too Many Requests
+                response.setContentType("application/json");
+                response.setCharacterEncoding("UTF-8");
+                response.getWriter().write("{\"error\": \"Rate limit exceeded. Maximum 5 attempts per minute permitted for security endpoints.\", \"status\": 429}");
+                return;
+            }
+        }
+
+        // 2. Lead Intake Protection (10 req/15 min)
         if ("POST".equalsIgnoreCase(method) && isLeadIntakeUri(path)) {
             String clientIp = extractClientIp(request);
             long now = System.currentTimeMillis();
@@ -68,6 +90,12 @@ public class LeadIntakeRateLimitingFilter implements Filter {
         }
 
         filterChain.doFilter(servletRequest, servletResponse);
+    }
+
+    private boolean isSensitiveAuthOrExportUri(String path) {
+        if (path == null) return false;
+        return path.endsWith("/api/v1/auth/login") || path.endsWith("/api/v1/auth/register")
+                || path.endsWith("/api/v1/auth/password/reset") || path.endsWith("/api/v1/privacy/export");
     }
 
     private boolean isLeadIntakeUri(String path) {

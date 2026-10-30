@@ -41,8 +41,13 @@ public class LeadController {
     @PostMapping("/{id}/upload")
     public ResponseEntity<LeadResponseDto> uploadDocuments(
             @PathVariable Long id,
-            @RequestParam("files") MultipartFile[] files) throws IOException {
-        LeadResponseDto response = leadService.uploadDocumentsForLead(id, files);
+            @RequestParam("files") MultipartFile[] files,
+            @RequestHeader(value = "X-Upload-Token", required = false) String headerToken,
+            @RequestParam(value = "uploadToken", required = false) String paramToken,
+            Principal principal) throws IOException {
+        String token = headerToken != null && !headerToken.isBlank() ? headerToken : paramToken;
+        String actor = principal != null ? principal.getName() : null;
+        LeadResponseDto response = leadService.uploadDocumentsForLead(id, files, token, actor);
         return ResponseEntity.ok(response);
     }
 

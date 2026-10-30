@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.io.IOException;
 import java.time.LocalDate;
-import java.util.List;
 import java.util.Map;
 
 /**
@@ -36,40 +35,62 @@ public class DpdpDataPrincipalController {
      * Feature 1: Personal Data Summary (Section 11)
      */
     @GetMapping("/profile-summary")
-    public ResponseEntity<Map<String, Object>> getProfileSummary(
+    public ResponseEntity<?> getProfileSummary(
             @AuthenticationPrincipal UserDetailsImpl principal) {
-        Long userId = (principal != null) ? principal.getId() : null;
-        String email = (principal != null) ? principal.getEmail() : "guest@provaluer.com";
-        return ResponseEntity.ok(rightsService.getProfileSummary(userId, email));
+        if (principal == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Authentication required to access personal data summary"));
+        }
+        return ResponseEntity.ok(rightsService.getProfileSummary(principal.getId(), principal.getEmail()));
+    }
+
+    /**
+     * Feature 1b: Update Profile (Section 12)
+     */
+    @PostMapping("/update-profile")
+    public ResponseEntity<?> updateProfile(
+            @RequestBody Map<String, String> body,
+            @AuthenticationPrincipal UserDetailsImpl principal) {
+        if (principal == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Authentication required to update profile"));
+        }
+        return ResponseEntity.ok(rightsService.updateUserProfile(
+                principal.getId(),
+                body.get("fullName"),
+                body.get("mobileNumber")
+        ));
     }
 
     /**
      * Feature 2: Consent History (Section 6)
      */
     @GetMapping("/consent-history")
-    public ResponseEntity<List<ConsentLedger>> getConsentHistory(
+    public ResponseEntity<?> getConsentHistory(
             @AuthenticationPrincipal UserDetailsImpl principal) {
-        Long userId = (principal != null) ? principal.getId() : null;
-        String actor = (principal != null) ? (principal.getEmail() != null ? principal.getEmail() : principal.getUsername()) : "ANONYMOUS";
-        return ResponseEntity.ok(rightsService.getConsentHistory(userId, actor));
+        if (principal == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Authentication required to access consent history"));
+        }
+        String actor = principal.getEmail() != null ? principal.getEmail() : principal.getUsername();
+        return ResponseEntity.ok(rightsService.getConsentHistory(principal.getId(), actor));
     }
 
     /**
      * Feature 3: Download My Data (Section 11) - Signed ZIP Export
      */
     @GetMapping("/export")
-    public ResponseEntity<byte[]> exportMyData(
+    public ResponseEntity<?> exportMyData(
             @AuthenticationPrincipal UserDetailsImpl principal,
             HttpServletRequest request) throws IOException {
-        Long userId = (principal != null) ? principal.getId() : null;
-        String actor = (principal != null) ? (principal.getEmail() != null ? principal.getEmail() : principal.getUsername()) : "ANONYMOUS";
+        if (principal == null) {
+            return ResponseEntity.status(401).body(Map.of("error", "Authentication required for data principal export package"));
+        }
+        String actor = principal.getEmail() != null ? principal.getEmail() : principal.getUsername();
         String ip = extractClientIp(request);
         String ua = request.getHeader(HttpHeaders.USER_AGENT);
 
-        byte[] zipArchive = rightsService.exportMyDataZip(userId, actor, ip, ua);
+        byte[] zipArchive = rightsService.exportMyDataZip(principal.getId(), actor, ip, ua);
 
         return ResponseEntity.ok()
-                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"privacy_export_" + System.currentTimeMillis() + ".zip\"")
+                .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"privacy_export_" + principal.getId() + "_" + System.currentTimeMillis() + ".zip\"")
                 .contentType(MediaType.APPLICATION_OCTET_STREAM)
                 .body(zipArchive);
     }

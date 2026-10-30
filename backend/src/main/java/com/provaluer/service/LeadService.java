@@ -18,6 +18,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.Year;
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
@@ -54,6 +55,13 @@ public class LeadService {
 
     @Transactional
     public LeadResponseDto createLead(LeadRequestDto dto) {
+        if (!dto.isConsentGiven()) {
+            throw new IllegalArgumentException("DPDP Act 2023 Violation: Affirmative statutory consent is mandatory before processing personal data.");
+        }
+        if (dto.isMinor() && (!dto.isGuardianConsentGiven() || dto.getGuardianName() == null || dto.getGuardianName().isBlank())) {
+            throw new IllegalArgumentException("DPDP Act 2023 Section 9 Violation: Verifiable parental/guardian consent is mandatory for minor applicants.");
+        }
+
         String refCode;
         do {
             refCode = "REQ-" + Year.now().getValue() + "-" + String.format("%04d", (int)(Math.random() * 9000) + 1000);
@@ -73,12 +81,15 @@ public class LeadService {
         lead.setContactRole(dto.getContactRole());
         lead.setCompanyName(dto.getCompanyName());
         lead.setContactEmail(dto.getContactEmail());
+        lead.setContactEmailHash(com.provaluer.security.encryption.AesGcmEncryptionConverter.computeBlindIndex(dto.getContactEmail()));
         lead.setContactPhone(dto.getContactPhone());
         lead.setPreferredChannel(dto.getPreferredChannel() != null ? dto.getPreferredChannel() : "EMAIL");
         lead.setLeadScore(scoreResult.score);
         lead.setIntentLevel(scoreResult.intentLevel);
         lead.setConsentGiven(dto.isConsentGiven());
         lead.setConsentTimestamp(LocalDateTime.now());
+        lead.setUploadToken(UUID.randomUUID().toString());
+        lead.setMinor(dto.isMinor());
         lead.setStatus("NEW");
 
         ValuationLead saved = valuationLeadRepository.save(lead);
@@ -101,8 +112,20 @@ public class LeadService {
 
     @Transactional
     public LeadResponseDto uploadDocumentsForLead(Long leadId, MultipartFile[] files) throws IOException {
+        return uploadDocumentsForLead(leadId, files, null, null);
+    }
+
+    @Transactional
+    public LeadResponseDto uploadDocumentsForLead(Long leadId, MultipartFile[] files, String uploadToken, String actor) throws IOException {
         ValuationLead lead = valuationLeadRepository.findById(leadId)
                 .orElseThrow(() -> new IllegalArgumentException("Lead not found: " + leadId));
+
+        boolean isPrivileged = actor != null && (actor.contains("ADMIN") || actor.contains("SUPER_ADMIN"));
+        boolean hasValidToken = uploadToken != null && uploadToken.equals(lead.getUploadToken());
+
+        if (!isPrivileged && !hasValidToken) {
+            throw new SecurityException("Unauthorized access: Valid X-Upload-Token or Administrative JWT required to upload documents for lead " + leadId);
+        }
 
         List<LeadDocument> savedDocs = documentUploadService.uploadDocuments(lead, files);
 

@@ -93,7 +93,13 @@ public class SecurityConfig {
                             "/api/v1/documents/download",
                             "/api/v1/telemetry/**", "/api/v1/governance/health", "/api/v1/governance/metrics",
                             "/api/v1/admin/seo/real-telemetry",
-                            "/api/v1/privacy/**").permitAll()
+                            "/api/v1/privacy/consent",
+                            "/api/v1/privacy/consent/withdraw",
+                            "/api/v1/privacy/governance",
+                            "/api/v1/privacy/age-verification",
+                            "/api/v1/privacy/guardian-consent",
+                            "/api/v1/privacy/policies/**").permitAll()
+                    .requestMatchers("/api/v1/privacy/**").authenticated()
                     .anyRequest().authenticated()
             );
 

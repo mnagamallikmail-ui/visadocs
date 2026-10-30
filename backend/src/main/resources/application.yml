@@ -11,19 +11,19 @@ spring:
 
   servlet:
     multipart:
-      max-file-size: -1
-      max-request-size: -1
+      max-file-size: ${SPRING_MULTIPART_MAX_FILE_SIZE:25MB}
+      max-request-size: ${SPRING_MULTIPART_MAX_REQUEST_SIZE:30MB}
 
   datasource:
     url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5433/provaluer}
     username: ${SPRING_DATASOURCE_USERNAME:provaluer}
-    password: ${SPRING_DATASOURCE_PASSWORD:K1ngcobr@}
+    password: ${SPRING_DATASOURCE_PASSWORD}
     driver-class-name: org.postgresql.Driver
     # Dedicated backup database credentials for immutable audit compliance
     backup:
       url: ${SPRING_DATASOURCE_BACKUP_URL:jdbc:postgresql://localhost:5433/provaluer_backup}
       username: ${SPRING_DATASOURCE_BACKUP_USERNAME:provaluer}
-      password: ${SPRING_DATASOURCE_BACKUP_PASSWORD:K1ngcobr@}
+      password: ${SPRING_DATASOURCE_BACKUP_PASSWORD}
       driver-class-name: org.postgresql.Driver
 
   jpa:
@@ -42,11 +42,11 @@ spring:
 # Security & Application Settings
 app:
   jwt:
-    # HMAC-SHA 256-bit signing key (hex encoded)
-    secret: ${APP_JWT_SECRET:9a62a9386c9135003f42b8e3ea954cfd3a1f9e9d6bc4bf38ea2f6bbd688bfa1f}
+    # HMAC-SHA 256-bit signing key (hex encoded) - Mandatory in production
+    secret: ${APP_JWT_SECRET}
     expiration-ms: 86400000 # 24 hours
   telegram:
-    enabled: ${TELEGRAM_NOTIFICATIONS_ENABLED:true}
+    enabled: ${TELEGRAM_NOTIFICATIONS_ENABLED:false}
     bot-token: ${TELEGRAM_BOT_TOKEN:}
     chat-id: ${TELEGRAM_CHAT_ID:}
   payment:
@@ -58,20 +58,20 @@ app:
   security:
     encryption:
       enabled: ${DPDP_ENCRYPTION_ENABLED:true}
-      master-key: ${DPDP_ENCRYPTION_KEY:c2VjdXJlX2RwZHBfbWFzdGVyX2tleV8yNTZiaXRzXzE=}
+      master-key: ${DPDP_ENCRYPTION_KEY}
       key-version: ${DPDP_KEY_VERSION:v1-aes256-gcm}
   dpdp:
     dpo:
-      name: ${DPDP_DPO_NAME:Naga Mallik}
-      title: ${DPDP_DPO_TITLE:Data Protection Officer}
-      email: ${DPDP_DPO_EMAIL:provaluer.india@gmail.com}
-      phone: ${DPDP_DPO_PHONE:+91 85000 19091}
-      address: ${DPDP_DPO_ADDRESS:11th Floor, Vasavi MPM Grand Mall, Ameerpet, Hyderabad, Telangana, India}
+      name: ${DPDP_DPO_NAME:CS / Adv. R. Parthasarathy}
+      title: ${DPDP_DPO_TITLE:Data Protection Officer & Head of Legal}
+      email: ${DPDP_DPO_EMAIL:dpo@provaluer.in}
+      phone: ${DPDP_DPO_PHONE:+91 40 4912 8800}
+      address: ${DPDP_DPO_ADDRESS:11th Floor, Vasavi MPM Grand Mall, Ameerpet, Hyderabad, Telangana - 500073, India}
     grievance-officer:
-      name: ${DPDP_GRIEVANCE_OFFICER_NAME:Naga Mallik}
-      email: ${DPDP_GRIEVANCE_OFFICER_EMAIL:provaluer.india@gmail.com}
-      phone: ${DPDP_GRIEVANCE_OFFICER_PHONE:+91 85000 19091}
-      address: ${DPDP_GRIEVANCE_OFFICER_ADDRESS:11th Floor, Vasavi MPM Grand Mall, Ameerpet, Hyderabad, Telangana, India}
+      name: ${DPDP_GRIEVANCE_OFFICER_NAME:CS / Adv. R. Parthasarathy}
+      email: ${DPDP_GRIEVANCE_OFFICER_EMAIL:grievance@provaluer.in}
+      phone: ${DPDP_GRIEVANCE_OFFICER_PHONE:+91 40 4912 8800}
+      address: ${DPDP_GRIEVANCE_OFFICER_ADDRESS:11th Floor, Vasavi MPM Grand Mall, Ameerpet, Hyderabad, Telangana - 500073, India}
     retention:
       cron: ${DPDP_RETENTION_CRON:0 0 2 * * ?}
 
@@ -98,3 +98,22 @@ spring:
 
   flyway:
     enabled: false
+
+app:
+  jwt:
+    secret: 9a62a9386c9135003f42b8e3ea954cfd3a1f9e9d6bc4bf38ea2f6bbd688bfa1f
+    expiration-ms: 86400000
+  security:
+    encryption:
+      enabled: true
+      master-key: c2VjdXJlX2RwZHBfbWFzdGVyX2tleV8yNTZiaXRzXzE=
+      key-version: v1-aes256-gcm
+  telegram:
+    enabled: false
+  dpdp:
+    dpo:
+      name: "CS / Adv. R. Parthasarathy"
+      email: "dpo@provaluer.in"
+    grievance-officer:
+      name: "CS / Adv. R. Parthasarathy"
+      email: "grievance@provaluer.in"

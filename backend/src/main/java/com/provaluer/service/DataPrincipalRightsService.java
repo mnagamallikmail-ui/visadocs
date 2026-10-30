@@ -311,4 +311,27 @@ public class DataPrincipalRightsService {
 
         return metrics;
     }
+
+    /**
+     * Updates user profile (Full name, mobile number) under Section 12 Data Principal Rights
+     */
+    @Transactional
+    public Map<String, Object> updateUserProfile(Long userId, String fullName, String mobileNumber) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found: " + userId));
+        if (fullName != null && !fullName.isBlank()) {
+            user.setFullName(fullName.trim());
+        }
+        if (mobileNumber != null && !mobileNumber.isBlank()) {
+            user.setMobileNumber(mobileNumber.trim());
+        }
+        userRepository.save(user);
+
+        return Map.of(
+                "status", "SUCCESS",
+                "message", "Profile updated successfully under DPDP Section 12",
+                "fullName", user.getFullName(),
+                "mobileNumber", user.getMobileNumber()
+        );
+    }
 }

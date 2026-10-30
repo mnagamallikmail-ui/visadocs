@@ -47,6 +47,9 @@ public class EncryptionConfig {
         }
 
         if (keyToUse == null || keyToUse.trim().isEmpty()) {
+            if ("prod".equalsIgnoreCase(activeProfile) || "production".equalsIgnoreCase(activeProfile)) {
+                throw new IllegalStateException("FATAL SECURITY EXCEPTION: Mandatory DPDP_ENCRYPTION_KEY environment variable is missing in production profile!");
+            }
             log.warn("DPDP_ENCRYPTION_KEY not set in profile '{}'. Falling back to default master key.", activeProfile);
             keyToUse = DEFAULT_DEV_KEY;
         }

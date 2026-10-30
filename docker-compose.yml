@@ -5,10 +5,9 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: provaluer
-      POSTGRES_USER: provaluer
-      POSTGRES_PASSWORD: K1ngcobr@
-    ports:
-      - "5434:5432"
+      POSTGRES_USER: ${SPRING_DATASOURCE_USERNAME:-provaluer}
+      POSTGRES_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:?Mandatory database password required}
+    # Security Hardened: Ports removed from host exposure. Accessible strictly within app-network.
     volumes:
       - pgdata:/var/lib/postgresql/data
     networks:
@@ -25,10 +24,9 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: provaluer_backup
-      POSTGRES_USER: provaluer
-      POSTGRES_PASSWORD: K1ngcobr@
-    ports:
-      - "5435:5432"
+      POSTGRES_USER: ${SPRING_DATASOURCE_BACKUP_USERNAME:-provaluer}
+      POSTGRES_PASSWORD: ${SPRING_DATASOURCE_BACKUP_PASSWORD:?Mandatory backup database password required}
+    # Security Hardened: Ports removed from host exposure. Accessible strictly within app-network.
     volumes:
       - backup_pgdata:/var/lib/postgresql/data
     networks:
@@ -54,15 +52,15 @@ services:
       JAVA_TOOL_OPTIONS: "-Xms512m -Xmx2048m -XX:+UseG1GC"
       SPRING_PROFILES_ACTIVE: prod
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/provaluer
-      SPRING_DATASOURCE_USERNAME: provaluer
-      SPRING_DATASOURCE_PASSWORD: K1ngcobr@
+      SPRING_DATASOURCE_USERNAME: ${SPRING_DATASOURCE_USERNAME:-provaluer}
+      SPRING_DATASOURCE_PASSWORD: ${SPRING_DATASOURCE_PASSWORD:?Mandatory database password required}
       SPRING_DATASOURCE_BACKUP_URL: jdbc:postgresql://backup-postgres:5432/provaluer_backup
-      SPRING_DATASOURCE_BACKUP_USERNAME: provaluer
-      SPRING_DATASOURCE_BACKUP_PASSWORD: K1ngcobr@
+      SPRING_DATASOURCE_BACKUP_USERNAME: ${SPRING_DATASOURCE_BACKUP_USERNAME:-provaluer}
+      SPRING_DATASOURCE_BACKUP_PASSWORD: ${SPRING_DATASOURCE_BACKUP_PASSWORD:?Mandatory backup password required}
       SPRING_FLYWAY_ENABLED: "true"
-      APP_JWT_SECRET: 9a62a9386c9135003f42b8e3ea954cfd3a1f9e9d6bc4bf38ea2f6bbd688bfa1f
-      DPDP_ENCRYPTION_KEY: c2VjdXJlX2RwZHBfbWFzdGVyX2tleV8yNTZiaXRzXzE=
-      GA4_MEASUREMENT_ID: G-94DDGM6XDW
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?Mandatory JWT signing secret required}
+      DPDP_ENCRYPTION_KEY: ${DPDP_ENCRYPTION_KEY:?Mandatory AES-256 master key required}
+      GA4_MEASUREMENT_ID: ${GA4_MEASUREMENT_ID:-G-94DDGM6XDW}
     volumes:
       - lead_storage:/app/storage
     networks:
