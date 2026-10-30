@@ -470,7 +470,7 @@ class _HeroSectionState extends State<HeroSection> {
 
     // Fluid hero sizing without rigid minimum clamps that force scrolling
     final double? targetMinH = isDesktop
-        ? (screenH >= 900 ? screenH * 0.88 : screenH * 0.82)
+        ? (screenH >= 900 ? (screenH * 0.80).clamp(560.0, 720.0) : (screenH * 0.78).clamp(500.0, 640.0))
         : null;
 
     return Container(
@@ -492,8 +492,8 @@ class _HeroSectionState extends State<HeroSection> {
         padding: EdgeInsets.only(
           left: isDesktop ? (isCompactDesktop ? 40 : 60) : (screenW < 360 ? 14 : (screenW < 400 ? 18 : 24)),
           right: isDesktop ? (isCompactDesktop ? 40 : 60) : (screenW < 360 ? 14 : (screenW < 400 ? 18 : 24)),
-          top: isDesktop ? (isCompactDesktop ? 76 : 96) : 76,
-          bottom: isDesktop ? 64 : 32,
+          top: isDesktop ? (isCompactDesktop ? 48 : 60) : 56,
+          bottom: isDesktop ? (isCompactDesktop ? 28 : 36) : 28,
         ),
         child: Center(
           child: ConstrainedBox(
@@ -530,7 +530,7 @@ class _HeroSectionState extends State<HeroSection> {
               Expanded(
                 flex: rightFlex,
                 child: Padding(
-                  padding: const EdgeInsets.only(bottom: 24, right: 16),
+                  padding: const EdgeInsets.only(bottom: 56, right: 28),
                   child: _HeroAccordionVisual(isCompact: isCompactDesktop),
                 ),
               ),
@@ -562,12 +562,13 @@ class _HeroSectionState extends State<HeroSection> {
         ? 14.5
         : (isDesktop ? 16.0 : 14.0);
 
-    // Responsive Vertical Rhythm (Target Ranges: 24-36px, 14-18px, 16-22px, 24-32px, 24-36px)
-    final double gapEyebrowToHeadline = isCompactDesktop ? 26.0 : 34.0;
-    final double gapHeadlineToFor = isCompactDesktop ? 14.0 : 18.0;
-    final double gapForToKeyword = isCompactDesktop ? 16.0 : 20.0;
-    final double gapKeywordToDesc = isCompactDesktop ? 24.0 : 32.0;
-    final double gapDescToCta = isCompactDesktop ? 26.0 : 34.0;
+    // Compact Vertical Rhythm for above-the-fold CTA visibility
+    const double gapEyebrowToHeadline = 18.0;
+    const double gapHeadlineToFor = 10.0;
+    const double gapForToKeyword = 8.0;
+    const double gapKeywordToDesc = 16.0;
+    const double gapBodyToBadges = 16.0;
+    const double gapBadgesToCta = 20.0;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -618,8 +619,8 @@ class _HeroSectionState extends State<HeroSection> {
           ),
         ),
 
-        // [24-36px spacing]
-        SizedBox(height: gapEyebrowToHeadline),
+        // [18px spacing]
+        const SizedBox(height: gapEyebrowToHeadline),
 
         // 2. Independent Valuation (Two-line wrapped headline stability across all desktop resolutions)
         Text(
@@ -635,8 +636,8 @@ class _HeroSectionState extends State<HeroSection> {
           ),
         ),
 
-        // [14-18px spacing]
-        SizedBox(height: gapHeadlineToFor),
+        // [10px spacing]
+        const SizedBox(height: gapHeadlineToFor),
 
         // 3. For
         Text(
@@ -649,8 +650,8 @@ class _HeroSectionState extends State<HeroSection> {
           ),
         ),
 
-        // [16-22px spacing]
-        SizedBox(height: gapForToKeyword),
+        // [8px spacing]
+        const SizedBox(height: gapForToKeyword),
 
         // 4. Animated Service Keyword (Apple-quality blur, rise, sharpen & sweep)
         _AppleAnimatedKeyword(
@@ -658,8 +659,8 @@ class _HeroSectionState extends State<HeroSection> {
           fontSize: keywordSize,
         ),
 
-        // [24-32px spacing]
-        SizedBox(height: gapKeywordToDesc),
+        // [16px spacing]
+        const SizedBox(height: gapKeywordToDesc),
 
         // 5. Supporting Paragraph
         ConstrainedBox(
@@ -678,24 +679,49 @@ class _HeroSectionState extends State<HeroSection> {
                   height: 1.55,
                 ),
               ),
-              const SizedBox(height: 16),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  _buildGovtApprovedBadge(isCompactDesktop),
-                  _buildTrustBadge(Icons.verified_user_outlined, 'IBBI Registered Valuers • Sec 247', isCompactDesktop),
-                  _buildTrustBadge(Icons.engineering_outlined, 'Chartered Engineers (IEI)', isCompactDesktop),
-                  _buildTrustBadge(Icons.assignment_turned_in_outlined, 'Banking & Immigration Documentation Support', isCompactDesktop),
-                ],
-              ),
+              const SizedBox(height: gapBodyToBadges),
+              if (isDesktop)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildGovtApprovedBadge(isCompactDesktop),
+                        const SizedBox(width: 8),
+                        _buildTrustBadge(Icons.verified_user_outlined, 'IBBI Registered Valuers • Sec 247', isCompactDesktop),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _buildTrustBadge(Icons.engineering_outlined, 'Chartered Engineers (IEI)', isCompactDesktop),
+                        const SizedBox(width: 8),
+                        _buildTrustBadge(Icons.assignment_turned_in_outlined, 'Banking & Immigration Documentation Support', isCompactDesktop),
+                      ],
+                    ),
+                  ],
+                )
+              else
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _buildGovtApprovedBadge(isCompactDesktop),
+                    _buildTrustBadge(Icons.verified_user_outlined, 'IBBI Registered Valuers • Sec 247', isCompactDesktop),
+                    _buildTrustBadge(Icons.engineering_outlined, 'Chartered Engineers (IEI)', isCompactDesktop),
+                    _buildTrustBadge(Icons.assignment_turned_in_outlined, 'Banking & Immigration Documentation Support', isCompactDesktop),
+                  ],
+                ),
             ],
           ),
         ),
 
-        // [24-36px spacing]
-        SizedBox(height: gapDescToCta),
+        // [20px spacing]
+        const SizedBox(height: gapBadgesToCta),
 
         // 6. CTA Buttons
         Wrap(
@@ -1019,19 +1045,24 @@ class _AppleAnimatedKeywordState extends State<_AppleAnimatedKeyword>
                   offset: Offset(0, outTranslateY),
                   child: Opacity(
                     opacity: outOpacity,
-                    child: ImageFiltered(
-                      imageFilter: ImageFilter.blur(
-                        sigmaX: outBlur <= 0.01 ? 0.0 : outBlur,
-                        sigmaY: outBlur <= 0.01 ? 0.0 : outBlur,
-                      ),
-                      child: Text(
-                        widget.keywords[_currentIndex],
-                        style: GoogleFonts.montserrat(
-                          fontSize: widget.fontSize,
-                          fontWeight: FontWeight.w800,
-                          color: LandingTheme.brandGreen,
-                          letterSpacing: -1.2,
-                          height: 1.15,
+                    child: ClipRect(
+                      clipBehavior: Clip.antiAlias,
+                      child: IntrinsicWidth(
+                        child: ImageFiltered(
+                          imageFilter: ImageFilter.blur(
+                            sigmaX: outBlur <= 0.01 ? 0.0 : outBlur,
+                            sigmaY: outBlur <= 0.01 ? 0.0 : outBlur,
+                          ),
+                          child: Text(
+                            widget.keywords[_currentIndex],
+                            style: GoogleFonts.montserrat(
+                              fontSize: widget.fontSize,
+                              fontWeight: FontWeight.w800,
+                              color: LandingTheme.brandGreen,
+                              letterSpacing: -1.2,
+                              height: 1.15,
+                            ),
+                          ),
                         ),
                       ),
                     ),
@@ -1044,40 +1075,46 @@ class _AppleAnimatedKeywordState extends State<_AppleAnimatedKeyword>
                   offset: Offset(0, inTranslateY),
                   child: Opacity(
                     opacity: inOpacity,
-                    child: ImageFiltered(
-                      imageFilter: ImageFilter.blur(
-                        sigmaX: inBlur <= 0.01 ? 0.0 : inBlur,
-                        sigmaY: inBlur <= 0.01 ? 0.0 : inBlur,
-                      ),
-                      child: ShaderMask(
-                        shaderCallback: (bounds) {
-                          return LinearGradient(
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                            stops: [
-                              (sweepCenter - 0.22).clamp(0.0, 1.0),
-                              (sweepCenter - 0.10).clamp(0.0, 1.0),
-                              sweepCenter.clamp(0.0, 1.0),
-                              (sweepCenter + 0.10).clamp(0.0, 1.0),
-                              (sweepCenter + 0.22).clamp(0.0, 1.0),
-                            ],
-                            colors: const [
-                              LandingTheme.brandGreen,
-                              Color(0xFFCBD5E1), // Platinum reflection
-                              Color(0xFFF8FAFC), // Pure platinum highlight
-                              Color(0xFFCBD5E1), // Platinum reflection
-                              LandingTheme.brandGreen,
-                            ],
-                          ).createShader(bounds);
-                        },
-                        child: Text(
-                          widget.keywords[_nextIndex],
-                          style: GoogleFonts.montserrat(
-                            fontSize: widget.fontSize,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            letterSpacing: -1.2,
-                            height: 1.15,
+                    child: ClipRect(
+                      clipBehavior: Clip.antiAlias,
+                      child: IntrinsicWidth(
+                        child: ImageFiltered(
+                          imageFilter: ImageFilter.blur(
+                            sigmaX: inBlur <= 0.01 ? 0.0 : inBlur,
+                            sigmaY: inBlur <= 0.01 ? 0.0 : inBlur,
+                          ),
+                          child: ShaderMask(
+                            blendMode: BlendMode.srcIn,
+                            shaderCallback: (bounds) {
+                              return LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                stops: [
+                                  (sweepCenter - 0.22).clamp(0.0, 1.0),
+                                  (sweepCenter - 0.10).clamp(0.0, 1.0),
+                                  sweepCenter.clamp(0.0, 1.0),
+                                  (sweepCenter + 0.10).clamp(0.0, 1.0),
+                                  (sweepCenter + 0.22).clamp(0.0, 1.0),
+                                ],
+                                colors: const [
+                                  LandingTheme.brandGreen,
+                                  Color(0xFFCBD5E1), // Platinum reflection
+                                  Color(0xFFF8FAFC), // Pure platinum highlight
+                                  Color(0xFFCBD5E1), // Platinum reflection
+                                  LandingTheme.brandGreen,
+                                ],
+                              ).createShader(bounds);
+                            },
+                            child: Text(
+                              widget.keywords[_nextIndex],
+                              style: GoogleFonts.montserrat(
+                                fontSize: widget.fontSize,
+                                fontWeight: FontWeight.w800,
+                                color: Colors.white,
+                                letterSpacing: -1.2,
+                                height: 1.15,
+                              ),
+                            ),
                           ),
                         ),
                       ),
@@ -1277,8 +1314,8 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
           final bool isHorizontal = constraints.maxWidth >= 390;
           final double containerHeight = isHorizontal
               ? (widget.isCompact
-                  ? (screenH * 0.50).clamp(380.0, 460.0)
-                  : (screenH * 0.54).clamp(420.0, 520.0))
+                  ? (screenH * 0.44).clamp(340.0, 400.0)
+                  : (screenH * 0.48).clamp(360.0, 440.0))
               : 500.0;
 
           return Column(
