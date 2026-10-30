@@ -251,7 +251,7 @@ class LandingHeader extends StatelessWidget {
                                 ),
                                 if (isDesktop)
                                   Text(
-                                    'Professional Registered & Govt Approved Valuers',
+                                    'Valuation, Engineering, Certification & Advisory Practice',
                                     style: GoogleFonts.montserrat(
                                       fontSize: 9.5,
                                       fontWeight: FontWeight.w600,
@@ -273,7 +273,7 @@ class LandingHeader extends StatelessWidget {
                         SizedBox(width: linkSpacing),
                         _HeaderLink(label: 'Why Pro Valuer', onTap: () => onNavigate?.call('why-pro-valuer')),
                         SizedBox(width: linkSpacing),
-                        _HeaderLink(label: 'Process', onTap: () => onNavigate?.call('process')),
+                        _HeaderLink(label: 'Methodology', onTap: () => onNavigate?.call('process')),
                         SizedBox(width: linkSpacing),
                         _HeaderLink(label: 'Credentials', onTap: () => onNavigate?.call('credentials')),
                         SizedBox(width: linkSpacing),
@@ -302,7 +302,7 @@ class LandingHeader extends StatelessWidget {
                               mainAxisSize: MainAxisSize.min,
                               children: [
                                 Text(
-                                  'Request Valuation Report',
+                                  'Request Proposal →',
                                   style: GoogleFonts.montserrat(
                                     fontSize: 13.5,
                                     fontWeight: FontWeight.w700,
@@ -322,7 +322,7 @@ class LandingHeader extends StatelessWidget {
                           onPressed: () => context.go('/login'),
                           constraints: const BoxConstraints(minWidth: 44, minHeight: 44),
                           padding: EdgeInsets.zero,
-                          tooltip: 'Client Login',
+                          tooltip: 'Client Portal',
                           icon: const Icon(
                             Icons.lock_outline_rounded,
                             color: LandingTheme.textPrimary,
@@ -390,7 +390,7 @@ class _HeaderClientLoginButtonState extends State<_HeaderClientLoginButton> {
               ),
               const SizedBox(width: 6),
               Text(
-                'Client Login',
+                'Client Portal',
                 style: GoogleFonts.montserrat(
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -448,14 +448,16 @@ class HeroSection extends StatefulWidget {
 }
 
 class _HeroSectionState extends State<HeroSection> {
-  // Buyer-focused service keywords — pairs dynamically with 'Independent Valuation'
+  // Buyer-focused service keywords — pairs dynamically with 'Valuation & Technical Advisory Services'
   static const List<String> _keywords = [
     'Land & Buildings',
-    'Industrial Assets',
     'Plant & Machinery',
-    'Financial Assets',
-    'Net Worth Certificates',
+    'Financial Assets & Equity',
+    'Net Worth Certification',
+    'Visa & Immigration Valuation',
     'Technical Due Diligence',
+    "Lender's Independent Engineer",
+    'Chartered Engineering Services',
   ];
 
   @override
@@ -597,7 +599,7 @@ class _HeroSectionState extends State<HeroSection> {
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'REGISTERED VALUERS (GOVT APPROVED) • IBBI • INCOME TAX • ASSET INTELLIGENCE',
+                    'REGISTERED VALUERS • CHARTERED ENGINEERS • STATUTORY & IMMIGRATION CERTIFICATION',
                     style: GoogleFonts.montserrat(
                       fontSize: isCompactDesktop ? 9.5 : 10.5,
                       fontWeight: FontWeight.w700,
@@ -618,7 +620,7 @@ class _HeroSectionState extends State<HeroSection> {
 
         // 2. Independent Valuation (Single-line headline stability across all desktop resolutions)
         Text(
-          'Independent Valuation',
+          'Valuation & Technical Advisory Services',
           maxLines: 1,
           softWrap: false,
           style: GoogleFonts.montserrat(
@@ -664,7 +666,7 @@ class _HeroSectionState extends State<HeroSection> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Statutory valuation and asset intelligence for banks, NBFCs, private equity funds, insolvency professionals, and property owners — across India.',
+                'Independent valuation, technical advisory, lender engineering, net worth certification and due diligence services for banks, NBFCs, insolvency professionals, corporates, investors, NRIs and property owners across India. Reports and certifications prepared under applicable statutory, taxation and professional frameworks.',
                 style: GoogleFonts.montserrat(
                   fontSize: bodySize,
                   fontWeight: FontWeight.w500,
@@ -679,8 +681,9 @@ class _HeroSectionState extends State<HeroSection> {
                 runSpacing: 8,
                 children: [
                   _buildGovtApprovedBadge(isCompactDesktop),
-                  _buildTrustBadge(Icons.verified_user_outlined, 'IBBI Registered · Sec 247', isCompactDesktop),
-                  _buildTrustBadge(Icons.gavel_outlined, 'Rule 11UA / Income Tax', isCompactDesktop),
+                  _buildTrustBadge(Icons.verified_user_outlined, 'IBBI Registered Valuers • Sec 247', isCompactDesktop),
+                  _buildTrustBadge(Icons.engineering_outlined, 'Chartered Engineers (IEI)', isCompactDesktop),
+                  _buildTrustBadge(Icons.assignment_turned_in_outlined, 'Banking & Immigration Documentation Support', isCompactDesktop),
                 ],
               ),
             ],
@@ -721,7 +724,7 @@ class _HeroSectionState extends State<HeroSection> {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Request Valuation Report',
+                        'Request Proposal →',
                         style: GoogleFonts.montserrat(
                           fontSize: isCompactDesktop ? 13.5 : 14.5,
                           fontWeight: FontWeight.w700,
@@ -808,7 +811,7 @@ class _HeroSectionState extends State<HeroSection> {
           const SizedBox(width: 5),
           Flexible(
             child: Text(
-              'Government Approved Valuers',
+              'CBDT Approved Valuers • Sec 34AB',
               style: GoogleFonts.montserrat(
                 fontSize: isCompact ? 11.0 : 12.5,
                 fontWeight: FontWeight.w700,
@@ -885,7 +888,7 @@ class _HeroPhonePillState extends State<_HeroPhonePill> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  '+91 85000 19091',
+                  'Advisory Desk: +91 85000 19091',
                   style: GoogleFonts.montserrat(
                     fontSize: widget.isCompact ? 13.5 : 14.5,
                     fontWeight: FontWeight.w600,
@@ -1127,74 +1130,74 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
   static const List<_AccordionPanelData> _panels = [
     _AccordionPanelData(
       id: '01',
-      title: 'Land Valuation',
+      title: 'Land & Building Valuation',
       category: 'LAND & CORRIDORS',
-      description: 'Agricultural, Commercial, Industrial & Institutional Land',
+      description: 'Comprehensive valuation of commercial, residential, industrial and development assets under applicable statutory and market-based valuation methodologies.',
       imageAsset: 'assets/images/hero/land_valuation.webp',
       icon: Icons.landscape_rounded,
       baseColor: Color(0xFF1E293B),
     ),
     _AccordionPanelData(
       id: '02',
-      title: 'Building Valuation',
-      category: 'BUILT ASSETS',
-      description: 'Residential, Commercial, Industrial & Mixed-Use Assets',
-      imageAsset: 'assets/images/hero/building_valuation.webp',
-      icon: Icons.apartment_rounded,
+      title: 'Plant & Machinery Valuation',
+      category: 'PLANT & MACHINERY',
+      description: 'Technical appraisal of industrial equipment, manufacturing facilities and engineering assets including DRC and remaining useful life assessments.',
+      imageAsset: 'assets/images/hero/plant_machinery_valuation.webp',
+      icon: Icons.precision_manufacturing_rounded,
       baseColor: Color(0xFF0F172A),
     ),
     _AccordionPanelData(
       id: '03',
-      title: 'Plant & Machinery Valuation',
-      category: 'PLANT & MACHINERY',
-      description: 'Industrial Equipment, Manufacturing Facilities & Technical Assets',
-      imageAsset: 'assets/images/hero/plant_machinery_valuation.webp',
-      icon: Icons.precision_manufacturing_rounded,
+      title: 'Financial Assets & Equity Valuation',
+      category: 'FINANCIAL ASSETS',
+      description: 'Valuation of unlisted shares, business interests, preference capital and financial instruments under Rule 11UA, Companies Act and related frameworks.',
+      imageAsset: 'assets/images/hero/financial_assets_valuation.webp',
+      icon: Icons.query_stats_rounded,
       baseColor: Color(0xFF1E293B),
     ),
     _AccordionPanelData(
       id: '04',
-      title: 'Financial Assets Valuation',
-      category: 'FINANCIAL ASSETS',
-      description: 'Shares, Securities, Business & Enterprise Value',
-      imageAsset: 'assets/images/hero/financial_assets_valuation.webp',
-      icon: Icons.query_stats_rounded,
+      title: 'Net Worth Certification',
+      category: 'NET WORTH & SOLVENCY',
+      description: 'Certified financial standing and net worth documentation for promoters, businesses, tenders, banking requirements and immigration purposes.',
+      imageAsset: 'assets/images/hero/net_worth_solvency_vault.webp',
+      icon: Icons.verified_user_rounded,
       baseColor: Color(0xFF0F172A),
     ),
     _AccordionPanelData(
       id: '05',
-      title: 'Net Worth Certificates',
-      category: 'NET WORTH & SOLVENCY',
-      description: 'Individual, Corporate & Regulatory Certification',
-      imageAsset: 'assets/images/hero/net_worth_solvency_vault.webp',
-      icon: Icons.verified_user_rounded,
+      title: 'Visa & Immigration Valuation',
+      category: 'IMMIGRATION & GLOBAL MOBILITY',
+      description: 'Property and asset valuation reports prepared for immigration, education, global mobility and visa documentation requirements.',
+      imageAsset: 'assets/images/hero/building_valuation.webp',
+      icon: Icons.flight_takeoff_rounded,
       baseColor: Color(0xFF1E293B),
     ),
     _AccordionPanelData(
       id: '06',
-      title: 'Lenders Independent Engineer',
-      category: 'PROJECT MONITORING',
-      description: 'Project Progress, Fund Utilization & Techno-Economic Viability',
-      imageAsset: 'assets/images/hero/lenders_independent_engineer.webp',
-      icon: Icons.account_balance_rounded,
+      title: 'Technical Due Diligence',
+      category: 'TECHNICAL AUDIT',
+      description: 'Independent technical reviews, asset condition assessments, risk analysis and capital expenditure evaluations.',
+      imageAsset: 'assets/images/hero/technical_due_diligence.webp',
+      icon: Icons.engineering_rounded,
       baseColor: Color(0xFF0F172A),
     ),
     _AccordionPanelData(
       id: '07',
-      title: 'Chartered Engineer Certificates',
-      category: 'STATUTORY CE AUDIT',
-      description: 'Customs Clearance, EPCG Scheme, Plant Life & Industrial Certification',
-      imageAsset: 'assets/images/hero/chartered_engineer_certificates.webp',
-      icon: Icons.workspace_premium_rounded,
+      title: "Lender's Independent Engineer",
+      category: 'PROJECT MONITORING',
+      description: 'Project monitoring, physical progress assessment, TEV studies, fund utilization review and lender reporting services.',
+      imageAsset: 'assets/images/hero/lenders_independent_engineer.webp',
+      icon: Icons.account_balance_rounded,
       baseColor: Color(0xFF1E293B),
     ),
     _AccordionPanelData(
       id: '08',
-      title: 'Technical Due Diligence',
-      category: 'TECHNICAL AUDIT',
-      description: 'Engineering Review, Condition Assessment & Risk Analysis',
-      imageAsset: 'assets/images/hero/technical_due_diligence.webp',
-      icon: Icons.engineering_rounded,
+      title: 'Chartered Engineering Services',
+      category: 'STATUTORY CE AUDIT',
+      description: 'Professional engineering certifications for customs, EPCG, industrial machinery, imported assets and technical compliance.',
+      imageAsset: 'assets/images/hero/chartered_engineer_certificates.webp',
+      icon: Icons.workspace_premium_rounded,
       baseColor: Color(0xFF0F172A),
     ),
   ];
@@ -1712,27 +1715,27 @@ class AuthorityMetricsSection extends StatelessWidget {
     // before deployment. Each value must be supportable by internal assignment records.
     const metrics = [
       _MetricData(
-        value: '₹15,000+\u202fCr',    // TODO: Confirm exact figure
-        label: 'Total Assets Valued',
-        sublabel: 'Across All Asset Classes',
+        value: '₹2,00,000+ Crore',
+        label: 'Asset Value Assessed',
+        sublabel: 'Across Institutional, Corporate & Private Client Mandates',
         icon: Icons.trending_up_rounded,
       ),
       _MetricData(
-        value: '5,000+',             // TODO: Replace with actual completed assignment count
+        value: 'Several Thousand',
         label: 'Assignments Completed',
-        sublabel: 'Statutory & Advisory Reports',
+        sublabel: 'Across Banking, Corporate & Individual Engagements',
         icon: Icons.description_rounded,
       ),
       _MetricData(
-        value: '15+',                // TODO: Replace with actual years since firm establishment
-        label: 'Years Operating',
-        sublabel: 'Institutional Practice',
+        value: '23+ Years',
+        label: 'Combined Professional Experience',
+        sublabel: 'Valuation, Engineering & Technical Advisory',
         icon: Icons.history_rounded,
       ),
       _MetricData(
-        value: '22+',                // TODO: Replace with actual city/district coverage count
-        label: 'Cities Served',
-        sublabel: 'PAN India Coverage',
+        value: 'Pan India',
+        label: 'Inspection & Advisory Coverage',
+        sublabel: 'Hyderabad & Secunderabad Headquarters',
         icon: Icons.location_on_rounded,
       ),
     ];
@@ -1740,7 +1743,7 @@ class AuthorityMetricsSection extends StatelessWidget {
     // TODO: Replace with actual empanelled bank names (verify each empanelment is documented).
     // If specific bank logos require trademark permission, use text-only names.
     const String bankStrip =
-        'SBI  ·  Bank of Baroda  ·  Union Bank  ·  HDFC Bank  ·  ICICI Bank  ·  Axis Bank  ·  PNB  ·  Canara Bank  ·  and 18+ more';
+        'Experience serving assignments through empanelments and mandates from leading public and private sector banks including SBI, Union Bank, PNB, Central Bank of India, UCO Bank and Axis Bank.';
 
     return Container(
       width: double.infinity,
@@ -2156,29 +2159,52 @@ class WhyProValuerSection extends StatelessWidget {
 
     final pillars = [
       {
-        'title': 'IBBI Registration',
-        'sub': 'STATUTORY CREDENTIALS',
-        'desc': 'Licensed under Section 247 of the Companies Act 2013 across Land & Building, Plant & Machinery, and Securities & Financial Assets.',
+        'title': 'IBBI Registered Valuers',
+        'sub': 'STATUTORY RECOGNITION',
+        'desc': 'Multi-disciplinary valuation capabilities across Land & Building, Plant & Machinery, and Financial Assets through qualified and empanelled registered valuers.',
         'icon': Icons.verified_rounded,
       },
       {
-        'title': 'Chartered Engineering',
-        'sub': 'TECHNICAL RIGOR',
-        'desc': 'Physical audits conducted by Corporate Members of The Institution of Engineers (India), ensuring verified ground truth.',
+        'title': 'Chartered Engineering Expertise',
+        'sub': 'TECHNICAL PRECISION',
+        'desc': 'In-house Chartered Engineers delivering technical reviews, machinery certifications, project assessments, and engineering due diligence.',
         'icon': Icons.engineering_rounded,
       },
       {
-        'title': 'Independent Assessment',
-        'sub': 'OBJECTIVE BENCHMARKS',
-        'desc': 'Unbiased multi-model appraisals free from volume, borrower, or developer pressures, defending your credit decisions.',
-        'icon': Icons.balance_rounded,
+        'title': 'Pan India Coverage',
+        'sub': 'NATIONWIDE REACH',
+        'desc': 'Headquartered in Hyderabad & Secunderabad with an active nationwide inspection and execution network across India.',
+        'icon': Icons.location_on_rounded,
       },
       {
-        'title': 'Audit-Ready Documentation',
-        'sub': 'REGULATORY DEFENSE',
-        'desc': 'Evidentiary dossiers cross-referenced with sub-registrar transaction data, designed to withstand credit committee and auditor scrutiny.',
+        'title': 'Banking & Institutional Experience',
+        'sub': 'TRUSTED BY LENDERS',
+        'desc': 'Experience serving assignments through empanelments and mandates from leading public and private sector banks including SBI, Union Bank, PNB, Central Bank of India, UCO Bank and Axis Bank.',
+        'icon': Icons.account_balance_rounded,
+      },
+      {
+        'title': 'Several Thousand Assignments Delivered',
+        'sub': 'VERIFIED TRACK RECORD',
+        'desc': 'Over ₹2,00,000+ Crore in asset value assessed across institutional, corporate and private client mandates.',
         'icon': Icons.fact_check_rounded,
       },
+      {
+        'title': 'Direct Expert Access',
+        'sub': 'CLEAR COMMUNICATION',
+        'desc': 'Engage directly with experienced valuation professionals and engineers for clear guidance, dependable timelines, and transparent execution.',
+        'icon': Icons.support_agent_rounded,
+      },
+    ];
+
+    final industries = [
+      'Real Estate & Construction',
+      'Manufacturing',
+      'Industrial Infrastructure',
+      'Warehousing & Logistics',
+      'Healthcare',
+      'Hospitality',
+      'Education',
+      'Retail & Commercial Assets',
     ];
 
     return Container(
@@ -2196,24 +2222,25 @@ class WhyProValuerSection extends StatelessWidget {
               const GlassEyebrowBadge(label: 'Why Pro Valuer', icon: Icons.shield_rounded),
               const SizedBox(height: 20),
               Text(
-                'Engineered for Absolute Credibility',
+                'Why Clients Choose Pro Valuer',
                 textAlign: TextAlign.center,
                 style: LandingTheme.sectionTitleResponsive(screenW),
               ),
               const SizedBox(height: 14),
               ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 600),
+                constraints: const BoxConstraints(maxWidth: 680),
                 child: Text(
-                  'Delivering the rigor required by credit committees, statutory auditors, and regulatory bodies.',
+                  'Established technical rigor, statutory qualifications, and dependable turnaround across India.',
                   textAlign: TextAlign.center,
                   style: LandingTheme.bodyMediumResponsive(screenW),
                 ),
               ),
               const SizedBox(height: 60),
 
+              // 6 Authority Pillar Cards
               LayoutBuilder(
                 builder: (context, constraints) {
-                  final int columns = isDesktop ? 4 : (constraints.maxWidth >= 700 ? 2 : 1);
+                  final int columns = isDesktop ? 3 : (constraints.maxWidth >= 700 ? 2 : 1);
                   const double spacing = 20;
                   final double cardWidth = (constraints.maxWidth - (spacing * (columns - 1))) / columns;
 
@@ -2281,6 +2308,77 @@ class WhyProValuerSection extends StatelessWidget {
                   );
                 },
               ),
+
+              const SizedBox(height: 70),
+
+              // ── Industries Served Section ─────────────────────────────────────
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isDesktop ? 40 : 24,
+                  vertical: isDesktop ? 36 : 28,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFE2E8F0), width: 1.0),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x060F172A),
+                      blurRadius: 20,
+                      offset: Offset(0, 6),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Text(
+                      'Industries Served',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.montserrat(
+                        fontSize: isDesktop ? 24 : 20,
+                        fontWeight: FontWeight.w800,
+                        color: LandingTheme.textPrimary,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Technical appraisal and asset advisory tailored to sector-specific regulatory standards.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.montserrat(
+                        fontSize: 13.5,
+                        fontWeight: FontWeight.w400,
+                        color: LandingTheme.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 10,
+                      alignment: WrapAlignment.center,
+                      children: industries.map((ind) {
+                        return Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(100),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Text(
+                            ind,
+                            style: GoogleFonts.montserrat(
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              color: LandingTheme.textPrimary,
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
@@ -2305,23 +2403,23 @@ class ProcessSection extends StatelessWidget {
     final steps = [
       {
         'step': '01',
-        'title': 'Physical Inspection',
-        'desc': 'On-site technical inspection by Chartered Engineers, verifying physical asset condition, boundaries, and municipal alignment.',
+        'title': 'Physical Inspection & Technical Review',
+        'desc': 'On-site technical inspection by qualified valuers and Chartered Engineers, verifying physical asset condition, boundaries, and municipal alignment.',
       },
       {
         'step': '02',
-        'title': 'Analytical Modeling',
+        'title': 'Market Research & Statutory Due Diligence',
         'desc': 'Data extraction from title documents, registry records, micro-market transactions, and statutory zoning master plans.',
       },
       {
         'step': '03',
-        'title': 'Independent Valuation',
-        'desc': 'Multi-model valuation executing DCF yield analysis, depreciated replacement cost (DRC), and forced liquidation stress tests.',
+        'title': 'Valuation Modeling & Analysis',
+        'desc': 'Multi-model valuation executing DCF yield analysis, depreciated replacement cost (DRC), and applicable statutory frameworks.',
       },
       {
         'step': '04',
-        'title': 'Certified Delivery',
-        'desc': 'Mandatory partner-level dual sign-off, IBBI digital signature, and tamper-evident digital dossier delivery.',
+        'title': 'Partner Review & Final Certification',
+        'desc': 'Mandatory partner-level dual sign-off, regulatory compliance statements, and tamper-evident digital report delivery.',
       },
     ];
 
@@ -2435,22 +2533,22 @@ class CredentialsSection extends StatelessWidget {
       {
         'title': 'IBBI Registered Valuers',
         'sub': 'Insolvency and Bankruptcy Board of India',
-        'desc': 'Statutory authority under Section 247 of Companies Act 2013.',
+        'desc': 'Statutory authority under Section 247 of Companies Act 2013 across Land & Building, Plant & Machinery, and Financial Assets.',
       },
       {
-        'title': 'Chartered Engineers (IEI)',
+        'title': 'Chartered Engineers (Institution of Engineers India)',
         'sub': 'The Institution of Engineers (India)',
-        'desc': 'Corporate Members executing verified physical engineering audits.',
+        'desc': 'Corporate Members executing verified physical engineering audits, customs clearances, and technical due diligence.',
       },
       {
-        'title': 'Banking Consortia Aligned',
-        'sub': 'Public & Private Sector Banks',
-        'desc': 'Empanelled and accepted by leading national lending institutions.',
+        'title': 'CBDT Approved Valuers',
+        'sub': 'Income Tax Department (Sec 34AB)',
+        'desc': 'Registered under Section 34AB of the Wealth Tax Act for capital gains, Rule 11UA, and statutory asset reporting.',
       },
       {
-        'title': 'NCLT & Judicial Defense',
-        'sub': 'Insolvency & Debt Recovery Tribunals',
-        'desc': 'Defensible expert witness and statutory dispute valuation testimony.',
+        'title': 'Banking & Immigration Documentation Support',
+        'sub': 'Institutional & Global Mobility',
+        'desc': 'Empanelled with leading public and private banks; reports accepted by international visa embassies worldwide.',
       },
     ];
 
@@ -2604,21 +2702,21 @@ class CtaBanner extends StatelessWidget {
                 const GlassEyebrowBadge(label: 'Get In Touch', icon: Icons.mail_outline_rounded),
                 const SizedBox(height: 24),
                 Text(
-                  'Ready for a Valuation Report That\nWithstands Every Level of Scrutiny?',
+                  'Discuss Your Valuation or Technical Advisory Requirement',
                   textAlign: TextAlign.center,
                   style: GoogleFonts.montserrat(
-                    fontSize: isDesktop ? 40 : 26,
+                    fontSize: isDesktop ? 36 : 24,
                     fontWeight: FontWeight.w800,
                     color: LandingTheme.textPrimary,
-                    letterSpacing: -1.2,
+                    letterSpacing: -1.0,
                     height: 1.2,
                   ),
                 ),
                 const SizedBox(height: 16),
                 ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 580),
+                  constraints: const BoxConstraints(maxWidth: 620),
                   child: Text(
-                    'Connect directly with our senior valuation partners for confidential institutional advisory and statutory documentation.',
+                    'Speak with our experienced partners about property appraisals, plant and machinery valuations, net worth certificates, lender engineering, or visa valuation reports.',
                     textAlign: TextAlign.center,
                     style: LandingTheme.bodyMediumResponsive(screenW),
                   ),
@@ -2649,7 +2747,7 @@ class CtaBanner extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              'Request Valuation Report',
+                              'Request Proposal →',
                               style: GoogleFonts.montserrat(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w700,
@@ -2676,7 +2774,7 @@ class CtaBanner extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
-                              'View Sample Report',
+                              'Talk to an Expert',
                               style: GoogleFonts.montserrat(
                                 fontSize: 15,
                                 fontWeight: FontWeight.w600,
@@ -2730,14 +2828,14 @@ class LandingFooter extends StatelessWidget {
                 spacing: 24,
                 runSpacing: 12,
                 children: [
-                  _buildFooterServiceLink(context, 'Government Approved Valuers', '/government-approved-valuers'),
-                  _buildFooterServiceLink(context, 'Property Valuation Services', '/services/property-valuation'),
-                  _buildFooterServiceLink(context, 'Visa & Immigration Valuations', '/services/visa-and-immigration-valuations'),
-                  _buildFooterServiceLink(context, 'Bank Collateral Valuation', '/services/bank-collateral-valuation'),
-                  _buildFooterServiceLink(context, 'NCLT & IBC Valuation', '/services/nclt-ibc-valuation'),
-                  _buildFooterServiceLink(context, 'Divorce & Matrimonial Valuation', '/services/divorce-matrimonial-valuation'),
-                  _buildFooterServiceLink(context, 'Probate & Estate Valuation', '/services/probate-inheritance-valuation'),
-                  _buildFooterServiceLink(context, 'Share & Equity Valuation', '/services/share-valuation'),
+                  _buildFooterServiceLink(context, 'Land & Building Valuation', '/services/property-valuation'),
+                  _buildFooterServiceLink(context, 'Plant & Machinery Valuation', '/knowledge/plant-and-machinery-valuation-complete-guide'),
+                  _buildFooterServiceLink(context, 'Financial Assets Valuation (Rule 11UA)', '/knowledge/rule-11ua-complete-guide'),
+                  _buildFooterServiceLink(context, 'Net Worth Certification', '/knowledge/net-worth-certificate-complete-guide'),
+                  _buildFooterServiceLink(context, 'Visa & Immigration Valuation', '/knowledge/visa-and-immigration-valuation-complete-guide'),
+                  _buildFooterServiceLink(context, "Lender's Independent Engineer (LIE)", '/services/bank-collateral-valuation'),
+                  _buildFooterServiceLink(context, 'Technical Due Diligence', '/knowledge/property-valuation-methods-complete-guide'),
+                  _buildFooterServiceLink(context, 'Chartered Engineering Services', '/knowledge/government-approved-valuers-complete-guide'),
                 ],
               ),
               const SizedBox(height: 24),
@@ -2780,7 +2878,7 @@ class LandingFooter extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            'Professional Registered & Govt Approved Valuers',
+                            'Valuation, Engineering, Certification & Advisory Practice',
                             style: GoogleFonts.montserrat(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
@@ -2793,7 +2891,7 @@ class LandingFooter extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    '© ${DateTime.now().year} Pro Valuer OPC Pvt Ltd. All rights reserved. Professional Registered & Govt Approved Valuers.',
+                    '© ${DateTime.now().year} Pro Valuer OPC Pvt Ltd. All rights reserved. Valuation, Engineering, Certification & Advisory Practice.',
                     style: GoogleFonts.montserrat(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w400,
@@ -2967,7 +3065,7 @@ class MobileMenuDrawer extends StatelessWidget {
                     ),
                     child: Center(
                       child: Text(
-                        'Request Valuation Report',
+                        'Request Proposal →',
                         style: GoogleFonts.montserrat(
                           fontSize: 15,
                           fontWeight: FontWeight.w700,
