@@ -167,7 +167,7 @@ class LandingTheme {
       fontWeight: FontWeight.w800,
       color: textPrimary,
       letterSpacing: -2.8,
-      height: 1.05,
+      height: 1.12,
     );
   }
 

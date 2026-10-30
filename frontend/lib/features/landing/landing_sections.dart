@@ -493,7 +493,7 @@ class _HeroSectionState extends State<HeroSection> {
           left: isDesktop ? (isCompactDesktop ? 40 : 60) : (screenW < 360 ? 14 : (screenW < 400 ? 18 : 24)),
           right: isDesktop ? (isCompactDesktop ? 40 : 60) : (screenW < 360 ? 14 : (screenW < 400 ? 18 : 24)),
           top: isDesktop ? (isCompactDesktop ? 76 : 96) : 76,
-          bottom: isDesktop ? (isCompactDesktop ? 28 : 44) : 32,
+          bottom: isDesktop ? 64 : 32,
         ),
         child: Center(
           child: ConstrainedBox(
@@ -512,9 +512,9 @@ class _HeroSectionState extends State<HeroSection> {
     final bool isCompactDesktop = isDesktop && (screenH < 900 || screenW < 1440);
     final bool isNarrow = !isDesktop || isCompactDesktop;
     final bool isLargeDesktop = screenW >= 1440;
-    // Hero Layout Balance: 58/42 on desktop below 1440px; 54/46 on desktop above 1440px
-    final int leftFlex = isLargeDesktop ? 54 : 58;
-    final int rightFlex = isLargeDesktop ? 46 : 42;
+    // Hero Layout Balance: 60/40 on compact desktop below 1440px; 56/44 on standard/large desktop above 1440px
+    final int leftFlex = isLargeDesktop ? 56 : 60;
+    final int rightFlex = isLargeDesktop ? 44 : 40;
 
     return isDesktop
         ? Row(
@@ -525,11 +525,14 @@ class _HeroSectionState extends State<HeroSection> {
                 flex: leftFlex,
                 child: _buildLeftHeroContent(screenW, screenH, isDesktop, isTablet, isCompactDesktop),
               ),
-              SizedBox(width: isCompactDesktop ? 32 : 44),
-              // Right Column: Accordion-Style Visual Showcase
+              const SizedBox(width: 48),
+              // Right Column: Accordion-Style Visual Showcase (padded to prevent overlap with floating WhatsApp)
               Expanded(
                 flex: rightFlex,
-                child: _HeroAccordionVisual(isCompact: isCompactDesktop),
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 24, right: 16),
+                  child: _HeroAccordionVisual(isCompact: isCompactDesktop),
+                ),
               ),
             ],
           )
@@ -548,7 +551,7 @@ class _HeroSectionState extends State<HeroSection> {
   Widget _buildLeftHeroContent(double screenW, double screenH, bool isDesktop, bool isTablet, bool isCompactDesktop) {
     // Fluid responsive typography scaling with sensible clamps to prevent compression
     final double headlineSize = isDesktop
-        ? (isCompactDesktop ? (screenW * 0.034).clamp(38.0, 46.0) : (screenW * 0.036).clamp(42.0, 50.0))
+        ? (isCompactDesktop ? (screenW * 0.026).clamp(32.0, 38.0) : (screenW * 0.030).clamp(36.0, 44.0))
         : (isTablet ? 36.0 : 28.0);
 
     final double keywordSize = isDesktop
@@ -618,17 +621,17 @@ class _HeroSectionState extends State<HeroSection> {
         // [24-36px spacing]
         SizedBox(height: gapEyebrowToHeadline),
 
-        // 2. Independent Valuation (Single-line headline stability across all desktop resolutions)
+        // 2. Independent Valuation (Two-line wrapped headline stability across all desktop resolutions)
         Text(
           'Valuation & Technical Advisory Services',
-          maxLines: 1,
-          softWrap: false,
+          maxLines: 2,
+          softWrap: true,
           style: GoogleFonts.montserrat(
             fontSize: headlineSize,
             fontWeight: FontWeight.w800,
             color: LandingTheme.textPrimary,
             letterSpacing: -1.8,
-            height: 1.08,
+            height: 1.12,
           ),
         ),
 
@@ -677,8 +680,9 @@ class _HeroSectionState extends State<HeroSection> {
               ),
               const SizedBox(height: 16),
               Wrap(
-                spacing: 10,
+                spacing: 8,
                 runSpacing: 8,
+                crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   _buildGovtApprovedBadge(isCompactDesktop),
                   _buildTrustBadge(Icons.verified_user_outlined, 'IBBI Registered Valuers • Sec 247', isCompactDesktop),
@@ -748,11 +752,11 @@ class _HeroSectionState extends State<HeroSection> {
     );
   }
 
-  Widget _buildTrustBadge(IconData icon, String text, bool isCompact) {
+  Widget _buildTrustBadge(IconData icon, String text, [bool isCompact = false]) {
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isCompact ? 10 : 14,
-        vertical: isCompact ? 5 : 7,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 6,
       ),
       decoration: BoxDecoration(
         color: const Color(0xFFF1F5F9),
@@ -762,16 +766,16 @@ class _HeroSectionState extends State<HeroSection> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: isCompact ? 13 : 14, color: LandingTheme.primaryAccent),
+          Icon(icon, size: 14, color: LandingTheme.primaryAccent),
           const SizedBox(width: 5),
           Flexible(
             child: Text(
               text,
               style: GoogleFonts.montserrat(
-                fontSize: isCompact ? 11.0 : 12.5,
+                fontSize: 11.5,
                 fontWeight: FontWeight.w600,
                 color: LandingTheme.textPrimary,
-                letterSpacing: -0.1,
+                letterSpacing: 0.3,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -783,15 +787,12 @@ class _HeroSectionState extends State<HeroSection> {
   }
 
   /// Dedicated Government Approved Valuers badge — Tier 2 authority signal.
-  /// Green-tinted background, green border, and green text give it higher visual
-  /// weight than the standard charcoal trust badges, making it immediately
-  /// distinguishable as the primary statutory credential for retail and
-  /// institutional visitors alike.
-  Widget _buildGovtApprovedBadge(bool isCompact) {
+  /// Standardized footprint with subtle brand green tint (#005C5C @ 7%) and border.
+  Widget _buildGovtApprovedBadge([bool isCompact = false]) {
     return Container(
-      padding: EdgeInsets.symmetric(
-        horizontal: isCompact ? 10 : 14,
-        vertical: isCompact ? 5 : 7,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 6,
       ),
       decoration: BoxDecoration(
         color: LandingTheme.brandGreen.withValues(alpha: 0.07),
@@ -803,9 +804,9 @@ class _HeroSectionState extends State<HeroSection> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(
+          const Icon(
             Icons.verified_rounded,
-            size: isCompact ? 13 : 14,
+            size: 14,
             color: LandingTheme.brandGreen,
           ),
           const SizedBox(width: 5),
@@ -813,10 +814,10 @@ class _HeroSectionState extends State<HeroSection> {
             child: Text(
               'CBDT Approved Valuers • Sec 34AB',
               style: GoogleFonts.montserrat(
-                fontSize: isCompact ? 11.0 : 12.5,
-                fontWeight: FontWeight.w700,
+                fontSize: 11.5,
+                fontWeight: FontWeight.w600,
                 color: LandingTheme.brandGreen,
-                letterSpacing: -0.1,
+                letterSpacing: 0.3,
               ),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
@@ -972,8 +973,8 @@ class _AppleAnimatedKeywordState extends State<_AppleAnimatedKeyword>
           final double progress = _animController.value;
           final bool isAnimating = _animController.isAnimating;
 
-          if (!isAnimating) {
-            // Calm, settled resting state
+          if (!isAnimating || progress == 0.0 || progress == 1.0) {
+            // Calm, settled resting state without intermediate GPU filter pass
             return Align(
               alignment: Alignment.centerLeft,
               child: Text(
@@ -994,7 +995,7 @@ class _AppleAnimatedKeywordState extends State<_AppleAnimatedKeyword>
           final double outProgress = (progress / 0.45).clamp(0.0, 1.0);
           final double outCurve = Curves.easeInQuad.transform(outProgress);
           final double outOpacity = (1.0 - outCurve).clamp(0.0, 1.0);
-          final double outBlur = 5.0 * outCurve;
+          final double outBlur = (2.5 * outCurve).clamp(0.0, 2.5);
           final double outTranslateY = -20.0 * outCurve;
 
           // ── Incoming word: rise from below, sharpen, platinum reflection sweep ──
@@ -1002,7 +1003,7 @@ class _AppleAnimatedKeywordState extends State<_AppleAnimatedKeyword>
           final double inProgress = ((progress - 0.30) / 0.70).clamp(0.0, 1.0);
           final double inCurve = Curves.easeOutCubic.transform(inProgress);
           final double inOpacity = inCurve;
-          final double inBlur = 6.0 * (1.0 - inCurve);
+          final double inBlur = (2.5 * (1.0 - inCurve)).clamp(0.0, 2.5);
           final double inTranslateY = 24.0 * (1.0 - inCurve);
 
           // Platinum Reflection sweep across incoming word:
@@ -1019,7 +1020,10 @@ class _AppleAnimatedKeywordState extends State<_AppleAnimatedKeyword>
                   child: Opacity(
                     opacity: outOpacity,
                     child: ImageFiltered(
-                      imageFilter: ImageFilter.blur(sigmaX: outBlur, sigmaY: outBlur),
+                      imageFilter: ImageFilter.blur(
+                        sigmaX: outBlur <= 0.01 ? 0.0 : outBlur,
+                        sigmaY: outBlur <= 0.01 ? 0.0 : outBlur,
+                      ),
                       child: Text(
                         widget.keywords[_currentIndex],
                         style: GoogleFonts.montserrat(
@@ -1041,7 +1045,10 @@ class _AppleAnimatedKeywordState extends State<_AppleAnimatedKeyword>
                   child: Opacity(
                     opacity: inOpacity,
                     child: ImageFiltered(
-                      imageFilter: ImageFilter.blur(sigmaX: inBlur, sigmaY: inBlur),
+                      imageFilter: ImageFilter.blur(
+                        sigmaX: inBlur <= 0.01 ? 0.0 : inBlur,
+                        sigmaY: inBlur <= 0.01 ? 0.0 : inBlur,
+                      ),
                       child: ShaderMask(
                         shaderCallback: (bounds) {
                           return LinearGradient(
