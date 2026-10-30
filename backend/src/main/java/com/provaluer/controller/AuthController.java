@@ -39,6 +39,9 @@ public class AuthController {
     @Autowired
     private com.provaluer.service.MfaService mfaService;
 
+    @org.springframework.beans.factory.annotation.Value("${app.mfa.enforcement-enabled:${MFA_ENFORCEMENT_ENABLED:false}}")
+    private boolean mfaEnforcementEnabled;
+
     private static final java.util.Map<String, Long> mfaChallengeStore = new java.util.concurrent.ConcurrentHashMap<>();
 
     @PostMapping("/login")
@@ -94,7 +97,7 @@ public class AuthController {
         boolean isPrivileged = user.getRole() == UserRole.ADMIN || user.getRole() == UserRole.SUPER_ADMIN
                 || user.getRole() == UserRole.PA || user.getRole() == UserRole.SPA;
 
-        if (user.isMfaEnabled() || isPrivileged) {
+        if (mfaEnforcementEnabled && (user.isMfaEnabled() || isPrivileged)) {
             if (user.getMfaSecret() == null || user.getMfaSecret().isBlank()) {
                 // Initial MFA Setup required for privileged user
                 MfaService.MfaSetupPackage setup = mfaService.generateMfaSetup(user.getUsername(), user.getEmail());

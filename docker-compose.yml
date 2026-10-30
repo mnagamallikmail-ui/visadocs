@@ -61,6 +61,7 @@ services:
       APP_JWT_SECRET: ${APP_JWT_SECRET:?Mandatory JWT signing secret required}
       DPDP_ENCRYPTION_KEY: ${DPDP_ENCRYPTION_KEY:?Mandatory AES-256 master key required}
       GA4_MEASUREMENT_ID: ${GA4_MEASUREMENT_ID:-G-94DDGM6XDW}
+      MFA_ENFORCEMENT_ENABLED: ${MFA_ENFORCEMENT_ENABLED:-false}
     volumes:
       - lead_storage:/app/storage
     networks:

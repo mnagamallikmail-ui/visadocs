@@ -45,6 +45,8 @@ app:
     # HMAC-SHA 256-bit signing key (hex encoded) - Mandatory in production
     secret: ${APP_JWT_SECRET}
     expiration-ms: 86400000 # 24 hours
+  mfa:
+    enforcement-enabled: ${MFA_ENFORCEMENT_ENABLED:false}
   telegram:
     enabled: ${TELEGRAM_NOTIFICATIONS_ENABLED:false}
     bot-token: ${TELEGRAM_BOT_TOKEN:}
@@ -103,6 +105,8 @@ app:
   jwt:
     secret: 9a62a9386c9135003f42b8e3ea954cfd3a1f9e9d6bc4bf38ea2f6bbd688bfa1f
     expiration-ms: 86400000
+  mfa:
+    enforcement-enabled: false
   security:
     encryption:
       enabled: true
