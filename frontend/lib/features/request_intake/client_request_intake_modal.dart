@@ -170,9 +170,9 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
 
     if (success) {
       // Auto login with registered credentials
-      final loginSuccess = await auth.login(email, password);
+      final loginResult = await auth.login(email, password);
       setState(() => _isLoading = false);
-      if (loginSuccess) {
+      if (loginResult.success) {
         setState(() => _currentStep = 3);
       } else {
         setState(() {
@@ -201,10 +201,10 @@ class _ClientRequestIntakeModalState extends State<ClientRequestIntakeModal> {
 
     setState(() => _isLoading = true);
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    final success = await auth.login(identifier, password);
+    final loginResult = await auth.login(identifier, password);
     setState(() => _isLoading = false);
 
-    if (success) {
+    if (loginResult.success) {
       setState(() => _currentStep = 3);
     } else {
       setState(() => _errorMessage = "Invalid credentials. Please verify your email and password.");
