@@ -1,20 +1,79 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <!-- Google tag (gtag.js) -->
-  <script async src="https://www.googletagmanager.com/gtag/js?id=G-94DDGM6XDW"></script>
+  <!-- DPDP Act 2023 Statutory Consent-First Telemetry Controller -->
   <script>
+    window.__PROVALUER_GA4_ID__ = 'G-94DDGM6XDW';
+    // 1. Mandatory Default: Telemetry permanently disabled until affirmative consent
+    window['ga-disable-G-94DDGM6XDW'] = true;
+    window.__GA4_INITIALIZED__ = false;
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
-    gtag('js', new Date());
 
-    gtag('config', 'G-94DDGM6XDW');
+    // Helper: Determine if user is registered or identified as a minor (<18)
+    window.isMinorUser = function() {
+      return localStorage.getItem('dpdp_is_minor') === 'true' ||
+             localStorage.getItem('dpdp_analytics_consent') === 'minor_blocked';
+    };
 
-    // Production Telemetry Identification Hook
-    window.__PROVALUER_GA4_ID__ = 'G-94DDGM6XDW';
+    // 3. Explicit Consent Gate: Only initialize GA4 when affirmative consent is verified
+    window.initializeGoogleAnalyticsIfConsented = function() {
+      // 5. Section 9 Mandate: Minors (<18) must NEVER have analytics enabled
+      if (window.isMinorUser()) {
+        window['ga-disable-G-94DDGM6XDW'] = true;
+        window.__GA4_INITIALIZED__ = false;
+        console.log('[DPDP Section 9] Applicant is a minor (<18). Telemetry permanently disabled.');
+        return;
+      }
+
+      var consent = localStorage.getItem('dpdp_analytics_consent');
+      if (consent === 'granted') {
+        window['ga-disable-G-94DDGM6XDW'] = false;
+        if (!window.__GA4_INITIALIZED__) {
+          gtag('js', new Date());
+          gtag('config', window.__PROVALUER_GA4_ID__, {
+            'anonymize_ip': true,
+            'restricted_data_processing': true
+          });
+          // Dynamically load the Google Tag Manager library ONLY after explicit consent
+          if (!document.getElementById('gtag-lib')) {
+            var script = document.createElement('script');
+            script.id = 'gtag-lib';
+            script.async = true;
+            script.src = 'https://www.googletagmanager.com/gtag/js?id=' + window.__PROVALUER_GA4_ID__;
+            document.head.appendChild(script);
+          }
+          window.__GA4_INITIALIZED__ = true;
+          console.log('[DPDP Act 2023] Statutory analytics consent granted. GA4 initialized.');
+        }
+      } else {
+        window['ga-disable-G-94DDGM6XDW'] = true;
+        window.__GA4_INITIALIZED__ = false;
+      }
+    };
+
+    // 4. Consent Withdrawal Handler: Immediately kills all active and future telemetry
+    window.withdrawAnalyticsConsent = function() {
+      localStorage.setItem('dpdp_analytics_consent', 'rejected');
+      window['ga-disable-G-94DDGM6XDW'] = true;
+      window.__GA4_INITIALIZED__ = false;
+      console.log('[DPDP Act 2023] Statutory analytics consent withdrawn. Telemetry halted.');
+    };
+
+    // 5. Minor Workflow Enforcer: Permanent lockout for minors (<18)
+    window.markAsMinorApplicant = function() {
+      localStorage.setItem('dpdp_is_minor', 'true');
+      localStorage.setItem('dpdp_analytics_consent', 'minor_blocked');
+      window['ga-disable-G-94DDGM6XDW'] = true;
+      window.__GA4_INITIALIZED__ = false;
+      console.log('[DPDP Section 9] Minor applicant registered. Telemetry killed.');
+    };
 
     // Global Bridge for Flutter Web Telemetry
     window.proValuerTrackEvent = function(eventName, params) {
+      if (window['ga-disable-G-94DDGM6XDW'] === true || !window.__GA4_INITIALIZED__) {
+        return; // Suppressed until explicit consent
+      }
       if (typeof gtag === 'function') {
         params = params || {};
         params.timestamp = params.timestamp || new Date().toISOString();
@@ -25,6 +84,9 @@
     };
 
     window.proValuerTrackPageView = function(pagePath, pageTitle) {
+      if (window['ga-disable-G-94DDGM6XDW'] === true || !window.__GA4_INITIALIZED__) {
+        return; // Suppressed until explicit consent
+      }
       if (typeof gtag === 'function') {
         var params = {
           page_path: pagePath,
@@ -36,6 +98,9 @@
         console.log('[GA4 Production PageView Tracked]', params);
       }
     };
+
+    // On initial page load: only initialize if previously granted
+    window.initializeGoogleAnalyticsIfConsented();
   </script>
 
   <base href="$FLUTTER_BASE_HREF">
@@ -131,8 +196,6 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&family=Inter:wght@400;500;600;700&family=Noto+Color+Emoji&family=Noto+Sans+Devanagari:wght@400;600;700&family=Noto+Sans+Symbols+2&family=Noto+Sans+Symbols:wght@400;700&family=Noto+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
 
-  <!-- Core Web Vitals (LCP) Optimization: High Priority Preload for Initial Hero Visual -->
-  <link rel="preload" as="image" type="image/webp" href="assets/assets/images/hero/land_valuation.webp" fetchpriority="high">
 
   <!-- Microsoft Clarity Integration Hook -->
   <script>
@@ -1719,6 +1782,123 @@
 
       // Fallback safety: ensure shell fades out after 8 seconds on extremely slow connections
       setTimeout(dismissSeoShell, 8000);
+    })();
+  </script>
+  <!-- DPDP Act 2023 Statutory Privacy & Cookie Consent Banner -->
+  <style>
+    #dpdp-consent-banner {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: calc(100% - 32px);
+      max-width: 680px;
+      background: rgba(15, 23, 42, 0.95);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(20, 184, 166, 0.35);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.05);
+      border-radius: 14px;
+      padding: 18px 22px;
+      z-index: 2147483647;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Inter, Helvetica, Arial, sans-serif;
+      color: #F8FAFC;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      box-sizing: border-box;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    #dpdp-consent-banner.dpdp-hidden {
+      display: none !important;
+    }
+    .dpdp-banner-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 15px;
+      font-weight: 700;
+      color: #14B8A6;
+    }
+    .dpdp-banner-body {
+      font-size: 13px;
+      line-height: 1.55;
+      color: #94A3B8;
+    }
+    .dpdp-banner-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .dpdp-btn {
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+    .dpdp-btn-reject {
+      background: rgba(255, 255, 255, 0.08);
+      color: #CBD5E1;
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    .dpdp-btn-reject:hover {
+      background: rgba(255, 255, 255, 0.14);
+      color: #FFFFFF;
+    }
+    .dpdp-btn-accept {
+      background: #0F766E;
+      color: #FFFFFF;
+      border: 1px solid #14B8A6;
+    }
+    .dpdp-btn-accept:hover {
+      background: #14B8A6;
+    }
+  </style>
+
+  <div id="dpdp-consent-banner" class="dpdp-hidden">
+    <div class="dpdp-banner-header">
+      <span>🛡️ DPDP Act 2023 Statutory Privacy &amp; Consent</span>
+    </div>
+    <div class="dpdp-banner-body">
+      ProValuer uses essential cookies to operate its valuation and consular verification portal. With your affirmative consent, we also utilize anonymized telemetry to assess platform reliability. In accordance with Section 9 of the DPDP Act 2023, telemetry is permanently disabled for minor applicants (&lt;18).
+    </div>
+    <div class="dpdp-banner-actions">
+      <button type="button" class="dpdp-btn dpdp-btn-reject" id="dpdp-btn-reject" onclick="handleDpdpConsent(false)">
+        Reject Analytics
+      </button>
+      <button type="button" class="dpdp-btn dpdp-btn-accept" id="dpdp-btn-accept" onclick="handleDpdpConsent(true)">
+        Accept Analytics
+      </button>
+    </div>
+  </div>
+
+  <script>
+    function handleDpdpConsent(accepted) {
+      if (accepted) {
+        localStorage.setItem('dpdp_analytics_consent', 'granted');
+        window.initializeGoogleAnalyticsIfConsented();
+      } else {
+        localStorage.setItem('dpdp_analytics_consent', 'rejected');
+        window.withdrawAnalyticsConsent();
+      }
+      var b = document.getElementById('dpdp-consent-banner');
+      if (b) b.remove();
+    }
+
+    (function() {
+      var consent = localStorage.getItem('dpdp_analytics_consent');
+      if (!consent && !window.isMinorUser()) {
+        window.addEventListener('DOMContentLoaded', function() {
+          var b = document.getElementById('dpdp-consent-banner');
+          if (b) b.classList.remove('dpdp-hidden');
+        });
+      }
     })();
   </script>
   <script src="flutter_bootstrap.js" async></script>
