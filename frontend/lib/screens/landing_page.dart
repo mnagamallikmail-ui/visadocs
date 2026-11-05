@@ -169,8 +169,8 @@ class _LandingPageState extends State<LandingPage> {
           ),
           // ── Persistent Sticky Floating Action Button ──────────────────────
           Positioned(
-            bottom: 32,
-            right: 32,
+            bottom: isDesktop ? 32 : 24,
+            right: isDesktop ? 32 : 20,
             child: MouseRegion(
               cursor: SystemMouseCursors.click,
               child: GestureDetector(
@@ -186,8 +186,8 @@ class _LandingPageState extends State<LandingPage> {
                   }
                 },
                 child: Container(
-                  width: 58,
-                  height: 58,
+                  width: isDesktop ? 58 : 52,
+                  height: isDesktop ? 58 : 52,
                   decoration: const BoxDecoration(
                     color: Color(0xFF25D366), // Standard WhatsApp Green
                     shape: BoxShape.circle,
@@ -199,11 +199,11 @@ class _LandingPageState extends State<LandingPage> {
                       ),
                     ],
                   ),
-                  child: const Center(
+                  child: Center(
                     child: FaIcon(
                       FontAwesomeIcons.whatsapp,
                       color: Colors.white,
-                      size: 32,
+                      size: isDesktop ? 32 : 28,
                     ),
                   ),
                 ),

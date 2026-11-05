@@ -131,6 +131,100 @@ class GlassEyebrowBadge extends StatelessWidget {
   }
 }
 
+/// Compact Reassurance Strip: Used directly below Hero and Final CTA buttons
+class MicroReassuranceStrip extends StatelessWidget {
+  final bool isCompact;
+
+  const MicroReassuranceStrip({super.key, this.isCompact = false});
+
+  @override
+  Widget build(BuildContext context) {
+    const items = [
+      'Court & Bank Accepted',
+      'Priority Delivery',
+      'DPDP Act Protected',
+    ];
+
+    return Wrap(
+      spacing: isCompact ? 12 : 16,
+      runSpacing: 6,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: items.map((item) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(
+              Icons.check_circle_rounded,
+              size: 13,
+              color: LandingTheme.brandGreen,
+            ),
+            const SizedBox(width: 5),
+            Text(
+              item,
+              style: GoogleFonts.montserrat(
+                fontSize: isCompact ? 11.0 : 12.0,
+                fontWeight: FontWeight.w600,
+                color: LandingTheme.textSecondary,
+                letterSpacing: -0.1,
+              ),
+            ),
+          ],
+        );
+      }).toList(),
+    );
+  }
+}
+
+/// Subtle Enterprise Micro-Proof Strip: Displays track record anchors below Hero CTA zone
+class HeroMicroProofStrip extends StatelessWidget {
+  final bool isCompact;
+
+  const HeroMicroProofStrip({super.key, this.isCompact = false});
+
+  @override
+  Widget build(BuildContext context) {
+    final double fontSize = isCompact ? 11.0 : 12.0;
+
+    return Wrap(
+      spacing: 8,
+      runSpacing: 4,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        _item('₹2,00,000+ Cr Assessed', fontSize),
+        _bullet(),
+        _item('23+ Years Experience', fontSize),
+        _bullet(),
+        _item('Several Thousand Assignments', fontSize),
+        _bullet(),
+        _item('Pan India Coverage', fontSize),
+      ],
+    );
+  }
+
+  Widget _item(String text, double fontSize) {
+    return Text(
+      text,
+      style: GoogleFonts.montserrat(
+        fontSize: fontSize,
+        fontWeight: FontWeight.w600,
+        color: LandingTheme.textSecondary,
+        letterSpacing: 0.1,
+      ),
+    );
+  }
+
+  Widget _bullet() {
+    return Container(
+      width: 3.5,
+      height: 3.5,
+      decoration: const BoxDecoration(
+        color: LandingTheme.platinumHighlight,
+        shape: BoxShape.circle,
+      ),
+    );
+  }
+}
+
 // ═══════════════════════════════════════════════════════════════════════════════
 // 1. FLOATING GLASS NAVIGATION BAR
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -155,7 +249,7 @@ class LandingHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final double screenW = MediaQuery.of(context).size.width;
     final double horizontalPadding = isDesktop ? (screenW < 1440 ? 40 : 60) : 20;
-    final double linkSpacing = screenW >= LandingTheme.wideDesktopBreakpoint ? 30.0 : 22.0;
+    final double linkSpacing = screenW >= LandingTheme.wideDesktopBreakpoint ? 30.0 : (screenW < 1320 ? 14.0 : 20.0);
 
     return Padding(
       padding: EdgeInsets.symmetric(
@@ -278,13 +372,17 @@ class LandingHeader extends StatelessWidget {
                         _HeaderLink(label: 'Credentials', onTap: () => onNavigate?.call('credentials')),
                         SizedBox(width: linkSpacing),
 
+                        // Compact Desktop Phone Pill (Enterprise Advisory Desk)
+                        const _HeaderPhonePill(),
+                        const SizedBox(width: 8),
+
                         // Compact Client Login Icon Button (Secondary Action)
                         const _HeaderClientLoginButton(),
                         const SizedBox(width: 10),
 
                         // Request Valuation Report Button (Obsidian & Platinum)
                         GestureDetector(
-                          onTap: () => context.go('/login'),
+                          onTap: () => CommercialIntakeModal.show(context),
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
                             decoration: BoxDecoration(
@@ -343,6 +441,76 @@ class LandingHeader extends StatelessWidget {
                 ),
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Compact Desktop Phone Pill for Header (Advisory Desk Quick Dial)
+class _HeaderPhonePill extends StatefulWidget {
+  const _HeaderPhonePill();
+
+  @override
+  State<_HeaderPhonePill> createState() => _HeaderPhonePillState();
+}
+
+class _HeaderPhonePillState extends State<_HeaderPhonePill> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        onTap: () async {
+          AnalyticsService.logPhoneClicked(
+            phoneNumber: '+918500019091',
+            serviceType: 'HEADER_NAV',
+            pageUrl: Uri.base.toString(),
+          );
+          final uri = Uri.parse('tel:+918500019091');
+          if (await canLaunchUrl(uri)) {
+            await launchUrl(uri);
+          }
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8.5),
+          decoration: BoxDecoration(
+            color: _isHovered
+                ? LandingTheme.brandGreen.withValues(alpha: 0.08)
+                : const Color(0x08005C5C),
+            borderRadius: BorderRadius.circular(100),
+            border: Border.all(
+              color: _isHovered
+                  ? LandingTheme.brandGreen.withValues(alpha: 0.45)
+                  : LandingTheme.brandGreen.withValues(alpha: 0.22),
+              width: 1.0,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const FaIcon(
+                FontAwesomeIcons.phone,
+                size: 11,
+                color: LandingTheme.brandGreen,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                '+91 85000 19091',
+                style: GoogleFonts.montserrat(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w700,
+                  color: LandingTheme.brandGreen,
+                  letterSpacing: -0.2,
+                ),
+              ),
+            ],
           ),
         ),
       ),
@@ -603,7 +771,7 @@ class _HeroSectionState extends State<HeroSection> {
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'REGISTERED VALUERS • CHARTERED ENGINEERS • STATUTORY & IMMIGRATION CERTIFICATION',
+                    'CBDT APPROVED VALUERS • IBBI REGISTERED VALUERS • CHARTERED ENGINEERS',
                     style: GoogleFonts.montserrat(
                       fontSize: isCompactDesktop ? 9.5 : 10.5,
                       fontWeight: FontWeight.w700,
@@ -670,7 +838,7 @@ class _HeroSectionState extends State<HeroSection> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Independent valuation, technical advisory, lender engineering, net worth certification and due diligence services for banks, NBFCs, insolvency professionals, corporates, investors, NRIs and property owners across India. Reports and certifications prepared under applicable statutory, taxation and professional frameworks.',
+                'Independent statutory valuations and chartered engineering advisory across Real Estate, Industrial Assets, Plant & Machinery, Financial Assets, and Visa Net Worth certification. Defensible, dispute-tested reports prepared under IBBI, Companies Act, Income Tax, and international valuation standards for banks, corporates, and global mobility.',
                 style: GoogleFonts.montserrat(
                   fontSize: bodySize,
                   fontWeight: FontWeight.w500,
@@ -699,7 +867,7 @@ class _HeroSectionState extends State<HeroSection> {
                       children: [
                         _buildTrustBadge(Icons.engineering_outlined, 'Chartered Engineers (IEI)', isCompactDesktop),
                         const SizedBox(width: 8),
-                        _buildTrustBadge(Icons.assignment_turned_in_outlined, 'Banking & Immigration Documentation Support', isCompactDesktop),
+                        _buildTrustBadge(Icons.assignment_turned_in_outlined, 'Accepted by Banks, Courts & Global Embassies', isCompactDesktop),
                       ],
                     ),
                   ],
@@ -713,7 +881,7 @@ class _HeroSectionState extends State<HeroSection> {
                     _buildGovtApprovedBadge(isCompactDesktop),
                     _buildTrustBadge(Icons.verified_user_outlined, 'IBBI Registered Valuers • Sec 247', isCompactDesktop),
                     _buildTrustBadge(Icons.engineering_outlined, 'Chartered Engineers (IEI)', isCompactDesktop),
-                    _buildTrustBadge(Icons.assignment_turned_in_outlined, 'Banking & Immigration Documentation Support', isCompactDesktop),
+                    _buildTrustBadge(Icons.assignment_turned_in_outlined, 'Accepted by Banks, Courts & Global Embassies', isCompactDesktop),
                   ],
                 ),
             ],
@@ -731,7 +899,7 @@ class _HeroSectionState extends State<HeroSection> {
           children: [
             // Primary CTA: Request Valuation Report (Solid Deep Teal)
             GestureDetector(
-              onTap: () => context.go('/login'),
+              onTap: () => CommercialIntakeModal.show(context),
               child: Container(
                 padding: EdgeInsets.symmetric(
                   horizontal: isCompactDesktop ? 22 : 28,
@@ -774,6 +942,14 @@ class _HeroSectionState extends State<HeroSection> {
             _HeroPhonePill(isCompact: isCompactDesktop),
           ],
         ),
+
+        // CTA Reassurance Strip
+        const SizedBox(height: 14),
+        MicroReassuranceStrip(isCompact: isCompactDesktop),
+
+        // Hero Micro-Proof Strip
+        const SizedBox(height: 10),
+        HeroMicroProofStrip(isCompact: isCompactDesktop),
       ],
     );
   }
@@ -967,10 +1143,29 @@ class _AppleAnimatedKeywordState extends State<_AppleAnimatedKeyword>
     _startTimer();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final bool disableAnimations = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (disableAnimations) {
+      _timer?.cancel();
+      _animController.stop();
+    } else if (_timer == null || !_timer!.isActive) {
+      _startTimer();
+    }
+  }
+
   void _startTimer() {
     _timer?.cancel();
+    if (mounted && (MediaQuery.maybeOf(context)?.disableAnimations ?? false)) {
+      return;
+    }
     _timer = Timer.periodic(const Duration(milliseconds: 3600), (_) {
       if (!mounted) return;
+      if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) {
+        _timer?.cancel();
+        return;
+      }
       _nextIndex = (_currentIndex + 1) % widget.keywords.length;
       _animController.forward(from: 0.0).then((_) {
         if (!mounted) return;
@@ -1252,11 +1447,29 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
     _startAutoRotation();
   }
 
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final bool disableAnimations = MediaQuery.maybeOf(context)?.disableAnimations ?? false;
+    if (disableAnimations) {
+      _autoTimer?.cancel();
+    } else if (!_isHovered && _isVisible && (_autoTimer == null || !_autoTimer!.isActive)) {
+      _startAutoRotation();
+    }
+  }
+
   void _startAutoRotation() {
     _autoTimer?.cancel();
     if (!_isVisible) return;
+    if (mounted && (MediaQuery.maybeOf(context)?.disableAnimations ?? false)) {
+      return;
+    }
     _autoTimer = Timer.periodic(const Duration(milliseconds: 3800), (_) {
       if (!mounted || _isHovered || !_isVisible) return;
+      if (MediaQuery.maybeOf(context)?.disableAnimations ?? false) {
+        _autoTimer?.cancel();
+        return;
+      }
       setState(() {
         _activeIndex = (_activeIndex + 1) % _panels.length;
       });
@@ -1316,7 +1529,7 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
               ? (widget.isCompact
                   ? (screenH * 0.44).clamp(340.0, 400.0)
                   : (screenH * 0.48).clamp(360.0, 440.0))
-              : 500.0;
+              : (screenH * 0.44).clamp(350.0, 400.0);
 
           return Column(
             mainAxisSize: MainAxisSize.min,
@@ -1324,7 +1537,7 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
             children: [
               // ── Accordion Showcase Deck ─────────────────────────────────────
               Container(
-                height: isHorizontal ? containerHeight : 500.0,
+                height: containerHeight,
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(24),
                   boxShadow: const [
@@ -1346,7 +1559,7 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
                     : _buildVerticalAccordion(),
               ),
 
-              const SizedBox(height: 16),
+              const SizedBox(height: 2),
 
               // ── Subdued Minimal Progress Rail ──────────────────────────────
               Row(
@@ -1366,7 +1579,7 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
                           _startAutoRotation();
                         },
                         child: Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 3.0, vertical: 4.0),
+                          padding: const EdgeInsets.symmetric(horizontal: 3.0, vertical: 20.0),
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 350),
                             curve: Curves.easeOutCubic,
@@ -1533,20 +1746,31 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
                         ),
                       )
                     else
-                      // Inactive Option D: Centered Micro-ID (Zero Horizontal Margin Collision)
+                      // Inactive Option D: Centered Micro-ID & Category Icon (WCAG AA Compliant)
                       Positioned(
-                        top: 16,
+                        top: 14,
                         left: 0,
                         right: 0,
                         child: Center(
-                          child: Text(
-                            panel.id,
-                            style: GoogleFonts.montserrat(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white38,
-                              letterSpacing: 0.5,
-                            ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                panel.id,
+                                style: GoogleFonts.montserrat(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white70,
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                              const SizedBox(height: 6),
+                              Icon(
+                                panel.icon,
+                                size: 13,
+                                color: Colors.white.withValues(alpha: 0.65),
+                              ),
+                            ],
                           ),
                         ),
                       ),
@@ -2160,7 +2384,7 @@ class ServicesSection extends StatelessWidget {
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
                                     Text(
-                                      'Learn more',
+                                      'Discuss on WhatsApp',
                                       style: GoogleFonts.montserrat(
                                         fontSize: 13.5,
                                         fontWeight: FontWeight.w700,
@@ -2773,7 +2997,7 @@ class CtaBanner extends StatelessWidget {
                   alignment: WrapAlignment.center,
                   children: [
                     GestureDetector(
-                      onTap: () => context.go('/login'),
+                      onTap: () => CommercialIntakeModal.show(context),
                       child: Container(
                         padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 16),
                         decoration: BoxDecoration(
@@ -2834,6 +3058,8 @@ class CtaBanner extends StatelessWidget {
                     ),
                   ],
                 ),
+                const SizedBox(height: 20),
+                MicroReassuranceStrip(isCompact: !isDesktop),
               ],
             ),
           ),
@@ -2859,7 +3085,7 @@ class LandingFooter extends StatelessWidget {
       color: LandingTheme.primaryBg,
       padding: EdgeInsets.symmetric(
         horizontal: isDesktop ? 60 : 24,
-        vertical: 40,
+        vertical: isDesktop ? 40 : 64,
       ),
       child: Center(
         child: ConstrainedBox(
@@ -3099,7 +3325,7 @@ class MobileMenuDrawer extends StatelessWidget {
                 child: GestureDetector(
                   onTap: () {
                     Navigator.of(context).pop();
-                    context.go('/login');
+                    CommercialIntakeModal.show(context);
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 16),
