@@ -183,44 +183,57 @@ class HeroMicroProofStrip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final double fontSize = isCompact ? 11.0 : 12.0;
+    final double metricSize = isCompact ? 11.5 : 12.5;
+    final double labelSize = isCompact ? 10.5 : 11.5;
 
     return Wrap(
-      spacing: 8,
+      spacing: isCompact ? 8 : 10,
       runSpacing: 4,
       crossAxisAlignment: WrapCrossAlignment.center,
       children: [
-        _item('₹2,00,000+ Cr Assessed', fontSize),
-        _bullet(),
-        _item('23+ Years Experience', fontSize),
-        _bullet(),
-        _item('Several Thousand Assignments', fontSize),
-        _bullet(),
-        _item('Pan India Coverage', fontSize),
+        _metricItem('₹2,00,000+ Cr', 'Assessed', metricSize, labelSize),
+        _divider(),
+        _metricItem('23+ Years', 'Practice', metricSize, labelSize),
+        _divider(),
+        _metricItem('12,000+', 'Assignments', metricSize, labelSize),
+        _divider(),
+        _metricItem('Pan-India', 'Coverage', metricSize, labelSize),
       ],
     );
   }
 
-  Widget _item(String text, double fontSize) {
-    return Text(
-      text,
-      style: GoogleFonts.montserrat(
-        fontSize: fontSize,
-        fontWeight: FontWeight.w600,
-        color: LandingTheme.textSecondary,
-        letterSpacing: 0.1,
-      ),
+  Widget _metricItem(String metric, String label, double metricSize, double labelSize) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          metric,
+          style: GoogleFonts.montserrat(
+            fontSize: metricSize,
+            fontWeight: FontWeight.w800,
+            color: LandingTheme.textPrimary,
+            letterSpacing: -0.2,
+          ),
+        ),
+        const SizedBox(width: 3.5),
+        Text(
+          label,
+          style: GoogleFonts.montserrat(
+            fontSize: labelSize,
+            fontWeight: FontWeight.w500,
+            color: LandingTheme.textSecondary,
+            letterSpacing: 0.1,
+          ),
+        ),
+      ],
     );
   }
 
-  Widget _bullet() {
+  Widget _divider() {
     return Container(
-      width: 3.5,
-      height: 3.5,
-      decoration: const BoxDecoration(
-        color: LandingTheme.platinumHighlight,
-        shape: BoxShape.circle,
-      ),
+      width: 1,
+      height: 10,
+      color: const Color(0x3394A3B8),
     );
   }
 }
@@ -335,7 +348,7 @@ class LandingHeader extends StatelessWidget {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Pro Valuer OPC Pvt Ltd',
+                                  'ProValuer Advisory',
                                   style: GoogleFonts.montserrat(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w800,
@@ -345,7 +358,7 @@ class LandingHeader extends StatelessWidget {
                                 ),
                                 if (isDesktop)
                                   Text(
-                                    'Valuation, Engineering, Certification & Advisory Practice',
+                                    'Statutory Valuation & Engineering Practice',
                                     style: GoogleFonts.montserrat(
                                       fontSize: 9.5,
                                       fontWeight: FontWeight.w600,
@@ -616,16 +629,16 @@ class HeroSection extends StatefulWidget {
 }
 
 class _HeroSectionState extends State<HeroSection> {
-  // Buyer-focused service keywords — pairs dynamically with 'Valuation & Technical Advisory Services'
+  // Buyer-focused service keywords — pairs dynamically with 'Statutory Valuation & Chartered Advisory'
   static const List<String> _keywords = [
-    'Land & Buildings',
-    'Plant & Machinery',
-    'Financial Assets & Equity',
-    'Net Worth Certification',
-    'Visa & Immigration Valuation',
-    'Technical Due Diligence',
-    "Lender's Independent Engineer",
-    'Chartered Engineering Services',
+    'Industrial & Enterprise Assets',
+    'Plant & Heavy Machinery',
+    'Financial Securities & Equity',
+    'Visa Net Worth & Solvency',
+    'Land, Buildings & Infrastructure',
+    "Lender's Independent Engineer (LIE)",
+    'Insolvency & CIRP Assignments',
+    'Chartered Engineering Audits',
   ];
 
   @override
@@ -771,7 +784,7 @@ class _HeroSectionState extends State<HeroSection> {
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'CBDT APPROVED VALUERS • IBBI REGISTERED VALUERS • CHARTERED ENGINEERS',
+                    'STATUTORY VALUATION & CHARTERED ENGINEERING PRACTICE • EST. 2001',
                     style: GoogleFonts.montserrat(
                       fontSize: isCompactDesktop ? 9.5 : 10.5,
                       fontWeight: FontWeight.w700,
@@ -792,7 +805,7 @@ class _HeroSectionState extends State<HeroSection> {
 
         // 2. Independent Valuation (Two-line wrapped headline stability across all desktop resolutions)
         Text(
-          'Valuation & Technical Advisory Services',
+          'Statutory Valuation & Chartered Advisory',
           maxLines: 2,
           softWrap: true,
           style: GoogleFonts.montserrat(
@@ -838,7 +851,7 @@ class _HeroSectionState extends State<HeroSection> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                'Independent statutory valuations and chartered engineering advisory across Real Estate, Industrial Assets, Plant & Machinery, Financial Assets, and Visa Net Worth certification. Defensible, dispute-tested reports prepared under IBBI, Companies Act, Income Tax, and international valuation standards for banks, corporates, and global mobility.',
+                'Independent statutory valuations and chartered engineering advisory across Industrial Assets, Plant & Machinery, Financial Securities, Real Estate, and Global Visa Solvency. Defensible, dispute-tested reports prepared under IBBI, Companies Act, Income Tax Rule 11UA, and international valuation standards for banks, corporates, and global mobility.',
                 style: GoogleFonts.montserrat(
                   fontSize: bodySize,
                   fontWeight: FontWeight.w500,
@@ -867,7 +880,7 @@ class _HeroSectionState extends State<HeroSection> {
                       children: [
                         _buildTrustBadge(Icons.engineering_outlined, 'Chartered Engineers (IEI)', isCompactDesktop),
                         const SizedBox(width: 8),
-                        _buildTrustBadge(Icons.assignment_turned_in_outlined, 'Accepted by Banks, Courts & Global Embassies', isCompactDesktop),
+                        _buildTrustBadge(Icons.assignment_turned_in_outlined, 'Accepted by 45+ Banks & High Courts', isCompactDesktop),
                       ],
                     ),
                   ],
@@ -881,7 +894,7 @@ class _HeroSectionState extends State<HeroSection> {
                     _buildGovtApprovedBadge(isCompactDesktop),
                     _buildTrustBadge(Icons.verified_user_outlined, 'IBBI Registered Valuers • Sec 247', isCompactDesktop),
                     _buildTrustBadge(Icons.engineering_outlined, 'Chartered Engineers (IEI)', isCompactDesktop),
-                    _buildTrustBadge(Icons.assignment_turned_in_outlined, 'Accepted by Banks, Courts & Global Embassies', isCompactDesktop),
+                    _buildTrustBadge(Icons.assignment_turned_in_outlined, 'Accepted by 45+ Banks & High Courts', isCompactDesktop),
                   ],
                 ),
             ],
