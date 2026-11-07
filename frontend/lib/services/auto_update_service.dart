@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../constants/version_info.dart';
 
 class UpdateInfo {
   final String latestVersion;
@@ -47,10 +48,10 @@ class AutoUpdateService {
   AutoUpdateService._();
   static final AutoUpdateService instance = AutoUpdateService._();
 
-  static const String currentAppVersion = '1.0.0';
-  static const int currentVersionCode = 101;
-  static const String currentBranch = 'android';
-  static const String currentReleaseDate = '07-Nov-2026';
+  static const String currentAppVersion = VersionInfo.versionName;
+  static const int currentVersionCode = VersionInfo.versionCode;
+  static const String currentBranch = VersionInfo.branch;
+  static const String currentReleaseDate = VersionInfo.releaseDate;
 
   final Dio _dio = Dio(
     BaseOptions(
@@ -94,10 +95,10 @@ class AutoUpdateService {
             _showSoftUpdateBottomSheet(context, update);
           } else if (showToastIfLatest) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Pro Valuer is up to date (Version 1.0.0+101)'),
-                backgroundColor: Color(0xFF10B981),
-                duration: Duration(seconds: 2),
+              SnackBar(
+                content: Text('Pro Valuer is up to date (Version $currentAppVersion+$currentVersionCode)'),
+                backgroundColor: const Color(0xFF10B981),
+                duration: const Duration(seconds: 2),
               ),
             );
           }
@@ -109,10 +110,10 @@ class AutoUpdateService {
       debugPrint('[AutoUpdateService] Check update error (using offline fallback): $e');
       if (context != null && context.mounted && showToastIfLatest) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Pro Valuer is on latest verified build (1.0.0+101)'),
-            backgroundColor: Color(0xFF1E3A8A),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text('Pro Valuer is on latest verified build ($currentAppVersion+$currentVersionCode)'),
+            backgroundColor: const Color(0xFF1E3A8A),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
