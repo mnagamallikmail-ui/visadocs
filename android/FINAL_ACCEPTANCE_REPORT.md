@@ -80,17 +80,21 @@ Both production binaries compiled with Flutter release mode:
 
 ### 4.1 Production Release APK (Direct Mobile Sideloading & VPS Endpoint)
 * **Path**: `frontend/build/app/outputs/flutter-apk/app-production-release.apk`
-* **File Size**: `112,599,699 bytes` (`107.38 MB`)
-* **SHA-1**: `FA63CE3F7AB9BA4DC39FD0C1248058A3829621E7`
-* **SHA-256**: `08CBBAD31FC248121DD7F4F8989EA0421D4D45E3370A154627DD31E5E2C8677C`
+* **Version Name**: `1.0.0`
+* **Version Code**: `101` (`version: 1.0.0+101`)
+* **File Size**: `112,599,703 bytes` (`107.38 MB`)
+* **SHA-1**: `EF324648CA9B6EE77226633B967AAF8614FDF6EC`
+* **SHA-256**: `DCC6EC3F9E032FDD669AC5CBE1349D94E3471784CB2914586347FD44577BFD1B`
 * **Distribution Endpoint**: `https://app.provaluer.in/download` -> `https://app.provaluer.in/download/latest.apk`
-* **Remote VPS Hash Verification**: `08cbbad31fc248121dd7f4f8989ea0421d4d45e3370a154627dd31e5e2c8677c` (Identical match)
+* **Remote VPS Hash Verification**: `dcc6ec3f9e032fdd669ac5cbe1349d94e3471784cb2914586347fd44577bfd1b` (Identical match)
 
 ### 4.2 Production Release AAB (Google Play Store Bundle)
 * **Path**: `frontend/build/app/outputs/bundle/productionRelease/app-production-release.aab`
-* **File Size**: `93,405,576 bytes` (`89.08 MB`)
-* **SHA-1**: `EECB5A7871A4D765A5B7A868F5C166924DB6B5BB`
-* **SHA-256**: `86069C4732A8305736060036B4BB460D9A477A169700FEC71387F60E2F7EF190`
+* **Version Name**: `1.0.0`
+* **Version Code**: `101` (`version: 1.0.0+101`)
+* **File Size**: `93,271,344 bytes` (`88.95 MB`)
+* **SHA-1**: `92A375EFA405FA0B299C4E96BCB7D563AD0D5E87`
+* **SHA-256**: `2CAB0D7E31DABDB043585B334CE5A68255BCEF0638EB88085547D34DFB893641`
 
 ---
 
@@ -200,6 +204,6 @@ Based on physical code existence, passing automated tests, zero-regression web i
 
 > [!IMPORTANT]
 > **FINAL RECOMMENDATION: READY FOR INTERNAL TESTING & CLOSED TESTING**  
-> 1. The **Universal Release APK** (`107.38 MB`, SHA256 `08cbbad31fc248121dd7f4f8989ea0421d4d45e3370a154627dd31e5e2c8677c`) is live and downloadable at:  
+> 1. The **Universal Release APK** (`107.38 MB`, Version `1.0.0`, Build `101`, SHA256 `dcc6ec3f9e032fdd669ac5cbe1349d94e3471784cb2914586347fd44577bfd1b`) is live and downloadable at:  
 >    `https://app.provaluer.in/download/latest.apk`  
-> 2. The **Google Play Release Bundle (AAB)** (`89.08 MB`, SHA256 `86069c4732a8305736060036b4bb460d9a477a169700fec71387f60e2f7ef190`) is ready for direct upload to the **Google Play Console Internal Testing Track** or **Closed Alpha Track** under package `in.provaluer.app`.
+> 2. The **Google Play Release Bundle (AAB)** (`88.95 MB`, Version `1.0.0`, Build `101`, SHA256 `2cab0d7e31dabdb043585b334ce5a68255bcef0638eb88085547d34dfb893641`) is ready for direct upload to the **Google Play Console Internal Testing Track** or **Closed Alpha Track** under package `in.provaluer.app`.
