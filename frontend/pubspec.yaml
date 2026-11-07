@@ -2,7 +2,7 @@ name: provaluer_frontend
 description: "A production-ready Flutter Web application for Property Valuation services."
 publish_to: 'none'
 
-version: 1.0.1+102
+version: 1.0.2+103
 
 environment:
   sdk: '>=3.3.0 <4.0.0'

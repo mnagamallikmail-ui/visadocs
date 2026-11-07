@@ -3048,6 +3048,14 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
 
       // 3. Question-above-Answer Card for ALL interactive questionnaire rows on Android
       if (rowVm.inputFields.isNotEmpty) {
+        // Dedicated Image Picker Slot on mobile: DocumentInputSlotWidget renders a dedicated full-width vertical card
+        if (rowVm.inputFields.length == 1 && rowVm.inputFields.first.isImage) {
+          return Container(
+            margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            child: DocumentInputSlotWidget(fieldVm: rowVm.inputFields.first, readOnly: readOnly),
+          );
+        }
+
         return Container(
           margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
           padding: const EdgeInsets.all(14),

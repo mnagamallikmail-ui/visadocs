@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:provider/provider.dart';
+import 'package:provaluer_frontend/constants/version_info.dart';
+import 'package:provaluer_frontend/features/document_workspace/models/workspace_view_model.dart';
+import 'package:provaluer_frontend/features/document_workspace/providers/document_workspace_provider.dart';
+import 'package:provaluer_frontend/features/document_workspace/widgets/document_input_slot_widget.dart';
 import 'package:provaluer_frontend/screens/app_info_screen.dart';
 import 'package:provaluer_frontend/widgets/app_drawer.dart';
 import 'package:provaluer_frontend/widgets/section_stepper_widget.dart';
@@ -24,8 +29,8 @@ void main() {
 
       expect(find.text('App Information'), findsOneWidget);
       expect(find.text('Pro Valuer'), findsOneWidget);
-      expect(find.text('1.0.0'), findsOneWidget);
-      expect(find.text('101'), findsOneWidget);
+      expect(find.text(VersionInfo.versionName), findsOneWidget);
+      expect(find.text(VersionInfo.versionCode.toString()), findsOneWidget);
       expect(find.text('07-Nov-2026'), findsOneWidget);
       expect(find.text('android'), findsOneWidget);
       expect(find.text('Check For Updates'), findsOneWidget);
@@ -177,6 +182,87 @@ void main() {
         final textWidget = tester.widget<Text>(find.text('PV-2610-0328'));
         expect(textWidget.maxLines, 1);
         expect(textWidget.softWrap, false);
+      }
+    });
+
+    testWidgets('Verify Mobile Image Upload Widget vertical Column layout and no character breaking (360x800, 393x852, 412x915)', (tester) async {
+      const testCases = [
+        {'key': 'IMG_BHUVAN', 'title': 'Bhuvan'},
+        {'key': 'IMG_1', 'title': 'Img1'},
+      ];
+
+      const viewports = [
+        Size(360, 800),
+        Size(393, 852),
+        Size(412, 915),
+      ];
+
+      for (final vp in viewports) {
+        await tester.binding.setSurfaceSize(vp);
+
+        for (final tc in testCases) {
+          final field = InputFieldVm(
+            key: tc['key']!,
+            questionText: tc['title']!,
+            fieldType: 'IMAGE',
+            occurrences: 1,
+            currentValue: '',
+          );
+
+          final provider = DocumentWorkspaceProvider();
+
+          await tester.pumpWidget(
+            MaterialApp(
+              home: Scaffold(
+                body: ChangeNotifierProvider<DocumentWorkspaceProvider>.value(
+                  value: provider,
+                  child: SingleChildScrollView(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: DocumentInputSlotWidget(fieldVm: field),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          );
+          await tester.pumpAndSettle();
+
+          // 1. Question Title: "Bhuvan" / "Img1" must be visible as a full string on one line
+          final titleFinder = find.text(tc['title']!);
+          expect(titleFinder, findsOneWidget);
+          final titleWidget = tester.widget<Text>(titleFinder);
+          expect(titleWidget.softWrap, true);
+
+          // 2. Image Placeholder: Must have an image icon and be present
+          expect(find.byIcon(Icons.add_photo_alternate_outlined), findsOneWidget);
+
+          // 3. Description Text: readable description text present
+          final descFinder = find.text('PNG, JPEG, WebP supported for report documentation');
+          expect(descFinder, findsOneWidget);
+
+          // 4. Upload Button: Full-width Upload Image button present
+          final btnFinder = find.widgetWithText(ElevatedButton, 'Upload Image');
+          expect(btnFinder, findsOneWidget);
+
+          // 5. Structure: Ensure vertical layout (title Y < placeholder Y < desc Y < button Y)
+          final titleBox = tester.getRect(titleFinder);
+          final placeholderBox = tester.getRect(find.byIcon(Icons.add_photo_alternate_outlined));
+          final descBox = tester.getRect(descFinder);
+          final btnBox = tester.getRect(btnFinder);
+
+          expect(titleBox.bottom, lessThanOrEqualTo(placeholderBox.top));
+          expect(placeholderBox.bottom, lessThanOrEqualTo(descBox.top));
+          expect(descBox.bottom, lessThanOrEqualTo(btnBox.top));
+
+          // 6. Centered placeholder: placeholder horizontal center roughly matches viewport center
+          final placeholderCenter = placeholderBox.center.dx;
+          final screenCenter = vp.width / 2;
+          expect((placeholderCenter - screenCenter).abs(), lessThan(5.0));
+
+          // 7. Full width button: button width should be >= 80% of screen width (spanning 100% of inner container)
+          expect(btnBox.width, greaterThan(vp.width * 0.80));
+        }
       }
     });
   });
