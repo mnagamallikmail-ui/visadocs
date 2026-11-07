@@ -3115,12 +3115,19 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                                               style: GoogleFonts.inter(fontSize: 11, color: DesignSystem.textSecondary, fontWeight: FontWeight.w500),
                                             ),
                                             const SizedBox(height: 2),
-                                            Text(
-                                              reportNum,
-                                              style: GoogleFonts.montserrat(
-                                                color: DesignSystem.textPrimary,
-                                                fontSize: 15,
-                                                fontWeight: FontWeight.bold,
+                                            FittedBox(
+                                              fit: BoxFit.scaleDown,
+                                              alignment: Alignment.centerLeft,
+                                              child: Text(
+                                                reportNum,
+                                                maxLines: 1,
+                                                softWrap: false,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: GoogleFonts.montserrat(
+                                                  color: DesignSystem.textPrimary,
+                                                  fontSize: 15,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
                                               ),
                                             ),
                                             const SizedBox(height: 10),
@@ -3318,12 +3325,19 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text(
-                                              reportNum,
-                                              style: GoogleFonts.montserrat(
-                                                color: DesignSystem.textPrimary,
-                                                fontSize: 13,
-                                                fontWeight: FontWeight.bold,
+                                            FittedBox(
+                                              fit: BoxFit.scaleDown,
+                                              alignment: Alignment.centerLeft,
+                                              child: Text(
+                                                reportNum,
+                                                maxLines: 1,
+                                                softWrap: false,
+                                                overflow: TextOverflow.ellipsis,
+                                                style: GoogleFonts.montserrat(
+                                                  color: DesignSystem.textPrimary,
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
                                               ),
                                             ),
                                             const SizedBox(height: 3),
@@ -4722,7 +4736,17 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
         children: [
           Text(label.toUpperCase(), style: GoogleFonts.montserrat(color: DesignSystem.textSecondary, fontSize: 9, fontWeight: FontWeight.bold, letterSpacing: 0.5)),
           const SizedBox(height: 2),
-          Text(value, style: DesignSystem.body(color: DesignSystem.textPrimary, fontSize: 12, fontWeight: FontWeight.bold)),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              value,
+              maxLines: 1,
+              softWrap: false,
+              overflow: TextOverflow.ellipsis,
+              style: DesignSystem.body(color: DesignSystem.textPrimary, fontSize: 12, fontWeight: FontWeight.bold),
+            ),
+          ),
         ],
       ),
     );

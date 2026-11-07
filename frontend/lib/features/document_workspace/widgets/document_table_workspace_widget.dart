@@ -365,171 +365,174 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             ),
           ),
 
-          // Scrollable Table Content (Interactive Editor)
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final tableWidth = constraints.maxWidth > 960 ? constraints.maxWidth : 960.0;
-              return SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SizedBox(
-                  width: tableWidth,
-                  child: Column(
-                children: [
-                  // Table Header
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                    color: AppColors.surfaceSoft,
-                    child: Row(
-                      children: const [
-                        SizedBox(width: 44, child: Text('S.No', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
-                        Expanded(flex: 4, child: Text('Description / Plot No', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 2, child: Text('Area', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 2, child: Text('Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 2, child: Text('Area (Sq.Ft)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 2, child: Text('Rate (₹/Unit)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
-                        Expanded(flex: 3, child: Text('Amount (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.right)),
-                        SizedBox(width: 44),
-                      ],
-                    ),
-                  ),
-
-                  // Dynamic Rows
-                  if (landItems.isEmpty)
+          // Scrollable Table Content (Interactive Editor on Web, Card Stack on Android)
+          if (!kIsWeb)
+            _buildMobileLandSectionContent(context, provider, landItems, isReadOnly)
+          else
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final tableWidth = constraints.maxWidth > 960 ? constraints.maxWidth : 960.0;
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    width: tableWidth,
+                    child: Column(
+                  children: [
+                    // Table Header
                     Container(
-                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-                      alignment: Alignment.center,
-                      child: Text(
-                        'No land parcels recorded. Click "+ Add Parcel" above to add records.',
-                        style: GoogleFonts.inter(fontSize: 12, color: AppColors.slate, fontStyle: FontStyle.italic),
-                      ),
-                    ),
-                  ...landItems.asMap().entries.map((entry) {
-                    final idx = entry.key;
-                    final item = entry.value;
-                    return Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      color: AppColors.surfaceSoft,
                       child: Row(
-                        children: [
-                          SizedBox(
-                            width: 44,
-                            child: Text(
-                              '${idx + 1}',
-                              style: GoogleFonts.firaCode(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMuted),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                          Expanded(
-                            flex: 4,
-                            child: TextFormField(
-                              initialValue: item.description.isNotEmpty ? item.description : (item.surveyNo.isNotEmpty ? 'Plot (Sy.No.${item.surveyNo})' : ''),
-                              enabled: !isReadOnly,
-                              decoration: const InputDecoration(
-                                hintText: 'e.g. Commercial Plot (Sy.No.42/A)',
-                                isDense: true,
-                                border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                              ),
-                              onChanged: (val) {
-                                item.description = val;
-                                provider.recalculateValuation();
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            flex: 2,
-                            child: TextFormField(
-                              initialValue: item.enteredArea > 0 ? IndianNumberFormatter.format(item.enteredArea, includeDecimals: item.enteredArea % 1 != 0) : '',
-                              enabled: !isReadOnly,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              decoration: const InputDecoration(
-                                hintText: '0',
-                                isDense: true,
-                                border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                              ),
-                              onChanged: (val) {
-                                item.enteredArea = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
-                                provider.recalculateValuation();
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            flex: 2,
-                            child: DropdownButtonFormField<String>(
-                              isExpanded: true,
-                              value: _landUnits.contains(item.enteredUnit) ? item.enteredUnit : 'Sq.Ft',
-                              items: _landUnits.map((u) => DropdownMenuItem(value: u, child: Text(u, style: const TextStyle(fontSize: 11)))).toList(),
-                              onChanged: isReadOnly ? null : (val) {
-                                if (val != null) {
-                                  item.enteredUnit = val;
-                                  provider.recalculateValuation();
-                                }
-                              },
-                              decoration: const InputDecoration(
-                                isDense: true,
-                                border: OutlineInputBorder(),
-                                contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            flex: 2,
-                            child: Text(
-                              IndianNumberFormatter.format(item.standardAreaSqft, includeDecimals: true),
-                              style: GoogleFonts.firaCode(fontSize: 11, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            flex: 2,
-                            child: TextFormField(
-                              initialValue: item.rate > 0 ? IndianNumberFormatter.format(item.rate, includeDecimals: item.rate % 1 != 0) : '',
-                              enabled: !isReadOnly,
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              decoration: InputDecoration(
-                                hintText: '₹ / ${item.enteredUnit}',
-                                isDense: true,
-                                border: const OutlineInputBorder(),
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                              ),
-                              onChanged: (val) {
-                                item.rate = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
-                                provider.recalculateValuation();
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            flex: 3,
-                            child: Text(
-                              '₹ ${IndianNumberFormatter.format(item.value)}',
-                              style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
-                              textAlign: TextAlign.right,
-                            ),
-                          ),
-                          SizedBox(
-                            width: 44,
-                            child: isReadOnly
-                                ? null
-                                : IconButton(
-                                    icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.brandRedDark),
-                                    onPressed: () => provider.removeLandItem(idx),
-                                  ),
-                          ),
+                        children: const [
+                          SizedBox(width: 44, child: Text('S.No', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.center)),
+                          Expanded(flex: 4, child: Text('Description / Plot No', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                          Expanded(flex: 2, child: Text('Area', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                          Expanded(flex: 2, child: Text('Unit', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                          Expanded(flex: 2, child: Text('Area (Sq.Ft)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                          Expanded(flex: 2, child: Text('Rate (₹/Unit)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11))),
+                          Expanded(flex: 3, child: Text('Amount (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 11), textAlign: TextAlign.right)),
+                          SizedBox(width: 44),
                         ],
                       ),
-                    );
-                  }),
-                ],
+                    ),
+
+                    // Dynamic Rows
+                    if (landItems.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                        alignment: Alignment.center,
+                        child: Text(
+                          'No land parcels recorded. Click "+ Add Parcel" above to add records.',
+                          style: GoogleFonts.inter(fontSize: 12, color: AppColors.slate, fontStyle: FontStyle.italic),
+                        ),
+                      ),
+                    ...landItems.asMap().entries.map((entry) {
+                      final idx = entry.key;
+                      final item = entry.value;
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                        decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
+                        child: Row(
+                          children: [
+                            SizedBox(
+                              width: 44,
+                              child: Text(
+                                '${idx + 1}',
+                                style: GoogleFonts.firaCode(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textMuted),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                            Expanded(
+                              flex: 4,
+                              child: TextFormField(
+                                initialValue: item.description.isNotEmpty ? item.description : (item.surveyNo.isNotEmpty ? 'Plot (Sy.No.${item.surveyNo})' : ''),
+                                enabled: !isReadOnly,
+                                decoration: const InputDecoration(
+                                  hintText: 'e.g. Commercial Plot (Sy.No.42/A)',
+                                  isDense: true,
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                ),
+                                onChanged: (val) {
+                                  item.description = val;
+                                  provider.recalculateValuation();
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: TextFormField(
+                                initialValue: item.enteredArea > 0 ? IndianNumberFormatter.format(item.enteredArea, includeDecimals: item.enteredArea % 1 != 0) : '',
+                                enabled: !isReadOnly,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                decoration: const InputDecoration(
+                                  hintText: '0',
+                                  isDense: true,
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                ),
+                                onChanged: (val) {
+                                  item.enteredArea = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
+                                  provider.recalculateValuation();
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: DropdownButtonFormField<String>(
+                                isExpanded: true,
+                                value: _landUnits.contains(item.enteredUnit) ? item.enteredUnit : 'Sq.Ft',
+                                items: _landUnits.map((u) => DropdownMenuItem(value: u, child: Text(u, style: const TextStyle(fontSize: 11)))).toList(),
+                                onChanged: isReadOnly ? null : (val) {
+                                  if (val != null) {
+                                    item.enteredUnit = val;
+                                    provider.recalculateValuation();
+                                  }
+                                },
+                                decoration: const InputDecoration(
+                                  isDense: true,
+                                  border: OutlineInputBorder(),
+                                  contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: Text(
+                                IndianNumberFormatter.format(item.standardAreaSqft, includeDecimals: true),
+                                style: GoogleFonts.firaCode(fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 2,
+                              child: TextFormField(
+                                initialValue: item.rate > 0 ? IndianNumberFormatter.format(item.rate, includeDecimals: item.rate % 1 != 0) : '',
+                                enabled: !isReadOnly,
+                                keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                                decoration: InputDecoration(
+                                  hintText: '₹ / ${item.enteredUnit}',
+                                  isDense: true,
+                                  border: const OutlineInputBorder(),
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                                ),
+                                onChanged: (val) {
+                                  item.rate = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
+                                  provider.recalculateValuation();
+                                },
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              flex: 3,
+                              child: Text(
+                                '₹ ${IndianNumberFormatter.format(item.value)}',
+                                style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                                textAlign: TextAlign.right,
+                              ),
+                            ),
+                            SizedBox(
+                              width: 44,
+                              child: isReadOnly
+                                  ? null
+                                  : IconButton(
+                                      icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.brandRedDark),
+                                      onPressed: () => provider.removeLandItem(idx),
+                                    ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }),
+                  ],
+                ),
               ),
-            ),
-          );
-        },
-      ),
+            );
+          },
+        ),
 
           // Total & Say Rows
           Container(
@@ -633,14 +636,17 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
             ),
           ),
 
-          // Scrollable Table Content (Interactive Editor)
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final tableWidth = constraints.maxWidth > 1160 ? constraints.maxWidth : 1160.0;
-              return SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: SizedBox(
-                    width: tableWidth,
+          // Scrollable Table Content (Interactive Editor on Web, Card Stack on Android)
+          if (!kIsWeb)
+            _buildMobileBuildingSectionContent(context, provider, buildingItems, isReadOnly)
+          else
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final tableWidth = constraints.maxWidth > 1160 ? constraints.maxWidth : 1160.0;
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                      width: tableWidth,
                     child: Column(
                 children: [
                   // Table Header
@@ -956,15 +962,18 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
               ],
             ),
           ),
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final tableWidth = constraints.maxWidth > 850 ? constraints.maxWidth : 850.0;
-              return Scrollbar(
-                thumbVisibility: constraints.maxWidth < 850,
-                child: SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: tableWidth,
+          if (!kIsWeb)
+            _buildMobileComparablesSectionContent(context, provider, comparables, isReadOnly)
+          else
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final tableWidth = constraints.maxWidth > 850 ? constraints.maxWidth : 850.0;
+                return Scrollbar(
+                  thumbVisibility: constraints.maxWidth < 850,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: tableWidth,
                     child: Column(
                 children: [
                   Container(
@@ -1141,63 +1150,107 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           ),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final tableWidth = constraints.maxWidth > 550 ? constraints.maxWidth : 550.0;
-                return Scrollbar(
-                  thumbVisibility: constraints.maxWidth < 550,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: SizedBox(
-                      width: tableWidth,
-                      child: Table(
-                        columnWidths: const {
-                          0: FlexColumnWidth(5.5),
-                          1: FlexColumnWidth(4.5),
-                        },
+            child: !kIsWeb
+                ? Table(
+                    columnWidths: const {
+                      0: FlexColumnWidth(5.5),
+                      1: FlexColumnWidth(4.5),
+                    },
+                    children: [
+                      TableRow(
+                        decoration: const BoxDecoration(color: AppColors.surfaceSoft, border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
                         children: [
-                          TableRow(
-                            decoration: const BoxDecoration(color: AppColors.surfaceSoft, border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
-                            children: [
-                              Padding(padding: const EdgeInsets.all(10), child: Text('Particulars', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold))),
-                              Padding(padding: const EdgeInsets.all(10), child: Text('Amount (₹)', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold))),
-                            ],
-                          ),
-                          TableRow(
-                            decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
-                            children: [
-                              Padding(padding: const EdgeInsets.all(10), child: Text('Value of Land (Say Land)', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600))),
-                              Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(landVal)}', style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold))),
-                            ],
-                          ),
-                          TableRow(
-                            decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
-                            children: [
-                              Padding(padding: const EdgeInsets.all(10), child: Text('Value of Buildings (Say Bldg)', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600))),
-                              Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(bldgVal)}', style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold))),
-                            ],
-                          ),
-                          TableRow(
-                            decoration: BoxDecoration(color: AppColors.surfaceSoft, border: const Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
-                            children: [
-                              Padding(padding: const EdgeInsets.all(10), child: Text('Total', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary))),
-                              Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(fairVal)}', style: GoogleFonts.firaCode(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary))),
-                            ],
-                          ),
-                          TableRow(
-                            decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.05)),
-                            children: [
-                              Padding(padding: const EdgeInsets.all(10), child: Text('Say', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.ink))),
-                              Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(sayVal)}', style: GoogleFonts.firaCode(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.successAccent))),
-                            ],
-                          ),
+                          Padding(padding: const EdgeInsets.all(10), child: Text('Particulars', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold))),
+                          Padding(padding: const EdgeInsets.all(10), child: Text('Amount (₹)', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold))),
                         ],
                       ),
-                    ),
+                      TableRow(
+                        decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
+                        children: [
+                          Padding(padding: const EdgeInsets.all(10), child: Text('Value of Land (Say Land)', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600))),
+                          Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(landVal)}', style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold))),
+                        ],
+                      ),
+                      TableRow(
+                        decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
+                        children: [
+                          Padding(padding: const EdgeInsets.all(10), child: Text('Value of Buildings (Say Bldg)', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600))),
+                          Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(bldgVal)}', style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold))),
+                        ],
+                      ),
+                      TableRow(
+                        decoration: BoxDecoration(color: AppColors.surfaceSoft, border: const Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
+                        children: [
+                          Padding(padding: const EdgeInsets.all(10), child: Text('Total', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary))),
+                          Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(fairVal)}', style: GoogleFonts.firaCode(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary))),
+                        ],
+                      ),
+                      TableRow(
+                        decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.05)),
+                        children: [
+                          Padding(padding: const EdgeInsets.all(10), child: Text('Say', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.ink))),
+                          Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(sayVal)}', style: GoogleFonts.firaCode(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.successAccent))),
+                        ],
+                      ),
+                    ],
+                  )
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      final tableWidth = constraints.maxWidth > 550 ? constraints.maxWidth : 550.0;
+                      return Scrollbar(
+                        thumbVisibility: constraints.maxWidth < 550,
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: SizedBox(
+                            width: tableWidth,
+                            child: Table(
+                              columnWidths: const {
+                                0: FlexColumnWidth(5.5),
+                                1: FlexColumnWidth(4.5),
+                              },
+                              children: [
+                                TableRow(
+                                  decoration: const BoxDecoration(color: AppColors.surfaceSoft, border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
+                                  children: [
+                                    Padding(padding: const EdgeInsets.all(10), child: Text('Particulars', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold))),
+                                    Padding(padding: const EdgeInsets.all(10), child: Text('Amount (₹)', style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold))),
+                                  ],
+                                ),
+                                TableRow(
+                                  decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
+                                  children: [
+                                    Padding(padding: const EdgeInsets.all(10), child: Text('Value of Land (Say Land)', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600))),
+                                    Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(landVal)}', style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold))),
+                                  ],
+                                ),
+                                TableRow(
+                                  decoration: const BoxDecoration(border: Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
+                                  children: [
+                                    Padding(padding: const EdgeInsets.all(10), child: Text('Value of Buildings (Say Bldg)', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600))),
+                                    Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(bldgVal)}', style: GoogleFonts.firaCode(fontSize: 14, fontWeight: FontWeight.bold))),
+                                  ],
+                                ),
+                                TableRow(
+                                  decoration: BoxDecoration(color: AppColors.surfaceSoft, border: const Border(bottom: BorderSide(color: AppColors.hairlineSoft))),
+                                  children: [
+                                    Padding(padding: const EdgeInsets.all(10), child: Text('Total', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.primary))),
+                                    Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(fairVal)}', style: GoogleFonts.firaCode(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary))),
+                                  ],
+                                ),
+                                TableRow(
+                                  decoration: BoxDecoration(color: AppColors.primary.withValues(alpha: 0.05)),
+                                  children: [
+                                    Padding(padding: const EdgeInsets.all(10), child: Text('Say', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: AppColors.ink))),
+                                    Padding(padding: const EdgeInsets.all(10), child: Text('₹ ${IndianNumberFormatter.format(sayVal)}', style: GoogleFonts.firaCode(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.successAccent))),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),
@@ -1401,13 +1454,15 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           // 4-Column Live Valuation Summary Grid Table matching DOCX output
           Padding(
             padding: const EdgeInsets.all(16),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final tableWidth = constraints.maxWidth > 780 ? constraints.maxWidth : 780.0;
-                return SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: SizedBox(
-                    width: tableWidth,
+            child: !kIsWeb
+                ? _buildMobileSummaryContent(context, provider, data, insurableVal)
+                : LayoutBuilder(
+                    builder: (context, constraints) {
+                      final tableWidth = constraints.maxWidth > 780 ? constraints.maxWidth : 780.0;
+                      return SingleChildScrollView(
+                        scrollDirection: Axis.horizontal,
+                        child: SizedBox(
+                          width: tableWidth,
                     child: Container(
                         decoration: BoxDecoration(
                           border: Border.all(color: AppColors.hairlineSoft),
@@ -1602,6 +1657,10 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
       }
     }
     mainUnit ??= items.isNotEmpty ? items.first : ValuationCompositeItemModel(itemCategory: 'MAIN_UNIT', quantity: 1000, rate: 0);
+
+    if (!kIsWeb) {
+      return _buildMobileCompositeContent(context, provider, items, isReadOnly);
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -2844,6 +2903,26 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
   }
 
   Widget _buildTableCard(BuildContext context, TableVm tableVm, bool readOnly) {
+    if (!kIsWeb) {
+      return Container(
+        margin: const EdgeInsets.only(bottom: 16),
+        decoration: BoxDecoration(
+          color: AppColors.workspacePanel,
+          borderRadius: AppRadius.br8,
+          border: Border.all(color: AppColors.workspaceBorder),
+          boxShadow: AppShadows.subtleElevated,
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            for (int r = 0; r < tableVm.rows.length; r++)
+              _buildTableRow(context, tableVm.rows[r], r, tableVm.rows.length, readOnly),
+          ],
+        ),
+      );
+    }
+
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
       decoration: BoxDecoration(
@@ -2887,6 +2966,163 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 8),
         child: _buildInlineCompositeSection(context, provider),
+      );
+    }
+
+    // =========================================================================
+    // ANDROID-ONLY MOBILE-FIRST FORM CARD RENDERING
+    // Converts desktop-style horizontal tables into vertical mobile cards:
+    // Question (Top) -> Full Width Answer Field (Bottom)
+    // ZERO desktop tables, ZERO horizontal scroll, ZERO column headers.
+    // =========================================================================
+    if (!kIsWeb) {
+      // 1. Desktop table headers must NEVER be shown on Android
+      if (rowVm.isTableHeader) {
+        return const SizedBox.shrink();
+      }
+
+      // 1b. Check if raw cells contain table column header titles (No., Description, Value, S.No, Question, Answer)
+      if (rowVm.inputFields.isEmpty && rowVm.rawCells.isNotEmpty) {
+        final cellTexts = rowVm.rawCells.map((c) => c.plainText.trim().toLowerCase()).toList();
+        final hasHeaderKeywords = cellTexts.any((t) =>
+            t == 'no.' || t == 'no' || t == 's.no' || t == 's.no.' ||
+            t == 'question' || t == 'answer' || t == 'description' ||
+            t == 'value' || t == 'particulars' || t == 'remarks' || t == 'item');
+        if (hasHeaderKeywords && cellTexts.length >= 2) {
+          return const SizedBox.shrink();
+        }
+      }
+
+      // 2. Section Heading / Category Title
+      if (rowVm.isSectionHeadingRow && rowVm.inputFields.isEmpty) {
+        final title = (rowVm.questionText != null && rowVm.questionText!.isNotEmpty)
+            ? rowVm.questionText!
+            : (rowVm.rawCells.isNotEmpty
+                ? rowVm.rawCells.map((c) => c.plainText.trim()).where((t) => t.isNotEmpty).join(' ')
+                : '');
+        if (title.isEmpty) return const SizedBox.shrink();
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+          decoration: BoxDecoration(
+            color: AppColors.workspaceSegmentBg,
+            border: Border(bottom: BorderSide(color: AppColors.workspaceBorder, width: isLast ? 0 : 1)),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              if (rowVm.serialNo != null && rowVm.serialNo!.trim().isNotEmpty) ...[
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  margin: const EdgeInsets.only(right: 8),
+                  decoration: BoxDecoration(
+                    color: AppColors.workspaceCanvas,
+                    borderRadius: BorderRadius.circular(4),
+                    border: Border.all(color: AppColors.workspaceBorder),
+                  ),
+                  child: Text(
+                    rowVm.serialNo!.trim(),
+                    style: GoogleFonts.montserrat(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: AppColors.workspaceSecondaryText,
+                    ),
+                  ),
+                ),
+              ],
+              Expanded(
+                child: Text(
+                  title,
+                  textAlign: TextAlign.left,
+                  style: GoogleFonts.montserrat(
+                    fontSize: 12.5,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.workspacePrimaryText,
+                    letterSpacing: 0.2,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      }
+
+      // 3. Question-above-Answer Card for ALL interactive questionnaire rows on Android
+      if (rowVm.inputFields.isNotEmpty) {
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.workspaceBorder.withValues(alpha: 0.8)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Question with optional serial number badge
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (rowVm.serialNo != null && rowVm.serialNo!.trim().isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      margin: const EdgeInsets.only(right: 8, top: 1),
+                      decoration: BoxDecoration(
+                        color: AppColors.workspaceCanvas,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: AppColors.workspaceBorder),
+                      ),
+                      child: Text(
+                        rowVm.serialNo!.trim(),
+                        style: GoogleFonts.montserrat(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.workspaceSecondaryText,
+                        ),
+                      ),
+                    ),
+                  ],
+                  Expanded(
+                    child: _buildQuestionPrompt(rowVm),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              // Answer Input Field(s) - Full Available Width
+              for (final f in rowVm.inputFields) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: DocumentInputSlotWidget(fieldVm: f, readOnly: readOnly),
+                ),
+                if (rowVm.inputFields.last != f) const SizedBox(height: 8),
+              ],
+            ],
+          ),
+        );
+      }
+
+      // 4. Static narrative / irregular cell fallback for mobile
+      final staticText = rowVm.rawCells.map((c) => c.plainText.trim()).where((t) => t.isNotEmpty).join('  ');
+      if (staticText.isEmpty) return const SizedBox.shrink();
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color: AppColors.workspaceCanvas.withValues(alpha: 0.4),
+          border: Border(bottom: BorderSide(color: AppColors.workspaceBorder.withValues(alpha: 0.6), width: isLast ? 0 : 0.8)),
+        ),
+        child: Text(
+          staticText,
+          textAlign: TextAlign.left,
+          style: GoogleFonts.montserrat(fontSize: 11.5, color: AppColors.workspaceSecondaryText, fontStyle: FontStyle.italic),
+        ),
       );
     }
 
@@ -2963,80 +3199,6 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
           ],
         ),
       );
-    }
-
-
-    // =========================================================================
-    // ANDROID-ONLY MOBILE-FIRST FORM CARD RENDERING
-    // Converts desktop-style horizontal tables into vertical mobile cards:
-    // Question (Top) -> Full Width Answer Field (Bottom)
-    // =========================================================================
-    if (!kIsWeb) {
-      if (rowVm.isTableHeader) {
-        return const SizedBox.shrink(); // Hide desktop table header on mobile
-      }
-
-      if (rowVm.is3Column || rowVm.is2Column) {
-        return Container(
-          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-          padding: const EdgeInsets.all(14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: AppColors.workspaceBorder.withValues(alpha: 0.8)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.02),
-                blurRadius: 4,
-                offset: const Offset(0, 1),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Question with optional serial number badge
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (rowVm.serialNo != null && rowVm.serialNo!.trim().isNotEmpty) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                      margin: const EdgeInsets.only(right: 8, top: 1),
-                      decoration: BoxDecoration(
-                        color: AppColors.workspaceCanvas,
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: AppColors.workspaceBorder),
-                      ),
-                      child: Text(
-                        rowVm.serialNo!.trim(),
-                        style: GoogleFonts.montserrat(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.workspaceSecondaryText,
-                        ),
-                      ),
-                    ),
-                  ],
-                  Expanded(
-                    child: _buildQuestionPrompt(rowVm),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 10),
-
-              // Answer Input Field(s) - Full Available Width
-              for (final f in rowVm.inputFields) ...[
-                SizedBox(
-                  width: double.infinity,
-                  child: DocumentInputSlotWidget(fieldVm: f, readOnly: readOnly),
-                ),
-                if (rowVm.inputFields.last != f) const SizedBox(height: 8),
-              ],
-            ],
-          ),
-        );
-      }
     }
 
     // 2. Table Column Header Row (STRICT FIXED GRID: Column 1=48, Column 2=flex 5, Column 3=flex 6)
@@ -3420,37 +3582,771 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
       }
     }
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Flexible(
-                child: Text(
-                  text,
-                  textAlign: TextAlign.left,
-                  style: GoogleFonts.montserrat(
-                    fontSize: 12.5,
-                    fontWeight: isRequired ? FontWeight.w600 : FontWeight.w500,
-                    color: AppColors.workspacePrimaryText,
-                    height: 1.25,
-                  ),
-                ),
+    return Text.rich(
+      TextSpan(
+        text: text,
+        style: GoogleFonts.montserrat(
+          fontSize: 12.5,
+          fontWeight: isRequired ? FontWeight.w600 : FontWeight.w500,
+          color: AppColors.workspacePrimaryText,
+          height: 1.3,
+        ),
+        children: [
+          if (isRequired)
+            TextSpan(
+              text: ' *',
+              style: GoogleFonts.montserrat(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.workspaceErrorText,
               ),
-              if (isRequired)
-                Text(
-                  ' *',
-                  style: GoogleFonts.montserrat(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.workspaceErrorText,
+            ),
+        ],
+      ),
+      textAlign: TextAlign.left,
+    );
+  }
+
+  // =========================================================================
+  // ANDROID-ONLY MOBILE INLINE SECTION BUILDERS (ZERO HORIZONTAL SCROLL)
+  // =========================================================================
+
+  Widget _buildMobileLandSectionContent(BuildContext context, DocumentWorkspaceProvider provider, List<ValuationLandItemModel> landItems, bool isReadOnly) {
+    if (landItems.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        alignment: Alignment.center,
+        child: Text(
+          'No land parcels recorded. Click "+ Add Parcel" above to add records.',
+          style: GoogleFonts.inter(fontSize: 12, color: AppColors.slate, fontStyle: FontStyle.italic),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (int idx = 0; idx < landItems.length; idx++) ...[
+          Builder(builder: (context) {
+            final item = landItems[idx];
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.hairlineSoft),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 3, offset: const Offset(0, 1)),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.brandNavy.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text('Parcel #${idx + 1}', style: GoogleFonts.montserrat(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.brandNavy)),
+                      ),
+                      const Spacer(),
+                      if (!isReadOnly)
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.brandRedDark),
+                          onPressed: () => provider.removeLandItem(idx),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                        ),
+                    ],
                   ),
-                ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    initialValue: item.description.isNotEmpty ? item.description : (item.surveyNo.isNotEmpty ? 'Plot (Sy.No.${item.surveyNo})' : ''),
+                    enabled: !isReadOnly,
+                    decoration: const InputDecoration(
+                      labelText: 'Description / Plot No',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    ),
+                    onChanged: (val) {
+                      item.description = val;
+                      provider.recalculateValuation();
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: TextFormField(
+                          initialValue: item.enteredArea > 0 ? IndianNumberFormatter.format(item.enteredArea, includeDecimals: item.enteredArea % 1 != 0) : '',
+                          enabled: !isReadOnly,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Area',
+                            isDense: true,
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          ),
+                          onChanged: (val) {
+                            item.enteredArea = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
+                            provider.recalculateValuation();
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: DropdownButtonFormField<String>(
+                          isExpanded: true,
+                          value: _landUnits.contains(item.enteredUnit) ? item.enteredUnit : 'Sq.Ft',
+                          items: _landUnits.map((u) => DropdownMenuItem(value: u, child: Text(u, style: const TextStyle(fontSize: 11)))).toList(),
+                          onChanged: isReadOnly ? null : (val) {
+                            if (val != null) {
+                              item.enteredUnit = val;
+                              provider.recalculateValuation();
+                            }
+                          },
+                          decoration: const InputDecoration(
+                            labelText: 'Unit',
+                            isDense: true,
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          initialValue: item.rate > 0 ? IndianNumberFormatter.format(item.rate, includeDecimals: item.rate % 1 != 0) : '',
+                          enabled: !isReadOnly,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: InputDecoration(
+                            labelText: 'Rate (₹ / ${item.enteredUnit})',
+                            isDense: true,
+                            border: const OutlineInputBorder(),
+                            contentPadding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          ),
+                          onChanged: (val) {
+                            item.rate = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
+                            provider.recalculateValuation();
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.workspaceCanvas,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: AppColors.hairlineSoft),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text('Amount (₹)', style: GoogleFonts.inter(fontSize: 10, color: AppColors.textMuted)),
+                              Text(
+                                '₹ ${IndianNumberFormatter.format(item.value)}',
+                                style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildMobileBuildingSectionContent(BuildContext context, DocumentWorkspaceProvider provider, List<ValuationBuildingItemModel> buildingItems, bool isReadOnly) {
+    if (buildingItems.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        alignment: Alignment.center,
+        child: Text(
+          'No building structures recorded. Click "+ Add Structure" above to add records.',
+          style: GoogleFonts.inter(fontSize: 12, color: AppColors.slate, fontStyle: FontStyle.italic),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (int idx = 0; idx < buildingItems.length; idx++) ...[
+          Builder(builder: (context) {
+            final item = buildingItems[idx];
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.hairlineSoft),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 3, offset: const Offset(0, 1)),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.brandNavy.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text('Structure #${idx + 1}', style: GoogleFonts.montserrat(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.brandNavy)),
+                      ),
+                      const Spacer(),
+                      if (!isReadOnly)
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.brandRedDark),
+                          onPressed: () => provider.removeBuildingItem(idx),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    initialValue: item.description.isNotEmpty ? item.description : (item.structureType.isNotEmpty ? item.structureType : 'Structure ${idx + 1}'),
+                    enabled: !isReadOnly,
+                    decoration: const InputDecoration(
+                      labelText: 'Description / Structure',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    ),
+                    onChanged: (val) {
+                      item.description = val;
+                      provider.recalculateValuation();
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    value: _buildingTypes.contains(item.buildingType) ? item.buildingType : 'RCC Commercial',
+                    items: _buildingTypes.map((b) => DropdownMenuItem(value: b, child: Text(b, style: const TextStyle(fontSize: 11), overflow: TextOverflow.ellipsis))).toList(),
+                    onChanged: isReadOnly ? null : (val) {
+                      if (val != null) {
+                        item.buildingType = val;
+                        provider.recalculateValuation();
+                      }
+                    },
+                    decoration: const InputDecoration(
+                      labelText: 'Building Type',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          initialValue: item.enteredArea > 0 ? IndianNumberFormatter.format(item.enteredArea, includeDecimals: item.enteredArea % 1 != 0) : '',
+                          enabled: !isReadOnly,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Plinth Area (Sq.Ft)',
+                            isDense: true,
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                          ),
+                          onChanged: (val) {
+                            item.enteredArea = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
+                            provider.recalculateValuation();
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextFormField(
+                          initialValue: item.replacementRate > 0 ? IndianNumberFormatter.format(item.replacementRate, includeDecimals: item.replacementRate % 1 != 0) : '',
+                          enabled: !isReadOnly,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Rate (₹/Sq.Ft)',
+                            isDense: true,
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                          ),
+                          onChanged: (val) {
+                            item.replacementRate = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
+                            provider.recalculateValuation();
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          initialValue: item.buildingAge > 0 ? item.buildingAge.toString() : '',
+                          enabled: !isReadOnly,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Age (Yrs)',
+                            isDense: true,
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                          ),
+                          onChanged: (val) {
+                            item.buildingAge = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
+                            provider.recalculateValuation();
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextFormField(
+                          initialValue: item.buildingUsefulLife > 0 ? item.buildingUsefulLife.toString() : '60',
+                          enabled: !isReadOnly,
+                          keyboardType: TextInputType.number,
+                          decoration: const InputDecoration(
+                            labelText: 'Life (Yrs)',
+                            isDense: true,
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                          ),
+                          onChanged: (val) {
+                            item.buildingUsefulLife = int.tryParse(val.replaceAll(',', '').trim()) ?? 60;
+                            provider.recalculateValuation();
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.workspaceCanvas,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: AppColors.hairlineSoft),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text('Dep %', style: GoogleFonts.inter(fontSize: 10, color: AppColors.textMuted)),
+                              Text('${item.depreciationPercentage.toStringAsFixed(1)}%', style: GoogleFonts.firaCode(fontSize: 11, fontWeight: FontWeight.bold)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceSoft,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: AppColors.hairlineSoft),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Net Building Value', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600)),
+                        Text(
+                          '₹ ${IndianNumberFormatter.format(item.buildingValue)}',
+                          style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildMobileComparablesSectionContent(BuildContext context, DocumentWorkspaceProvider provider, List<ValuationComparableSaleModel> comparables, bool isReadOnly) {
+    if (comparables.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        alignment: Alignment.center,
+        child: Text(
+          'No comparable sales recorded. Click "+ Add Comparable" above to add records.',
+          style: GoogleFonts.inter(fontSize: 12, color: AppColors.slate, fontStyle: FontStyle.italic),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (int idx = 0; idx < comparables.length; idx++) ...[
+          Builder(builder: (context) {
+            final item = comparables[idx];
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.hairlineSoft),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 3, offset: const Offset(0, 1)),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.brandNavy.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text('Comparable #${idx + 1}', style: GoogleFonts.montserrat(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.brandNavy)),
+                      ),
+                      const Spacer(),
+                      if (!isReadOnly)
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.brandRedDark),
+                          onPressed: () => provider.removeComparableItem(idx),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    initialValue: item.location,
+                    enabled: !isReadOnly,
+                    decoration: const InputDecoration(
+                      labelText: 'Location / Property Details',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    ),
+                    onChanged: (val) {
+                      item.location = val;
+                      provider.recalculateValuation();
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          initialValue: item.enteredArea > 0 ? IndianNumberFormatter.format(item.enteredArea, includeDecimals: item.enteredArea % 1 != 0) : '',
+                          enabled: !isReadOnly,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Area (Sq.Ft)',
+                            isDense: true,
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          ),
+                          onChanged: (val) {
+                            item.enteredArea = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
+                            item.saleValue = item.enteredArea * item.rate;
+                            provider.recalculateValuation();
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: TextFormField(
+                          initialValue: item.rate > 0 ? IndianNumberFormatter.format(item.rate, includeDecimals: item.rate % 1 != 0) : '',
+                          enabled: !isReadOnly,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Rate / Sq.Ft (₹)',
+                            isDense: true,
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          ),
+                          onChanged: (val) {
+                            item.rate = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
+                            item.saleValue = item.enteredArea * item.rate;
+                            provider.recalculateValuation();
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceSoft,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: AppColors.hairlineSoft),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text('Sale Value', style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600)),
+                        Text(
+                          '₹ ${IndianNumberFormatter.format(item.saleValue)}',
+                          style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildMobileSummaryContent(BuildContext context, DocumentWorkspaceProvider provider, ValuationDataModel data, num insurableVal) {
+    return Container(
+      decoration: BoxDecoration(
+        border: Border.all(color: AppColors.hairlineSoft),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            decoration: const BoxDecoration(
+              color: AppColors.brandNavy,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
+            ),
+            child: Row(
+              children: const [
+                Icon(Icons.analytics_outlined, size: 16, color: Colors.white),
+                SizedBox(width: 8),
+                Text('VALUATION SUMMARY', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white)),
+              ],
+            ),
+          ),
+          _buildMobileSummaryMetricCard('Fair Market Value', data.sayLandValue, data.sayBuildingValue, data.fairValue, isHighlight: true),
+          const Divider(height: 1),
+          _buildMobileSummaryMetricCard('Realizable Value', data.landRealizableValue, data.buildingRealizableValue, data.realizableValue),
+          const Divider(height: 1),
+          _buildMobileSummaryMetricCard('Distress Sale Value', data.landDistressValue, data.buildingDistressValue, data.distressSaleValue),
+          const Divider(height: 1),
+          _buildMobileSummaryMetricCard('Government / Guideline', data.landGovernmentValue, data.buildingGovernmentValue, data.landGovernmentValue + data.buildingGovernmentValue, isHighlight: true),
+          if (provider.buildingItems.isNotEmpty) ...[
+            const Divider(height: 1),
+            _buildMobileSummaryMetricCard('Insurable Value (Repl Cost)', 0, insurableVal, insurableVal),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileSummaryMetricCard(String title, num land, num bldg, num total, {bool isHighlight = false}) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      color: isHighlight ? AppColors.brandNavy.withValues(alpha: 0.03) : Colors.white,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(title, style: GoogleFonts.inter(fontSize: 12, fontWeight: isHighlight ? FontWeight.bold : FontWeight.w600, color: AppColors.ink)),
+              Text(
+                '₹ ${IndianNumberFormatter.format(total)}',
+                style: GoogleFonts.firaCode(fontSize: 13, fontWeight: FontWeight.bold, color: isHighlight ? AppColors.primary : AppColors.ink),
+              ),
             ],
           ),
+          if (land > 0 || bldg > 0) ...[
+            const SizedBox(height: 4),
+            Row(
+              children: [
+                if (land > 0)
+                  Text('Land: ₹ ${IndianNumberFormatter.format(land)}  ', style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textMuted)),
+                if (bldg > 0)
+                  Text('Bldg: ₹ ${IndianNumberFormatter.format(bldg)}', style: GoogleFonts.inter(fontSize: 10.5, color: AppColors.textMuted)),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMobileCompositeContent(BuildContext context, DocumentWorkspaceProvider provider, List<ValuationCompositeItemModel> items, bool isReadOnly) {
+    if (items.isEmpty) {
+      return Container(
+        padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+        alignment: Alignment.center,
+        child: Text(
+          'No composite property items recorded.',
+          style: GoogleFonts.inter(fontSize: 12, color: AppColors.slate, fontStyle: FontStyle.italic),
         ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        for (int idx = 0; idx < items.length; idx++) ...[
+          Builder(builder: (context) {
+            final item = items[idx];
+            return Container(
+              margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: AppColors.hairlineSoft),
+                boxShadow: [
+                  BoxShadow(color: Colors.black.withOpacity(0.02), blurRadius: 3, offset: const Offset(0, 1)),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: AppColors.brandNavy.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(item.itemCategory.isNotEmpty ? item.itemCategory : 'Unit #${idx + 1}', style: GoogleFonts.montserrat(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.brandNavy)),
+                      ),
+                      const Spacer(),
+                      if (!isReadOnly && idx > 0)
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, size: 18, color: AppColors.brandRedDark),
+                          onPressed: () {
+                            items.removeAt(idx);
+                            provider.recalculateValuation();
+                          },
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 28, minHeight: 28),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    initialValue: item.description,
+                    enabled: !isReadOnly,
+                    decoration: const InputDecoration(
+                      labelText: 'Item Description',
+                      isDense: true,
+                      border: OutlineInputBorder(),
+                      contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    ),
+                    onChanged: (val) {
+                      item.description = val;
+                      provider.recalculateValuation();
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        flex: 3,
+                        child: TextFormField(
+                          initialValue: item.quantity > 0 ? item.quantity.toString() : '',
+                          enabled: !isReadOnly,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Qty / Area',
+                            isDense: true,
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          ),
+                          onChanged: (val) {
+                            item.quantity = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
+                            provider.recalculateValuation();
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        flex: 2,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: AppColors.workspaceCanvas,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: AppColors.hairlineSoft),
+                          ),
+                          child: Text(item.enteredUnit, style: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w600), textAlign: TextAlign.center),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextFormField(
+                          initialValue: item.rate > 0 ? item.rate.toString() : '',
+                          enabled: !isReadOnly,
+                          keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                          decoration: const InputDecoration(
+                            labelText: 'Rate (₹)',
+                            isDense: true,
+                            border: OutlineInputBorder(),
+                            contentPadding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          ),
+                          onChanged: (val) {
+                            item.rate = double.tryParse(val.replaceAll(',', '').trim()) ?? 0;
+                            provider.recalculateValuation();
+                          },
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceSoft,
+                            borderRadius: BorderRadius.circular(4),
+                            border: Border.all(color: AppColors.hairlineSoft),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Text('Fair Value (₹)', style: GoogleFonts.inter(fontSize: 10, color: AppColors.textMuted)),
+                              Text(
+                                '₹ ${IndianNumberFormatter.format(item.fairValue > 0 ? item.fairValue : (item.quantity * item.rate))}',
+                                style: GoogleFonts.firaCode(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.primary),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            );
+          }),
+        ],
       ],
     );
   }

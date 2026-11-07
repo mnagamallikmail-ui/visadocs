@@ -79,3 +79,4 @@ In strict adherence to the Executive Directive regarding real physical evidence:
 
 > [!WARNING]
 > Steps 6, 7, and 8 cannot be claimed as verified without physical handset telemetry. In accordance with executive requirements, simulations and mockups are strictly prohibited, and these steps remain designated **NOT VERIFIED** until verified on a physical USB/Wi-Fi connected device.
+

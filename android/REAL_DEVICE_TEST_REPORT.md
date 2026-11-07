@@ -60,3 +60,4 @@ To convert the above **NOT VERIFIED** statuses into verified physical evidence:
    ```bash
    adb exec-out screencap -p > android/distribution/screenshots/device_screen.png
    ```
+

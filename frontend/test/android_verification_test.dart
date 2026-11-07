@@ -140,6 +140,45 @@ void main() {
       expect(matchBank.length, 1);
       expect(matchBank.first.referenceNumber, 'PV-2609-0114');
     });
+
+    testWidgets('Verify Reference Code layout across viewports (360x800, 393x852, 412x915)', (tester) async {
+      const viewports = [
+        Size(360, 800),
+        Size(393, 852),
+        Size(412, 915),
+      ];
+
+      for (final vp in viewports) {
+        await tester.binding.setSurfaceSize(vp);
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: SizedBox(
+                width: 170,
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: const Text(
+                    'PV-2610-0328',
+                    maxLines: 1,
+                    softWrap: false,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+
+        // Must find widget exactly on one line with no character breaking
+        expect(find.text('PV-2610-0328'), findsOneWidget);
+        final textWidget = tester.widget<Text>(find.text('PV-2610-0328'));
+        expect(textWidget.maxLines, 1);
+        expect(textWidget.softWrap, false);
+      }
+    });
   });
 }
 

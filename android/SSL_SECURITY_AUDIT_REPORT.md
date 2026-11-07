@@ -188,3 +188,4 @@ Accept-Ranges: bytes
 * **TLS 1.0 & 1.1:** Disabled.
 * **TLS 1.2 & 1.3:** Enforced.
 * **Security Headers Verified:** 5/5 present.
+

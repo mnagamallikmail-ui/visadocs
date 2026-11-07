@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../services/web_file_picker.dart';
@@ -477,7 +478,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
                                                         },
                                                       ),
                                                     )
-                                                  else
+                                                  else if (kIsWeb)
                                                     Container(
                                                       width: 34,
                                                       decoration: const BoxDecoration(
@@ -554,7 +555,19 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
           }
         },
       ),
-      title: Row(
+      title: !kIsWeb
+          ? FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                reportNum,
+                maxLines: 1,
+                softWrap: false,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.workspaceSectionTitle().copyWith(fontSize: 14),
+              ),
+            )
+          : Row(
         children: [
           // Platform Title & Reference
           Text(
@@ -605,6 +618,17 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
         ],
       ),
       actions: [
+        if (!kIsWeb)
+          IconButton(
+            icon: const Icon(Icons.list_alt_rounded, color: AppColors.workspaceCorporateNavy),
+            tooltip: 'Document Sections',
+            onPressed: () {
+              setState(() {
+                _userSidebarCollapsed = !(_userSidebarCollapsed ?? true);
+                _userSidebarCompact = false;
+              });
+            },
+          ),
         // SPRINT 6 EMERGENCY HOTFIX: Visible Autosave Status Area (Phase 6)
         _buildAutosaveStatusIndicator(provider),
 
@@ -847,6 +871,52 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
     String location = provider.getValue('PROPERTY_ADDRESS');
     if (location.isEmpty) location = provider.getValue('PROP_LOCATION');
     if (location.isEmpty) location = 'Site Location';
+
+    if (!kIsWeb) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: const BoxDecoration(
+          color: AppColors.workspacePanel,
+          border: Border(bottom: BorderSide(color: AppColors.workspaceBorder, width: 1.0)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '$propertyType • $location',
+                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.workspacePrimaryText),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.workspaceCorporateNavy.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    status,
+                    style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.workspaceCorporateNavy),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 3),
+            Text(
+              'Owner: $ownerName | Bank: $bankDisplay',
+              style: GoogleFonts.inter(fontSize: 11, color: AppColors.workspaceSecondaryText),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      );
+    }
 
     return Container(
       height: 42,

@@ -99,3 +99,4 @@ Headless rendering sessions captured to disk:
 3. **Google Chrome Version Manifest JSON Screenshot:**  
    Path: `d:\Demo\Visadocs\chrome_version_json.png` (10,929 bytes)  
    Validation: Rendered JSON text with zero certificate warning.
+
