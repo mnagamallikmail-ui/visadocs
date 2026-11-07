@@ -80,7 +80,8 @@ jobs:
           mkdir -p ~/.ssh
           echo "$VPS_SSH_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan -H "$VPS_SSH_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          HOST=$(echo "$VPS_SSH_HOST" | tr -d '\r\n')
+          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
 
       - name: Step 7, 8, 9 - Upload to VPS, Update Symlink & Deploy Landing Page
         if: env.VPS_SSH_HOST != ''
@@ -90,6 +91,7 @@ jobs:
         run: python scripts/release_manager.py deploy
 
       - name: Upload Artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: android-release-binaries

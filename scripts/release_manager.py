@@ -252,6 +252,9 @@ def deploy_to_vps(vps_host=None, vps_user=None):
         vps_host = os.environ.get("VPS_SSH_HOST", "66.116.241.171")
     if not vps_user:
         vps_user = os.environ.get("VPS_SSH_USER", "root")
+
+    vps_host = vps_host.strip()
+    vps_user = vps_user.strip()
     version_name, version_code = parse_pubspec_version()
     named_apk_name = f"ProValuer-v{version_name}-build-{version_code}.apk"
     named_apk_path = DEFAULT_APK_PATH.parent / named_apk_name
