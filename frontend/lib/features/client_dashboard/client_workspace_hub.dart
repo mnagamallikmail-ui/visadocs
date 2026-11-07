@@ -763,6 +763,7 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
     final isNarrow = screenWidth < 1024;
 
     Widget sidebarWidget({required bool inDrawer}) => _ClientSidebar(
+          inDrawer: inDrawer,
           collapsed: inDrawer ? false : (_sidebarCollapsed || isNarrow),
           activeNav: _activeNav,
           fullName: auth.fullName ?? 'Client Officer',
@@ -796,53 +797,60 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
           },
           onToggleCollapse: () => setState(() => _sidebarCollapsed = !_sidebarCollapsed),
           onSignOut: () {
+            if (inDrawer && Navigator.of(context).canPop()) {
+              Navigator.of(context).pop();
+            }
             auth.logout();
-            context.go('/');
+            context.go('/login');
           },
         );
 
     return Scaffold(
       backgroundColor: _LandingDesignSystem.bgCanvas,
-      drawer: isMobile ? Drawer(child: SafeArea(child: sidebarWidget(inDrawer: true))) : null,
-      body: Row(
-        children: [
-          // ── LEFT SIDEBAR (Desktop & Tablet) ─────────────────────────────
-          if (!isMobile) sidebarWidget(inDrawer: false),
+      drawer: isMobile ? Drawer(width: 290, child: SafeArea(child: sidebarWidget(inDrawer: true))) : null,
+      body: SafeArea(
+        child: Row(
+          children: [
+            // ── LEFT SIDEBAR (Desktop & Tablet) ─────────────────────────────
+            if (!isMobile) sidebarWidget(inDrawer: false),
 
-          // ── MAIN WORKSPACE CONTAINER ──────────────────────────────────────
-          Expanded(
-            child: Column(
-              children: [
-                _ClientTopHeader(
-                  title: switch (_activeNav) {
-                    _ClientNav.welcome => 'Welcome Dashboard',
-                    _ClientNav.createReport => 'New Request',
-                    _ClientNav.reportsInProgress => _focusedActiveOrder == null
-                        ? 'Reports'
-                        : 'Report • ${_focusedActiveOrder['referenceCode'] ?? 'PV-${_focusedActiveOrder['id']}'}',
-                    _ClientNav.completedReports => _focusedCompletedOrder == null
-                        ? 'Delivered Reports'
-                        : 'Delivered Report • ${_focusedCompletedOrder['referenceCode'] ?? 'PV-${_focusedCompletedOrder['id']}'}',
-                    _ClientNav.privacy => 'Privacy & My Data',
-                  },
-                  leading: isMobile
-                      ? Builder(
-                          builder: (ctx) => IconButton(
-                            icon: const Icon(Icons.menu_rounded, size: 22, color: _LandingDesignSystem.tealBrand),
-                            tooltip: 'Open Menu',
-                            onPressed: () => Scaffold.of(ctx).openDrawer(),
-                          ),
-                        )
-                      : null,
-                  onRefresh: _loadOrdersAndSync,
-                ),
-                Expanded(
-                  child: _buildCurrentView(orders, auth),
-                ),
-              ],
+            // ── MAIN WORKSPACE CONTAINER ──────────────────────────────────────
+            Expanded(
+              child: Column(
+                children: [
+                  _ClientTopHeader(
+                    title: switch (_activeNav) {
+                      _ClientNav.welcome => 'Welcome Dashboard',
+                      _ClientNav.createReport => 'New Request',
+                      _ClientNav.reportsInProgress => _focusedActiveOrder == null
+                          ? 'Reports'
+                          : 'Report • ${_focusedActiveOrder['referenceCode'] ?? 'PV-${_focusedActiveOrder['id']}'}',
+                      _ClientNav.completedReports => _focusedCompletedOrder == null
+                          ? 'Delivered Reports'
+                          : 'Delivered Report • ${_focusedCompletedOrder['referenceCode'] ?? 'PV-${_focusedCompletedOrder['id']}'}',
+                      _ClientNav.privacy => 'Privacy & My Data',
+                    },
+                    leading: isMobile
+                        ? Builder(
+                            builder: (ctx) => IconButton(
+                              icon: const Icon(Icons.menu_rounded, size: 24, color: _LandingDesignSystem.tealBrand),
+                              tooltip: 'Open Menu',
+                              padding: const EdgeInsets.all(12),
+                              constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+                              onPressed: () => Scaffold.of(ctx).openDrawer(),
+                            ),
+                          )
+                        : null,
+                    onRefresh: _loadOrdersAndSync,
+                  ),
+                  Expanded(
+                    child: _buildCurrentView(orders, auth),
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -4884,6 +4892,7 @@ class _RefinedPrimaryButtonState extends State<_RefinedPrimaryButton> {
 // COMPONENT: Client Sidebar (Landing Page Design System)
 // ─────────────────────────────────────────────────────────────────────────────
 class _ClientSidebar extends StatelessWidget {
+  final bool inDrawer;
   final bool collapsed;
   final _ClientNav activeNav;
   final String fullName;
@@ -4895,6 +4904,7 @@ class _ClientSidebar extends StatelessWidget {
   final VoidCallback onSignOut;
 
   const _ClientSidebar({
+    this.inDrawer = false,
     required this.collapsed,
     required this.activeNav,
     required this.fullName,
@@ -4908,15 +4918,16 @@ class _ClientSidebar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // FIX 4: Reduce sidebar width by 18% so content dominates
-    final width = collapsed ? 64.0 : 210.0;
+    // When inside mobile drawer, stretch to full drawer width; otherwise desktop sidebar width
+    final width = inDrawer ? double.infinity : (collapsed ? 64.0 : 210.0);
+    final isCollapsed = inDrawer ? false : collapsed;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       width: width,
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: _LandingDesignSystem.bgSurface,
-        border: Border(right: BorderSide(color: _LandingDesignSystem.cardBorder)),
+        border: inDrawer ? null : const Border(right: BorderSide(color: _LandingDesignSystem.cardBorder)),
       ),
       child: Column(
         children: [
@@ -4926,8 +4937,8 @@ class _ClientSidebar extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 30,
-                  height: 30,
+                  width: 32,
+                  height: 32,
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [_LandingDesignSystem.tealBrand, Color(0xFF0F766E)],
@@ -4940,7 +4951,7 @@ class _ClientSidebar extends StatelessWidget {
                     child: Text('PV', style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w800, color: Colors.white)),
                   ),
                 ),
-                if (!collapsed) ...[
+                if (!isCollapsed) ...[
                   const SizedBox(width: 10),
                   Expanded(
                     child: Column(
@@ -4957,8 +4968,58 @@ class _ClientSidebar extends StatelessWidget {
           ),
           const Divider(height: 1, color: _LandingDesignSystem.cardBorder),
 
+          // User Profile Section (Issue 1)
+          if (!isCollapsed)
+            Container(
+              margin: const EdgeInsets.fromLTRB(12, 10, 12, 6),
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: _LandingDesignSystem.bgSubtle,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: _LandingDesignSystem.cardBorder),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: _LandingDesignSystem.tealBrand,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Center(
+                      child: Text(
+                        fullName.isNotEmpty ? fullName[0].toUpperCase() : 'C',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          fullName,
+                          style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 12.5, color: _LandingDesignSystem.textPrimary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        Text(
+                          email,
+                          style: GoogleFonts.inter(fontSize: 11, color: _LandingDesignSystem.textSecondary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
           // ── CORE NAVIGATION ITEMS (FIX 5) ─────────────────────────────────
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           _navTile(
             nav: _ClientNav.welcome,
             label: _ClientNav.welcome.label,
@@ -4987,7 +5048,7 @@ class _ClientSidebar extends StatelessWidget {
 
           const Spacer(),
 
-          // ── PREFERENCES & ACTIONS (FIX 5: Client Profile & Your Advisory Desk) ──
+          // ── PREFERENCES & ACTIONS ──
           const Divider(height: 1, color: _LandingDesignSystem.cardBorder),
           _actionTile(
             label: 'Client Profile',
@@ -5007,17 +5068,18 @@ class _ClientSidebar extends StatelessWidget {
           ),
           const Divider(height: 1, color: _LandingDesignSystem.cardBorder),
 
-          // Collapse Toggle
-          ListTile(
-            dense: true,
-            visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
-            leading: Icon(collapsed ? Icons.chevron_right : Icons.chevron_left, color: _LandingDesignSystem.textSecondary, size: 16),
-            title: collapsed ? null : const Text('Collapse', style: TextStyle(color: _LandingDesignSystem.textSecondary, fontSize: 11)),
-            onTap: onToggleCollapse,
-          ),
+          // Collapse Toggle (desktop only)
+          if (!inDrawer)
+            ListTile(
+              dense: true,
+              visualDensity: const VisualDensity(horizontal: -2, vertical: -2),
+              leading: Icon(collapsed ? Icons.chevron_right : Icons.chevron_left, color: _LandingDesignSystem.textSecondary, size: 16),
+              title: collapsed ? null : const Text('Collapse', style: TextStyle(color: _LandingDesignSystem.textSecondary, fontSize: 11)),
+              onTap: onToggleCollapse,
+            ),
           const SizedBox(height: 4),
           BuildFooterWidget(
-            compact: collapsed,
+            compact: isCollapsed,
             textColor: _LandingDesignSystem.textMuted,
           ),
           const SizedBox(height: 6),
@@ -5130,23 +5192,29 @@ class _ClientTopHeader extends StatelessWidget {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (leading != null) ...[
-                leading!,
-                const SizedBox(width: 8),
-              ],
-              Text(
-                title,
-                style: GoogleFonts.montserrat(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w700,
-                  color: _LandingDesignSystem.textPrimary,
+          Expanded(
+            child: Row(
+              children: [
+                if (leading != null) ...[
+                  leading!,
+                  const SizedBox(width: 4),
+                ],
+                Expanded(
+                  child: Text(
+                    title,
+                    style: GoogleFonts.montserrat(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: _LandingDesignSystem.textPrimary,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
+          const SizedBox(width: 8),
           IconButton(
             icon: const Icon(Icons.refresh_rounded, size: 18, color: _LandingDesignSystem.textSecondary),
             tooltip: 'Refresh Workspace',

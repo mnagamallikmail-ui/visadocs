@@ -1,10 +1,9 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:provider/provider.dart';
 import 'dart:convert';
 import 'dart:typed_data';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
 import 'package:crypto/crypto.dart';
 import 'package:encrypt/encrypt.dart' as enc;
 import 'package:intl/intl.dart';
@@ -28,6 +27,9 @@ import '../quotations/client_payment_submission_modal.dart';
 import '../quotations/admin_payment_review_modal.dart';
 import '../../utils/build_info.dart';
 import '../../constants/order_status.dart';
+import '../../screens/app_info_screen.dart';
+import '../../widgets/field_order_search_delegate.dart';
+import '../../services/inspection_photo_service.dart';
 
 class ValuationPortalWidget extends StatefulWidget {
   final String role;
@@ -933,15 +935,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
       final encrypter = enc.Encrypter(enc.AES(key, mode: enc.AESMode.ecb, padding: 'PKCS7'));
       final decryptedBytes = encrypter.decryptBytes(enc.Encrypted.fromBase64(encryptedBase64));
 
-      final blob = html.Blob([decryptedBytes], 'application/pdf');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute('download', 'PV_REPORT_$orderId.pdf')
-        ..style.display = 'none';
-      html.document.body!.append(anchor);
-      anchor.click();
-      anchor.remove();
-      html.Url.revokeObjectUrl(url);
+      triggerBrowserDownload(decryptedBytes, 'PV_REPORT_$orderId.pdf', 'application/pdf');
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -973,15 +967,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
     }
 
     try {
-      final blob = html.Blob([bytes], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute('download', 'PV_REPORT_$orderId.docx')
-        ..style.display = 'none';
-      html.document.body!.append(anchor);
-      anchor.click();
-      anchor.remove();
-      html.Url.revokeObjectUrl(url);
+      triggerBrowserDownload(bytes, 'PV_REPORT_$orderId.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -1011,15 +997,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
       return;
     }
     try {
-      final blob = html.Blob([bytes], 'application/pdf');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute('download', 'PV_REPORT_${orderId}_Rev$revNumber.pdf')
-        ..style.display = 'none';
-      html.document.body!.append(anchor);
-      anchor.click();
-      anchor.remove();
-      html.Url.revokeObjectUrl(url);
+      triggerBrowserDownload(bytes, 'PV_REPORT_${orderId}_Rev$revNumber.pdf', 'application/pdf');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1044,15 +1022,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
       return;
     }
     try {
-      final blob = html.Blob([bytes], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute('download', 'PV_REPORT_${orderId}_Rev$revNumber.docx')
-        ..style.display = 'none';
-      html.document.body!.append(anchor);
-      anchor.click();
-      anchor.remove();
-      html.Url.revokeObjectUrl(url);
+      triggerBrowserDownload(bytes, 'PV_REPORT_${orderId}_Rev$revNumber.docx', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -1246,9 +1216,41 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
     );
   }
 
+  final GlobalKey<ScaffoldState> _portalScaffoldKey = GlobalKey<ScaffoldState>();
+
   @override
   Widget build(BuildContext context) {
     final viewportHeight = MediaQuery.of(context).size.height;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final isMobile = screenWidth < 600;
+    final isTablet = screenWidth >= 600 && screenWidth <= 1024;
+    final isDesktop = screenWidth > 1024;
+
+    if (!kIsWeb && (isMobile || isTablet)) {
+      return Scaffold(
+        key: _portalScaffoldKey,
+        backgroundColor: AppColors.canvas,
+        drawer: Drawer(
+          width: 290,
+          child: SafeArea(
+            child: _buildSidebar(inDrawer: true),
+          ),
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildMobilePortalHeader(),
+              Expanded(
+                child: SizedBox(
+                  width: double.infinity,
+                  child: _buildMainCanvas(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
 
     return Scaffold(
       backgroundColor: AppColors.canvas,
@@ -1256,7 +1258,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
         height: viewportHeight,
         child: Row(
           children: [
-            _buildSidebar(),
+            _buildSidebar(inDrawer: false),
             Container(
               width: 1,
               color: AppColors.hairline,
@@ -1273,33 +1275,121 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
     );
   }
 
-  Widget _buildSidebar() {
+  Widget _buildMobilePortalHeader() {
+    String title = 'Workspace';
+    if (_selectedMenu == 'start_new') title = 'Start New Project';
+    else if (_selectedMenu == 'in_progress') title = 'In Progress';
+    else if (_selectedMenu == 'completed') title = 'Completed Projects';
+    else if (_selectedMenu == 'unassigned') title = 'Unassigned Pool';
+    else if (_selectedMenu == 'create_report') title = 'Create Report';
+    else if (_selectedMenu == 'under_review') title = 'Review Queue';
+    else if (_selectedMenu == 'approved') title = 'Approved Reports';
+
+    return Container(
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: AppColors.hairlineSoft)),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.menu_rounded, color: AppColors.primary, size: 24),
+            tooltip: 'Open Menu',
+            padding: const EdgeInsets.all(12),
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+            onPressed: () => _portalScaffoldKey.currentState?.openDrawer(),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              title,
+              style: GoogleFonts.montserrat(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceSoft,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: AppColors.hairline),
+            ),
+            child: Text(
+              widget.role,
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: AppColors.brandBlue,
+              ),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.search_rounded, color: AppColors.primary, size: 22),
+            tooltip: 'Search Orders',
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(minWidth: 40, minHeight: 40),
+            onPressed: () {
+              final orderProvider = Provider.of<OrderProvider>(context, listen: false);
+              final rawList = orderProvider.allOrders.isNotEmpty
+                  ? orderProvider.allOrders
+                  : (orderProvider.paOrders.isNotEmpty
+                      ? orderProvider.paOrders
+                      : orderProvider.clientOrders);
+              final List<SearchableOrderItem> items = rawList.map((o) {
+                final map = o is Map ? o : <String, dynamic>{};
+                return SearchableOrderItem(
+                  referenceNumber: map['referenceNumber']?.toString() ?? map['id']?.toString() ?? 'N/A',
+                  borrowerName: map['propertyOwnerName']?.toString() ?? map['clientName']?.toString() ?? 'N/A',
+                  propertyAddress: map['propertyAddress']?.toString() ?? 'N/A',
+                  bankName: map['bankName']?.toString() ?? 'N/A',
+                  status: map['status']?.toString() ?? 'ACTIVE',
+                );
+              }).toList();
+              showSearch(
+                context: context,
+                delegate: FieldOrderSearchDelegate(allOrders: items),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSidebar({bool inDrawer = false}) {
     Map<String, List<Widget>> menuGroups = {};
 
     if (widget.role == 'CLIENT') {
       menuGroups['WORKSPACE'] = [
-        _buildSidebarItem(key: 'start_new', label: "Start a New Project", icon: Icons.add_circle_outline),
-        _buildSidebarItem(key: 'in_progress', label: "Projects in Progress", icon: Icons.hourglass_empty),
-        _buildSidebarItem(key: 'completed', label: "Completed Projects", icon: Icons.check_circle_outline),
+        _buildSidebarItem(key: 'start_new', label: "Start a New Project", icon: Icons.add_circle_outline, inDrawer: inDrawer),
+        _buildSidebarItem(key: 'in_progress', label: "Projects in Progress", icon: Icons.hourglass_empty, inDrawer: inDrawer),
+        _buildSidebarItem(key: 'completed', label: "Completed Projects", icon: Icons.check_circle_outline, inDrawer: inDrawer),
       ];
     } else if (widget.role == 'PA') {
       menuGroups['WORKSPACE'] = [
-        _buildSidebarItem(key: 'in_progress', label: "My Active Tasks", icon: Icons.hourglass_empty),
-        _buildSidebarItem(key: 'completed', label: "Completed Tasks", icon: Icons.check_circle_outline),
+        _buildSidebarItem(key: 'in_progress', label: "My Active Tasks", icon: Icons.hourglass_empty, inDrawer: inDrawer),
+        _buildSidebarItem(key: 'completed', label: "Completed Tasks", icon: Icons.check_circle_outline, inDrawer: inDrawer),
       ];
       menuGroups['OPERATIONS'] = [
-        _buildSidebarItem(key: 'unassigned', label: "Unassigned Pool", icon: Icons.list_alt),
-        _buildSidebarItem(key: 'create_report', label: "Create New Report", icon: Icons.add_chart),
+        _buildSidebarItem(key: 'unassigned', label: "Unassigned Pool", icon: Icons.list_alt, inDrawer: inDrawer),
+        _buildSidebarItem(key: 'create_report', label: "Create New Report", icon: Icons.add_chart, inDrawer: inDrawer),
       ];
     } else {
       menuGroups['WORKSPACE'] = [
-        _buildSidebarItem(key: 'in_progress', label: "My Active Tasks", icon: Icons.hourglass_empty),
-        _buildSidebarItem(key: 'completed', label: "Completed Reports", icon: Icons.check_circle_outline),
+        _buildSidebarItem(key: 'in_progress', label: "My Active Tasks", icon: Icons.hourglass_empty, inDrawer: inDrawer),
+        _buildSidebarItem(key: 'completed', label: "Completed Reports", icon: Icons.check_circle_outline, inDrawer: inDrawer),
       ];
       menuGroups['OPERATIONS'] = [
-        _buildSidebarItem(key: 'under_review', label: "Review Queue", icon: Icons.rate_review),
-        _buildSidebarItem(key: 'approved', label: "Approved Reports", icon: Icons.verified_outlined),
-        _buildSidebarItem(key: 'create_report', label: "Create New Report", icon: Icons.add_chart),
+        _buildSidebarItem(key: 'under_review', label: "Review Queue", icon: Icons.rate_review, inDrawer: inDrawer),
+        _buildSidebarItem(key: 'approved', label: "Approved Reports", icon: Icons.verified_outlined, inDrawer: inDrawer),
+        _buildSidebarItem(key: 'create_report', label: "Create New Report", icon: Icons.add_chart, inDrawer: inDrawer),
       ];
     }
 
@@ -1318,7 +1408,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
     });
 
     return Container(
-      width: 280.0,
+      width: inDrawer ? double.infinity : 280.0,
       color: AppColors.sidebarBg,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1420,7 +1510,10 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                 ),
                 if ((widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN') && widget.onBackToAdmin != null) ...[
                   GestureDetector(
-                    onTap: widget.onBackToAdmin,
+                    onTap: () {
+                      if (inDrawer && Navigator.of(context).canPop()) Navigator.of(context).pop();
+                      widget.onBackToAdmin?.call();
+                    },
                     child: Row(
                       children: [
                         Icon(Icons.admin_panel_settings_outlined, color: AppColors.sidebarMuted, size: 16),
@@ -1434,10 +1527,41 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                   ),
                   const SizedBox(height: 12),
                 ],
+                if (!kIsWeb) ...[
+                  MouseRegion(
+                    cursor: SystemMouseCursors.click,
+                    child: GestureDetector(
+                      onTap: () {
+                        if (inDrawer && Navigator.of(context).canPop()) Navigator.of(context).pop();
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const AppInfoScreen()),
+                        );
+                      },
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 4),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.info_outline_rounded, color: AppColors.primary, size: 16),
+                            const SizedBox(width: 8),
+                            Text(
+                              'App Information',
+                              style: AppTypography.bodySmMedium(color: AppColors.primary),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                ],
                 MouseRegion(
                   cursor: SystemMouseCursors.click,
                   child: GestureDetector(
-                    onTap: widget.onLogout,
+                    onTap: () {
+                      if (inDrawer && Navigator.of(context).canPop()) Navigator.of(context).pop();
+                      widget.onLogout();
+                    },
                     child: Row(
                       children: [
                         Icon(Icons.logout_rounded, color: AppColors.brandRedDark, size: 16),
@@ -1461,10 +1585,13 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
     );
   }
 
-  Widget _buildSidebarItem({required String key, required String label, required IconData icon}) {
+  Widget _buildSidebarItem({required String key, required String label, required IconData icon, bool inDrawer = false}) {
     final isSelected = _selectedMenu == key;
 
     final VoidCallback onTapFn = () {
+      if (inDrawer && Navigator.of(context).canPop()) {
+        Navigator.of(context).pop();
+      }
       if (key == 'create_report') {
         _showCreateReportFlow();
       } else {
@@ -2946,8 +3073,229 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
                                 },
                                 borderRadius: BorderRadius.circular(8),
                                 child: Padding(
-                                  padding: const EdgeInsets.symmetric(vertical: 14.0, horizontal: 16.0),
-                                  child: Row(
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: !kIsWeb ? 16.0 : 14.0,
+                                    horizontal: 16.0,
+                                  ),
+                                  child: !kIsWeb
+                                      ? Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            // Top row: Status badge + Expand indicator
+                                            Row(
+                                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                              children: [
+                                                Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                                  decoration: BoxDecoration(
+                                                    color: _getStatusBgColor(statusStr),
+                                                    borderRadius: BorderRadius.circular(5),
+                                                  ),
+                                                  child: Text(
+                                                    statusStr,
+                                                    style: GoogleFonts.montserrat(
+                                                      color: _getStatusTextColor(statusStr),
+                                                      fontSize: 10.5,
+                                                      fontWeight: FontWeight.bold,
+                                                    ),
+                                                  ),
+                                                ),
+                                                Icon(
+                                                  isSelected ? Icons.keyboard_arrow_down : Icons.chevron_right,
+                                                  size: 20,
+                                                  color: DesignSystem.textSecondary,
+                                                ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 12),
+
+                                            // Reference Number
+                                            Text(
+                                              'Reference Number',
+                                              style: GoogleFonts.inter(fontSize: 11, color: DesignSystem.textSecondary, fontWeight: FontWeight.w500),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              reportNum,
+                                              style: GoogleFonts.montserrat(
+                                                color: DesignSystem.textPrimary,
+                                                fontSize: 15,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 10),
+
+                                            // Client Name
+                                            Text(
+                                              'Client Name',
+                                              style: GoogleFonts.inter(fontSize: 11, color: DesignSystem.textSecondary, fontWeight: FontWeight.w500),
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              "${order['clientName'] ?? '—'}",
+                                              style: GoogleFonts.montserrat(
+                                                color: DesignSystem.textPrimary,
+                                                fontSize: 13.5,
+                                                fontWeight: FontWeight.w600,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 10),
+
+                                            // Report Date & Bank
+                                            Row(
+                                              children: [
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                                    children: [
+                                                      Text(
+                                                        'Report Date',
+                                                        style: GoogleFonts.inter(fontSize: 11, color: DesignSystem.textSecondary, fontWeight: FontWeight.w500),
+                                                      ),
+                                                      const SizedBox(height: 2),
+                                                      Text(
+                                                        reportDateStr,
+                                                        style: GoogleFonts.montserrat(color: DesignSystem.textPrimary, fontSize: 12.5, fontWeight: FontWeight.w500),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                if (order['bankName'] != null)
+                                                  Expanded(
+                                                    child: Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                                      children: [
+                                                        Text(
+                                                          'Bank',
+                                                          style: GoogleFonts.inter(fontSize: 11, color: DesignSystem.textSecondary, fontWeight: FontWeight.w500),
+                                                        ),
+                                                        const SizedBox(height: 2),
+                                                        Text(
+                                                          "${order['bankName']}",
+                                                          style: GoogleFonts.montserrat(color: DesignSystem.textPrimary, fontSize: 12.5, fontWeight: FontWeight.w500),
+                                                          overflow: TextOverflow.ellipsis,
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 12),
+                                            const Divider(height: 1, color: AppColors.hairlineSoft),
+                                            const SizedBox(height: 10),
+
+                                            // Action Hub
+                                            Wrap(
+                                              spacing: 8,
+                                              runSpacing: 8,
+                                              crossAxisAlignment: WrapCrossAlignment.center,
+                                              children: [
+                                                ElevatedButton.icon(
+                                                  icon: const Icon(Icons.camera_alt_outlined, size: 16),
+                                                  label: const Text('Take Photos'),
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: const Color(0xFF0284C7),
+                                                    foregroundColor: Colors.white,
+                                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                    textStyle: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.bold),
+                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                  ),
+                                                  onPressed: () async {
+                                                    final photo = await InspectionPhotoService.instance.captureInspectionPhoto(
+                                                      appraiserId: widget.email,
+                                                      referenceNumber: reportNum,
+                                                      stage: 'FIELD_INSPECTION',
+                                                    );
+                                                    if (photo != null && context.mounted) {
+                                                      ScaffoldMessenger.of(context).showSnackBar(
+                                                        SnackBar(
+                                                          content: Text('Photo tagged with GPS () & saved to dossier.'),
+                                                          backgroundColor: const Color(0xFF10B981),
+                                                        ),
+                                                      );
+                                                    }
+                                                  },
+                                                ),
+                                                ElevatedButton.icon(
+                                                  icon: const Icon(Icons.edit_note, size: 16),
+                                                  label: Text(order['templateId'] != null ? 'Open Workspace' : 'Populate'),
+                                                  style: ElevatedButton.styleFrom(
+                                                    backgroundColor: DesignSystem.primary,
+                                                    foregroundColor: Colors.white,
+                                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                                                    textStyle: GoogleFonts.montserrat(fontSize: 12, fontWeight: FontWeight.bold),
+                                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(6)),
+                                                  ),
+                                                  onPressed: () {
+                                                    if (order['templateId'] != null) {
+                                                      Navigator.push(
+                                                        context,
+                                                        MaterialPageRoute(
+                                                          builder: (context) => DocumentWorkspaceScreen(
+                                                            orderId: order['id'],
+                                                            reportNumber: reportNum,
+                                                            role: widget.role,
+                                                          ),
+                                                        ),
+                                                      ).then((_) => _refreshData());
+                                                    } else {
+                                                      _openPopulateReportFullScreen(order, provider);
+                                                    }
+                                                  },
+                                                ),
+                                                if ((widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN') && (order['status'] == 'QUOTE_PENDING' || order['status'] == 'QUOTE_PROVIDED'))
+                                                  OutlinedButton.icon(
+                                                    icon: const Icon(Icons.rate_review_outlined, size: 14),
+                                                    label: Text(order['status'] == 'QUOTE_PENDING' ? 'Quote' : 'Review Quote'),
+                                                    style: OutlinedButton.styleFrom(
+                                                      foregroundColor: const Color(0xFF1D4ED8),
+                                                      side: const BorderSide(color: Color(0xFFBFDBFE)),
+                                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                      textStyle: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w600),
+                                                    ),
+                                                    onPressed: () => AdminRequestReviewModal.show(
+                                                      context: context,
+                                                      order: order,
+                                                      onRefresh: () => _refreshData(),
+                                                    ),
+                                                  ),
+                                                if (order['status'] == 'QUOTE_PROVIDED' || order['quoteNumber'] != null)
+                                                  OutlinedButton.icon(
+                                                    icon: const Icon(Icons.receipt_long_outlined, size: 14),
+                                                    label: const Text('View Quote'),
+                                                    style: OutlinedButton.styleFrom(
+                                                      foregroundColor: const Color(0xFF047857),
+                                                      side: const BorderSide(color: Color(0xFFA7F3D0)),
+                                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                      textStyle: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w600),
+                                                    ),
+                                                    onPressed: () => ClientQuoteViewModal.show(
+                                                      context: context,
+                                                      orderId: (order['id'] as num).toInt(),
+                                                      initialRefCode: order['referenceCode'] ?? order['reportNumber'],
+                                                    ),
+                                                  ),
+                                                if (order['status'] == 'QUOTE_PROVIDED' || order['status'] == 'PAYMENT_REJECTED')
+                                                  ElevatedButton.icon(
+                                                    icon: const Icon(Icons.payment_rounded, size: 14),
+                                                    label: Text(order['status'] == 'PAYMENT_REJECTED' ? 'Resubmit Pay' : 'Pay / UTR'),
+                                                    style: ElevatedButton.styleFrom(
+                                                      backgroundColor: const Color(0xFF1D4ED8),
+                                                      foregroundColor: Colors.white,
+                                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                                      textStyle: GoogleFonts.inter(fontSize: 11.5, fontWeight: FontWeight.w600),
+                                                    ),
+                                                    onPressed: () => ClientPaymentSubmissionModal.show(
+                                                      context: context,
+                                                      orderId: (order['id'] as num).toInt(),
+                                                      onSuccess: () => _refreshData(),
+                                                    ),
+                                                  ),
+                                              ],
+                                            ),
+                                          ],
+                                        )
+                                      : Row(
                                     children: [
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -4104,6 +4452,30 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
             );
           }
 
+          if (!kIsWeb) {
+            return Padding(
+              padding: const EdgeInsets.only(bottom: 16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label,
+                    style: DesignSystem.body(
+                      color: DesignSystem.textPrimary,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  SizedBox(
+                    width: double.infinity,
+                    child: inputControl,
+                  ),
+                ],
+              ),
+            );
+          }
+
           return Padding(
             padding: const EdgeInsets.only(bottom: 14.0),
             child: Row(
@@ -4213,15 +4585,7 @@ class _ValuationPortalWidgetState extends State<ValuationPortalWidget> {
       }
       return;
     }
-    final blob = html.Blob([bytes]);
-    final url = html.Url.createObjectUrlFromBlob(blob);
-    final anchor = html.AnchorElement(href: url)
-      ..setAttribute('download', filename)
-      ..style.display = 'none';
-    html.document.body!.append(anchor);
-    anchor.click();
-    anchor.remove();
-    html.Url.revokeObjectUrl(url);
+    triggerBrowserDownload(bytes, filename, 'application/octet-stream');
   }
 
 

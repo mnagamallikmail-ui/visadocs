@@ -1,8 +1,11 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:dio/dio.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/app_components.dart';
+import '../../screens/app_info_screen.dart';
 import '../../services/api_service.dart';
 import '../valuation_portal/valuation_portal_widget.dart';
 import 'admin_sections.dart';
@@ -678,6 +681,13 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
     }).toList();
   }
 
+  String _getMenuTitle(String key) {
+    final item = _menuItems.firstWhere((m) => m['key'] == key, orElse: () => {'label': 'Admin Console'});
+    return item['label'] as String;
+  }
+
+  final GlobalKey<ScaffoldState> _adminScaffoldKey = GlobalKey<ScaffoldState>();
+
   @override
   Widget build(BuildContext context) {
     if (_showValuationPortal) {
@@ -693,11 +703,43 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
         },
       );
     }
+
+    final width = MediaQuery.of(context).size.width;
+    final isMobile = width < 600;
+    final isTablet = width >= 600 && width <= 1024;
+    final isDesktop = width > 1024;
+
+    if (!kIsWeb && (isMobile || isTablet)) {
+      return Scaffold(
+        key: _adminScaffoldKey,
+        backgroundColor: AppColors.canvas,
+        drawer: Drawer(
+          width: 290,
+          child: SafeArea(
+            child: _buildSidebar(inDrawer: true),
+          ),
+        ),
+        body: SafeArea(
+          child: Column(
+            children: [
+              _buildMobileAdminHeader(),
+              Expanded(
+                child: SizedBox(
+                  width: double.infinity,
+                  child: _buildCanvas(),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.canvas,
       body: Row(
         children: [
-          _buildSidebar(),
+          _buildSidebar(inDrawer: false),
           Container(width: 1, color: AppColors.hairline),
           Expanded(child: _buildCanvas()),
         ],
@@ -705,9 +747,61 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
     );
   }
 
-  Widget _buildSidebar() {
+  Widget _buildMobileAdminHeader() {
+    final currentTitle = _getMenuTitle(_selectedMenu);
     return Container(
-      width: 240,
+      height: 56,
+      padding: const EdgeInsets.symmetric(horizontal: 14),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(bottom: BorderSide(color: AppColors.hairlineSoft)),
+      ),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.menu_rounded, color: AppColors.brandNavy, size: 24),
+            tooltip: 'Open Navigation Drawer',
+            padding: const EdgeInsets.all(12),
+            constraints: const BoxConstraints(minWidth: 48, minHeight: 48),
+            onPressed: () => _adminScaffoldKey.currentState?.openDrawer(),
+          ),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              currentTitle,
+              style: GoogleFonts.montserrat(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppColors.ink,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceSoft,
+              borderRadius: BorderRadius.circular(6),
+              border: Border.all(color: AppColors.hairline),
+            ),
+            child: Text(
+              widget.role.replaceAll('_', ' '),
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+                color: AppColors.brandBlue,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSidebar({bool inDrawer = false}) {
+    return Container(
+      width: inDrawer ? double.infinity : 240.0,
       color: AppColors.sidebarBg, // warm cream sidebar
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -744,6 +838,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                 m['key'] as String,
                 m['label'] as String,
                 m['icon'] as IconData,
+                inDrawer: inDrawer,
               )).toList(),
             ),
           ),
@@ -824,7 +919,12 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
                 MouseRegion(
                   cursor: SystemMouseCursors.click,
                   child: GestureDetector(
-                    onTap: widget.onLogout,
+                    onTap: () {
+                      if (inDrawer && Navigator.of(context).canPop()) {
+                        Navigator.of(context).pop();
+                      }
+                      widget.onLogout();
+                    },
                     child: Row(
                       children: [
                         Icon(
@@ -856,7 +956,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
     );
   }
 
-  Widget _sidebarItem(String key, String label, IconData icon) {
+  Widget _sidebarItem(String key, String label, IconData icon, {bool inDrawer = false}) {
     final isSel = _selectedMenu == key;
     return _HoverableSidebarItem(
       key: ValueKey(key),
@@ -864,6 +964,9 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
       icon: icon,
       isSelected: isSel,
       onTap: () {
+        if (inDrawer && Navigator.of(context).canPop()) {
+          Navigator.of(context).pop();
+        }
         if (key == 'valuation_portal') {
           setState(() => _showValuationPortal = true);
         } else {
@@ -931,49 +1034,89 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
 
   // ─── User Management (inline) ────────────────────────────
   Widget _buildUserManagement() {
+    final isMobile = !kIsWeb && MediaQuery.of(context).size.width < 600;
+
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(24),
+          padding: EdgeInsets.all(isMobile ? 16 : 24),
           decoration: const BoxDecoration(
             color: Colors.white,
             border: Border(bottom: BorderSide(color: AppColors.hairlineSoft)),
           ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
+          child: isMobile
+              ? Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       'User Management',
-                      style: AppTypography.heading3().copyWith(color: AppColors.ink),
+                      style: AppTypography.heading3().copyWith(color: AppColors.ink, fontSize: 18),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Manage all portal user accounts — lock, archive, or permanently erase.',
-                      style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13),
+                      'Manage portal user accounts — lock, archive, or erase.',
+                      style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 12),
+                    ),
+                    const SizedBox(height: 12),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: ElevatedButton.icon(
+                            onPressed: _showCreateUserDialog,
+                            icon: const Icon(Icons.person_add_outlined, size: 16),
+                            label: const Text('Add User'),
+                            style: AppComponents.primaryButtonStyle(),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: _loadUsers,
+                          icon: const Icon(Icons.refresh, size: 20),
+                          tooltip: 'Refresh',
+                          style: IconButton.styleFrom(
+                            backgroundColor: AppColors.surfaceSoft,
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'User Management',
+                            style: AppTypography.heading3().copyWith(color: AppColors.ink),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            'Manage all portal user accounts — lock, archive, or permanently erase.',
+                            style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 13),
+                          ),
+                        ],
+                      ),
+                    ),
+                    ElevatedButton.icon(
+                      onPressed: _showCreateUserDialog,
+                      icon: const Icon(Icons.person_add_outlined, size: 16),
+                      label: const Text('Add User'),
+                      style: AppComponents.primaryButtonStyle(),
+                    ),
+                    const SizedBox(width: 8),
+                    ElevatedButton.icon(
+                      onPressed: _loadUsers,
+                      icon: const Icon(Icons.refresh, size: 16),
+                      label: const Text('Refresh'),
+                      style: AppComponents.secondaryButtonStyle().copyWith(
+                        padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
+                      ),
                     ),
                   ],
                 ),
-              ),
-              ElevatedButton.icon(
-                onPressed: _showCreateUserDialog,
-                icon: const Icon(Icons.person_add_outlined, size: 16),
-                label: const Text('Add User'),
-                style: AppComponents.primaryButtonStyle(),
-              ),
-              const SizedBox(width: 8),
-              ElevatedButton.icon(
-                onPressed: _loadUsers,
-                icon: const Icon(Icons.refresh, size: 16),
-                label: const Text('Refresh'),
-                style: AppComponents.secondaryButtonStyle().copyWith(
-                  padding: WidgetStateProperty.all(const EdgeInsets.symmetric(horizontal: 14, vertical: 10)),
-                ),
-              ),
-            ],
-          ),
         ),
         if (_loadingUsers)
           const Expanded(child: Center(child: CircularProgressIndicator()))
@@ -1014,72 +1157,232 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
           )
         else
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                children: [
-                  // Modern Table Header
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    decoration: const BoxDecoration(
-                      color: AppColors.surface,
-                      borderRadius: BorderRadius.only(topLeft: Radius.circular(8), topRight: Radius.circular(8)),
-                    ),
-                    child: Row(
-                      children: [
-                        SizedBox(
-                          width: 50,
-                          child: Text(
-                            'ID',
-                            style: AppTypography.captionBold().copyWith(color: AppColors.slate),
-                          ),
+            child: isMobile
+                ? ListView.builder(
+                    padding: const EdgeInsets.all(12),
+                    itemCount: _users.length,
+                    itemBuilder: (ctx, idx) => _userMobileCard(_users[idx]),
+                  )
+                : SingleChildScrollView(
+                    padding: const EdgeInsets.all(24),
+                    scrollDirection: Axis.vertical,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: SizedBox(
+                        width: 850,
+                        child: Column(
+                          children: [
+                            // Modern Table Header
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                              decoration: const BoxDecoration(
+                                color: AppColors.surface,
+                                borderRadius: BorderRadius.only(topLeft: Radius.circular(8), topRight: Radius.circular(8)),
+                              ),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 50,
+                                    child: Text(
+                                      'ID',
+                                      style: AppTypography.captionBold().copyWith(color: AppColors.slate),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 3,
+                                    child: Text(
+                                      'User (Username / Name)',
+                                      style: AppTypography.captionBold().copyWith(color: AppColors.slate),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      'Contact (Mobile / Email)',
+                                      style: AppTypography.captionBold().copyWith(color: AppColors.slate),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 100,
+                                    child: Text(
+                                      'Role',
+                                      style: AppTypography.captionBold().copyWith(color: AppColors.slate),
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 80,
+                                    child: Text(
+                                      'Status',
+                                      style: AppTypography.captionBold().copyWith(color: AppColors.slate),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                  SizedBox(
+                                    width: 290,
+                                    child: Text(
+                                      'Actions',
+                                      style: AppTypography.captionBold().copyWith(color: AppColors.slate),
+                                      textAlign: TextAlign.right,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            ..._users.map((u) => _userRow(u)),
+                          ],
                         ),
-                        Expanded(
-                          flex: 3,
-                          child: Text(
-                            'User (Username / Name)',
-                            style: AppTypography.captionBold().copyWith(color: AppColors.slate),
-                          ),
-                        ),
-                        Expanded(
-                          flex: 2,
-                          child: Text(
-                            'Contact (Mobile / Email)',
-                            style: AppTypography.captionBold().copyWith(color: AppColors.slate),
-                          ),
-                        ),
-                        SizedBox(
-                          width: 100,
-                          child: Text(
-                            'Role',
-                            style: AppTypography.captionBold().copyWith(color: AppColors.slate),
-                          ),
-                        ),
-                        SizedBox(
-                          width: 80,
-                          child: Text(
-                            'Status',
-                            style: AppTypography.captionBold().copyWith(color: AppColors.slate),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                        SizedBox(
-                          width: 290,
-                          child: Text(
-                            'Actions',
-                            style: AppTypography.captionBold().copyWith(color: AppColors.slate),
-                            textAlign: TextAlign.right,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
-                  ..._users.map((u) => _userRow(u)),
-                ],
-              ),
-            ),
           ),
       ],
+    );
+  }
+
+  Widget _userMobileCard(dynamic u) {
+    final isLocked = u['locked'] == true;
+    final isMasterAdmin = u['username'] == 'admin';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: AppColors.hairlineSoft),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceSoft,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text('#${u['id']}', style: const TextStyle(fontSize: 11, fontWeight: FontWeight.bold, color: AppColors.slate)),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  '@${u['username'] ?? u['email']}',
+                  style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 13.5, color: AppColors.ink),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: isLocked ? const Color(0xFFFEF2F2) : const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  isLocked ? 'LOCKED' : 'ACTIVE',
+                  style: TextStyle(
+                    color: isLocked ? AppColors.brandRedDark : const Color(0xFF047857),
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            u['fullName'] ?? 'No Name Provided',
+            style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w600, color: Color(0xFF334155)),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            '${u['email'] ?? 'No email'} • ${u['mobile'] ?? 'No mobile'}',
+            style: const TextStyle(fontSize: 11.5, color: AppColors.slate),
+          ),
+          const SizedBox(height: 8),
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: AppColors.surface,
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(color: AppColors.hairline),
+                ),
+                child: Text(
+                  (u['role'] ?? 'CLIENT').toString().replaceAll('_', ' '),
+                  style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.brandBlue),
+                ),
+              ),
+            ],
+          ),
+          const Divider(height: 20, color: AppColors.hairlineSoft),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () => _showEditUserDialog(u),
+                icon: const Icon(Icons.edit_outlined, size: 14),
+                label: const Text('Edit', style: TextStyle(fontSize: 12)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  minimumSize: const Size(0, 36),
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => _showResetPasswordDialog(u),
+                icon: const Icon(Icons.key_outlined, size: 14),
+                label: const Text('Password', style: TextStyle(fontSize: 12)),
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  minimumSize: const Size(0, 36),
+                ),
+              ),
+              if (!isMasterAdmin)
+                OutlinedButton.icon(
+                  onPressed: () => _toggleLock(u),
+                  icon: Icon(isLocked ? Icons.lock_open_outlined : Icons.lock_outline, size: 14),
+                  label: Text(isLocked ? 'Unlock' : 'Lock', style: const TextStyle(fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: isLocked ? const Color(0xFF047857) : AppColors.brandRedDark,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    minimumSize: const Size(0, 36),
+                  ),
+                ),
+              if (!isMasterAdmin)
+                OutlinedButton.icon(
+                  onPressed: () => _showSoftDeleteDialog(u),
+                  icon: const Icon(Icons.archive_outlined, size: 14),
+                  label: const Text('Archive', style: TextStyle(fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.slate,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    minimumSize: const Size(0, 36),
+                  ),
+                ),
+              if (!isMasterAdmin)
+                OutlinedButton.icon(
+                  onPressed: () => _showHardDeleteDialog(u),
+                  icon: const Icon(Icons.delete_forever_outlined, size: 14),
+                  label: const Text('Purge', style: TextStyle(fontSize: 12)),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: AppColors.brandRedDark,
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    minimumSize: const Size(0, 36),
+                  ),
+                ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 

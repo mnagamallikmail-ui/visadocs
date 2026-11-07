@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../services/api_service.dart';
@@ -1080,22 +1081,23 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
                         ),
                         child: Column(
                 children: [
-                  // Table Header
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                    decoration: const BoxDecoration(
-                      color: AppColors.brandNavy,
-                      borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
+                  // Table Header (Desktop Web only)
+                  if (kIsWeb)
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: const BoxDecoration(
+                        color: AppColors.brandNavy,
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(7)),
+                      ),
+                      child: Row(
+                        children: const [
+                          Expanded(flex: 3, child: Text('VALUATION PARAMETER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white))),
+                          Expanded(flex: 2, child: Text('LAND (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white), textAlign: TextAlign.right)),
+                          Expanded(flex: 2, child: Text('BUILDING (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white), textAlign: TextAlign.right)),
+                          Expanded(flex: 2, child: Text('TOTAL (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white), textAlign: TextAlign.right)),
+                        ],
+                      ),
                     ),
-                    child: Row(
-                      children: const [
-                        Expanded(flex: 3, child: Text('VALUATION PARAMETER', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white))),
-                        Expanded(flex: 2, child: Text('LAND (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white), textAlign: TextAlign.right)),
-                        Expanded(flex: 2, child: Text('BUILDING (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white), textAlign: TextAlign.right)),
-                        Expanded(flex: 2, child: Text('TOTAL (₹)', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.white), textAlign: TextAlign.right)),
-                      ],
-                    ),
-                  ),
                   // Row 1: Fair Value (Phase 9)
                   _buildSummaryTableRow(
                     'Fair Market Value (Say Land + Say Bldg)',
@@ -1191,6 +1193,48 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
   }
 
   Widget _buildSummaryTableRow(String param, String land, String bldg, String total, {bool isHighlight = false}) {
+    if (!kIsWeb) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: isHighlight ? AppColors.surfaceSoft : Colors.white,
+          border: const Border(bottom: BorderSide(color: AppColors.hairlineSoft)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              param,
+              style: TextStyle(
+                fontWeight: isHighlight ? FontWeight.bold : FontWeight.w600,
+                fontSize: 12.5,
+                color: isHighlight ? AppColors.primary : AppColors.ink,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Wrap(
+              spacing: 12,
+              runSpacing: 4,
+              children: [
+                if (land != 'N/A')
+                  Text('Land: $land', style: GoogleFonts.firaCode(fontSize: 11.5, color: AppColors.slate)),
+                if (bldg != 'N/A')
+                  Text('Bldg: $bldg', style: GoogleFonts.firaCode(fontSize: 11.5, color: AppColors.slate)),
+                Text(
+                  'Total: $total',
+                  style: GoogleFonts.firaCode(
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                    color: isHighlight ? AppColors.primary : AppColors.ink,
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       color: isHighlight ? AppColors.surfaceSoft : Colors.transparent,
@@ -1206,6 +1250,38 @@ class _ValuationWorkspaceEditorWidgetState extends State<ValuationWorkspaceEdito
   }
 
   Widget _buildSummaryTableRow2Col(String param, String amount, {bool isHighlight = false}) {
+    if (!kIsWeb) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        decoration: BoxDecoration(
+          color: isHighlight ? AppColors.surfaceSoft : Colors.white,
+          border: const Border(bottom: BorderSide(color: AppColors.hairlineSoft)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              param,
+              style: TextStyle(
+                fontWeight: isHighlight ? FontWeight.bold : FontWeight.w600,
+                fontSize: 12.5,
+                color: isHighlight ? AppColors.primary : AppColors.ink,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              amount,
+              style: GoogleFonts.firaCode(
+                fontSize: 13,
+                fontWeight: FontWeight.bold,
+                color: isHighlight ? AppColors.primary : AppColors.ink,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       color: isHighlight ? AppColors.surfaceSoft : Colors.transparent,

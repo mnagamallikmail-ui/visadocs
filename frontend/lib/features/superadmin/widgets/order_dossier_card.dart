@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -915,6 +916,7 @@ class _OrderDossierCardState extends State<OrderDossierCard> with SingleTickerPr
 
     final updatedAt = widget.order['updatedAt'] ?? widget.order['createdAt'];
     final statusAge = _formatStatusAge(updatedAt);
+    final isMobileOrTablet = !kIsWeb && MediaQuery.of(context).size.width < 768;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 8),
@@ -944,79 +946,74 @@ class _OrderDossierCardState extends State<OrderDossierCard> with SingleTickerPr
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // ─── Collapsed Master Row ──────────────────────────────
-          InkWell(
-            onTap: widget.onToggleExpand,
-            borderRadius: BorderRadius.circular(8),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              child: Row(
-                children: [
-                  // 1. Report Number & Reference Code
-                  SizedBox(
-                    width: 170,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+          // ─── Master Row (Mobile/Tablet Card vs Desktop Multi-Column) ───
+          if (isMobileOrTablet)
+            InkWell(
+              onTap: widget.onToggleExpand,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          _reportNum,
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF0F172A), // Charcoal
-                            letterSpacing: -0.2,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _reportNum,
+                                style: GoogleFonts.inter(
+                                  fontSize: 13.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF0F172A),
+                                  letterSpacing: -0.2,
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                _refCode,
+                                style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
+                              ),
+                            ],
                           ),
-                          overflow: TextOverflow.ellipsis,
                         ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _refCode,
-                          style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
-                        ),
-                        const SizedBox(height: 4),
-                        _buildRecoveryAndSlaBadge(),
-                      ],
-                    ),
-                  ),
-
-                  // 2. Client & Property Location
-                  Expanded(
-                    flex: 3,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          clientDisplay,
-                          style: GoogleFonts.inter(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF1E293B),
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          _extractPropertyAddress(),
-                          style: GoogleFonts.inter(
-                            fontSize: 11,
-                            color: const Color(0xFF64748B),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  // 3. Current Status & Entry Age
-                  SizedBox(
-                    width: 175,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
+                        const SizedBox(width: 8),
                         _buildStatusBadge(_status),
-                        const SizedBox(height: 3),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      clientDisplay,
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF1E293B),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      _extractPropertyAddress(),
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        color: const Color(0xFF64748B),
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 4,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        _buildRecoveryAndSlaBadge(),
                         Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             const Icon(Icons.schedule, size: 10, color: Color(0xFF94A3B8)),
                             const SizedBox(width: 4),
@@ -1030,68 +1027,198 @@ class _OrderDossierCardState extends State<OrderDossierCard> with SingleTickerPr
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  ),
-
-                  // 4. Responsible Party / Owner
-                  SizedBox(
-                    width: 160,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          ownership['team']!,
-                          style: GoogleFonts.inter(
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                            color: const Color(0xFF334155),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(4),
                           ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          ownership['pa']!,
-                          style: GoogleFonts.inter(fontSize: 10.5, color: const Color(0xFF64748B)),
-                          overflow: TextOverflow.ellipsis,
+                          child: Text(
+                            ownership['team']!,
+                            style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF334155)),
+                          ),
                         ),
                       ],
                     ),
-                  ),
-
-                  // 5. Action Hub & Expand Toggle
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      _isProcessingAction
-                          ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
-                          : _buildPrimaryAction(),
-                      const SizedBox(width: 8),
-
-                      // Overflow Menu (Neutral Secondary Actions)
-                      _buildOverflowMenu(),
-
-                      const SizedBox(width: 8),
-
-                      // Expand Chevron Toggle
-                      IconButton(
-                        onPressed: widget.onToggleExpand,
-                        icon: AnimatedRotation(
-                          turns: widget.isExpanded ? 0.5 : 0.0,
-                          duration: const Duration(milliseconds: 200),
-                          child: const Icon(Icons.expand_more_rounded, size: 20, color: Color(0xFF64748B)),
+                    const SizedBox(height: 10),
+                    const Divider(height: 1, color: Color(0xFFF1F5F9)),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _isProcessingAction
+                              ? const Center(child: SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2)))
+                              : _buildPrimaryAction(),
                         ),
-                        tooltip: widget.isExpanded ? 'Collapse Dossier' : 'Expand Dossier',
-                        splashRadius: 18,
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        const SizedBox(width: 8),
+                        _buildOverflowMenu(),
+                        const SizedBox(width: 4),
+                        IconButton(
+                          onPressed: widget.onToggleExpand,
+                          icon: AnimatedRotation(
+                            turns: widget.isExpanded ? 0.5 : 0.0,
+                            duration: const Duration(milliseconds: 200),
+                            child: const Icon(Icons.expand_more_rounded, size: 22, color: Color(0xFF64748B)),
+                          ),
+                          tooltip: widget.isExpanded ? 'Collapse Dossier' : 'Expand Dossier',
+                          splashRadius: 18,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            InkWell(
+              onTap: widget.onToggleExpand,
+              borderRadius: BorderRadius.circular(8),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Row(
+                  children: [
+                    // 1. Report Number & Reference Code
+                    SizedBox(
+                      width: 170,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            _reportNum,
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF0F172A), // Charcoal
+                              letterSpacing: -0.2,
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _refCode,
+                            style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B), fontWeight: FontWeight.w500),
+                          ),
+                          const SizedBox(height: 4),
+                          _buildRecoveryAndSlaBadge(),
+                        ],
                       ),
-                    ],
-                  ),
-                ],
+                    ),
+
+                    // 2. Client & Property Location
+                    Expanded(
+                      flex: 3,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            clientDisplay,
+                            style: GoogleFonts.inter(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF1E293B),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            _extractPropertyAddress(),
+                            style: GoogleFonts.inter(
+                              fontSize: 11,
+                              color: const Color(0xFF64748B),
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // 3. Current Status & Entry Age
+                    SizedBox(
+                      width: 175,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildStatusBadge(_status),
+                          const SizedBox(height: 3),
+                          Row(
+                            children: [
+                              const Icon(Icons.schedule, size: 10, color: Color(0xFF94A3B8)),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Age: $statusAge',
+                                style: GoogleFonts.inter(
+                                  fontSize: 10.5,
+                                  color: const Color(0xFF64748B),
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // 4. Responsible Party / Owner
+                    SizedBox(
+                      width: 160,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            ownership['team']!,
+                            style: GoogleFonts.inter(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF334155),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            ownership['pa']!,
+                            style: GoogleFonts.inter(fontSize: 10.5, color: const Color(0xFF64748B)),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    // 5. Action Hub & Expand Toggle
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        _isProcessingAction
+                            ? const SizedBox(width: 24, height: 24, child: CircularProgressIndicator(strokeWidth: 2))
+                            : _buildPrimaryAction(),
+                        const SizedBox(width: 8),
+
+                        // Overflow Menu (Neutral Secondary Actions)
+                        _buildOverflowMenu(),
+
+                        const SizedBox(width: 8),
+
+                        // Expand Chevron Toggle
+                        IconButton(
+                          onPressed: widget.onToggleExpand,
+                          icon: AnimatedRotation(
+                            turns: widget.isExpanded ? 0.5 : 0.0,
+                            duration: const Duration(milliseconds: 200),
+                            child: const Icon(Icons.expand_more_rounded, size: 20, color: Color(0xFF64748B)),
+                          ),
+                          tooltip: widget.isExpanded ? 'Collapse Dossier' : 'Expand Dossier',
+                          splashRadius: 18,
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             ),
-          ),
 
           // ─── Expanded Operational Dossier ──────────────────────
           if (widget.isExpanded) ...[
@@ -1115,19 +1242,22 @@ class _OrderDossierCardState extends State<OrderDossierCard> with SingleTickerPr
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Dossier Navigation Tabs
-          Row(
-            children: [
-              _dossierTab(0, "Overview & Mandate", Icons.dashboard_outlined),
-              const SizedBox(width: 6),
-              _dossierTab(1, "Commercial & Remittance", Icons.payments_outlined),
-              const SizedBox(width: 6),
-              _dossierTab(2, "Document Vault (${widget.order['documentCount'] ?? _documents.length})", Icons.folder_outlined),
-              const SizedBox(width: 6),
-              _dossierTab(3, "Audit & Milestones", Icons.timeline_outlined),
-              const Spacer(),
-              // Quick action toolbar
-              _buildExpandedQuickToolbar(),
-            ],
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: [
+                _dossierTab(0, "Overview & Mandate", Icons.dashboard_outlined),
+                const SizedBox(width: 6),
+                _dossierTab(1, "Commercial & Remittance", Icons.payments_outlined),
+                const SizedBox(width: 6),
+                _dossierTab(2, "Document Vault (${widget.order['documentCount'] ?? _documents.length})", Icons.folder_outlined),
+                const SizedBox(width: 6),
+                _dossierTab(3, "Audit & Milestones", Icons.timeline_outlined),
+                const SizedBox(width: 12),
+                // Quick action toolbar
+                _buildExpandedQuickToolbar(),
+              ],
+            ),
           ),
 
           const SizedBox(height: 14),
@@ -1806,8 +1936,10 @@ class _OrderDossierCardState extends State<OrderDossierCard> with SingleTickerPr
     final status = _status;
     final isDelivered = status == 'FINAL_DELIVERY' || status == 'CLIENT_DOWNLOADED' || status == 'CLOSED';
 
-    return Row(
-      children: [
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
         // 1. COMMERCIAL ACTIONS
         _actionGroupLabel("COMMERCIAL"),
         const SizedBox(width: 6),
@@ -1897,7 +2029,8 @@ class _OrderDossierCardState extends State<OrderDossierCard> with SingleTickerPr
           _dangerBtn("Delete", Icons.delete_outline_rounded, () => widget.onDelete!(widget.order)),
         ],
       ],
-    );
+    ),
+  );
   }
 
   Widget _actionGroupLabel(String text) {

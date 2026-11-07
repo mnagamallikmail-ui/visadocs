@@ -10,6 +10,12 @@ class TokenStorage {
   static const String keyFullName = 'auth_full_name';
   static const String keyMobile = 'auth_mobile';
   static const String keyUserId = 'auth_user_id';
+  static const String keyBiometricEnabled = 'auth_biometric_enabled';
+
+  static Future<void> init() async => initPlatformStorage();
+
+  static bool isBiometricEnabled() => getStorageItem(keyBiometricEnabled) == 'true';
+  static void setBiometricEnabled(bool enabled) => setStorageItem(keyBiometricEnabled, enabled ? 'true' : 'false');
 
   static String? getToken() => getStorageItem(keyToken);
   static void saveToken(String token) => setStorageItem(keyToken, token);

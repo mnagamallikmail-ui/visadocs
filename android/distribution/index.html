@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Download ProValuer Android App | Official Distribution</title>
+  <meta name="description" content="Download the official ProValuer Android Application for field appraisers, senior valuers, and administrators.">
+  <link rel="icon" type="image/x-icon" href="/favicon.ico">
+  <style>
+    :root {
+      --primary: #1E3A8A;
+      --primary-light: #2563EB;
+      --accent: #0D9488;
+      --bg: #F8FAFC;
+      --card-bg: #FFFFFF;
+      --text-main: #0F172A;
+      --text-muted: #64748B;
+      --border: #E2E8F0;
+      --success: #10B981;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+    }
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 24px 16px 48px;
+    }
+    .container {
+      width: 100%;
+      max-width: 480px;
+    }
+    .card {
+      background: var(--card-bg);
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.01);
+      padding: 32px 24px;
+      text-align: center;
+    }
+    .logo-container {
+      width: 80px;
+      height: 80px;
+      background: linear-gradient(135deg, var(--primary) 0%, #172554 100%);
+      border-radius: 20px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 8px 20px rgba(30, 58, 138, 0.25);
+      margin-bottom: 20px;
+    }
+    .logo-text {
+      color: white;
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: 1.5px;
+    }
+    h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+    .subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+    .badge-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: #EFF6FF;
+      color: var(--primary-light);
+      font-size: 12px;
+      font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 999px;
+      margin-bottom: 24px;
+    }
+    .badge-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--success);
+      border-radius: 50%;
+    }
+    .btn-download {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      width: 100%;
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: white;
+      text-decoration: none;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 16px 24px;
+      border-radius: 14px;
+      box-shadow: 0 6px 16px rgba(37, 99, 235, 0.35);
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+    .btn-download:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 10px 20px rgba(37, 99, 235, 0.45);
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-top: 24px;
+      text-align: left;
+    }
+    .meta-box {
+      background: var(--bg);
+      border-radius: 12px;
+      padding: 12px 14px;
+      border: 1px solid var(--border);
+    }
+    .meta-label {
+      font-size: 11px;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+    .meta-value {
+      font-size: 13px;
+      font-weight: 700;
+      color: var(--text-main);
+    }
+    .features-section {
+      margin-top: 28px;
+      text-align: left;
+    }
+    .features-title {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--text-main);
+      margin-bottom: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .feature-item {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 10px;
+      font-size: 13px;
+      color: #334155;
+    }
+    .feature-check {
+      color: var(--accent);
+      font-weight: 900;
+    }
+    .qr-card {
+      margin-top: 24px;
+      background: white;
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      padding: 20px;
+      text-align: center;
+    }
+    .qr-card img {
+      width: 180px;
+      height: 180px;
+      border-radius: 8px;
+      margin: 12px 0;
+    }
+    .checksum-box {
+      margin-top: 16px;
+      background: #F1F5F9;
+      border-radius: 8px;
+      padding: 10px;
+      font-family: monospace;
+      font-size: 10px;
+      color: #475569;
+      word-break: break-all;
+    }
+    .footer {
+      margin-top: 32px;
+      text-align: center;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="card">
+      <div class="logo-container">
+        <span class="logo-text">PV</span>
+      </div>
+      <h1>ProValuer Mobile</h1>
+      <p class="subtitle">Commercial Real Estate Valuation & Field Inspection</p>
+
+      <div class="badge-pill">
+        <span class="badge-dot"></span>
+        <span>Version 1.0.0 (Build 101) &bull; Verified Build</span>
+      </div>
+
+      <a href="/download" class="btn-download">
+        <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+        </svg>
+        <span>Download Latest APK</span>
+      </a>
+
+      <div class="meta-grid">
+        <div class="meta-box">
+          <div class="meta-label">File Size</div>
+          <div class="meta-value">107.66 MB</div>
+        </div>
+        <div class="meta-box">
+          <div class="meta-label">Target OS</div>
+          <div class="meta-value">Android 8.0+</div>
+        </div>
+        <div class="meta-box">
+          <div class="meta-label">Package Name</div>
+          <div class="meta-value">in.provaluer.app</div>
+        </div>
+        <div class="meta-box">
+          <div class="meta-label">Release Date</div>
+          <div class="meta-value">07-Nov-2026</div>
+        </div>
+      </div>
+
+      <div class="features-section">
+        <div class="features-title">What's New in v1.0.0</div>
+        <div class="feature-item">
+          <span class="feature-check">&#10003;</span>
+          <span><strong>GPS & Timestamp Photo Tagging:</strong> High-precision location stamping directly into inspection evidence.</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-check">&#10003;</span>
+          <span><strong>Section-Based Valuation Stepper:</strong> Streamlined progress pills and jump bottom sheets.</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-check">&#10003;</span>
+          <span><strong>30s Autosave & Draft Recovery:</strong> Zero data loss during on-site inspections in basements or remote areas.</span>
+        </div>
+        <div class="feature-item">
+          <span class="feature-check">&#10003;</span>
+          <span><strong>Mobile Card Layouts:</strong> Replaced desktop tables with vertical touch-friendly question cards.</span>
+        </div>
+      </div>
+
+      <div class="qr-card">
+        <div class="meta-label">Scan to Install on Device</div>
+        <img src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=https%3A%2F%2Fapp.provaluer.in%2Fdownload" alt="Download QR Code">
+        <div style="font-size: 11px; color: var(--text-muted);">Point camera to download APK immediately</div>
+      </div>
+
+      <div class="features-section" style="margin-top: 20px;">
+        <div class="features-title">Installation Guide</div>
+        <div class="feature-item">
+          <span style="font-weight: bold; color: var(--primary);">1.</span>
+          <span>Tap <strong>Download Latest APK</strong> and confirm download in Chrome/Firefox.</span>
+        </div>
+        <div class="feature-item">
+          <span style="font-weight: bold; color: var(--primary);">2.</span>
+          <span>If prompted, tap <em>Settings</em> and allow <em>Install unknown apps</em> for your browser.</span>
+        </div>
+        <div class="feature-item">
+          <span style="font-weight: bold; color: var(--primary);">3.</span>
+          <span>Open the downloaded file and tap <strong>Install</strong>.</span>
+        </div>
+      </div>
+
+      <div class="checksum-box">
+        <strong>SHA-256 Checksum:</strong><br>
+        02D8F268C05A93647257A72FCAAAF4A65225BD19ED06111237DE23926AD8C58D
+      </div>
+    </div>
+
+    <div class="footer">
+      &copy; 2026 ProValuer &bull; Enterprise Commercial Valuation Platform
+    </div>
+  </div>
+</body>
+</html>
+

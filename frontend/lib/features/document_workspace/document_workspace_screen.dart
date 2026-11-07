@@ -2,8 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+import '../../services/web_file_picker.dart';
 import '../../providers/order_provider.dart';
 import '../../services/unload_protection_stub.dart'
     if (dart.library.html) '../../services/unload_protection_web.dart';
@@ -19,6 +18,7 @@ import 'widgets/document_table_workspace_widget.dart';
 import 'widgets/live_preview_viewer_widget.dart';
 import 'widgets/section_navigation_tree_widget.dart';
 import 'widgets/valuation_workspace_editor_widget.dart';
+import '../../widgets/section_stepper_widget.dart';
 
 class DocumentWorkspaceScreen extends StatefulWidget {
   final int orderId;
@@ -282,15 +282,11 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
     }
 
     try {
-      final blob = html.Blob([bytes], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute('download', 'Report_${widget.orderId}.docx')
-        ..style.display = 'none';
-      html.document.body!.append(anchor);
-      anchor.click();
-      anchor.remove();
-      html.Url.revokeObjectUrl(url);
+      triggerBrowserDownload(
+        bytes,
+        'Report_${widget.orderId}.docx',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -351,15 +347,11 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
     }
 
     try {
-      final blob = html.Blob([bytes], 'application/pdf');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute('download', 'Report_${widget.orderId}.pdf')
-        ..style.display = 'none';
-      html.document.body!.append(anchor);
-      anchor.click();
-      anchor.remove();
-      html.Url.revokeObjectUrl(url);
+      triggerBrowserDownload(
+        bytes,
+        'Report_${widget.orderId}.pdf',
+        'application/pdf',
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

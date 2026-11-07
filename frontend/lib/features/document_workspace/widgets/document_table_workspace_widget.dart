@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -2964,6 +2965,79 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
       );
     }
 
+
+    // =========================================================================
+    // ANDROID-ONLY MOBILE-FIRST FORM CARD RENDERING
+    // Converts desktop-style horizontal tables into vertical mobile cards:
+    // Question (Top) -> Full Width Answer Field (Bottom)
+    // =========================================================================
+    if (!kIsWeb) {
+      if (rowVm.isTableHeader) {
+        return const SizedBox.shrink(); // Hide desktop table header on mobile
+      }
+
+      if (rowVm.is3Column || rowVm.is2Column) {
+        return Container(
+          margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: AppColors.workspaceBorder.withValues(alpha: 0.8)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withOpacity(0.02),
+                blurRadius: 4,
+                offset: const Offset(0, 1),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Question with optional serial number badge
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (rowVm.serialNo != null && rowVm.serialNo!.trim().isNotEmpty) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      margin: const EdgeInsets.only(right: 8, top: 1),
+                      decoration: BoxDecoration(
+                        color: AppColors.workspaceCanvas,
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: AppColors.workspaceBorder),
+                      ),
+                      child: Text(
+                        rowVm.serialNo!.trim(),
+                        style: GoogleFonts.montserrat(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.workspaceSecondaryText,
+                        ),
+                      ),
+                    ),
+                  ],
+                  Expanded(
+                    child: _buildQuestionPrompt(rowVm),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+
+              // Answer Input Field(s) - Full Available Width
+              for (final f in rowVm.inputFields) ...[
+                SizedBox(
+                  width: double.infinity,
+                  child: DocumentInputSlotWidget(fieldVm: f, readOnly: readOnly),
+                ),
+                if (rowVm.inputFields.last != f) const SizedBox(height: 8),
+              ],
+            ],
+          ),
+        );
+      }
+    }
 
     // 2. Table Column Header Row (STRICT FIXED GRID: Column 1=48, Column 2=flex 5, Column 3=flex 6)
     if (rowVm.isTableHeader) {
