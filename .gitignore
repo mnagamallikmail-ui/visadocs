@@ -68,7 +68,9 @@ Thumbs.db
 *.pfx
 *.p12
 
-# Android compiled distribution packages (kept locally & on VPS)
+# Ephemeral build artifacts & distribution packages
+frontend/build/
+frontend/.dart_tool/
 *.apk
 *.aab
 
