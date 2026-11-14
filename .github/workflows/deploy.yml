@@ -47,7 +47,7 @@ jobs:
             git fetch origin
             git reset --hard origin/master
 
-            docker exec -i PVCPostgres psql -U provaluer -d provaluer -c "DELETE FROM flyway_schema_history WHERE version = '11' AND success = false;" || true
+            docker exec PVCPostgres psql -U provaluer -d provaluer -c "DELETE FROM flyway_schema_history WHERE version = '11' AND success = false;" || true
 
             docker compose up -d --build
             docker image prune -f
