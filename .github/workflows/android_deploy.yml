@@ -46,11 +46,12 @@ jobs:
         run: flutter test || true
 
       - name: Decode Android Keystore
-        if: env.ANDROID_KEYSTORE_BASE64 != ''
         env:
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
         run: |
-          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/key.jks
+          mkdir -p frontend/android/app android/app
+          echo "$ANDROID_KEYSTORE_BASE64" | base64 --decode > frontend/android/app/upload-keystore.jks
+          cp frontend/android/app/upload-keystore.jks android/app/upload-keystore.jks
 
       - name: Step 3 - Build Release APK
         working-directory: frontend
@@ -59,6 +60,7 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEYSTORE_FILE: upload-keystore.jks
 
       - name: Build Release AAB (App Bundle)
         working-directory: frontend
@@ -67,24 +69,35 @@ jobs:
           KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
           KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          KEYSTORE_FILE: upload-keystore.jks
 
       - name: Step 4, 5, 6 - Package Named APK, version.json, Landing Page & Validate
         run: python scripts/release_manager.py package
 
       - name: Setup SSH for VPS Deployment
-        if: env.VPS_SSH_KEY != ''
         env:
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
           VPS_SSH_HOST: ${{ secrets.VPS_SSH_HOST }}
+          VPS_SSH_USER: ${{ secrets.VPS_SSH_USER }}
         run: |
           mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
           echo "$VPS_SSH_KEY" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
-          HOST=$(echo "$VPS_SSH_HOST" | tr -d '\r\n')
-          ssh-keyscan -H "$HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+          CLEAN_HOST=$(echo "$VPS_SSH_HOST" | tr -d '\r\n ')
+          CLEAN_USER=$(echo "$VPS_SSH_USER" | tr -d '\r\n ')
+          cat << EOF > ~/.ssh/config
+          Host $CLEAN_HOST
+            HostName $CLEAN_HOST
+            User $CLEAN_USER
+            IdentityFile ~/.ssh/id_rsa
+            StrictHostKeyChecking no
+            HostKeyAlgorithms +ssh-rsa
+            PubkeyAcceptedKeyTypes +ssh-rsa
+          EOF
+          chmod 600 ~/.ssh/config
 
       - name: Step 7, 8, 9 - Upload to VPS, Update Symlink & Deploy Landing Page
-        if: env.VPS_SSH_HOST != ''
         env:
           VPS_SSH_HOST: ${{ secrets.VPS_SSH_HOST }}
           VPS_SSH_USER: ${{ secrets.VPS_SSH_USER }}
