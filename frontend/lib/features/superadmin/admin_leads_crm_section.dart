@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_colors.dart';
@@ -363,7 +364,9 @@ class _AdminLeadsCrmSectionState extends State<AdminLeadsCrmSection> {
                 ],
               ),
             ),
-          Row(
+          Wrap(
+            spacing: 12,
+            runSpacing: 12,
             children: [
               SizedBox(
                 width: 160,
@@ -384,9 +387,8 @@ class _AdminLeadsCrmSectionState extends State<AdminLeadsCrmSection> {
                   },
                 ),
               ),
-              const SizedBox(width: 12),
               SizedBox(
-                width: 180,
+                width: 160,
                 child: DropdownButtonFormField<String>(
                   value: _intentFilter ?? 'ALL',
                   decoration: const InputDecoration(labelText: 'Intent Level', isDense: true, contentPadding: EdgeInsets.all(8), border: OutlineInputBorder()),
@@ -427,6 +429,70 @@ class _AdminLeadsCrmSectionState extends State<AdminLeadsCrmSection> {
                           itemBuilder: (ctx, idx) {
                             final lead = _leads[idx] as Map<String, dynamic>;
                             final docs = lead['documents'] as List<dynamic>? ?? [];
+                            final isMobile = !kIsWeb && MediaQuery.of(ctx).size.width < 600;
+
+                            if (isMobile) {
+                              return Padding(
+                                padding: const EdgeInsets.all(12),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        _intentBadge(lead['intentLevel'] ?? 'MEDIUM', lead['leadScore'] ?? 0),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            lead['referenceCode'] ?? '',
+                                            style: GoogleFonts.montserrat(fontWeight: FontWeight.w700, fontSize: 13.5),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                          decoration: BoxDecoration(color: AppColors.brandNavy, borderRadius: BorderRadius.circular(4)),
+                                          child: Text(
+                                            lead['status'] ?? 'NEW',
+                                            style: const TextStyle(color: Colors.white, fontSize: 11, fontWeight: FontWeight.w700),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      '${lead['contactName']} (${lead['companyName'] ?? "Individual"})',
+                                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      '${lead['serviceVertical']} • ${lead['mandatePurpose']}',
+                                      style: GoogleFonts.inter(fontSize: 12, color: AppColors.slate),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.end,
+                                      children: [
+                                        TextButton.icon(
+                                          icon: const Icon(Icons.visibility_outlined, size: 16),
+                                          label: const Text('View'),
+                                          onPressed: () => _showDetailsDialog(lead),
+                                        ),
+                                        TextButton.icon(
+                                          icon: const Icon(Icons.request_quote_outlined, size: 16),
+                                          label: const Text('Quote'),
+                                          onPressed: () => _showQuoteDialog(lead),
+                                        ),
+                                        IconButton(
+                                          icon: const Icon(Icons.edit_note_outlined, size: 20),
+                                          tooltip: 'Update Status',
+                                          onPressed: () => _showStatusDialog(lead),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }
 
                             return ListTile(
                               contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -438,11 +504,13 @@ class _AdminLeadsCrmSectionState extends State<AdminLeadsCrmSection> {
                                     style: GoogleFonts.montserrat(fontWeight: FontWeight.w700, fontSize: 13.5),
                                   ),
                                   const SizedBox(width: 10),
-                                  Text(
-                                    '${lead['contactName']} (${lead['companyName'] ?? "Individual"})',
-                                    style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                  Expanded(
+                                    child: Text(
+                                      '${lead['contactName']} (${lead['companyName'] ?? "Individual"})',
+                                      style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13),
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
                                   ),
-                                  const Spacer(),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                     decoration: BoxDecoration(color: AppColors.brandNavy, borderRadius: BorderRadius.circular(4)),

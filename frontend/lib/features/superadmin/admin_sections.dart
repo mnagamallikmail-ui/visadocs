@@ -26,33 +26,58 @@ import 'widgets/order_dossier_card.dart';
 // ─── Shared helpers ───────────────────────────────────────────
 
 Widget _sectionHeader(String title, String subtitle, {Widget? action}) =>
-    Container(
-      padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-      decoration: const BoxDecoration(
-        color: AppColors.surface,
-        border: Border(bottom: BorderSide(color: AppColors.hairline)),
-      ),
-      child: Row(
-        children: [
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: AppTypography.heading3().copyWith(color: AppColors.ink),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  subtitle,
-                  style: AppTypography.bodySm().copyWith(color: AppColors.slate),
-                ),
-              ],
-            ),
+    Builder(
+      builder: (context) {
+        final isMobile = !kIsWeb && MediaQuery.of(context).size.width < 600;
+        return Container(
+          padding: EdgeInsets.symmetric(horizontal: isMobile ? 16 : 32, vertical: isMobile ? 16 : 24),
+          decoration: const BoxDecoration(
+            color: AppColors.surface,
+            border: Border(bottom: BorderSide(color: AppColors.hairline)),
           ),
-          if (action != null) action,
-        ],
-      ),
+          child: isMobile && action != null
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: AppTypography.heading3().copyWith(color: AppColors.ink, fontSize: 18),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 12),
+                    ),
+                    const SizedBox(height: 12),
+                    action,
+                  ],
+                )
+              : Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            title,
+                            style: AppTypography.heading3().copyWith(color: AppColors.ink, fontSize: isMobile ? 18 : 20),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            subtitle,
+                            style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: isMobile ? 12 : 13),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (action != null) ...[
+                      const SizedBox(width: 8),
+                      action,
+                    ],
+                  ],
+                ),
+        );
+      },
     );
 
 Widget _statCard(String label, String value, IconData icon, Color color) =>
@@ -422,12 +447,16 @@ class _AdminOverviewSectionState extends State<AdminOverviewSection> {
                   Text('EXECUTIVE LEADERSHIP & REVENUE TELEMETRY', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
                   const SizedBox(height: 12),
                   GridView.count(
-                    crossAxisCount: MediaQuery.of(context).size.width > 1400 ? 5 : (MediaQuery.of(context).size.width > 900 ? 3 : 2),
+                    crossAxisCount: MediaQuery.of(context).size.width > 1400
+                        ? 5
+                        : (MediaQuery.of(context).size.width > 900
+                            ? 3
+                            : (MediaQuery.of(context).size.width > 600 ? 2 : 1)),
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
                     crossAxisSpacing: 16,
                     mainAxisSpacing: 16,
-                    childAspectRatio: 2.1,
+                    childAspectRatio: MediaQuery.of(context).size.width < 600 ? 2.6 : 2.1,
                     children: [
                       _execMetricCard(
                         'Orders Today',
@@ -506,12 +535,18 @@ class _AdminOverviewSectionState extends State<AdminOverviewSection> {
                   Text('WORKFLOW STATUS INVENTORY', style: AppTypography.captionBold().copyWith(color: AppColors.slate)),
                   const SizedBox(height: 12),
                   GridView.count(
-                    crossAxisCount: MediaQuery.of(context).size.width > 1400 ? 4 : (MediaQuery.of(context).size.width > 900 ? 3 : 2),
+                    crossAxisCount: MediaQuery.of(context).size.width > 1400
+                        ? 4
+                        : (MediaQuery.of(context).size.width > 900
+                            ? 3
+                            : (MediaQuery.of(context).size.width > 600 ? 2 : 1)),
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
-                    crossAxisSpacing: 20,
-                    mainAxisSpacing: 20,
-                    childAspectRatio: MediaQuery.of(context).size.width > 1400 ? 2.1 : 1.8,
+                    crossAxisSpacing: 16,
+                    mainAxisSpacing: 16,
+                    childAspectRatio: MediaQuery.of(context).size.width < 600
+                        ? 2.6
+                        : (MediaQuery.of(context).size.width > 1400 ? 2.1 : 1.8),
                     children: [
                       _statCard('Total Active Users', '${_data?['totalUsers'] ?? '0'}', Icons.people_outline, AppColors.primary),
                       _statCard('Total Orders', '${_data?['totalOrders'] ?? '0'}', Icons.folder_outlined, AppColors.brandBlue),
@@ -2035,36 +2070,37 @@ class _AdminQueueSectionState extends State<AdminQueueSection> {
                   padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
                   child: Column(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        margin: const EdgeInsets.only(bottom: 8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF1F5F9),
-                          borderRadius: BorderRadius.circular(6),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                      if (MediaQuery.of(ctx).size.width >= 768)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                          margin: const EdgeInsets.only(bottom: 8),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF1F5F9),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Row(
+                            children: [
+                              SizedBox(
+                                width: 170,
+                                child: Text('REPORT / REFERENCE', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B), letterSpacing: 0.5)),
+                              ),
+                              Expanded(
+                                flex: 3,
+                                child: Text('CLIENT / PROPERTY LOCATION', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B), letterSpacing: 0.5)),
+                              ),
+                              SizedBox(
+                                width: 175,
+                                child: Text('LIFECYCLE STATUS & AGE', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B), letterSpacing: 0.5)),
+                              ),
+                              SizedBox(
+                                width: 160,
+                                child: Text('RESPONSIBLE DESK / OWNER', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B), letterSpacing: 0.5)),
+                              ),
+                              Text('OPERATIONS & ACTIONS', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B), letterSpacing: 0.5)),
+                            ],
+                          ),
                         ),
-                        child: Row(
-                          children: [
-                            SizedBox(
-                              width: 170,
-                              child: Text('REPORT / REFERENCE', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B), letterSpacing: 0.5)),
-                            ),
-                            Expanded(
-                              flex: 3,
-                              child: Text('CLIENT / PROPERTY LOCATION', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B), letterSpacing: 0.5)),
-                            ),
-                            SizedBox(
-                              width: 175,
-                              child: Text('LIFECYCLE STATUS & AGE', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B), letterSpacing: 0.5)),
-                            ),
-                            SizedBox(
-                              width: 160,
-                              child: Text('RESPONSIBLE DESK / OWNER', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B), letterSpacing: 0.5)),
-                            ),
-                            Text('OPERATIONS & ACTIONS', style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.w700, color: const Color(0xFF64748B), letterSpacing: 0.5)),
-                          ],
-                        ),
-                      ),
                       ...displayOrders.map((o) {
                         final canDelete = ReportListHelper.canDeleteReport(o, authProvider);
                         final int orderId = (o['id'] as num).toInt();
@@ -2191,6 +2227,7 @@ class _AdminSlaSectionState extends State<AdminSlaSection> {
               itemCount: _sla.length,
               itemBuilder: (context, idx) {
                 final s = _sla[idx];
+                final isMobile = !kIsWeb && MediaQuery.of(context).size.width < 600;
                 final health = s['slaHealth'] ?? 'OK';
                 final Color hColor = health == 'CRITICAL'
                     ? AppColors.brandRedDark
@@ -2202,6 +2239,72 @@ class _AdminSlaSectionState extends State<AdminSlaSection> {
                     : health == 'WARNING'
                         ? AppColors.yellowLight
                         : AppColors.successBg;
+
+                if (isMobile) {
+                  return Container(
+                    margin: const EdgeInsets.only(bottom: 12),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: AppRadius.brXl,
+                      border: Border.all(color: AppColors.hairlineSoft),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration: BoxDecoration(color: hColor, shape: BoxShape.circle),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Order #${s['orderId']}',
+                                  style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 14, fontWeight: FontWeight.bold),
+                                ),
+                              ],
+                            ),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                              decoration: BoxDecoration(
+                                color: hColorBg,
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: Text(
+                                health,
+                                style: AppTypography.bodySm().copyWith(color: hColor, fontSize: 11, fontWeight: FontWeight.bold),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          '${s['purpose'] ?? '—'}',
+                          style: AppTypography.bodySm().copyWith(color: AppColors.ink, fontSize: 13, fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 6),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '${s['status']}'.replaceAll('_', ' '),
+                              style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 12),
+                            ),
+                            Text(
+                              '${s['remainingHours'] ?? '—'} hours left',
+                              style: AppTypography.bodySm().copyWith(color: AppColors.slate, fontSize: 12, fontWeight: FontWeight.w600),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                }
 
                 return Container(
                   margin: const EdgeInsets.only(bottom: 12),
@@ -6297,7 +6400,7 @@ class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
             if (val != null) setState(() => _sortBy = val);
           },
         ),
-        _buildTableHeader(),
+        if (MediaQuery.of(context).size.width >= 768) _buildTableHeader(),
         const SizedBox(height: 8),
         Expanded(
           child: _loading
@@ -6338,8 +6441,10 @@ class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
       );
     }
 
+    final isMobile = !kIsWeb && MediaQuery.of(context).size.width < 768;
+
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 14 : 28, vertical: 8),
       itemCount: filtered.length,
       itemBuilder: (context, idx) {
         final o = filtered[idx];
@@ -6353,6 +6458,54 @@ class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
             : isDeleted
                 ? 'Soft-Deleted (30-Day Retention)'
                 : 'Pending Archive';
+
+        if (isMobile) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: AppComponents.cardBase(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(reportNum, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5)),
+                    Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.restore_from_trash_rounded, size: 20, color: AppColors.success),
+                          tooltip: 'Restore Report',
+                          onPressed: () => _restore(o['id'] as int),
+                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                          padding: EdgeInsets.zero,
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_forever_rounded, size: 20, color: AppColors.brandRedDark),
+                          tooltip: 'Permanently Purge',
+                          onPressed: () => _purge(o['id'] as int),
+                          constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                          padding: EdgeInsets.zero,
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Text('${o['clientName'] ?? '—'} • ${o['bankName'] ?? '—'}', style: TextStyle(fontSize: 11.5, color: AppColors.slate)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: [
+                    _buildInspectionBadge(retention, isArchived ? AppColors.primary : AppColors.brandRedDark),
+                    Text('$when by $who', style: const TextStyle(fontSize: 11, color: AppColors.slate)),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }
 
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
@@ -6423,14 +6576,47 @@ class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
       );
     }
 
+    final isMobile = !kIsWeb && MediaQuery.of(context).size.width < 768;
+
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 14 : 28, vertical: 8),
       itemCount: filtered.length,
       itemBuilder: (context, idx) {
         final p = filtered[idx];
         final what = p['details'] ?? 'Order #${p['targetId'] ?? '—'} (Purged)';
         final when = _formatDate(p['timestamp']);
         final who = '${p['userEmail'] ?? 'Super Admin'} (${p['userRole'] ?? 'ADMIN'})';
+
+        if (isMobile) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: AppComponents.cardBase(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(child: Text(what.toString(), style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 13))),
+                    const Text('PURGED', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.slate)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text('Entity: ${p['entityType'] ?? 'ORDER'} #${p['targetId'] ?? '—'}', style: TextStyle(fontSize: 11, color: AppColors.slate)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    _buildInspectionBadge('Purged - Permanent (Irrevocable)', AppColors.brandRedDark),
+                    Text('$when by $who', style: const TextStyle(fontSize: 11, color: AppColors.slate)),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }
 
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
@@ -6486,8 +6672,10 @@ class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
       );
     }
 
+    final isMobile = !kIsWeb && MediaQuery.of(context).size.width < 768;
+
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 14 : 28, vertical: 8),
       itemCount: filtered.length,
       itemBuilder: (context, idx) {
         final t = filtered[idx];
@@ -6496,6 +6684,37 @@ class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
         final when = _formatDate(t['deletedAt'] ?? t['updatedAt'] ?? t['createdAt']);
         final who = t['deletedBy']?.toString() ?? t['author']?.toString() ?? 'Admin';
         final status = t['status']?.toString() ?? 'DEPRECATED';
+
+        if (isMobile) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: AppComponents.cardBase(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(child: Text(name, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13.5))),
+                    const Text('IMMUTABLE', style: TextStyle(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.slate)),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text('Code: $code • Version ${t['activeVersionNumber'] ?? 1}', style: TextStyle(fontSize: 11.5, color: AppColors.slate)),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    _buildInspectionBadge('Deleted / Deprecated ($status)', AppColors.warning),
+                    Text('$when by $who', style: const TextStyle(fontSize: 11, color: AppColors.slate)),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }
 
         return Container(
           margin: const EdgeInsets.only(bottom: 8),
@@ -6552,8 +6771,10 @@ class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
       );
     }
 
+    final isMobile = !kIsWeb && MediaQuery.of(context).size.width < 768;
+
     return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 8),
+      padding: EdgeInsets.symmetric(horizontal: isMobile ? 14 : 28, vertical: 8),
       itemCount: filtered.length,
       itemBuilder: (context, idx) {
         final log = filtered[idx];
@@ -6561,6 +6782,37 @@ class _AdminTrashBinSectionState extends State<AdminTrashBinSection> {
         final details = log['details'] ?? 'Entity: ${log['entityType']} #${log['targetId']}';
         final when = _formatDate(log['timestamp']);
         final who = '${log['userEmail'] ?? 'System'} (${log['userRole'] ?? 'ADMIN'})';
+
+        if (isMobile) {
+          return Container(
+            margin: const EdgeInsets.only(bottom: 8),
+            padding: const EdgeInsets.all(12),
+            decoration: AppComponents.cardBase(),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Expanded(child: Text(action.toString(), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: AppColors.brandRedDark))),
+                    const Icon(Icons.verified_user_outlined, size: 16, color: AppColors.success),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(details.toString(), style: TextStyle(fontSize: 11.5, color: AppColors.slate), maxLines: 2, overflow: TextOverflow.ellipsis),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 4,
+                  children: [
+                    _buildInspectionBadge('Audit Log Preserved', AppColors.primary),
+                    Text('$when by $who', style: const TextStyle(fontSize: 11, color: AppColors.slate)),
+                  ],
+                ),
+              ],
+            ),
+          );
+        }
 
         return Container(
           margin: const EdgeInsets.only(bottom: 8),

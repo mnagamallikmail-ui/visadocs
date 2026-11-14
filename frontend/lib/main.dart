@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'providers/auth_provider.dart';
 import 'providers/order_provider.dart';
 import 'screens/login_screen.dart';
+import 'screens/app_info_screen.dart';
 import 'screens/client_dashboard.dart';
 import 'screens/pa_dashboard.dart';
 import 'screens/spa_dashboard.dart';
@@ -22,9 +24,11 @@ import 'screens/request_intake_screen.dart';
 import 'theme/app_theme.dart';
 import 'services/analytics_service.dart';
 import 'services/global_error_service.dart';
+import 'services/token_storage.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await TokenStorage.init();
   GlobalErrorService.initialize();
   runApp(
     MultiProvider(
@@ -65,7 +69,7 @@ class ProValuerApp extends StatelessWidget {
     final auth = Provider.of<AuthProvider>(context, listen: false);
 
     final GoRouter router = GoRouter(
-      initialLocation: '/',
+      initialLocation: !kIsWeb ? '/login' : '/',
       observers: [Ga4RouteObserver()],
       routes: [
         GoRoute(
@@ -117,6 +121,10 @@ class ProValuerApp extends StatelessWidget {
           builder: (context, state) => const LoginScreen(),
         ),
         GoRoute(
+          path: '/app-info',
+          builder: (context, state) => const AppInfoScreen(),
+        ),
+        GoRoute(
           path: '/client',
           builder: (context, state) => const ClientDashboard(),
         ),
@@ -136,6 +144,24 @@ class ProValuerApp extends StatelessWidget {
       redirect: (context, state) {
         final loggedIn = auth.isAuthenticated;
         final loc = state.matchedLocation;
+
+        // ISSUE 4: Android App Entry Flow (Marketing pages are web-only; Android users start directly at Login/Dashboard)
+        if (!kIsWeb) {
+          if (loc == '/' || loc == '/request-valuation' || loc.startsWith('/services/') || loc == '/government-approved-valuers') {
+            if (!loggedIn) {
+              AnalyticsService.trackPageView('/login', 'Account Sign In | ProValuer');
+              return '/login';
+            } else {
+              final role = auth.role;
+              if (role == 'CLIENT') return '/client';
+              if (role == 'PA') return '/pa';
+              if (role == 'SPA') return '/spa';
+              if (role == 'SUPER_ADMIN' || role == 'ADMIN') return '/admin';
+              return '/login';
+            }
+          }
+        }
+
         final isPublic = loc == '/' ||
             loc == '/login' ||
             loc == '/request-valuation' ||
@@ -171,7 +197,7 @@ class ProValuerApp extends StatelessWidget {
     );
 
     return MaterialApp.router(
-      title: 'ProValuer Commercial',
+      title: 'Pro Valuer',
       debugShowCheckedModeBanner: false,
       // All design tokens applied via AppTheme — single source of truth
       theme: AppTheme.light,

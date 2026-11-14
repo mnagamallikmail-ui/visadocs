@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flutter_animate/flutter_animate.dart';
@@ -8,6 +9,8 @@ import '../theme/app_colors.dart';
 import '../theme/app_typography.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_components.dart';
+import '../services/biometric_service.dart';
+import '../services/token_storage.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -28,6 +31,125 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _isLoading = false;
   bool _obscurePassword = true;
   String? _error;
+  bool _canBiometric = false;
+
+  @override
+  void initState() {
+    super.initState();
+    if (!kIsWeb) {
+      _checkBiometricAvailability();
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _autoTriggerBiometricsIfEnrolled();
+      });
+    }
+  }
+
+  Future<void> _checkBiometricAvailability() async {
+    final available = await BiometricService.isBiometricAvailable();
+    if (mounted) {
+      setState(() => _canBiometric = available);
+    }
+  }
+
+  Future<void> _autoTriggerBiometricsIfEnrolled() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final enrolled = TokenStorage.isBiometricEnabled();
+    final hasToken = auth.token != null && auth.token!.isNotEmpty;
+
+    if (enrolled && hasToken) {
+      final authenticated = await BiometricService.authenticate(
+        reason: 'Authenticate to access Pro Valuer',
+      );
+      if (authenticated && mounted) {
+        _navigateByRole(auth.role);
+      }
+    }
+  }
+
+  Future<void> _handleBiometricManualTap() async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final authenticated = await BiometricService.authenticate(
+      reason: 'Authenticate to access Pro Valuer',
+    );
+    if (authenticated && mounted) {
+      final hasToken = auth.token != null && auth.token!.isNotEmpty;
+      if (hasToken) {
+        _navigateByRole(auth.role);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Please log in with password once to enroll device credentials.'),
+            backgroundColor: Color(0xFF0F766E),
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _promptBiometricEnrollmentIfSupported(AuthProvider auth) async {
+    if (!kIsWeb) {
+      final available = await BiometricService.isBiometricAvailable();
+      final alreadyEnabled = TokenStorage.isBiometricEnabled();
+      if (available && !alreadyEnabled && mounted) {
+        final enable = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: Colors.white,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0FDFA),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF99F6E4)),
+                  ),
+                  child: const Icon(Icons.fingerprint_rounded, color: Color(0xFF005C5C), size: 28),
+                ),
+                const SizedBox(width: 14),
+                const Expanded(
+                  child: Text(
+                    'Enable Biometric Login?',
+                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Color(0xFF0F172A)),
+                  ),
+                ),
+              ],
+            ),
+            content: const Text(
+              'Sign in securely and instantly next time using Fingerprint, Face Unlock, or Device PIN without entering your password.',
+              style: TextStyle(fontSize: 14, height: 1.5, color: Color(0xFF475569)),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(ctx).pop(false),
+                child: const Text('Maybe Later', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600)),
+              ),
+              ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(true),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF005C5C),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+                child: const Text('Enable Biometrics', style: TextStyle(fontWeight: FontWeight.w700)),
+              ),
+            ],
+          ),
+        );
+
+        if (enable == true) {
+          TokenStorage.setBiometricEnabled(true);
+        }
+      }
+    }
+    if (mounted) {
+      _navigateByRole(auth.role);
+    }
+  }
 
   // ── Submit Handler — Username Based ────────────────────────────────────
   bool _isSubmitting = false;
@@ -61,7 +183,7 @@ class _LoginScreenState extends State<LoginScreen> {
       setState(() => _isLoading = false);
 
       if (result.success && mounted) {
-        _navigateByRole(auth.role);
+        _promptBiometricEnrollmentIfSupported(auth);
       } else if (result.mfaSetupRequired && mounted) {
         _showMfaSetupModal(result);
       } else if (result.mfaRequired && mounted) {
@@ -94,7 +216,7 @@ class _LoginScreenState extends State<LoginScreen> {
         if (mounted) {
           setState(() => _isLoading = false);
           if (result.success) {
-            _navigateByRole(auth.role);
+            _promptBiometricEnrollmentIfSupported(auth);
             return;
           } else if (result.mfaSetupRequired) {
             _showMfaSetupModal(result);
@@ -308,7 +430,7 @@ class _LoginScreenState extends State<LoginScreen> {
                             );
                             if (confirmed && dlgCtx.mounted && mounted) {
                               Navigator.pop(dlgCtx);
-                              _navigateByRole(auth.role);
+                              _promptBiometricEnrollmentIfSupported(auth);
                             } else {
                               setDlgState(() {
                                 isVerifying = false;
@@ -433,7 +555,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           );
                           if (verified && dlgCtx.mounted && mounted) {
                             Navigator.pop(dlgCtx);
-                            _navigateByRole(auth.role);
+                            _promptBiometricEnrollmentIfSupported(auth);
                           } else {
                             setDlgState(() {
                               isVerifying = false;
@@ -498,34 +620,68 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        // Back to Home action
+                        // Back to Home action (Web only; on Android displays brand identifier)
                         Padding(
                           padding: const EdgeInsets.only(bottom: AppSpacing.lg),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              InkWell(
-                                onTap: () => context.go('/'),
-                                borderRadius: BorderRadius.circular(6),
-                                child: const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 6, horizontal: 4),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.arrow_back_rounded, size: 16, color: Color(0xFF64748B)),
-                                      SizedBox(width: 6),
-                                      Text(
-                                        'Back to Home',
-                                        style: TextStyle(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w600,
-                                          color: Color(0xFF64748B),
+                              if (kIsWeb)
+                                InkWell(
+                                  onTap: () => context.go('/'),
+                                  borderRadius: BorderRadius.circular(6),
+                                  child: const Padding(
+                                    padding: EdgeInsets.symmetric(vertical: 6, horizontal: 4),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(Icons.arrow_back_rounded, size: 16, color: Color(0xFF64748B)),
+                                        SizedBox(width: 6),
+                                        Text(
+                                          'Back to Home',
+                                          style: TextStyle(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w600,
+                                            color: Color(0xFF64748B),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                )
+                              else
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 28,
+                                      height: 28,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF005C5C),
+                                        borderRadius: BorderRadius.circular(7),
+                                      ),
+                                      child: const Center(
+                                        child: Text(
+                                          'PV',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w800,
+                                          ),
                                         ),
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Text(
+                                      'Pro Valuer',
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF0F172A),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
                               if (!isDesktop)
                                 GestureDetector(
                                   onTap: () => context.go('/'),
@@ -656,6 +812,30 @@ class _LoginScreenState extends State<LoginScreen> {
                                   ),
                           ),
                         ),
+                        if (!kIsWeb && _canBiometric && _isLogin) ...[
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: OutlinedButton.icon(
+                              onPressed: _handleBiometricManualTap,
+                              icon: const Icon(Icons.fingerprint_rounded, size: 22, color: Color(0xFF005C5C)),
+                              label: const Text(
+                                'Sign in with Biometrics / PIN',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Color(0xFF005C5C),
+                                ),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Color(0xFF99F6E4), width: 1.2),
+                                backgroundColor: const Color(0xFFF0FDFA),
+                                shape: RoundedRectangleBorder(borderRadius: AppRadius.brMd),
+                              ),
+                            ),
+                          ),
+                        ],
                         const SizedBox(height: AppSpacing.xl),
 
                         // Toggle

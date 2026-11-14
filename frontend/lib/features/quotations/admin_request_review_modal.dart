@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -436,66 +437,77 @@ class _AdminRequestReviewModalState extends State<AdminRequestReviewModal> {
   }
 
   Widget _buildSummaryCards() {
+    final clientCard = Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.person_outline_rounded, size: 16, color: Color(0xFF475569)),
+              const SizedBox(width: 6),
+              Text("Client Information", style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A))),
+            ],
+          ),
+          const Divider(height: 18),
+          _buildInfoRow("Name:", _clientName),
+          _buildInfoRow("Mobile:", _clientMobile),
+          _buildInfoRow("Email:", _clientEmail),
+          _buildInfoRow("Client ID:", "#${widget.order['clientId'] ?? 'N/A'}"),
+        ],
+      ),
+    );
+
+    final mandateCard = Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(Icons.assignment_outlined, size: 16, color: Color(0xFF475569)),
+              const SizedBox(width: 6),
+              Text("Mandate Details", style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A))),
+            ],
+          ),
+          const Divider(height: 18),
+          _buildInfoRow("Service:", _serviceCategory),
+          _buildInfoRow("Asset:", _assetCategory),
+          _buildInfoRow("Purpose:", _purpose),
+          _buildInfoRow("Created:", _formatDateTime(widget.order['createdAt'])),
+        ],
+      ),
+    );
+
+    if (!kIsWeb) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          clientCard,
+          const SizedBox(height: 12),
+          mandateCard,
+        ],
+      );
+    }
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Client details card
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.person_outline_rounded, size: 16, color: Color(0xFF475569)),
-                    const SizedBox(width: 6),
-                    Text("Client Information", style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A))),
-                  ],
-                ),
-                const Divider(height: 18),
-                _buildInfoRow("Name:", _clientName),
-                _buildInfoRow("Mobile:", _clientMobile),
-                _buildInfoRow("Email:", _clientEmail),
-                _buildInfoRow("Client ID:", "#${widget.order['clientId'] ?? 'N/A'}"),
-              ],
-            ),
-          ),
-        ),
+        Expanded(child: clientCard),
         const SizedBox(width: 16),
         // Mandate details card
-        Expanded(
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.assignment_outlined, size: 16, color: Color(0xFF475569)),
-                    const SizedBox(width: 6),
-                    Text("Mandate Details", style: GoogleFonts.montserrat(fontSize: 13, fontWeight: FontWeight.w700, color: const Color(0xFF0F172A))),
-                  ],
-                ),
-                const Divider(height: 18),
-                _buildInfoRow("Service:", _serviceCategory),
-                _buildInfoRow("Asset:", _assetCategory),
-                _buildInfoRow("Purpose:", _purpose),
-                _buildInfoRow("Created:", _formatDateTime(widget.order['createdAt'])),
-              ],
-            ),
-          ),
-        ),
+        Expanded(child: mandateCard),
       ],
     );
   }
@@ -1279,6 +1291,62 @@ class _AdminRequestReviewModalState extends State<AdminRequestReviewModal> {
             alignment: Alignment.center,
             decoration: BoxDecoration(color: const Color(0xFFF8FAFC), borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFE2E8F0))),
             child: Text("No documents attached to this order.", style: GoogleFonts.inter(color: const Color(0xFF64748B))),
+          )
+        else if (!kIsWeb)
+          Column(
+            children: _documents.map((d) {
+              final docId = (d['id'] as num?)?.toInt() ?? 0;
+              final category = d['category'] ?? 'OTHER';
+              final filename = d['filename'] ?? 'document.pdf';
+              final mimeType = d['mimeType'] ?? 'PDF';
+              final size = d['fileSize'] != null ? "${((d['fileSize'] as num) / 1024).toStringAsFixed(1)} KB" : "Attached";
+
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEFF6FF),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Icon(Icons.description_outlined, size: 20, color: Color(0xFF1D4ED8)),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            filename,
+                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF0F172A)),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            "$category • $size ($mimeType)",
+                            style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF64748B)),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    IconButton(
+                      icon: const Icon(Icons.download_rounded, size: 22, color: Color(0xFF0F172A)),
+                      tooltip: "Download Document",
+                      onPressed: () => _handleDownloadDocument(docId, filename),
+                    ),
+                  ],
+                ),
+              );
+            }).toList(),
           )
         else
           Container(
