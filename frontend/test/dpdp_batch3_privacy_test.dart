@@ -50,7 +50,7 @@ void main() {
                 'statutoryAct': 'DPDP Act 2023 (India)',
                 'dpoName': 'Naga Mallik',
                 'dpoEmail': 'provaluer.india@gmail.com',
-                'dpoPhone': '+91 85000 19091',
+                'dpoPhone': '+91 85008 80333',
                 'grievanceOfficer': 'Naga Mallik',
                 'grievanceEmail': 'provaluer.india@gmail.com',
                 'dpoAddress': '11th Floor, Vasavi MPM Grand Mall, Ameerpet, Hyderabad, Telangana, India',

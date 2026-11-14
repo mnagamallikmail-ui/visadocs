@@ -76,7 +76,7 @@ Goal: Acknowledge positive elements while proactively addressing unspoken fricti
 > 
 > As an institutional valuation firm, our mission is to deliver a seamless 5-star experience on every engagement. If there were any delays during document collection or scheduling that fell short of perfection, we would deeply appreciate your detailed feedback so we can continue elevating our service standards.
 > 
-> Please connect directly with our Quality Directorate at **+91 85000 19091** or email **director@provaluer.in**. We look forward to earning your full 5-star confidence in our next engagement.
+> Please connect directly with our Quality Directorate at **+91 85008 80333** or email **director@provaluer.in**. We look forward to earning your full 5-star confidence in our next engagement.
 > 
 > Warm regards,  
 > Client Relations Desk, ProValuer Commercial"
@@ -97,7 +97,7 @@ Goal: Acknowledge positive elements while proactively addressing unspoken fricti
 > 
 > We regret that your experience did not meet expectations. We would like to investigate your file immediately with our Senior Managing Partner to resolve any discrepancies regarding scheduling, inspection, or reporting.
 > 
-> Because client valuations are confidential legal documents, please contact our Senior Partner directly on our priority line: **+91 85000 19091** or write to **seniorpartner@provaluer.in** quoting your property address or file reference number. We are committed to addressing your concerns promptly."
+> Because client valuations are confidential legal documents, please contact our Senior Partner directly on our priority line: **+91 85008 80333** or write to **seniorpartner@provaluer.in** quoting your property address or file reference number. We are committed to addressing your concerns promptly."
 
 ---
 
@@ -122,7 +122,7 @@ graph TD
 ### 6.1 Unverified / Competitor Fake Review Policy
 If the reviewer's name and details cannot be reconciled with any historical valuation file or customer contact record:
 1. Respond professionally:
-   > "Dear [Reviewer Name], we have cross-referenced our active and historical valuation registers and cannot locate any record of an appraisal or engagement under your name. As a statutory valuation firm, we adhere to strict client identification protocols. If you are an authorized representative of a client, please contact us directly at **+91 85000 19091** or **compliance@provaluer.in** so we can verify your mandate and resolve your concern immediately."
+   > "Dear [Reviewer Name], we have cross-referenced our active and historical valuation registers and cannot locate any record of an appraisal or engagement under your name. As a statutory valuation firm, we adhere to strict client identification protocols. If you are an authorized representative of a client, please contact us directly at **+91 85008 80333** or **compliance@provaluer.in** so we can verify your mandate and resolve your concern immediately."
 2. Simultaneously flag the review via Google Business Profile Support for removal under the **"Conflict of interest / Fake engagement"** policy with timestamped audit screenshots.
 
 ---

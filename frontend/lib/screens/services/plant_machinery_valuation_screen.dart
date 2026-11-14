@@ -18,7 +18,7 @@ class _PlantMachineryValuationScreenState extends State<PlantMachineryValuationS
   final ScrollController _scrollController = ScrollController();
   final Set<int> _expandedFaqIndices = {0};
 
-  static const String _primaryPhone = '+918500019091';
+  static const String _primaryPhone = '+918500880333';
   static const Color _pureWhite = Color(0xFFFFFFFF);
   static const Color _lightBg = Color(0xFFF8FAFC);
 
@@ -29,7 +29,7 @@ class _PlantMachineryValuationScreenState extends State<PlantMachineryValuationS
   }
 
   Future<void> _launchWhatsApp(String message) async {
-    final url = Uri.parse('https://wa.me/918500019091?text=${Uri.encodeComponent(message)}');
+    final url = Uri.parse('https://wa.me/918500880333?text=${Uri.encodeComponent(message)}');
     if (await canLaunchUrl(url)) {
       await launchUrl(url, mode: LaunchMode.externalApplication);
     }

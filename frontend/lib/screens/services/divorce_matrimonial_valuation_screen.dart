@@ -22,8 +22,8 @@ class _DivorceMatrimonialValuationScreenState extends State<DivorceMatrimonialVa
   int _selectedAssetIndex = 0;
   final Set<int> _expandedFaqIndices = {0, 1};
 
-  static const String _primaryPhone = '+918500019091';
-  static const String _primaryPhoneFormatted = '+91 85000 19091';
+  static const String _primaryPhone = '+918500880333';
+  static const String _primaryPhoneFormatted = '+91 85008 80333';
   static const String _waUrl = 'https://wa.me/918500880333';
 
   static const Color _pureWhite = Color(0xFFFFFFFF);

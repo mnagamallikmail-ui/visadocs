@@ -481,11 +481,11 @@ class _HeaderPhonePillState extends State<_HeaderPhonePill> {
       child: GestureDetector(
         onTap: () async {
           AnalyticsService.logPhoneClicked(
-            phoneNumber: '+918500019091',
+            phoneNumber: '+918500880333',
             serviceType: 'HEADER_NAV',
             pageUrl: Uri.base.toString(),
           );
-          final uri = Uri.parse('tel:+918500019091');
+          final uri = Uri.parse('tel:+918500880333');
           if (await canLaunchUrl(uri)) {
             await launchUrl(uri);
           }
@@ -515,7 +515,7 @@ class _HeaderPhonePillState extends State<_HeaderPhonePill> {
               ),
               const SizedBox(width: 6),
               Text(
-                '+91 85000 19091',
+                '+91 85008 80333',
                 style: GoogleFonts.montserrat(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,
@@ -1067,11 +1067,11 @@ class _HeroPhonePillState extends State<_HeroPhonePill> {
       child: GestureDetector(
         onTap: () async {
           AnalyticsService.logPhoneClicked(
-            phoneNumber: '+918500019091',
+            phoneNumber: '+918500880333',
             serviceType: 'LANDING_HERO',
             pageUrl: Uri.base.toString(),
           );
-          final uri = Uri.parse('tel:+918500019091');
+          final uri = Uri.parse('tel:+918500880333');
           if (await canLaunchUrl(uri)) {
             await launchUrl(uri);
           }
@@ -1104,7 +1104,7 @@ class _HeroPhonePillState extends State<_HeroPhonePill> {
                 ),
                 const SizedBox(width: 8),
                 Text(
-                  'Advisory Desk: +91 85000 19091',
+                  'Advisory Desk: +91 85008 80333',
                   style: GoogleFonts.montserrat(
                     fontSize: widget.isCompact ? 13.5 : 14.5,
                     fontWeight: FontWeight.w600,

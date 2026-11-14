@@ -38,7 +38,7 @@ All friction points on mobile and desktop have been eliminated. Across every cor
    2. Valuation Purpose (Visa / Bank Loan / Capital Gains 50C / Customs / NCLT):
    3. Asset Type (Flat / Commercial Building / Factory Plant / Land Plot):
    
-   Direct Hotline: +91 85000 19091
+   Direct Hotline: +91 85008 80333
    Official Portal: www.provaluer.in
    ```
 3. **Document Ingestion Readiness:** WhatsApp allows instant transmission of title deed scans, machinery rating plates, and sanction layouts, speeding up quote generation from 24 hours to 15 minutes.
@@ -48,7 +48,7 @@ All friction points on mobile and desktop have been eliminated. Across every cor
 ## 2. DIRECT PHONE CALL CONVERSION ARCHITECTURE (PHASE 5)
 
 ### 2.1 Direct Dialing Touchpoints
-- **Primary Hotline:** `+91 85000 19091` (`tel:+918500019091`)
+- **Primary Hotline:** `+91 85008 80333` (`tel:+918500880333`)
 - **Protocol:** High-priority cellular & VoIP routing with zero IVR delay.
 
 ### 2.2 Sticky Call-to-Action Mechanics
@@ -80,7 +80,7 @@ Right next to telephone contact touchpoints, users encounter 4 primary trust bad
 
 | Friction Vector | Pre-Optimization Status | Post-Optimization Status | Business Impact |
 | :--- | :--- | :--- | :--- |
-| **Number Copy-Paste Overhead** | Users had to copy digits and dial manually | 100% of telephone numbers wrapped in `tel:+918500019091` | +38% mobile call connection rate |
+| **Number Copy-Paste Overhead** | Users had to copy digits and dial manually | 100% of telephone numbers wrapped in `tel:+918500880333` | +38% mobile call connection rate |
 | **WhatsApp Blank Screen Hesitation** | User opened chat with blank cursor, wondering what to ask | Tailored prefilled text matching the specific landing page | +47% initial message send rate |
 | **Mobile Scroll Abandonment** | Contact info buried in footer, requiring long scrolls | Sticky `.floating-lead-bar` always visible on mobile | Zero scroll requirement for lead initiation |
 | **Credibility Doubts** | "Are these legitimate government valuers?" | Badges explicitly displayed in floating bar: *"Government Approved & IBBI Registered"* | Near-zero credential friction |

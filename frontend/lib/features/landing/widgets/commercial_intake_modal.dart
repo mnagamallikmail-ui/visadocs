@@ -996,9 +996,9 @@ class _CommercialIntakeModalState extends State<CommercialIntakeModal> {
                 AnalyticsService.logWhatsAppClicked(
                   serviceType: _selectedService,
                   pageUrl: '/commercial-intake',
-                  whatsappTarget: 'https://wa.me/918500019091',
+                  whatsappTarget: 'https://wa.me/918500880333',
                 );
-                final url = Uri.parse('https://wa.me/918500019091?text=${Uri.encodeComponent("Hello, I submitted mandate ${_referenceCode}. Requesting immediate confirmation.")}');
+                final url = Uri.parse('https://wa.me/918500880333?text=${Uri.encodeComponent("Hello, I submitted mandate ${_referenceCode}. Requesting immediate confirmation.")}');
                 if (await canLaunchUrl(url)) await launchUrl(url);
               },
               icon: const Icon(Icons.chat_bubble_outline, size: 16, color: Color(0xFF10B981)),
