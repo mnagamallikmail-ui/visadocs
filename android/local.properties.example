@@ -1,0 +1,14 @@
+## Android SDK & Flutter Toolchain Configuration Template
+## Copy this file to local.properties and update the paths for your local workstation.
+## DO NOT commit local.properties to Git.
+
+# Path to the Android SDK
+sdk.dir=C:\\Users\\<USER>\\AppData\\Local\\Android\\sdk
+
+# Path to the Flutter SDK
+flutter.sdk=C:\\src\\flutter
+
+# Build configuration
+flutter.buildMode=release
+flutter.versionName=1.0.0
+flutter.versionCode=1

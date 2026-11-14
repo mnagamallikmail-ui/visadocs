@@ -49,6 +49,12 @@ app.*.map.json
 *.keystore
 key.properties
 **/key.properties
+local.properties
+**/local.properties
+!key.properties.example
+!**/key.properties.example
+!local.properties.example
+!**/local.properties.example
 
 # Binaries & packages
 *.apk

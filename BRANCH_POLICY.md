@@ -93,3 +93,27 @@ A release is certified for production rollout only when:
 - [ ] All tests pass on `master` (`./gradlew test`, `flutter test`).
 - [ ] `master` is fully pushed to `origin/master`.
 - [ ] `android` is cleanly merged with `master` and pushed to `origin/android`.
+
+---
+
+## 6. Repository Sanity & Artifact Exclusion Policy
+
+### Strict Exclusion Rules:
+The repository must **NEVER** track or commit:
+- Build binaries: `*.apk`, `*.aab`
+- Signing keys and keystores: `*.jks`, `*.keystore`, `key.properties`
+- Machine-specific SDK/environment properties: `local.properties` (including `android/local.properties`)
+
+### Permitted Verification & Example Files:
+Only verified integrity hashes and template configurations are permitted in Git tracking:
+- `*.sha1` checksums for validated production binaries
+- `key.properties.example`
+- `local.properties.example`
+- Architecture and verification documentation markdown files
+
+### Mandatory Pre-Commit / Pre-Release Sanity Command:
+```bash
+git ls-files | grep -E "(local\.properties|\.apk$|\.aab$|\.jks$|\.keystore$|key\.properties$)"
+```
+Expected output: **EMPTY (0 files)**. Any matching file indicates a critical governance failure and must be removed from Git tracking immediately via `git rm --cached <file>`.
+
