@@ -38,7 +38,7 @@
 > 
 > *Thank you for placing your trust in ProValuer Commercial!*  
 > *Practice Directorate | ProValuer Commercial*  
-> *Direct: +91 85000 19091”*
+> *Direct: +91 85008 80333”*
 
 ---
 
@@ -59,7 +59,7 @@
 > *[ Click Here to Rate & Review ProValuer on Google ]*  
 > *(Direct link: https://www.provaluer.in/review)*  
 > 
-> *If you require any follow-up clarification, supplementary calculations, or bank query support, please reply directly to this email or call our desk at +91 85000 19091.*  
+> *If you require any follow-up clarification, supplementary calculations, or bank query support, please reply directly to this email or call our desk at +91 85008 80333.*  
 > 
 > *Warm regards,*  
 > 

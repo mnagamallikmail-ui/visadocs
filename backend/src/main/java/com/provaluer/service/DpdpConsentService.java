@@ -41,7 +41,7 @@ public class DpdpConsentService {
     @org.springframework.beans.factory.annotation.Value("${app.dpdp.dpo.email:provaluer.india@gmail.com}")
     private String dpoEmail;
 
-    @org.springframework.beans.factory.annotation.Value("${app.dpdp.dpo.phone:+91 85000 19091}")
+    @org.springframework.beans.factory.annotation.Value("${app.dpdp.dpo.phone:+91 85008 80333}")
     private String dpoPhone;
 
     @org.springframework.beans.factory.annotation.Value("${app.dpdp.dpo.address:11th Floor, Vasavi MPM Grand Mall, Ameerpet, Hyderabad, Telangana, India}")

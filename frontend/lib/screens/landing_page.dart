@@ -176,11 +176,11 @@ class _LandingPageState extends State<LandingPage> {
               child: GestureDetector(
                 onTap: () async {
                   AnalyticsService.logWhatsAppClicked(
-                    whatsappTarget: 'https://wa.me/918500019091',
+                    whatsappTarget: 'https://wa.me/918500880333',
                     serviceType: 'STICKY_FAB',
                     pageUrl: Uri.base.toString(),
                   );
-                  final uri = Uri.parse('https://wa.me/918500019091');
+                  final uri = Uri.parse('https://wa.me/918500880333');
                   if (await canLaunchUrl(uri)) {
                     await launchUrl(uri, mode: LaunchMode.externalApplication);
                   }

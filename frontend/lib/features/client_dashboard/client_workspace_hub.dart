@@ -2321,7 +2321,7 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
                           const SizedBox(width: 12),
                           Expanded(
                             child: Text(
-                              'Direct Valuer Desk: +91 85000 19091 • provaluer.india@gmail.com • Mon–Sat 9AM–7PM IST',
+                              'Direct Valuer Desk: +91 85008 80333 • provaluer.india@gmail.com • Mon–Sat 9AM–7PM IST',
                               style: GoogleFonts.inter(fontSize: 13, color: _LandingDesignSystem.textSecondary),
                               overflow: TextOverflow.ellipsis,
                             ),
@@ -3832,7 +3832,7 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
           ),
           Row(
             children: [
-              Text('📞 +91 85000 19091', style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textPrimary)),
+              Text('📞 +91 85008 80333', style: GoogleFonts.inter(fontSize: 12.5, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textPrimary)),
               const SizedBox(width: 16),
               Text('✉️ provaluer.india@gmail.com', style: GoogleFonts.inter(fontSize: 12.5, color: _LandingDesignSystem.textSecondary)),
             ],
@@ -4046,7 +4046,7 @@ class _ClientWorkspaceHubState extends State<ClientWorkspaceHub> {
           children: [
             Text('Contact our Senior Appraisal Concierge Desk directly:', style: GoogleFonts.inter(fontSize: 13, color: _LandingDesignSystem.textSecondary)),
             const SizedBox(height: 14),
-            Text('📞 Phone: +91 85000 19091', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textPrimary)),
+            Text('📞 Phone: +91 85008 80333', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textPrimary)),
             const SizedBox(height: 6),
             Text('✉️ Email: provaluer.india@gmail.com', style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: _LandingDesignSystem.textPrimary)),
           ],

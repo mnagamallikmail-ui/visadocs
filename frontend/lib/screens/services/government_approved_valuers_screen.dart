@@ -19,8 +19,8 @@ class _GovernmentApprovedValuersScreenState extends State<GovernmentApprovedValu
   final ScrollController _scrollController = ScrollController();
   bool _isScrolled = false;
 
-  static const String _primaryPhone = '+918500019091';
-  static const String _primaryPhoneFormatted = '+91 85000 19091';
+  static const String _primaryPhone = '+918500880333';
+  static const String _primaryPhoneFormatted = '+91 85008 80333';
   static const String _waUrl = 'https://wa.me/918500880333';
 
   // Institutional Design Tokens
