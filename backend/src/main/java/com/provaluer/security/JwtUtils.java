@@ -27,10 +27,24 @@ public class JwtUtils {
 
     public String generateJwtToken(Authentication authentication) {
         UserDetailsImpl userPrincipal = (UserDetailsImpl) authentication.getPrincipal();
+        return generateTokenFromUsername(userPrincipal.getUsername());
+    }
+
+    public String generateTokenFromUsername(String username) {
         return Jwts.builder()
-                .setSubject(userPrincipal.getUsername())
+                .setSubject(username)
                 .setIssuedAt(new Date())
                 .setExpiration(new Date((new Date()).getTime() + jwtExpirationMs))
+                .signWith(getSignKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
+
+    public String generateRefreshToken(String username) {
+        return Jwts.builder()
+                .setSubject(username)
+                .claim("tokenType", "REFRESH")
+                .setIssuedAt(new Date())
+                .setExpiration(new Date((new Date()).getTime() + (jwtExpirationMs * 7))) // 7 days
                 .signWith(getSignKey(), SignatureAlgorithm.HS256)
                 .compact();
     }

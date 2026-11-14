@@ -953,7 +953,7 @@ class InputFieldVm {
     if (isGenericText || k == 'TEXT_PLACEHOLDER') return false;
     if (k.contains('DESC') || k.contains('REMARK') || k.contains('NOTE') || k.contains('CAPTION')) return false;
     // Explicit key-prefix rule
-    if (k.startsWith('IMG_') || k.startsWith('IMAGE_')) return true;
+    if (k.startsWith('IMG_') || k.startsWith('IMAGE_') || k.endsWith('_PHOTO') || k.endsWith('_SELFIE') || k == 'PROPERTY_PHOTO' || k == 'VALUER_SELFIE') return true;
     // Explicit schema metadata from backend registry
     final t = fieldType.toUpperCase();
     if (t == 'IMAGE') return true;

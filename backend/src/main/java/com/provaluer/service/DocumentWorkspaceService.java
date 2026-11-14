@@ -99,6 +99,15 @@ public class DocumentWorkspaceService {
     private ValuationSnapshotRepository valuationSnapshotRepository;
 
     @Autowired
+    private OrderRevisionHistoryRepository orderRevisionHistoryRepository;
+
+    @Autowired
+    private WorkspaceSessionRepository workspaceSessionRepository;
+
+    @Autowired
+    private WorkspaceSyncEventRepository workspaceSyncEventRepository;
+
+    @Autowired
     private ValuationAuditLogRepository valuationAuditLogRepository;
 
 
@@ -962,31 +971,22 @@ public class DocumentWorkspaceService {
 
         validateOrderAccess(order, principal, "SAVE");
 
-        // FIX 1 & FIX 3 & FIX 5: Concurrency Conflict Detection & Workspace Revision Governance
-        Integer expectedRev = order.getWorkspaceRevision() != null ? order.getWorkspaceRevision() : 1;
-        if (request != null && request.getWorkspaceRevision() != null) {
-            if (!request.getWorkspaceRevision().equals(expectedRev)) {
-                try {
-                    auditLogService.log(
-                            principal != null ? principal.getId() : null,
-                            principal != null ? principal.getEmail() : "SYSTEM",
-                            getPrincipalRole(principal),
-                            "WORKSPACE_CONFLICT_REJECTED",
-                            "ORDER",
-                            String.valueOf(orderId),
-                            "rev:" + expectedRev,
-                            "submitted_rev:" + request.getWorkspaceRevision(),
-                            "Save rejected due to revision mismatch. Workspace updated elsewhere. Current revision: "
-                                    + expectedRev + ", Submitted revision: " + request.getWorkspaceRevision()
-                    );
-                } catch (Exception e) {
-                    log.warn("Failed to audit conflict event: {}", e.getMessage());
+        // ENTERPRISE WORKSPACE V2.1: Single-Editor Lease Verification
+        // If an active lease exists, verify caller holds the active lease.
+        Optional<WorkspaceSession> activeLeaseOpt = workspaceSessionRepository.findByOrderId(orderId);
+        if (activeLeaseOpt.isPresent()) {
+            WorkspaceSession activeLease = activeLeaseOpt.get();
+            if ("ACTIVE".equals(activeLease.getLockStatus())) {
+                boolean isOwner = principal != null && activeLease.getUser().getId().equals(principal.getId());
+                if (!isOwner) {
+                    throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                            "Read-Only mode: Order is currently locked by " +
+                            (activeLease.getUser().getFullName() != null ? activeLease.getUser().getFullName() : activeLease.getUser().getUsername()));
                 }
-                throw new ResponseStatusException(HttpStatus.CONFLICT,
-                        "Workspace updated elsewhere (Server revision: " + expectedRev
-                        + ", Submitted revision: " + request.getWorkspaceRevision() + "). Refresh required.");
             }
         }
+
+        Integer expectedRev = order.getWorkspaceRevision() != null ? order.getWorkspaceRevision() : 1;
 
         // SPRINT 6: Transition WORKSPACE_READY → DRAFTING upon first save
         if ("WORKSPACE_READY".equalsIgnoreCase(order.getStatus())) {
@@ -1220,12 +1220,56 @@ public class DocumentWorkspaceService {
             }
         }
 
-        // FIX 1: Increment workspace revision on successful save
+        // ENTERPRISE WORKSPACE V2.1: Statutory Revision History & Audit Preservation
         order.setWorkspaceRevision(expectedRev + 1);
         order.setUpdatedAt(LocalDateTime.now());
         orderRepository.save(order);
 
-        // SPRINT 6 & FIX 9: Audit log for saved draft values with revision governance
+        // Touch active lease activity
+        if (request != null && request.getSessionId() != null) {
+            try {
+                workspaceSessionRepository.touchActivity(orderId, request.getSessionId());
+            } catch (Exception ignored) {}
+        }
+
+        // Record immutable statutory revision in order_revision_history
+        try {
+            User user = principal != null && principal.getId() != null ? userRepository.findById(principal.getId()).orElse(null) : null;
+            String username = principal != null ? principal.getUsername() : "SYSTEM";
+            String role = getPrincipalRole(principal);
+            String sessionId = request != null && request.getSessionId() != null ? request.getSessionId() : "direct_save";
+            String tabSessionId = request != null && request.getTabSessionId() != null ? request.getTabSessionId() : "default_tab";
+            int keysChanged = request != null && request.getValues() != null ? request.getValues().size() : 0;
+
+            OrderRevisionHistory revRecord = new OrderRevisionHistory(
+                    order,
+                    order.getWorkspaceRevision(),
+                    user,
+                    username,
+                    role,
+                    sessionId,
+                    tabSessionId,
+                    keysChanged,
+                    "{\"keysChanged\":" + keysChanged + "}",
+                    null
+            );
+            orderRevisionHistoryRepository.save(revRecord);
+
+            WorkspaceSyncEvent syncEvent = new WorkspaceSyncEvent(
+                    order,
+                    user,
+                    sessionId != null ? sessionId : "DIRECT_API",
+                    tabSessionId != null ? tabSessionId : "DIRECT_TAB",
+                    "AUTOSAVE_FLUSH",
+                    "{\"keysChanged\":" + keysChanged + "}"
+            );
+            syncEvent.setSyncStatus("COMMITTED");
+            workspaceSyncEventRepository.save(syncEvent);
+        } catch (Exception e) {
+            log.warn("Failed to record OrderRevisionHistory/SyncEvent for order #{}: {}", orderId, e.getMessage());
+        }
+
+        // Audit log for saved draft values
         try {
             Long actorId = principal != null ? principal.getId() : null;
             String actorEmail = principal != null ? principal.getEmail() : "PA";

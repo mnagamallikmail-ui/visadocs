@@ -1016,35 +1016,6 @@ public class OrderController {
         return ResponseEntity.status(HttpStatus.CONFLICT).body("Order is not available for claiming.");
     }
 
-    @PostMapping("/{id}/heartbeat")
-    @Transactional
-    @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN')")
-    public ResponseEntity<?> telemetryHeartbeat(@PathVariable Long id) {
-        UserDetailsImpl principal = getCurrentPrincipal();
-        if (principal == null) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(Map.of("error", "Authentication required"));
-        }
-        Optional<Order> orderOpt = orderRepository.findById(id);
-        if (orderOpt.isPresent()) {
-            Order order = orderOpt.get();
-            boolean isAdminOrSpa = principal.getAuthorities().stream().anyMatch(a ->
-                    a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN") || a.getAuthority().equals("ROLE_SPA"));
-            boolean isAssignedPa = order.getPaId() != null && order.getPaId().equals(principal.getId());
-            if (!isAdminOrSpa && !isAssignedPa) {
-                return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("error", "Access denied: Not assigned to order #" + id));
-            }
-            order.setLastHeartbeat(LocalDateTime.now());
-            orderRepository.save(order);
-            return ResponseEntity.ok(Map.of(
-                "orderId", order.getId(),
-                "status", order.getStatus() != null ? order.getStatus() : "",
-                "paId", order.getPaId() != null ? order.getPaId() : -1L,
-                "workspaceRevision", order.getWorkspaceRevision() != null ? order.getWorkspaceRevision() : 1,
-                "isPaused", order.isPaused()
-            ));
-        }
-        return ResponseEntity.notFound().build();
-    }
 
     @PostMapping("/{id}/pause")
     @Transactional
@@ -1861,7 +1832,7 @@ public class OrderController {
      * POST /api/v1/orders/{id}/save-document-values
      * Delta persistence of in-document input values without synthetic questions.
      */
-    @PostMapping("/{id}/save-document-values")
+    @PostMapping({"/{id}/document-values", "/{id}/save-document-values"})
     @PreAuthorize("hasAnyRole('PA', 'SPA', 'SUPER_ADMIN', 'ADMIN')")
     public ResponseEntity<?> saveDocumentValues(@PathVariable Long id, @RequestBody com.provaluer.dto.SaveDocumentValuesRequest request) {
         try {

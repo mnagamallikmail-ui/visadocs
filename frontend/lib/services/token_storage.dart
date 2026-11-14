@@ -4,16 +4,33 @@ import 'token_storage_stub.dart'
 
 class TokenStorage {
   static const String keyToken = 'auth_token';
+  static const String keySessionId = 'auth_session_id';
   static const String keyUsername = 'auth_username';
   static const String keyEmail = 'auth_email';
   static const String keyRole = 'auth_role';
   static const String keyFullName = 'auth_full_name';
   static const String keyMobile = 'auth_mobile';
   static const String keyUserId = 'auth_user_id';
+  static const String keyBiometricEnabled = 'auth_biometric_enabled';
+
+  static Future<void> init() async => initPlatformStorage();
+
+  static bool isBiometricEnabled() => getStorageItem(keyBiometricEnabled) == 'true';
+  static void setBiometricEnabled(bool enabled) => setStorageItem(keyBiometricEnabled, enabled ? 'true' : 'false');
 
   static String? getToken() => getStorageItem(keyToken);
   static void saveToken(String token) => setStorageItem(keyToken, token);
   static void clearToken() => removeStorageItem(keyToken);
+
+  static String getSessionId() {
+    final existing = getStorageItem(keySessionId);
+    if (existing != null && existing.isNotEmpty) return existing;
+    final generated = 'sess_${DateTime.now().millisecondsSinceEpoch}';
+    setStorageItem(keySessionId, generated);
+    return generated;
+  }
+
+  static void saveSessionId(String sessionId) => setStorageItem(keySessionId, sessionId);
 
   static void saveSession({
     required String token,

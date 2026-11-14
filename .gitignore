@@ -67,3 +67,13 @@ Thumbs.db
 *.crt
 *.pfx
 *.p12
+*.jks
+*.keystore
+key.properties
+**/key.properties
+
+# Ephemeral build artifacts & distribution packages
+frontend/build/
+frontend/.dart_tool/
+*.apk
+*.aab

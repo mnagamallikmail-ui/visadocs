@@ -1,6 +1,8 @@
 // ignore: avoid_web_libraries_in_flutter
 import 'dart:html' as html;
 
+Future<void> initPlatformStorage() async {}
+
 String? getStorageItem(String key) {
   try {
     return html.window.localStorage[key];

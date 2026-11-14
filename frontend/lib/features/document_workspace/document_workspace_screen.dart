@@ -1,9 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-// ignore: avoid_web_libraries_in_flutter
-import 'dart:html' as html;
+import '../../services/web_file_picker.dart';
 import '../../providers/order_provider.dart';
 import '../../services/unload_protection_stub.dart'
     if (dart.library.html) '../../services/unload_protection_web.dart';
@@ -19,6 +19,10 @@ import 'widgets/document_table_workspace_widget.dart';
 import 'widgets/live_preview_viewer_widget.dart';
 import 'widgets/section_navigation_tree_widget.dart';
 import 'widgets/valuation_workspace_editor_widget.dart';
+import 'widgets/workspace_health_bar_widget.dart';
+import 'widgets/draft_recovery_dialog.dart';
+import 'services/workspace_lease_client.dart';
+import '../../widgets/session_challenge_dialog.dart';
 
 class DocumentWorkspaceScreen extends StatefulWidget {
   final int orderId;
@@ -42,6 +46,8 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
   late final DocumentWorkspaceProvider _provider;
   bool _showPersistentSaveFailure = false;
   bool _isReauthOpen = false;
+  bool _isDraftRecoveryOpen = false;
+  bool _isChallengeDialogOpen = false;
 
   // Responsive Sidebar Adaptation (Phase 2B)
   bool? _userSidebarCompact;
@@ -51,6 +57,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
   void initState() {
     super.initState();
     _provider = widget.provider ?? DocumentWorkspaceProvider();
+    _provider.addListener(_onProviderUpdated);
     if (widget.provider == null) {
       _provider.loadWorkspace(widget.orderId);
     }
@@ -67,6 +74,133 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
       setupBeforeUnloadProtection(() =>
           _provider.isDirty || TokenStorage.loadDraftFromStorage(widget.orderId) != null);
     }
+  }
+
+  void _onProviderUpdated() {
+    if (!mounted) return;
+
+    // Check for uncommitted IndexedDB V2 draft
+    if (_provider.hasPendingDraftRecovery && !_isDraftRecoveryOpen && _provider.pendingDraft != null) {
+      _isDraftRecoveryOpen = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        DraftRecoveryDialog.show(
+          context,
+          draft: _provider.pendingDraft!,
+          serverRevision: _provider.workspaceModel?.workspaceRevision ?? 1,
+          onRestore: () {
+            _provider.restorePendingDraft();
+            _isDraftRecoveryOpen = false;
+          },
+          onDiscard: () {
+            _provider.discardPendingDraft();
+            _isDraftRecoveryOpen = false;
+          },
+        ).then((_) {
+          _isDraftRecoveryOpen = false;
+        });
+      });
+    }
+
+    // Check for SSE Login Challenge
+    if (_provider.pendingChallengeEvent != null && !_isChallengeDialogOpen) {
+      _isChallengeDialogOpen = true;
+      final challenge = _provider.pendingChallengeEvent!;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        SessionChallengeDialog.show(
+          context,
+          deviceName: challenge.requestingDevice ?? 'Authorized Browser',
+          platform: challenge.requestingPlatform ?? 'Desktop',
+          approximateLocation: challenge.approximateLocation ?? 'India',
+          timeoutSeconds: challenge.timeoutSeconds,
+          onKeepSession: () {
+            WorkspaceLeaseClient().respondToLoginChallenge(
+              decision: 'KEEP',
+              pendingSessionId: challenge.challengeSessionId ?? '',
+            );
+            _provider.pendingChallengeEvent = null;
+            _isChallengeDialogOpen = false;
+          },
+          onAllowSession: () {
+            WorkspaceLeaseClient().respondToLoginChallenge(
+              decision: 'ALLOW',
+              pendingSessionId: challenge.challengeSessionId ?? '',
+            );
+            _provider.pendingChallengeEvent = null;
+            _isChallengeDialogOpen = false;
+            TokenStorage.clearToken();
+            TokenStorage.clearSession();
+            Navigator.of(context).pushReplacementNamed('/login');
+          },
+        ).then((_) {
+          _isChallengeDialogOpen = false;
+        });
+      });
+    }
+
+    // Check for Session Eviction
+    if (_provider.sessionEvicted) {
+      _provider.sessionEvicted = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Session Terminated'),
+            content: const Text('Your login session was ended by another device or an administrator. Please log in again to continue.'),
+            actions: [
+              FilledButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  TokenStorage.clearToken();
+                  TokenStorage.clearSession();
+                  Navigator.of(context).pushReplacementNamed('/login');
+                },
+                child: const Text('Return to Login'),
+              ),
+            ],
+          ),
+        );
+      });
+    }
+  }
+
+  void _showTakeoverConfirmation(DocumentWorkspaceProvider provider) {
+    final reasonController = TextEditingController(text: 'Administrative correction');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Admin Break-Glass Takeover'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('This will immediately terminate the active editing lease held by ${provider.activeEditorName ?? "current editor"} and transfer active write authority to your session.'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                labelText: 'Audit Reason',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              provider.requestTakeover(reasonController.text.trim());
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Confirm Takeover'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showReauthModal() {
@@ -89,6 +223,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
 
   @override
   void dispose() {
+    _provider.removeListener(_onProviderUpdated);
     if (widget.provider == null) {
       _provider.dispose();
     }
@@ -282,15 +417,11 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
     }
 
     try {
-      final blob = html.Blob([bytes], 'application/vnd.openxmlformats-officedocument.wordprocessingml.document');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute('download', 'Report_${widget.orderId}.docx')
-        ..style.display = 'none';
-      html.document.body!.append(anchor);
-      anchor.click();
-      anchor.remove();
-      html.Url.revokeObjectUrl(url);
+      triggerBrowserDownload(
+        bytes,
+        'Report_${widget.orderId}.docx',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      );
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -351,15 +482,11 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
     }
 
     try {
-      final blob = html.Blob([bytes], 'application/pdf');
-      final url = html.Url.createObjectUrlFromBlob(blob);
-      final anchor = html.AnchorElement(href: url)
-        ..setAttribute('download', 'Report_${widget.orderId}.pdf')
-        ..style.display = 'none';
-      html.document.body!.append(anchor);
-      anchor.click();
-      anchor.remove();
-      html.Url.revokeObjectUrl(url);
+      triggerBrowserDownload(
+        bytes,
+        'Report_${widget.orderId}.pdf',
+        'application/pdf',
+      );
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -391,6 +518,25 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
               body: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Phase 3: Workspace Health Bar (Online/Offline, Saving..., Pending Sync, Active Editor, Read-Only, Last Saved)
+                  if (!provider.isLoading && provider.workspaceModel != null)
+                    WorkspaceHealthBarWidget(
+                      isOnline: provider.isOnline,
+                      syncStatus: provider.syncStatus,
+                      pendingSyncCount: provider.pendingSyncCount,
+                      isReadOnly: provider.isReadOnly,
+                      activeEditorName: provider.activeEditorName,
+                      activeEditorRole: provider.activeEditorRole,
+                      lastSavedTime: provider.lastSavedAt,
+                      isSameUserConflict: provider.isSameUserConflict,
+                      onSwitchTab: provider.isSameUserConflict
+                          ? () => provider.switchEditingToThisTab()
+                          : null,
+                      onTakeover: (widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN' || widget.role == 'SPA') && provider.isReadOnly
+                          ? () => _showTakeoverConfirmation(provider)
+                          : null,
+                    ),
+
                   // Sticky Property Context Header (Always visible throughout scrolling)
                   if (!provider.isLoading && provider.workspaceModel != null)
                     _buildPropertyContextHeader(provider),
@@ -485,7 +631,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
                                                         },
                                                       ),
                                                     )
-                                                  else
+                                                  else if (kIsWeb)
                                                     Container(
                                                       width: 34,
                                                       decoration: const BoxDecoration(
@@ -562,7 +708,19 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
           }
         },
       ),
-      title: Row(
+      title: !kIsWeb
+          ? FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                reportNum,
+                maxLines: 1,
+                softWrap: false,
+                overflow: TextOverflow.ellipsis,
+                style: AppTypography.workspaceSectionTitle().copyWith(fontSize: 14),
+              ),
+            )
+          : Row(
         children: [
           // Platform Title & Reference
           Text(
@@ -613,6 +771,17 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
         ],
       ),
       actions: [
+        if (!kIsWeb)
+          IconButton(
+            icon: const Icon(Icons.list_alt_rounded, color: AppColors.workspaceCorporateNavy),
+            tooltip: 'Document Sections',
+            onPressed: () {
+              setState(() {
+                _userSidebarCollapsed = !(_userSidebarCollapsed ?? true);
+                _userSidebarCompact = false;
+              });
+            },
+          ),
         // SPRINT 6 EMERGENCY HOTFIX: Visible Autosave Status Area (Phase 6)
         _buildAutosaveStatusIndicator(provider),
 
@@ -855,6 +1024,52 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
     String location = provider.getValue('PROPERTY_ADDRESS');
     if (location.isEmpty) location = provider.getValue('PROP_LOCATION');
     if (location.isEmpty) location = 'Site Location';
+
+    if (!kIsWeb) {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: const BoxDecoration(
+          color: AppColors.workspacePanel,
+          border: Border(bottom: BorderSide(color: AppColors.workspaceBorder, width: 1.0)),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    '$propertyType • $location',
+                    style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.workspacePrimaryText),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: AppColors.workspaceCorporateNavy.withValues(alpha: 0.08),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    status,
+                    style: GoogleFonts.inter(fontSize: 10, fontWeight: FontWeight.bold, color: AppColors.workspaceCorporateNavy),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 3),
+            Text(
+              'Owner: $ownerName | Bank: $bankDisplay',
+              style: GoogleFonts.inter(fontSize: 11, color: AppColors.workspaceSecondaryText),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
+      );
+    }
 
     return Container(
       height: 42,

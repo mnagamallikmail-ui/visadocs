@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -456,6 +457,166 @@ class _DocumentInputSlotWidgetState extends State<DocumentInputSlotWidget> {
     final hasValue = value.isNotEmpty;
     final isBase64 = value.startsWith('data:image/') || (value.length > 100 && !value.contains(' '));
 
+    // =========================================================================
+    // MOBILE ANDROID LAYOUT (!kIsWeb)
+    // Full-width Vertical Column Layout:
+    // 1. Question Title (Full Width, single line / natural word wrap)
+    // 2. Image Placeholder (Centered)
+    // 3. Description Text (Centered, >= 90% width, normal readable lines)
+    // 4. Upload Button (Full Width, height: 44dp)
+    // =========================================================================
+    if (!kIsWeb) {
+      final questionTitle = widget.fieldVm.questionText.isNotEmpty
+          ? widget.fieldVm.questionText
+          : DocumentWorkspaceVm.toHumanizedLabel(widget.fieldVm.key);
+
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+        decoration: BoxDecoration(
+          color: hasValue ? AppColors.workspaceSegmentBg : Colors.white,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: hasValue ? AppColors.workspaceCorporateNavy.withValues(alpha: 0.4) : AppColors.placeholderBorder,
+            width: hasValue ? 1.0 : 1.5,
+          ),
+          boxShadow: AppShadows.subtleElevated,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // 1. Question Title & optional Attached Badge
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Expanded(
+                  child: Text(
+                    questionTitle,
+                    style: AppTypography.workspaceSectionTitle().copyWith(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.workspacePrimaryText,
+                    ),
+                    softWrap: true,
+                  ),
+                ),
+                if (hasValue) ...[
+                  const SizedBox(width: 8),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: AppColors.primaryBlueLight,
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'IMAGE ATTACHED',
+                      style: AppTypography.workspaceMicro(
+                        color: AppColors.primaryBlue,
+                        weight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 14),
+
+            // 2. Image Placeholder (Centered)
+            Center(
+              child: Container(
+                width: 130,
+                height: 130,
+                decoration: BoxDecoration(
+                  color: AppColors.workspaceSegmentBg,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.workspaceBorder, width: 1.5),
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: hasValue
+                    ? (isBase64
+                        ? _renderBase64Thumbnail(value)
+                        : const Center(
+                            child: Icon(Icons.image_rounded, color: AppColors.workspaceCorporateNavy, size: 48),
+                          ))
+                    : const Center(
+                        child: Icon(Icons.add_photo_alternate_outlined, color: AppColors.steel, size: 44),
+                      ),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // 3. Description Text (Centered, >= 90% available width, readable normally)
+            Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 8.0),
+                child: Text(
+                  hasValue
+                      ? (isBase64 ? 'Image Attached & Ready for DOCX/PDF' : 'Attached: $value')
+                      : 'PNG, JPEG, WebP supported for report documentation',
+                  textAlign: TextAlign.center,
+                  style: AppTypography.workspaceMicro(
+                    color: hasValue ? AppColors.workspaceCorporateNavy : AppColors.workspaceSecondaryText,
+                    weight: hasValue ? FontWeight.w600 : FontWeight.w400,
+                  ).copyWith(fontSize: 12, height: 1.4),
+                  softWrap: true,
+                ),
+              ),
+            ),
+
+            // 4. Upload Button (Full-width)
+            if (!widget.readOnly) ...[
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                height: 44,
+                child: ElevatedButton.icon(
+                  onPressed: () => _pickAndUploadImage(provider),
+                  icon: Icon(hasValue ? Icons.sync_rounded : Icons.upload_file_rounded, size: 18),
+                  label: Text(
+                    hasValue ? 'Replace' : 'Upload Image',
+                    style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.deepTeal,
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+              if (hasValue) ...[
+                const SizedBox(height: 8),
+                SizedBox(
+                  width: double.infinity,
+                  height: 38,
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      _controller.clear();
+                      provider.updateValue(widget.fieldVm.key, '');
+                    },
+                    icon: const Icon(Icons.delete_outline_rounded, size: 16, color: AppColors.brandRedDark),
+                    label: const Text(
+                      'Remove Image',
+                      style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.brandRedDark),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: AppColors.brandRedDark, width: 1),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ],
+        ),
+      );
+    }
+
+    // =========================================================================
+    // DESKTOP WEB LAYOUT (kIsWeb)
+    // Preserved 100% untouched for desktop browser experience.
+    // =========================================================================
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(

@@ -16,6 +16,10 @@ import '../services/value_normalization_engine.dart';
 import '../services/numeric_formula_engine.dart';
 import '../../../services/token_storage.dart';
 import '../../../services/api_service.dart';
+import '../../../services/indexed_db_draft_service.dart';
+import '../../../services/workspace_sse_service.dart';
+import '../services/workspace_lease_client.dart';
+import '../services/workspace_autosave_queue.dart';
 
 enum SaveState {
   saved,
@@ -82,8 +86,24 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
 
   Timer? _autoSaveTimer;
 
-  // FIX 4: Multi-tab session lease & isolation
+  // FIX 4 & Phase 3: Multi-tab session lease & isolation
   final String _tabSessionId = '${DateTime.now().millisecondsSinceEpoch}_${Random().nextInt(999999)}';
+  final WorkspaceLeaseClient _leaseClient = WorkspaceLeaseClient();
+  WorkspaceAutosaveQueue? _autosaveQueue;
+  StreamSubscription<WorkspaceSseEvent>? _sseSubscription;
+  Timer? _heartbeatTimer;
+
+  WorkspaceDraftModel? pendingDraft;
+  bool hasPendingDraftRecovery = false;
+  WorkspaceSseEvent? pendingChallengeEvent;
+  bool sessionEvicted = false;
+
+  bool _isReadOnly = false;
+  bool _isSameUserConflict = false;
+  bool _isDifferentUserConflict = false;
+  String? _activeEditorName;
+  String? _activeEditorRole;
+
   bool hasActiveSessionConflict = false;
   bool sessionTakenOver = false;
   Timer? _sessionLeaseTimer;
@@ -110,6 +130,18 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   String? get compileStatusMessage => _compileStatusMessage;
   DateTime? get lastSavedAt => _lastSavedAt;
+
+  String get sessionId => TokenStorage.getSessionId();
+  String get tabSessionId => _tabSessionId;
+
+  bool get isOnline => _autosaveQueue != null ? (_autosaveQueue!.syncStatus.value != QueueSyncStatus.offline) : true;
+  QueueSyncStatus get syncStatus => _autosaveQueue?.syncStatus.value ?? QueueSyncStatus.idle;
+  int get pendingSyncCount => _autosaveQueue?.pendingSyncCount.value ?? _deltaValues.length;
+
+  bool get isSameUserConflict => _isSameUserConflict;
+  bool get isDifferentUserConflict => _isDifferentUserConflict;
+  String? get activeEditorName => _activeEditorName;
+  String? get activeEditorRole => _activeEditorRole;
 
   WorkspaceViewMode get viewMode => _viewMode;
   DocumentWorkspaceModel? get workspaceModel => _workspaceModel;
@@ -156,7 +188,15 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   String? get hoveredKey => _hoveredKey;
   String? get focusedKey => _focusedKey;
   bool get hasWorkspace => _workspaceModel != null;
-  bool get isReadOnly => (_workspaceModel?.readOnly ?? false) || hasActiveSessionConflict || sessionTakenOver || hasRevisionConflict || invalidationNotice != null;
+  bool get isReadOnly =>
+      _isReadOnly ||
+      (_workspaceModel?.readOnly ?? false) ||
+      _isSameUserConflict ||
+      _isDifferentUserConflict ||
+      hasActiveSessionConflict ||
+      sessionTakenOver ||
+      hasRevisionConflict ||
+      invalidationNotice != null;
 
   DocumentScrollMode get scrollMode => _scrollMode;
 
@@ -196,7 +236,13 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     _autoSaveTimer?.cancel();
     _sessionLeaseTimer?.cancel();
     _telemetryTimer?.cancel();
+    _heartbeatTimer?.cancel();
+    _sseSubscription?.cancel();
+    _autosaveQueue?.dispose();
     if (_workspaceModel != null) {
+      if (!_isReadOnly) {
+        _leaseClient.releaseLock(orderId: _workspaceModel!.orderId, sessionId: sessionId);
+      }
       TokenStorage.releaseActiveWorkspaceSession(_workspaceModel!.orderId, _tabSessionId);
     }
     super.dispose();
@@ -218,51 +264,65 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       _activeValues = Map<String, String>.from(model.values);
       _deltaValues.clear();
 
-      // FIX 4: Check Multi-Tab Collision & Lease State
-      final activeLease = TokenStorage.getActiveWorkspaceSession(orderId);
-      if (activeLease != null) {
-        final leaseTabId = activeLease['tabSessionId'] as String?;
-        final lastSeen = activeLease['lastSeen'] as int? ?? 0;
-        final diff = DateTime.now().millisecondsSinceEpoch - lastSeen;
-        if (leaseTabId != null && leaseTabId != _tabSessionId && diff < 15000) {
-          hasActiveSessionConflict = true;
-        }
-      }
-      if (!hasActiveSessionConflict) {
-        TokenStorage.claimActiveWorkspaceSession(orderId, _tabSessionId);
+      // Phase 3: Real Pessimistic Lease Acquisition via Backend API
+      final leaseResult = await _leaseClient.acquireLock(
+        orderId: orderId,
+        sessionId: sessionId,
+        tabSessionId: _tabSessionId,
+      );
+
+      _isReadOnly = leaseResult.readOnly;
+      _isSameUserConflict = leaseResult.isSameUserConflict;
+      _isDifferentUserConflict = leaseResult.isDifferentUserConflict;
+      _activeEditorName = leaseResult.currentEditorFullName ?? leaseResult.currentEditor;
+      _activeEditorRole = leaseResult.currentEditorRole;
+
+      if (leaseResult.workspaceRevision != null && leaseResult.workspaceRevision! > model.workspaceRevision) {
+        _workspaceModel = _workspaceModel!.copyWith(workspaceRevision: leaseResult.workspaceRevision);
       }
 
-      // FIX 6: Local Storage Sanitization - Never silently hydrate stale drafts
+      // Phase 3 Step 2: Initialize Autosave Queue
+      _autosaveQueue?.dispose();
+      _autosaveQueue = WorkspaceAutosaveQueue(
+        orderId: orderId,
+        sessionId: sessionId,
+        tabSessionId: _tabSessionId,
+        apiService: _apiService,
+        leaseClient: _leaseClient,
+        initialRevision: _workspaceModel?.workspaceRevision ?? 1,
+      );
+      _autosaveQueue!.onConflictOrReadOnly = () {
+        _isReadOnly = true;
+        notifyListeners();
+      };
+      _autosaveQueue!.onRevisionUpdated = (newRev) {
+        if (_workspaceModel != null) {
+          _workspaceModel = _workspaceModel!.copyWith(workspaceRevision: newRev);
+        }
+      };
+
+      // Phase 3 Step 1 & 4: Check IndexedDB V2 Draft (Never restore automatically)
+      final idbDraft = await IndexedDbDraftService.instance.getDraft(orderId);
+      if (idbDraft != null && idbDraft.deltaValues.isNotEmpty) {
+        pendingDraft = idbDraft;
+        hasPendingDraftRecovery = true;
+      } else {
+        pendingDraft = null;
+        hasPendingDraftRecovery = false;
+      }
+
+      // Check legacy local storage draft metadata
       final draftMeta = TokenStorage.loadDraftMetadataFromStorage(orderId);
       if (draftMeta != null && draftMeta['values'] is Map && (draftMeta['values'] as Map).isNotEmpty) {
         final draftRev = draftMeta['workspaceRevision'] as int? ?? 1;
         final serverRev = model.workspaceRevision;
         if (draftRev < serverRev) {
-          // Stale draft detected: quarantine and prompt user
           hasPendingStaleLocalDraft = true;
           pendingStaleDraftMetadata = draftMeta;
           _pendingStaleDraftValues = Map<String, String>.from(
             (draftMeta['values'] as Map).map((k, v) => MapEntry(k.toString(), v?.toString() ?? '')),
           );
-          hasRecoveredLocalDraft = false;
-          _saveState = SaveState.saved;
-        } else {
-          // Fresh or matching revision: safe to hydrate
-          final cachedDraft = Map<String, String>.from(
-            (draftMeta['values'] as Map).map((k, v) => MapEntry(k.toString(), v?.toString() ?? '')),
-          );
-          _activeValues.addAll(cachedDraft);
-          _deltaValues.addAll(cachedDraft);
-          _isDirty = true;
-          hasRecoveredLocalDraft = true;
-          hasPendingStaleLocalDraft = false;
-          _saveState = SaveState.dirtyLocal;
         }
-      } else {
-        hasRecoveredLocalDraft = false;
-        hasPendingStaleLocalDraft = false;
-        _saveState = SaveState.saved;
-        saveErrorMessage = null;
       }
 
       _initValuationDataFromValues(orderId);
@@ -278,15 +338,16 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       _isDirty = false;
       _lastSavedAt = DateTime.now();
 
-      if (!isReadOnly) {
-        initAutoSave();
-      }
+      // Phase 3: Start 30-Second Heartbeat Timer if active editor
+      _startHeartbeatTimer(orderId);
+
+      // Phase 3: Start Real-Time SSE Listener
+      _initSseListener(orderId);
 
       // Start multi-tab lease heartbeats and real-time backend telemetry
-      _initSessionLeaseMonitoring(orderId);
       _initRealtimeTelemetry(orderId);
 
-      // Lazy background preview pre-compilation (non-blocking for immediate data entry)
+      // Lazy background preview pre-compilation
       _initBackgroundPreview(orderId);
     } on DioException catch (dioErr) {
       if (dioErr.response?.statusCode == 403) {
@@ -304,21 +365,139 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     }
   }
 
-  void _initSessionLeaseMonitoring(int orderId) {
-    _sessionLeaseTimer?.cancel();
-    _sessionLeaseTimer = Timer.periodic(const Duration(seconds: 5), (_) {
-      if (!hasActiveSessionConflict && !sessionTakenOver) {
-        final currentLease = TokenStorage.getActiveWorkspaceSession(orderId);
-        if (currentLease != null && currentLease['tabSessionId'] != _tabSessionId) {
-          sessionTakenOver = true;
-          _autoSaveTimer?.cancel();
-          notifyListeners();
-        } else {
-          TokenStorage.claimActiveWorkspaceSession(orderId, _tabSessionId);
+  void _startHeartbeatTimer(int orderId) {
+    _heartbeatTimer?.cancel();
+    if (isReadOnly) return;
+
+    _heartbeatTimer = Timer.periodic(const Duration(seconds: 30), (_) async {
+      if (!isReadOnly && _workspaceModel != null) {
+        final alive = await _leaseClient.renewHeartbeat(
+          orderId: orderId,
+          sessionId: sessionId,
+          tabSessionId: _tabSessionId,
+        );
+        if (!alive) {
+          debugPrint('[Heartbeat] Lease renewal check failed or superseded');
         }
       }
     });
   }
+
+  void _initSseListener(int orderId) {
+    _sseSubscription?.cancel();
+    final token = TokenStorage.getToken();
+    if (token != null && token.isNotEmpty) {
+      WorkspaceSseService.instance.connect(token, ApiService().dio.options.baseUrl);
+      _sseSubscription = WorkspaceSseService.instance.eventStream.listen((event) {
+        if (event.orderId != null && event.orderId != orderId) return;
+
+        switch (event.eventType) {
+          case 'FORCE_AUTOSAVE_REQUEST':
+            debugPrint('[SSE] Received FORCE_AUTOSAVE_REQUEST for order #$orderId');
+            _autosaveQueue?.flushImmediately();
+            break;
+          case 'LEASE_LOST':
+            debugPrint('[SSE] Received LEASE_LOST for order #$orderId');
+            _isReadOnly = true;
+            _activeEditorName = event.newEditor;
+            _heartbeatTimer?.cancel();
+            notifyListeners();
+            break;
+          case 'WORKSPACE_INVALIDATED':
+            debugPrint('[SSE] Received WORKSPACE_INVALIDATED for order #$orderId');
+            invalidationNotice = event.reason ?? 'Document workspace was updated by an administrative action.';
+            _isReadOnly = true;
+            _heartbeatTimer?.cancel();
+            notifyListeners();
+            break;
+          case 'LOGIN_CHALLENGE':
+            debugPrint('[SSE] Received LOGIN_CHALLENGE');
+            pendingChallengeEvent = event;
+            notifyListeners();
+            break;
+          case 'SESSION_EVICTED':
+            debugPrint('[SSE] Received SESSION_EVICTED');
+            sessionEvicted = true;
+            _heartbeatTimer?.cancel();
+            notifyListeners();
+            break;
+        }
+      });
+    }
+  }
+
+  Future<bool> switchEditingToThisTab() async {
+    if (_workspaceModel == null) return false;
+    final orderId = _workspaceModel!.orderId;
+    final result = await _leaseClient.switchTab(
+      orderId: orderId,
+      sessionId: sessionId,
+      tabSessionId: _tabSessionId,
+    );
+
+    if (result.isActiveEditor) {
+      _isReadOnly = false;
+      _isSameUserConflict = false;
+      _isDifferentUserConflict = false;
+      _activeEditorName = result.currentEditorFullName ?? result.currentEditor;
+      _activeEditorRole = result.currentEditorRole;
+      _startHeartbeatTimer(orderId);
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  Future<bool> requestTakeover(String reason) async {
+    if (_workspaceModel == null) return false;
+    final orderId = _workspaceModel!.orderId;
+    final result = await _leaseClient.takeoverLock(
+      orderId: orderId,
+      sessionId: sessionId,
+      tabSessionId: _tabSessionId,
+      reason: reason,
+    );
+
+    if (result.isActiveEditor) {
+      _isReadOnly = false;
+      _isDifferentUserConflict = false;
+      _isSameUserConflict = false;
+      _activeEditorName = result.currentEditorFullName ?? result.currentEditor;
+      _activeEditorRole = result.currentEditorRole;
+      _startHeartbeatTimer(orderId);
+      notifyListeners();
+      return true;
+    }
+    return false;
+  }
+
+  Future<void> restorePendingDraft() async {
+    if (pendingDraft != null) {
+      final draft = pendingDraft!;
+      _activeValues.addAll(draft.deltaValues);
+      _deltaValues.addAll(draft.deltaValues);
+      _isDirty = true;
+      hasPendingDraftRecovery = false;
+      pendingDraft = null;
+
+      for (final entry in draft.deltaValues.entries) {
+        _autosaveQueue?.enqueueEdit(entry.key, entry.value, currentFullSnapshot: _activeValues);
+      }
+      _recalculateFormulas(notify: true);
+      notifyListeners();
+    }
+  }
+
+  Future<void> discardPendingDraft() async {
+    if (_workspaceModel != null) {
+      await IndexedDbDraftService.instance.deleteDraft(_workspaceModel!.orderId);
+    }
+    pendingDraft = null;
+    hasPendingDraftRecovery = false;
+    notifyListeners();
+  }
+
+
 
   void _initRealtimeTelemetry(int orderId) {
     _telemetryTimer?.cancel();
@@ -1511,6 +1690,16 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   void _persistLocalDraft() {
     final orderId = _workspaceModel?.orderId;
     if (orderId != null && orderId > 0 && _deltaValues.isNotEmpty) {
+      final draft = WorkspaceDraftModel(
+        orderId: orderId,
+        revision: _workspaceModel?.workspaceRevision ?? 1,
+        sourceSession: '${sessionId}_$tabSessionId',
+        savedAt: DateTime.now(),
+        deltaValues: Map.unmodifiable(_deltaValues),
+        fullSnapshot: Map.unmodifiable(_activeValues),
+      );
+      IndexedDbDraftService.instance.saveDraft(draft);
+
       TokenStorage.saveDraftToStorage(
         orderId,
         _deltaValues,
@@ -1576,6 +1765,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         _lastSavedAt = DateTime.now();
         if (_deltaValues.isEmpty) {
           TokenStorage.clearDraftFromStorage(_workspaceModel!.orderId);
+          IndexedDbDraftService.instance.deleteDraft(_workspaceModel!.orderId);
           _saveState = SaveState.saved;
           saveErrorMessage = null;
           _errorMessage = null;
