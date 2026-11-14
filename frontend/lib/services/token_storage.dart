@@ -4,6 +4,7 @@ import 'token_storage_stub.dart'
 
 class TokenStorage {
   static const String keyToken = 'auth_token';
+  static const String keySessionId = 'auth_session_id';
   static const String keyUsername = 'auth_username';
   static const String keyEmail = 'auth_email';
   static const String keyRole = 'auth_role';
@@ -20,6 +21,16 @@ class TokenStorage {
   static String? getToken() => getStorageItem(keyToken);
   static void saveToken(String token) => setStorageItem(keyToken, token);
   static void clearToken() => removeStorageItem(keyToken);
+
+  static String getSessionId() {
+    final existing = getStorageItem(keySessionId);
+    if (existing != null && existing.isNotEmpty) return existing;
+    final generated = 'sess_${DateTime.now().millisecondsSinceEpoch}';
+    setStorageItem(keySessionId, generated);
+    return generated;
+  }
+
+  static void saveSessionId(String sessionId) => setStorageItem(keySessionId, sessionId);
 
   static void saveSession({
     required String token,

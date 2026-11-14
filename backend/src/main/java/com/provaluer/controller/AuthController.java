@@ -2,18 +2,29 @@ package com.provaluer.controller;
 
 import com.provaluer.model.User;
 import com.provaluer.model.UserRole;
+import com.provaluer.model.UserSession;
 import com.provaluer.repository.UserRepository;
 import com.provaluer.security.JwtUtils;
 import com.provaluer.security.UserDetailsImpl;
+import com.provaluer.service.AuditLogService;
+import com.provaluer.service.AuthSessionService;
+import com.provaluer.service.MfaService;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.*;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.web.bind.annotation.*;
-
-import com.provaluer.service.MfaService;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Optional;
 
@@ -34,18 +45,44 @@ public class AuthController {
     private JwtUtils jwtUtils;
 
     @Autowired
-    private com.provaluer.service.AuditLogService auditLogService;
+    private AuditLogService auditLogService;
 
     @Autowired
-    private com.provaluer.service.MfaService mfaService;
+    private MfaService mfaService;
+
+    @Autowired
+    private AuthSessionService authSessionService;
 
     @org.springframework.beans.factory.annotation.Value("${app.mfa.enforcement-enabled:${MFA_ENFORCEMENT_ENABLED:false}}")
     private boolean mfaEnforcementEnabled;
 
     private static final java.util.Map<String, Long> mfaChallengeStore = new java.util.concurrent.ConcurrentHashMap<>();
 
+    private String getClientIp(HttpServletRequest request) {
+        if (request == null) return "127.0.0.1";
+        String xf = request.getHeader("X-Forwarded-For");
+        if (xf != null && !xf.isBlank()) {
+            return xf.split(",")[0].trim();
+        }
+        return request.getRemoteAddr() != null ? request.getRemoteAddr() : "127.0.0.1";
+    }
+
+    private String getDeviceInfo(LoginRequest req, HttpServletRequest request) {
+        if (req != null && req.getDeviceInfo() != null && !req.getDeviceInfo().isBlank()) {
+            return req.getDeviceInfo().trim();
+        }
+        if (request == null) return "Web Browser";
+        String ua = request.getHeader("User-Agent");
+        if (ua == null || ua.isBlank()) return "Web Browser";
+        if (ua.contains("Edg/")) return "Microsoft Edge";
+        if (ua.contains("Chrome/")) return "Google Chrome";
+        if (ua.contains("Firefox/")) return "Mozilla Firefox";
+        if (ua.contains("Safari/") && !ua.contains("Chrome")) return "Apple Safari";
+        return "Web Browser";
+    }
+
     @PostMapping("/login")
-    public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<?> authenticateUser(@RequestBody LoginRequest loginRequest, HttpServletRequest request) {
         String loginIdentifier = loginRequest.getUsername() != null && !loginRequest.getUsername().isBlank()
                 ? loginRequest.getUsername().trim()
                 : (loginRequest.getEmail() != null ? loginRequest.getEmail().trim() : "");
@@ -125,16 +162,43 @@ public class AuthController {
             ));
         }
 
+        // 3. Single Active Login Session Check
+        Optional<UserSession> activeSessionOpt = authSessionService.getActiveSession(user.getId());
+        if (activeSessionOpt.isPresent() && !loginRequest.isForceLogin()) {
+            UserSession activeSession = activeSessionOpt.get();
+            String challengeStatus = authSessionService.checkChallengeStatus(activeSession.getSessionId());
+            if (!"APPROVED".equals(challengeStatus) && !"APPROVED_BY_TIMEOUT".equals(challengeStatus)) {
+                String proposedSessionId = java.util.UUID.randomUUID().toString();
+                String deviceInfo = getDeviceInfo(loginRequest, request);
+                String platformInfo = loginRequest.getPlatformInfo() != null ? loginRequest.getPlatformInfo() : "Web";
+                String ip = getClientIp(request);
+
+                java.util.Map<String, Object> challengePayload = authSessionService.initiateLoginChallenge(
+                        user, activeSession, proposedSessionId, deviceInfo, platformInfo, "India", ip
+                );
+                return ResponseEntity.status(org.springframework.http.HttpStatus.CONFLICT).body(challengePayload);
+            }
+        }
+
         SecurityContextHolder.getContext().setAuthentication(authentication);
         String jwt = jwtUtils.generateJwtToken(authentication);
+        String refreshToken = jwtUtils.generateRefreshToken(user.getUsername());
+        String sessionId = java.util.UUID.randomUUID().toString();
+        String deviceInfo = getDeviceInfo(loginRequest, request);
+        String platformInfo = loginRequest.getPlatformInfo() != null ? loginRequest.getPlatformInfo() : "Web";
+        String ip = getClientIp(request);
+
+        authSessionService.createAndActivateSession(user, sessionId, jwt, refreshToken, deviceInfo, platformInfo, "India", ip);
         
         try {
             auditLogService.log(user.getId(), user.getEmail() != null ? user.getEmail() : user.getUsername(),
                     user.getRole().name(), "USER_LOGIN_SUCCESS", "USER", String.valueOf(user.getId()),
-                    null, null, "User successfully logged in");
+                    null, null, "User successfully logged in on " + deviceInfo);
         } catch (Exception ignored) {}
 
         return ResponseEntity.ok(new JwtResponse(jwt, 
+                                                 refreshToken,
+                                                 sessionId,
                                                  userDetails.getId(), 
                                                  user.getUsername(),
                                                  user.getEmail(), 
@@ -145,7 +209,7 @@ public class AuthController {
     }
 
     @PostMapping("/mfa/verify")
-    public ResponseEntity<?> verifyMfaAndAuthenticate(@RequestBody MfaVerifyRequest req) {
+    public ResponseEntity<?> verifyMfaAndAuthenticate(@RequestBody MfaVerifyRequest req, HttpServletRequest request) {
         if (req.getMfaToken() == null || req.getCode() == null) {
             return ResponseEntity.badRequest().body(java.util.Map.of("error", "mfaToken and code are required"));
         }
@@ -172,15 +236,23 @@ public class AuthController {
             return ResponseEntity.status(401).body(java.util.Map.of("error", "Invalid 6-digit TOTP or recovery code"));
         }
 
-        // MFA Successful: Remove token and issue JWT
+        // MFA Successful: Remove token, activate session, and issue JWT
         mfaChallengeStore.remove(req.getMfaToken());
 
         UserDetailsImpl userDetails = UserDetailsImpl.build(user);
         Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(auth);
         String jwt = jwtUtils.generateJwtToken(auth);
+        String refreshToken = jwtUtils.generateRefreshToken(user.getUsername());
+        String sessionId = java.util.UUID.randomUUID().toString();
+        String deviceInfo = getDeviceInfo(null, request);
+        String ip = getClientIp(request);
+
+        authSessionService.createAndActivateSession(user, sessionId, jwt, refreshToken, deviceInfo, "Web", "India", ip);
 
         return ResponseEntity.ok(new JwtResponse(jwt, 
+                                                 refreshToken,
+                                                 sessionId,
                                                  user.getId(), 
                                                  user.getUsername(),
                                                  user.getEmail(), 
@@ -191,7 +263,7 @@ public class AuthController {
     }
 
     @PostMapping("/mfa/confirm-setup")
-    public ResponseEntity<?> confirmMfaSetup(@RequestBody MfaSetupConfirmRequest req) {
+    public ResponseEntity<?> confirmMfaSetup(@RequestBody MfaSetupConfirmRequest req, HttpServletRequest request) {
         Long userId = mfaChallengeStore.get(req.getSetupToken());
         if (userId == null) {
             return ResponseEntity.status(401).body(java.util.Map.of("error", "Invalid or expired setup token"));
@@ -216,8 +288,16 @@ public class AuthController {
         Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
         SecurityContextHolder.getContext().setAuthentication(auth);
         String jwt = jwtUtils.generateJwtToken(auth);
+        String refreshToken = jwtUtils.generateRefreshToken(user.getUsername());
+        String sessionId = java.util.UUID.randomUUID().toString();
+        String deviceInfo = getDeviceInfo(null, request);
+        String ip = getClientIp(request);
+
+        authSessionService.createAndActivateSession(user, sessionId, jwt, refreshToken, deviceInfo, "Web", "India", ip);
 
         return ResponseEntity.ok(new JwtResponse(jwt, 
+                                                 refreshToken,
+                                                 sessionId,
                                                  user.getId(), 
                                                  user.getUsername(),
                                                  user.getEmail(), 
@@ -300,11 +380,92 @@ public class AuthController {
         return ResponseEntity.status(401).body("Unauthorized");
     }
 
+    @PostMapping("/challenge/respond")
+    public ResponseEntity<?> respondToChallenge(@RequestBody ChallengeRespondRequest req) {
+        if (req.getChallengeSessionId() == null || req.getDecision() == null) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", "challengeSessionId and decision are required"));
+        }
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !(auth.getPrincipal() instanceof UserDetailsImpl)) {
+            return ResponseEntity.status(401).body(java.util.Map.of("error", "Authentication required"));
+        }
+        UserDetailsImpl principal = (UserDetailsImpl) auth.getPrincipal();
+        try {
+            java.util.Map<String, Object> result = authSessionService.respondToChallenge(
+                    req.getChallengeSessionId(), req.getDecision(), principal.getId()
+            );
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+        }
+    }
+
+    @GetMapping("/challenge/status")
+    public ResponseEntity<?> checkChallengeStatus(@RequestParam("id") String challengeSessionId) {
+        if (challengeSessionId == null || challengeSessionId.isBlank()) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", "challengeSessionId parameter 'id' is required"));
+        }
+        String status = authSessionService.checkChallengeStatus(challengeSessionId);
+        return ResponseEntity.ok(java.util.Map.of(
+                "challengeSessionId", challengeSessionId,
+                "status", status
+        ));
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestBody(required = false) java.util.Map<String, String> payload,
+                                    @RequestHeader(value = "X-Session-ID", required = false) String sessionHeader) {
+        String sessionId = sessionHeader;
+        if ((sessionId == null || sessionId.isBlank()) && payload != null) {
+            sessionId = payload.get("sessionId");
+        }
+        if (sessionId != null && !sessionId.isBlank()) {
+            authSessionService.logout(sessionId);
+        }
+        SecurityContextHolder.clearContext();
+        return ResponseEntity.ok(java.util.Map.of("message", "Logged out successfully"));
+    }
+
+    @PostMapping({"/refresh", "/refresh-token"})
+    public ResponseEntity<?> refreshToken(@RequestBody RefreshTokenRequest req) {
+        if (req.getRefreshToken() == null || req.getRefreshToken().isBlank()) {
+            return ResponseEntity.badRequest().body(java.util.Map.of("error", "Refresh token is required"));
+        }
+        if (!jwtUtils.validateJwtToken(req.getRefreshToken())) {
+            return ResponseEntity.status(401).body(java.util.Map.of("error", "Invalid or expired refresh token"));
+        }
+
+        String username = jwtUtils.getUserNameFromJwtToken(req.getRefreshToken());
+        if (!userRepository.existsByUsernameIgnoreCase(username)) {
+            throw new BadCredentialsException("User not found");
+        }
+
+        if (req.getSessionId() != null && !req.getSessionId().isBlank()) {
+            boolean sessionActive = authSessionService.validateAndTouchSession(req.getSessionId());
+            if (!sessionActive) {
+                return ResponseEntity.status(401).body(java.util.Map.of("error", "Session has been evicted or expired. Re-authentication required."));
+            }
+        }
+
+        String newJwt = jwtUtils.generateTokenFromUsername(username);
+        String newRefreshToken = jwtUtils.generateRefreshToken(username);
+
+        return ResponseEntity.ok(java.util.Map.of(
+                "token", newJwt,
+                "refreshToken", newRefreshToken,
+                "sessionId", req.getSessionId() != null ? req.getSessionId() : ""
+        ));
+    }
+
     // DTO Classes
     public static class LoginRequest {
         private String username;
         private String email;
         private String password;
+        private String deviceInfo;
+        private String platformInfo;
+        private boolean forceLogin;
+        private String challengeSessionId;
 
         public String getUsername() { return username; }
         public void setUsername(String username) { this.username = username; }
@@ -312,6 +473,34 @@ public class AuthController {
         public void setEmail(String email) { this.email = email; }
         public String getPassword() { return password; }
         public void setPassword(String password) { this.password = password; }
+        public String getDeviceInfo() { return deviceInfo; }
+        public void setDeviceInfo(String deviceInfo) { this.deviceInfo = deviceInfo; }
+        public String getPlatformInfo() { return platformInfo; }
+        public void setPlatformInfo(String platformInfo) { this.platformInfo = platformInfo; }
+        public boolean isForceLogin() { return forceLogin; }
+        public void setForceLogin(boolean forceLogin) { this.forceLogin = forceLogin; }
+        public String getChallengeSessionId() { return challengeSessionId; }
+        public void setChallengeSessionId(String challengeSessionId) { this.challengeSessionId = challengeSessionId; }
+    }
+
+    public static class ChallengeRespondRequest {
+        private String challengeSessionId;
+        private String decision;
+
+        public String getChallengeSessionId() { return challengeSessionId; }
+        public void setChallengeSessionId(String challengeSessionId) { this.challengeSessionId = challengeSessionId; }
+        public String getDecision() { return decision; }
+        public void setDecision(String decision) { this.decision = decision; }
+    }
+
+    public static class RefreshTokenRequest {
+        private String refreshToken;
+        private String sessionId;
+
+        public String getRefreshToken() { return refreshToken; }
+        public void setRefreshToken(String refreshToken) { this.refreshToken = refreshToken; }
+        public String getSessionId() { return sessionId; }
+        public void setSessionId(String sessionId) { this.sessionId = sessionId; }
     }
 
     public static class RegisterRequest {
@@ -376,6 +565,8 @@ public class AuthController {
 
     public static class JwtResponse {
         private String token;
+        private String refreshToken;
+        private String sessionId;
         private Long id;
         private String username;
         private String email;
@@ -387,7 +578,18 @@ public class AuthController {
         public JwtResponse() {}
 
         public JwtResponse(String accessToken, Long id, String username, String email, String role, String fullName, String mobileNumber, String acceptedTcVersion) {
+            this(accessToken, null, null, id, username, email, role, fullName, mobileNumber, acceptedTcVersion);
+        }
+
+        public JwtResponse(String accessToken, Long id, String email, String role, String fullName, String mobileNumber, String acceptedTcVersion) {
+            this(accessToken, null, null, id, email != null && email.contains("@") ? email.substring(0, email.indexOf('@')) : email,
+                 email, role, fullName, mobileNumber, acceptedTcVersion);
+        }
+
+        public JwtResponse(String accessToken, String refreshToken, String sessionId, Long id, String username, String email, String role, String fullName, String mobileNumber, String acceptedTcVersion) {
             this.token = accessToken;
+            this.refreshToken = refreshToken;
+            this.sessionId = sessionId;
             this.id = id;
             this.username = username;
             this.email = email;
@@ -397,12 +599,9 @@ public class AuthController {
             this.acceptedTcVersion = acceptedTcVersion;
         }
 
-        public JwtResponse(String accessToken, Long id, String email, String role, String fullName, String mobileNumber, String acceptedTcVersion) {
-            this(accessToken, id, email != null && email.contains("@") ? email.substring(0, email.indexOf('@')) : email,
-                 email, role, fullName, mobileNumber, acceptedTcVersion);
-        }
-
         public String getToken() { return token; }
+        public String getRefreshToken() { return refreshToken; }
+        public String getSessionId() { return sessionId; }
         public Long getId() { return id; }
         public String getUsername() { return username; }
         public String getEmail() { return email; }

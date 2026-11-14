@@ -8,6 +8,8 @@ public class SaveDocumentValuesRequest implements Serializable {
 
     private Map<String, String> values;
     private Integer workspaceRevision;
+    private String sessionId;
+    private String tabSessionId;
 
     public SaveDocumentValuesRequest() {}
 
@@ -25,4 +27,10 @@ public class SaveDocumentValuesRequest implements Serializable {
 
     public Integer getWorkspaceRevision() { return workspaceRevision; }
     public void setWorkspaceRevision(Integer workspaceRevision) { this.workspaceRevision = workspaceRevision; }
+
+    public String getSessionId() { return sessionId; }
+    public void setSessionId(String sessionId) { this.sessionId = sessionId; }
+
+    public String getTabSessionId() { return tabSessionId; }
+    public void setTabSessionId(String tabSessionId) { this.tabSessionId = tabSessionId; }
 }

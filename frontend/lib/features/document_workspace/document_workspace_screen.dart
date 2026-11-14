@@ -19,7 +19,10 @@ import 'widgets/document_table_workspace_widget.dart';
 import 'widgets/live_preview_viewer_widget.dart';
 import 'widgets/section_navigation_tree_widget.dart';
 import 'widgets/valuation_workspace_editor_widget.dart';
-import '../../widgets/section_stepper_widget.dart';
+import 'widgets/workspace_health_bar_widget.dart';
+import 'widgets/draft_recovery_dialog.dart';
+import 'services/workspace_lease_client.dart';
+import '../../widgets/session_challenge_dialog.dart';
 
 class DocumentWorkspaceScreen extends StatefulWidget {
   final int orderId;
@@ -43,6 +46,8 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
   late final DocumentWorkspaceProvider _provider;
   bool _showPersistentSaveFailure = false;
   bool _isReauthOpen = false;
+  bool _isDraftRecoveryOpen = false;
+  bool _isChallengeDialogOpen = false;
 
   // Responsive Sidebar Adaptation (Phase 2B)
   bool? _userSidebarCompact;
@@ -52,6 +57,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
   void initState() {
     super.initState();
     _provider = widget.provider ?? DocumentWorkspaceProvider();
+    _provider.addListener(_onProviderUpdated);
     if (widget.provider == null) {
       _provider.loadWorkspace(widget.orderId);
     }
@@ -68,6 +74,133 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
       setupBeforeUnloadProtection(() =>
           _provider.isDirty || TokenStorage.loadDraftFromStorage(widget.orderId) != null);
     }
+  }
+
+  void _onProviderUpdated() {
+    if (!mounted) return;
+
+    // Check for uncommitted IndexedDB V2 draft
+    if (_provider.hasPendingDraftRecovery && !_isDraftRecoveryOpen && _provider.pendingDraft != null) {
+      _isDraftRecoveryOpen = true;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        DraftRecoveryDialog.show(
+          context,
+          draft: _provider.pendingDraft!,
+          serverRevision: _provider.workspaceModel?.workspaceRevision ?? 1,
+          onRestore: () {
+            _provider.restorePendingDraft();
+            _isDraftRecoveryOpen = false;
+          },
+          onDiscard: () {
+            _provider.discardPendingDraft();
+            _isDraftRecoveryOpen = false;
+          },
+        ).then((_) {
+          _isDraftRecoveryOpen = false;
+        });
+      });
+    }
+
+    // Check for SSE Login Challenge
+    if (_provider.pendingChallengeEvent != null && !_isChallengeDialogOpen) {
+      _isChallengeDialogOpen = true;
+      final challenge = _provider.pendingChallengeEvent!;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        SessionChallengeDialog.show(
+          context,
+          deviceName: challenge.requestingDevice ?? 'Authorized Browser',
+          platform: challenge.requestingPlatform ?? 'Desktop',
+          approximateLocation: challenge.approximateLocation ?? 'India',
+          timeoutSeconds: challenge.timeoutSeconds,
+          onKeepSession: () {
+            WorkspaceLeaseClient().respondToLoginChallenge(
+              decision: 'KEEP',
+              pendingSessionId: challenge.challengeSessionId ?? '',
+            );
+            _provider.pendingChallengeEvent = null;
+            _isChallengeDialogOpen = false;
+          },
+          onAllowSession: () {
+            WorkspaceLeaseClient().respondToLoginChallenge(
+              decision: 'ALLOW',
+              pendingSessionId: challenge.challengeSessionId ?? '',
+            );
+            _provider.pendingChallengeEvent = null;
+            _isChallengeDialogOpen = false;
+            TokenStorage.clearToken();
+            TokenStorage.clearSession();
+            Navigator.of(context).pushReplacementNamed('/login');
+          },
+        ).then((_) {
+          _isChallengeDialogOpen = false;
+        });
+      });
+    }
+
+    // Check for Session Eviction
+    if (_provider.sessionEvicted) {
+      _provider.sessionEvicted = false;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            title: const Text('Session Terminated'),
+            content: const Text('Your login session was ended by another device or an administrator. Please log in again to continue.'),
+            actions: [
+              FilledButton(
+                onPressed: () {
+                  Navigator.of(ctx).pop();
+                  TokenStorage.clearToken();
+                  TokenStorage.clearSession();
+                  Navigator.of(context).pushReplacementNamed('/login');
+                },
+                child: const Text('Return to Login'),
+              ),
+            ],
+          ),
+        );
+      });
+    }
+  }
+
+  void _showTakeoverConfirmation(DocumentWorkspaceProvider provider) {
+    final reasonController = TextEditingController(text: 'Administrative correction');
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Admin Break-Glass Takeover'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('This will immediately terminate the active editing lease held by ${provider.activeEditorName ?? "current editor"} and transfer active write authority to your session.'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: reasonController,
+              decoration: const InputDecoration(
+                labelText: 'Audit Reason',
+                border: OutlineInputBorder(),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              provider.requestTakeover(reasonController.text.trim());
+            },
+            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Confirm Takeover'),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showReauthModal() {
@@ -90,6 +223,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
 
   @override
   void dispose() {
+    _provider.removeListener(_onProviderUpdated);
     if (widget.provider == null) {
       _provider.dispose();
     }
@@ -384,6 +518,25 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
               body: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Phase 3: Workspace Health Bar (Online/Offline, Saving..., Pending Sync, Active Editor, Read-Only, Last Saved)
+                  if (!provider.isLoading && provider.workspaceModel != null)
+                    WorkspaceHealthBarWidget(
+                      isOnline: provider.isOnline,
+                      syncStatus: provider.syncStatus,
+                      pendingSyncCount: provider.pendingSyncCount,
+                      isReadOnly: provider.isReadOnly,
+                      activeEditorName: provider.activeEditorName,
+                      activeEditorRole: provider.activeEditorRole,
+                      lastSavedTime: provider.lastSavedAt,
+                      isSameUserConflict: provider.isSameUserConflict,
+                      onSwitchTab: provider.isSameUserConflict
+                          ? () => provider.switchEditingToThisTab()
+                          : null,
+                      onTakeover: (widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN' || widget.role == 'SPA') && provider.isReadOnly
+                          ? () => _showTakeoverConfirmation(provider)
+                          : null,
+                    ),
+
                   // Sticky Property Context Header (Always visible throughout scrolling)
                   if (!provider.isLoading && provider.workspaceModel != null)
                     _buildPropertyContextHeader(provider),
