@@ -13,7 +13,7 @@ class LandingTheme {
   static const double compactDesktopBreakpoint = 1050.0; // desktopBreakpoint - 50px
   static const double desktopBreakpoint = 1100.0;
   static const double wideDesktopBreakpoint = 1600.0;
-  static const double maxContentWidth = 1280.0;
+  static const double maxContentWidth = 1760.0;
 
   /// DPI-aware desktop detection:
   /// Evaluates true for screens >= 1100px OR compact desktop viewports (1050px - 1099px)

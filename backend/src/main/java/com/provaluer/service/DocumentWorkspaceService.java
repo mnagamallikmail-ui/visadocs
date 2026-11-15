@@ -38,6 +38,7 @@ public class DocumentWorkspaceService {
 
     private static final Logger log = LoggerFactory.getLogger(DocumentWorkspaceService.class);
 
+    // Repositories for document workspace persistence
     @Autowired
     private OrderRepository orderRepository;
 

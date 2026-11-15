@@ -15,6 +15,7 @@ import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
 import java.util.*;
 
+// Service managing active user sessions
 @Service
 public class AuthSessionService {
 

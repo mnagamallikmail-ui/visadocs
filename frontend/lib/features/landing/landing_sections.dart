@@ -296,7 +296,7 @@ class LandingHeader extends StatelessWidget {
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
                 child: Container(
-                  height: 64,
+                  height: 68,
                   padding: const EdgeInsets.symmetric(horizontal: 24),
                   decoration: BoxDecoration(
                     color: isScrolled
@@ -317,11 +317,11 @@ class LandingHeader extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           children: [
                             Container(
-                              width: 34,
-                              height: 34,
+                              width: 38,
+                              height: 38,
                               decoration: BoxDecoration(
                                 color: LandingTheme.brandGreen,
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(9),
                                 boxShadow: const [
                                   BoxShadow(
                                     color: Color(0x200F172A),
@@ -335,22 +335,22 @@ class LandingHeader extends StatelessWidget {
                                   'PV',
                                   style: TextStyle(
                                     color: Colors.white,
-                                    fontSize: 13,
+                                    fontSize: 14,
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: 0.5,
                                   ),
                                 ),
                               ),
                             ),
-                            const SizedBox(width: 10),
+                            const SizedBox(width: 12),
                             Column(
                               mainAxisSize: MainAxisSize.min,
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'ProValuer Advisory',
+                                  'Pro Valuer',
                                   style: GoogleFonts.montserrat(
-                                    fontSize: 15,
+                                    fontSize: 17,
                                     fontWeight: FontWeight.w800,
                                     color: LandingTheme.textPrimary,
                                     letterSpacing: -0.4,
@@ -358,12 +358,12 @@ class LandingHeader extends StatelessWidget {
                                 ),
                                 if (isDesktop)
                                   Text(
-                                    'Statutory Valuation & Engineering Practice',
+                                    'Professional Valuation & Engineering Services',
                                     style: GoogleFonts.montserrat(
-                                      fontSize: 9.5,
+                                      fontSize: 10,
                                       fontWeight: FontWeight.w600,
                                       color: LandingTheme.brandTeal,
-                                      letterSpacing: 0.2,
+                                      letterSpacing: 0.1,
                                     ),
                                   ),
                               ],
@@ -397,7 +397,9 @@ class LandingHeader extends StatelessWidget {
                         GestureDetector(
                           onTap: () => CommercialIntakeModal.show(context),
                           child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 11),
+                            height: 40,
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            alignment: Alignment.center,
                             decoration: BoxDecoration(
                               color: LandingTheme.brandGreen,
                               borderRadius: BorderRadius.circular(100),
@@ -492,7 +494,9 @@ class _HeaderPhonePillState extends State<_HeaderPhonePill> {
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
-          padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 8.5),
+          height: 40,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          alignment: Alignment.center,
           decoration: BoxDecoration(
             color: _isHovered
                 ? LandingTheme.brandGreen.withValues(alpha: 0.08)
@@ -552,7 +556,9 @@ class _HeaderClientLoginButtonState extends State<_HeaderClientLoginButton> {
         onTap: () => context.go('/login'),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8.5),
+          height: 40,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          alignment: Alignment.center,
           decoration: BoxDecoration(
             color: _isHovered ? const Color(0x0F2563EB) : Colors.transparent,
             borderRadius: BorderRadius.circular(100),
@@ -693,27 +699,24 @@ class _HeroSectionState extends State<HeroSection> {
     final bool isCompactDesktop = isDesktop && (screenH < 900 || screenW < 1440);
     final bool isNarrow = !isDesktop || isCompactDesktop;
     final bool isLargeDesktop = screenW >= 1440;
-    // Hero Layout Balance: 60/40 on compact desktop below 1440px; 56/44 on standard/large desktop above 1440px
-    final int leftFlex = isLargeDesktop ? 56 : 60;
-    final int rightFlex = isLargeDesktop ? 44 : 40;
+    // Hero Layout Balance: approximately 50-55% left content, 45-50% right service cards
+    final int leftFlex = isLargeDesktop ? 53 : 55;
+    final int rightFlex = isLargeDesktop ? 47 : 45;
 
     return isDesktop
         ? Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              // Left Column: Hero Content, Headline, Trust, CTAs
+              // Left Column: Hero Content, Headline, Trust, CTAs (~50-55%)
               Expanded(
                 flex: leftFlex,
                 child: _buildLeftHeroContent(screenW, screenH, isDesktop, isTablet, isCompactDesktop),
               ),
               const SizedBox(width: 48),
-              // Right Column: Accordion-Style Visual Showcase (padded to prevent overlap with floating WhatsApp)
+              // Right Column: Accordion-Style Visual Showcase (~45-50%)
               Expanded(
                 flex: rightFlex,
-                child: Padding(
-                  padding: const EdgeInsets.only(bottom: 56, right: 28),
-                  child: _HeroAccordionVisual(isCompact: isCompactDesktop),
-                ),
+                child: _HeroAccordionVisual(isCompact: isCompactDesktop),
               ),
             ],
           )
@@ -784,7 +787,7 @@ class _HeroSectionState extends State<HeroSection> {
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'STATUTORY VALUATION & CHARTERED ENGINEERING PRACTICE • EST. 2001',
+                    'PROFESSIONAL VALUATION & ENGINEERING SERVICES • EST. 2001',
                     style: GoogleFonts.montserrat(
                       fontSize: isCompactDesktop ? 9.5 : 10.5,
                       fontWeight: FontWeight.w700,
@@ -805,7 +808,7 @@ class _HeroSectionState extends State<HeroSection> {
 
         // 2. Independent Valuation (Two-line wrapped headline stability across all desktop resolutions)
         Text(
-          'Statutory Valuation & Chartered Advisory',
+          'Statutory Valuation & Advisory Practice',
           maxLines: 2,
           softWrap: true,
           style: GoogleFonts.montserrat(
@@ -813,7 +816,7 @@ class _HeroSectionState extends State<HeroSection> {
             fontWeight: FontWeight.w800,
             color: LandingTheme.textPrimary,
             letterSpacing: -1.8,
-            height: 1.12,
+            height: 1.15,
           ),
         ),
 
@@ -845,7 +848,7 @@ class _HeroSectionState extends State<HeroSection> {
 
         // 5. Supporting Paragraph
         ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: isCompactDesktop ? 540 : 620),
+          constraints: BoxConstraints(maxWidth: isCompactDesktop ? 580 : 680),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             mainAxisSize: MainAxisSize.min,
@@ -857,46 +860,21 @@ class _HeroSectionState extends State<HeroSection> {
                   fontWeight: FontWeight.w500,
                   color: LandingTheme.textSecondary,
                   letterSpacing: -0.2,
-                  height: 1.55,
+                  height: 1.6,
                 ),
               ),
               const SizedBox(height: gapBodyToBadges),
-              if (isDesktop)
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildGovtApprovedBadge(isCompactDesktop),
-                        const SizedBox(width: 8),
-                        _buildTrustBadge(Icons.verified_user_outlined, 'IBBI Registered Valuers • Sec 247', isCompactDesktop),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        _buildTrustBadge(Icons.engineering_outlined, 'Chartered Engineers (IEI)', isCompactDesktop),
-                        const SizedBox(width: 8),
-                        _buildTrustBadge(Icons.assignment_turned_in_outlined, 'Accepted by 45+ Banks & High Courts', isCompactDesktop),
-                      ],
-                    ),
-                  ],
-                )
-              else
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    _buildGovtApprovedBadge(isCompactDesktop),
-                    _buildTrustBadge(Icons.verified_user_outlined, 'IBBI Registered Valuers • Sec 247', isCompactDesktop),
-                    _buildTrustBadge(Icons.engineering_outlined, 'Chartered Engineers (IEI)', isCompactDesktop),
-                    _buildTrustBadge(Icons.assignment_turned_in_outlined, 'Accepted by 45+ Banks & High Courts', isCompactDesktop),
-                  ],
-                ),
+              Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                children: [
+                  _buildGovtApprovedBadge(isCompactDesktop),
+                  _buildTrustBadge(Icons.verified_user_outlined, 'IBBI Registered Valuers • Sec 247', isCompactDesktop),
+                  _buildTrustBadge(Icons.engineering_outlined, 'Chartered Engineers (IEI)', isCompactDesktop),
+                  _buildTrustBadge(Icons.assignment_turned_in_outlined, 'Accepted by 45+ Banks & High Courts', isCompactDesktop),
+                ],
+              ),
             ],
           ),
         ),
@@ -904,54 +882,13 @@ class _HeroSectionState extends State<HeroSection> {
         // [20px spacing]
         const SizedBox(height: gapBadgesToCta),
 
-        // 6. CTA Buttons
+        // 6. CTA Buttons (Equal 48px height, perfectly aligned, interactive hover)
         Wrap(
           spacing: 14,
           runSpacing: 12,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            // Primary CTA: Request Valuation Report (Solid Deep Teal)
-            GestureDetector(
-              onTap: () => CommercialIntakeModal.show(context),
-              child: Container(
-                padding: EdgeInsets.symmetric(
-                  horizontal: isCompactDesktop ? 22 : 28,
-                  vertical: isCompactDesktop ? 13 : 16,
-                ),
-                decoration: BoxDecoration(
-                  color: LandingTheme.brandGreen,
-                  borderRadius: BorderRadius.circular(100),
-                  boxShadow: [
-                    BoxShadow(
-                      color: LandingTheme.brandGreen.withValues(alpha: 0.18),
-                      blurRadius: 20,
-                      offset: const Offset(0, 6),
-                    ),
-                  ],
-                ),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Request Proposal →',
-                        style: GoogleFonts.montserrat(
-                          fontSize: isCompactDesktop ? 13.5 : 14.5,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          letterSpacing: -0.2,
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      const Icon(Icons.arrow_forward_rounded, size: 15, color: Colors.white),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-
-            // Secondary Contact: Direct Phone Call (Matching Height & Smooth Hover Transition)
+            _HeroPrimaryButton(isCompact: isCompactDesktop),
             _HeroPhonePill(isCompact: isCompactDesktop),
           ],
         ),
@@ -1045,6 +982,70 @@ class _HeroSectionState extends State<HeroSection> {
 }
 
 
+/// Symmetrical Hero Primary Request Proposal CTA Button with Smooth Hover Transition
+class _HeroPrimaryButton extends StatefulWidget {
+  final bool isCompact;
+
+  const _HeroPrimaryButton({required this.isCompact});
+
+  @override
+  State<_HeroPrimaryButton> createState() => _HeroPrimaryButtonState();
+}
+
+class _HeroPrimaryButtonState extends State<_HeroPrimaryButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: () => CommercialIntakeModal.show(context),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 150),
+          height: 48,
+          padding: EdgeInsets.symmetric(
+            horizontal: widget.isCompact ? 24 : 28,
+          ),
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: _isHovered ? const Color(0xFF004747) : LandingTheme.brandGreen,
+            borderRadius: BorderRadius.circular(100),
+            boxShadow: [
+              BoxShadow(
+                color: LandingTheme.brandGreen.withValues(alpha: _isHovered ? 0.32 : 0.20),
+                blurRadius: _isHovered ? 24 : 18,
+                offset: Offset(0, _isHovered ? 8 : 5),
+              ),
+            ],
+          ),
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Request Proposal →',
+                  style: GoogleFonts.montserrat(
+                    fontSize: widget.isCompact ? 13.5 : 14.5,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    letterSpacing: -0.2,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Icon(Icons.arrow_forward_rounded, size: 15, color: Colors.white),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 /// Symmetrical Hero Phone Pill with Smooth Hover Transition
 class _HeroPhonePill extends StatefulWidget {
   final bool isCompact;
@@ -1078,18 +1079,19 @@ class _HeroPhonePillState extends State<_HeroPhonePill> {
         },
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 150),
+          height: 48,
           padding: EdgeInsets.symmetric(
             horizontal: widget.isCompact ? 20 : 24,
-            vertical: widget.isCompact ? 13 : 16,
           ),
+          alignment: Alignment.center,
           decoration: BoxDecoration(
             border: Border.all(
-              color: LandingTheme.brandGreen.withValues(alpha: 0.3),
+              color: LandingTheme.brandGreen.withValues(alpha: _isHovered ? 0.5 : 0.3),
               width: 1,
             ),
             borderRadius: BorderRadius.circular(100),
             color: _isHovered
-                ? LandingTheme.brandGreen.withValues(alpha: 0.05)
+                ? LandingTheme.brandGreen.withValues(alpha: 0.08)
                 : Colors.transparent,
           ),
           child: FittedBox(
@@ -1152,8 +1154,6 @@ class _AppleAnimatedKeywordState extends State<_AppleAnimatedKeyword>
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
-
-    _startTimer();
   }
 
   @override
@@ -1457,7 +1457,6 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
   @override
   void initState() {
     super.initState();
-    _startAutoRotation();
   }
 
   @override
@@ -1540,9 +1539,9 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
           final bool isHorizontal = constraints.maxWidth >= 390;
           final double containerHeight = isHorizontal
               ? (widget.isCompact
-                  ? (screenH * 0.44).clamp(340.0, 400.0)
-                  : (screenH * 0.48).clamp(360.0, 440.0))
-              : (screenH * 0.44).clamp(350.0, 400.0);
+                  ? (screenH * 0.46).clamp(360.0, 440.0)
+                  : (screenH * 0.52).clamp(420.0, 500.0))
+              : (screenH * 0.46).clamp(360.0, 420.0);
 
           return Column(
             mainAxisSize: MainAxisSize.min,
@@ -1631,7 +1630,7 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
     final double totalSpacing = spacing * (_panels.length - 1);
     final double availWidth = totalWidth - totalSpacing;
     // Exact proportional width calculations: active panel ~44%, inactive evenly split remaining space
-    final double activeWidth = availWidth * 0.44;
+    final double activeWidth = (availWidth * 0.44).clamp(240.0, 480.0);
     final double inactiveWidth = (availWidth - activeWidth) / (_panels.length - 1);
 
     return Row(
@@ -1653,7 +1652,7 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
                   _startAutoRotation();
                 },
                 child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 520),
+                  duration: const Duration(milliseconds: 450),
                   curve: const Cubic(0.16, 1.0, 0.3, 1.0),
                   width: width,
                   height: height,
@@ -1715,37 +1714,44 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                              decoration: BoxDecoration(
-                                color: Colors.black.withValues(alpha: 0.35),
-                                borderRadius: BorderRadius.circular(100),
-                                border: Border.all(
-                                  color: Colors.white.withValues(alpha: 0.15),
-                                  width: 0.8,
+                            Flexible(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: Colors.black.withValues(alpha: 0.35),
+                                  borderRadius: BorderRadius.circular(100),
+                                  border: Border.all(
+                                    color: Colors.white.withValues(alpha: 0.15),
+                                    width: 0.8,
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      panel.icon,
+                                      size: 13,
+                                      color: const Color(0xFF5EEAD4),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: Text(
+                                        panel.category,
+                                        style: GoogleFonts.montserrat(
+                                          fontSize: 9.5,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                          letterSpacing: 0.6,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
                                 ),
                               ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(
-                                    panel.icon,
-                                    size: 13,
-                                    color: const Color(0xFF5EEAD4),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    panel.category,
-                                    style: GoogleFonts.montserrat(
-                                      fontSize: 9.5,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                      letterSpacing: 0.6,
-                                    ),
-                                  ),
-                                ],
-                              ),
                             ),
+                            const SizedBox(width: 6),
                             Text(
                               panel.id,
                               style: GoogleFonts.montserrat(
@@ -1913,8 +1919,8 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
                   Positioned(
                     left: 14,
                     right: 14,
-                    top: isActive ? 10 : 6,
-                    bottom: isActive ? 10 : 6,
+                    top: isActive ? 8 : 0,
+                    bottom: isActive ? 8 : 0,
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -1929,7 +1935,7 @@ class _HeroAccordionVisualState extends State<_HeroAccordionVisual> {
                               Text(
                                 panel.title,
                                 style: GoogleFonts.montserrat(
-                                  fontSize: isActive ? 15 : 13,
+                                  fontSize: isActive ? 14 : 12,
                                   fontWeight: FontWeight.w700,
                                   color: Colors.white,
                                 ),
@@ -3152,7 +3158,7 @@ class LandingFooter extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Pro Valuer OPC Pvt Ltd',
+                            'Pro Valuer',
                             style: GoogleFonts.montserrat(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
@@ -3161,7 +3167,7 @@ class LandingFooter extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            'Valuation, Engineering, Certification & Advisory Practice',
+                            'Professional Valuation & Engineering Services',
                             style: GoogleFonts.montserrat(
                               fontSize: 10,
                               fontWeight: FontWeight.w600,
@@ -3174,7 +3180,7 @@ class LandingFooter extends StatelessWidget {
                     ],
                   ),
                   Text(
-                    '© ${DateTime.now().year} Pro Valuer OPC Pvt Ltd. All rights reserved. Valuation, Engineering, Certification & Advisory Practice.',
+                    '© ${DateTime.now().year} Pro Valuer. All rights reserved. Professional Valuation & Engineering Services.',
                     style: GoogleFonts.montserrat(
                       fontSize: 12.5,
                       fontWeight: FontWeight.w400,
@@ -3262,7 +3268,7 @@ class MobileMenuDrawer extends StatelessWidget {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            'Pro Valuer OPC Pvt Ltd',
+                            'Pro Valuer',
                             style: GoogleFonts.montserrat(
                               fontSize: 14,
                               fontWeight: FontWeight.w800,
@@ -3270,7 +3276,7 @@ class MobileMenuDrawer extends StatelessWidget {
                             ),
                           ),
                           Text(
-                            'Govt Approved Valuers',
+                            'Professional Valuation & Engineering Services',
                             style: GoogleFonts.montserrat(
                               fontSize: 9,
                               fontWeight: FontWeight.w600,
