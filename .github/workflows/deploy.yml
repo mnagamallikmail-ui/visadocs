@@ -8,6 +8,10 @@ on:
       - 'android/**'
       - 'frontend/android/**'
 
+concurrency:
+  group: production-vps-deployment
+  cancel-in-progress: false
+
 jobs:
   deploy:
     name: Deploy to Production VPS
