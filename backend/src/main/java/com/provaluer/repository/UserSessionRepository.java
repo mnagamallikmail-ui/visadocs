@@ -7,7 +7,6 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,7 +15,8 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
 
     Optional<UserSession> findBySessionId(String sessionId);
 
-    Optional<UserSession> findTopBySessionTokenHashOrderByIdDesc(String sessionTokenHash);
+    @Query("SELECT s FROM UserSession s WHERE s.sessionTokenHash = :tokenHash ORDER BY s.id DESC")
+    List<UserSession> findAllBySessionTokenHashOrderByIdDesc(@Param("tokenHash") String tokenHash);
 
     Optional<UserSession> findByUserIdAndIsActiveTrue(Long userId);
 
@@ -42,11 +42,9 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
     @Query(value = "UPDATE user_sessions SET last_activity = NOW() WHERE session_id = :sessionId AND is_active = true", nativeQuery = true)
     int touchActivity(@Param("sessionId") String sessionId);
 
-
     @Query("SELECT COUNT(s) FROM UserSession s WHERE s.isActive = true")
     long countActiveSessions();
 
     @Query("SELECT COUNT(DISTINCT s.user.id) FROM UserSession s WHERE s.isActive = true")
     long countActiveUsers();
 }
-

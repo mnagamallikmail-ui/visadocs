@@ -48,7 +48,7 @@ public class DocumentWorkspaceService {
     private OrderInputRepository orderInputRepository;
 
     @Autowired
-    private com.provaluer.repository.TemplateVersionRepository templateVersionRepository;
+    private TemplateVersionRepository templateVersionRepository;
 
     @Autowired
     private OrderDocumentRepository orderDocumentRepository;
@@ -108,7 +108,7 @@ public class DocumentWorkspaceService {
     private WorkspaceSyncEventRepository workspaceSyncEventRepository;
 
     @Autowired
-    private com.provaluer.repository.UserSessionRepository userSessionRepository;
+    private UserSessionRepository userSessionRepository;
 
     @Autowired
     private ValuationAuditLogRepository valuationAuditLogRepository;
@@ -1269,7 +1269,7 @@ public class DocumentWorkspaceService {
             // Safely resolve active user session ID to prevent foreign key aborts on workspace_sync_events
             String resolvedSessionId = sessionId;
             if (user != null && (resolvedSessionId == null || "direct_save".equals(resolvedSessionId) || !userSessionRepository.findBySessionId(resolvedSessionId).isPresent())) {
-                java.util.Optional<com.provaluer.model.UserSession> activeSes = userSessionRepository.findByUserIdAndIsActiveTrue(user.getId());
+                Optional<UserSession> activeSes = userSessionRepository.findByUserIdAndIsActiveTrue(user.getId());
                 if (activeSes.isPresent()) {
                     resolvedSessionId = activeSes.get().getSessionId();
                 }

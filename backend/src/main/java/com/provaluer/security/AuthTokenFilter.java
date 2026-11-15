@@ -51,10 +51,10 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                         String tokenHash = com.provaluer.service.AuthSessionService.hashToken(jwt);
                         boolean isDisplaced = false;
 
-                        java.util.Optional<com.provaluer.model.UserSession> sessionOpt = 
-                                userSessionRepository.findTopBySessionTokenHashOrderByIdDesc(tokenHash);
-                        if (sessionOpt.isPresent()) {
-                            if (!Boolean.TRUE.equals(sessionOpt.get().getIsActive())) {
+                        java.util.List<com.provaluer.model.UserSession> sessions = 
+                                userSessionRepository.findAllBySessionTokenHashOrderByIdDesc(tokenHash);
+                        if (!sessions.isEmpty()) {
+                            if (!Boolean.TRUE.equals(sessions.get(0).getIsActive())) {
                                 isDisplaced = true;
                             }
                         } else if (userDetails instanceof UserDetailsImpl) {
