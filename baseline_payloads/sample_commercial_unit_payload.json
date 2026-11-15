@@ -1,0 +1,31 @@
+{
+  "orderId": 455,
+  "reportNumber": "PV-2610-9102",
+  "propertyCategory": "Commercial Office",
+  "propertyType": "Commercial Office Unit",
+  "valuationMethodology": "LAND_BUILDING",
+  "clientName": "HDFC Bank Limited",
+  "bankName": "HDFC Bank",
+  "branchName": "Corporate Banking Group",
+  "gateStatus": {
+    "isCompositeProperty": false,
+    "reason": "Default stored methodology 'LAND_BUILDING' overrides category 'Commercial Office'"
+  },
+  "enteredInputs": {
+    "UNIT_NO": "Unit 502, Prime Plaza",
+    "SUPER_BUILTUP_AREA": "2400",
+    "MARKET_RATE": "8000",
+    "COMPOSITE_CONSTRUCTION_COST": "2800",
+    "COMPOSITE_BUILDING_AGE": "3",
+    "COMPOSITE_BUILDING_TOTAL_LIFE": "60"
+  },
+  "compositeItems": [],
+  "calculatedOutputs": {
+    "UNIT_AMOUNT": "0",
+    "MAIN_UNIT_DEPRECIATION": "0",
+    "MAIN_UNIT_FAIR_VALUE": "0",
+    "TOTAL_FAIR_VALUE": "0",
+    "SAY_VALUE": "0",
+    "SAY_VALUE_WORDS": "Rupees Zero Only"
+  }
+}

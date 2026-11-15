@@ -598,6 +598,23 @@ bool isCalculatedValuationKey(String key) {
       upper == 'TOTAL_INTERIOR_AMOUNT' ||
       upper == 'TOTAL_INTERIOR_DEPRECIATION' ||
       upper == 'TOTAL_INTERIOR_FAIR_VALUE' ||
+      upper == 'UNIT_AMOUNT' ||
+      upper == 'UNIT_AMOUNT_NUMERIC' ||
+      upper == 'MAIN_UNIT_AMOUNT' ||
+      upper == 'COMPOSITE_AMOUNT' ||
+      upper == 'MAIN_UNIT_DEPRECIATION' ||
+      upper == 'MAIN_UNIT_DEPRECIATION_NUMERIC' ||
+      upper == 'COMPOSITE_DEPRECIATION' ||
+      upper == 'MAIN_UNIT_FAIR_VALUE' ||
+      upper == 'MAIN_UNIT_FAIR_VALUE_NUMERIC' ||
+      upper == 'TOTAL_AMOUNT' ||
+      upper == 'TOTAL_AMOUNT_NUMERIC' ||
+      upper == 'TOTAL_DEPRECIATION' ||
+      upper == 'TOTAL_DEPRECIATION_NUMERIC' ||
+      upper == 'TOTAL_PARKING_AMOUNT' ||
+      upper == 'TOTAL_PARKING_DEPRECIATION' ||
+      upper == 'TOTAL_PARKING_FAIR_VALUE' ||
+      upper == 'FLAT_VALUE' ||
       upper == 'LAND_TABLE' ||
       upper == 'DYNAMIC_LAND_TABLE' ||
       upper == 'BUILDING_TABLE' ||

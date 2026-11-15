@@ -1,0 +1,41 @@
+{
+  "orderId": 273,
+  "reportNumber": "PV-2610-1044",
+  "propertyCategory": "Land & Building",
+  "propertyType": "Residential Bungalow",
+  "valuationMethodology": "LAND_BUILDING",
+  "clientName": "State Bank of India",
+  "bankName": "SBI",
+  "branchName": "SME City Branch",
+  "gateStatus": {
+    "isCompositeProperty": false,
+    "reason": "Valid Land & Building report - Traditional 2-table methodology correctly intended"
+  },
+  "landItems": [
+    {
+      "description": "Plot Area as per document",
+      "standardAreaSqft": 2400.0,
+      "ratePerSqft": 1500.0,
+      "value": 3600000.0
+    }
+  ],
+  "buildingItems": [
+    {
+      "description": "Ground Floor RCC Structure",
+      "plinthAreaSqft": 1800.0,
+      "replacementCostPerSqft": 2200.0,
+      "replacementCost": 3960000.0,
+      "buildingAge": 10,
+      "buildingUsefulLife": 60,
+      "depreciationAmount": 594000.0,
+      "buildingValue": 3366000.0
+    }
+  ],
+  "calculatedOutputs": {
+    "TOTAL_LAND_VALUE": "3600000.00",
+    "TOTAL_BUILDING_VALUE": "3366000.00",
+    "TOTAL_FAIR_VALUE": "6966000.00",
+    "SAY_VALUE": "7000000",
+    "SAY_VALUE_WORDS": "Rupees Seventy Lakhs Only"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "orderId": 412,
+  "reportNumber": "PV-2610-8841",
+  "propertyCategory": "Flat / Apartment",
+  "propertyType": "Residential Apartment",
+  "valuationMethodology": "LAND_BUILDING",
+  "clientName": "Axis Bank Ltd",
+  "bankName": "Axis Bank",
+  "branchName": "Hinjewadi IT Park Branch",
+  "gateStatus": {
+    "isCompositeProperty": false,
+    "reason": "Default stored methodology 'LAND_BUILDING' overrides category 'Flat / Apartment'"
+  },
+  "enteredInputs": {
+    "FLAT_NO": "304, Tower B",
+    "SALEABLE_AREA": "1150",
+    "SALEABLE_RATE": "4500",
+    "COMPOSITE_CONSTRUCTION_COST": "2200",
+    "COMPOSITE_BUILDING_AGE": "4",
+    "COMPOSITE_BUILDING_TOTAL_LIFE": "60",
+    "PARKING_SLOTS": "1",
+    "PARKING_VALUE": "200000"
+  },
+  "compositeItems": [],
+  "calculatedOutputs": {
+    "UNIT_AMOUNT": "0",
+    "MAIN_UNIT_DEPRECIATION": "0",
+    "MAIN_UNIT_FAIR_VALUE": "0",
+    "TOTAL_FAIR_VALUE": "0",
+    "SAY_VALUE": "0",
+    "SAY_VALUE_WORDS": "Rupees Zero Only"
+  }
+}

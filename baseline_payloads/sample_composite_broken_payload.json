@@ -1,0 +1,36 @@
+{
+  "orderId": 364,
+  "reportNumber": "PV-2610-7332",
+  "propertyCategory": "Commercial Complex",
+  "propertyType": "Commercial Complex",
+  "valuationMethodology": "LAND_BUILDING",
+  "clientName": "Apex Commercial Bank",
+  "bankName": "Apex Bank",
+  "branchName": "Commercial Main Branch",
+  "gateStatus": {
+    "isCompositeProperty": false,
+    "reason": "meth.contains('LAND') || meth.contains('BUILDING') triggered on 'LAND_BUILDING'"
+  },
+  "enteredInputs": {
+    "SALEABLE_AREA": "1250",
+    "SALEABLE_RATE": "2500",
+    "MARKET_RATE_FLAT": "2500",
+    "COMPOSITE_CONSTRUCTION_COST": "2000",
+    "COMPOSITE_BUILDING_AGE": "5",
+    "COMPOSITE_BUILDING_TOTAL_LIFE": "60",
+    "PARKING_COUNT": "2",
+    "PARKING_RATE": "150000"
+  },
+  "compositeItems": [],
+  "calculatedOutputs": {
+    "UNIT_AMOUNT": "0",
+    "MAIN_UNIT_DEPRECIATION": "0",
+    "MAIN_UNIT_FAIR_VALUE": "0",
+    "TOTAL_AMOUNT": "0",
+    "TOTAL_DEPRECIATION": "0",
+    "TOTAL_FAIR_VALUE": "0",
+    "TOTAL_VALUATION": "0.0",
+    "SAY_VALUE": "0",
+    "SAY_VALUE_WORDS": "Rupees Zero Only"
+  }
+}

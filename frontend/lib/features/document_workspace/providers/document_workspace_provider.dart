@@ -154,25 +154,51 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
 
   bool get isCompositeProperty {
     final cat = (_activeValues['PROPERTY_CATEGORY'] ?? _activeValues['property_category'] ?? _activeValues['PROPERTY_TYPE'] ?? '').toLowerCase();
+
+    // 0. Hard negative guard: Land Only / Vacant Plot is never a composite property
     if (cat.contains('land') || cat.contains('plot') || cat.contains('open land') || cat.contains('vacant land') || cat.contains('agricultural') || cat.contains('site')) {
       return false;
     }
-    final meth = (_activeValues['VALUATION_METHODOLOGY'] ?? _valuationData?.valuationMethodology ?? '').toUpperCase();
-    if (meth == 'COMPOSITE' || meth == 'COMPOSITE_RATE') return true;
-    if (meth.contains('LAND') || meth.contains('BUILDING') || meth == 'PHYSICAL' || meth == 'LAND_ONLY') {
-      return false;
+
+    // 1. Template markers (highest priority)
+    if (_workspaceVm != null) {
+      for (final s in _workspaceVm!.sections) {
+        for (final b in s.orderedBlocks) {
+          if (b is ValuationCompositeBlockVm) return true;
+        }
+      }
     }
+    for (final k in _activeValues.keys) {
+      if (DocumentWorkspaceVm.isCompositeTableKey(k)) {
+        return true;
+      }
+    }
+
+    // 2. Property category
     if (cat.contains('flat') || cat.contains('apartment') || cat.contains('commercial space') ||
-        cat.contains('office') || cat.contains('retail') || cat.contains('shop') || cat.contains('commercial unit')) {
+        cat.contains('office') || cat.contains('retail') || cat.contains('shop') || cat.contains('commercial unit') ||
+        cat.contains('commercial complex') || cat.contains('composite')) {
       return true;
     }
     if (cat.contains('house') || cat.contains('bungalow') || cat.contains('villa') || cat.contains('industrial') || cat.contains('factory')) {
       return false;
     }
+
+    // 3. Existing composite items
     if (_compositeItems.isNotEmpty) return true;
+
+    // 4. Composite placeholders
     if (_activeValues.containsKey('SALEABLE_AREA') || _activeValues.containsKey('SALEABLE_RATE') || _activeValues.containsKey('MARKET_RATE_FLAT')) {
       return true;
     }
+
+    // 5. Methodology value (last fallback check)
+    final meth = (_activeValues['VALUATION_METHODOLOGY'] ?? _valuationData?.valuationMethodology ?? '').toUpperCase();
+    if (meth == 'COMPOSITE' || meth == 'COMPOSITE_RATE' || meth == 'FLAT_APARTMENT') return true;
+    if (meth.contains('LAND') || meth.contains('BUILDING') || meth == 'PHYSICAL' || meth == 'LAND_ONLY') {
+      return false;
+    }
+
     return false;
   }
   int get activeSectionIndex => _activeSectionIndex;
@@ -823,7 +849,13 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       _mergePlaceholdersPreservingRaw(initialPlaceholders);
     } else {
       _valuationData!.valuationMethodology = 'LAND_AND_BUILDING';
-      _compositeItems = [];
+      // Phase 4: Only clear composite items when positively confirmed as Land Only or Land & Building
+      final cat = (_activeValues['PROPERTY_CATEGORY'] ?? _activeValues['property_category'] ?? _activeValues['PROPERTY_TYPE'] ?? '').toLowerCase();
+      final isConfirmedLandOnly = cat.contains('land') || cat.contains('plot') || cat.contains('open land') || cat.contains('vacant land') || cat.contains('agricultural') || cat.contains('site');
+      final isConfirmedLandBuilding = cat.contains('house') || cat.contains('bungalow') || cat.contains('villa') || cat.contains('industrial') || cat.contains('factory') || cat == 'land & building' || cat == 'land_and_building';
+      if (isConfirmedLandOnly || isConfirmedLandBuilding) {
+        _compositeItems = [];
+      }
       for (final item in _landItems) {
         ValuationCalculator.calculateLandItem(item);
       }

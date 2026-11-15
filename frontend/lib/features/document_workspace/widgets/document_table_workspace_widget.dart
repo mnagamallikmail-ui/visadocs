@@ -1556,24 +1556,10 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
   // ─── Inline Valuation: COMPOSITE_PROPERTY_TABLE (Interactive Editor) ────────
   Widget _buildInlineCompositeSection(BuildContext context, DocumentWorkspaceProvider provider) {
     provider.ensureCompositeMainUnit();
-    final compItems = provider.compositeItems.isNotEmpty
-        ? provider.compositeItems
-        : [
-            ValuationCompositeItemModel(
-              itemCategory: 'MAIN_UNIT',
-              description: 'Main Unit',
-              enteredUnit: 'Sq.Ft',
-              quantity: 1000.0,
-              rate: 0.0,
-              sortOrder: 0,
-            ),
-          ];
+    // Phase 3: Bind directly to provider.compositeItems - no disconnected fallback
+    final compItems = provider.compositeItems;
     final data = provider.valuationData ?? ValuationDataModel(orderId: 0, valuationMethodology: 'COMPOSITE');
     final isReadOnly = provider.isReadOnly;
-
-
-    final rawFairVal = data.rawFairValue;
-    final sayFairVal = data.sayFairValue > 0 ? data.sayFairValue : ValuationCalculator.computeSayValue(rawFairVal);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 24),
@@ -1656,7 +1642,13 @@ class _DocumentTableWorkspaceWidgetState extends State<DocumentTableWorkspaceWid
         break;
       }
     }
-    mainUnit ??= items.isNotEmpty ? items.first : ValuationCompositeItemModel(itemCategory: 'MAIN_UNIT', quantity: 1000, rate: 0);
+    if (mainUnit == null) {
+      provider.ensureCompositeMainUnit();
+      mainUnit = provider.compositeItems.firstWhere(
+        (i) => i.itemCategory.toUpperCase() == 'MAIN_UNIT',
+        orElse: () => provider.compositeItems.first,
+      );
+    }
 
     if (!kIsWeb) {
       return _buildMobileCompositeContent(context, provider, items, isReadOnly);

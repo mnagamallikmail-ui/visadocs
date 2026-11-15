@@ -1,0 +1,30 @@
+{
+  "orderId": 188,
+  "reportNumber": "PV-2610-0922",
+  "propertyCategory": "Vacant Land / Plot",
+  "propertyType": "Residential Open Plot",
+  "valuationMethodology": "LAND_ONLY",
+  "clientName": "Bank of Baroda",
+  "bankName": "BOB",
+  "branchName": "Regional SME Centre",
+  "gateStatus": {
+    "isCompositeProperty": false,
+    "reason": "category contains 'land' or 'plot', methodology is LAND_ONLY - correctly intended"
+  },
+  "landItems": [
+    {
+      "description": "Open Residential Plot No. 42",
+      "standardAreaSqft": 3600.0,
+      "ratePerSqft": 1200.0,
+      "value": 4320000.0
+    }
+  ],
+  "buildingItems": [],
+  "calculatedOutputs": {
+    "TOTAL_LAND_VALUE": "4320000.00",
+    "TOTAL_BUILDING_VALUE": "0.00",
+    "TOTAL_FAIR_VALUE": "4320000.00",
+    "SAY_VALUE": "4320000",
+    "SAY_VALUE_WORDS": "Rupees Forty-Three Lakhs Twenty Thousand Only"
+  }
+}
