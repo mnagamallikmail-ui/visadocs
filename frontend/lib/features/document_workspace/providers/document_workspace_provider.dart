@@ -95,7 +95,6 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
 
   WorkspaceDraftModel? pendingDraft;
   bool hasPendingDraftRecovery = false;
-  WorkspaceSseEvent? pendingChallengeEvent;
   bool sessionEvicted = false;
 
   bool _isReadOnly = false;
@@ -408,11 +407,6 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
             invalidationNotice = event.reason ?? 'Document workspace was updated by an administrative action.';
             _isReadOnly = true;
             _heartbeatTimer?.cancel();
-            notifyListeners();
-            break;
-          case 'LOGIN_CHALLENGE':
-            debugPrint('[SSE] Received LOGIN_CHALLENGE');
-            pendingChallengeEvent = event;
             notifyListeners();
             break;
           case 'SESSION_EVICTED':
@@ -1801,15 +1795,21 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         _persistLocalDraft();
         notifyListeners();
         return false;
+      } else if (dioErr.response?.statusCode == 401) {
+        _saveState = SaveState.error;
+        saveErrorMessage = 'Session expired — re-authentication required. Your edits are preserved locally.';
+        _errorMessage = saveErrorMessage;
+        _persistLocalDraft();
+        return false;
       }
       _saveState = SaveState.error;
-      saveErrorMessage = 'Save failed. Session expired or network unavailable. Your edits are preserved locally.';
+      saveErrorMessage = 'Save failed. Your edits are preserved locally.';
       _errorMessage = saveErrorMessage;
       _persistLocalDraft();
       return false;
     } catch (e) {
       _saveState = SaveState.error;
-      saveErrorMessage = 'Save failed. Session expired or network unavailable. Your edits are preserved locally.';
+      saveErrorMessage = 'Save failed. Your edits are preserved locally.';
       _errorMessage = saveErrorMessage;
       _persistLocalDraft();
       return false;

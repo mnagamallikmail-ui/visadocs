@@ -90,10 +90,6 @@ public class RealtimePushService {
         }
     }
 
-    public void broadcastLoginChallenge(String targetSessionId, Map<String, Object> challengeData) {
-        sendEvent(targetSessionId, "LOGIN_CHALLENGE", challengeData);
-    }
-
     public void broadcastSessionEviction(String targetSessionId, Map<String, Object> evictionData) {
         sendEvent(targetSessionId, "SESSION_EVICTED", evictionData);
     }

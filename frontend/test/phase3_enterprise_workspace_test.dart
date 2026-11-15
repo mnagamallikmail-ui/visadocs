@@ -6,7 +6,6 @@ import 'package:provaluer_frontend/features/document_workspace/services/workspac
 import 'package:provaluer_frontend/services/workspace_sse_service.dart';
 import 'package:provaluer_frontend/features/document_workspace/widgets/workspace_health_bar_widget.dart';
 import 'package:provaluer_frontend/features/document_workspace/widgets/draft_recovery_dialog.dart';
-import 'package:provaluer_frontend/widgets/session_challenge_dialog.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -249,46 +248,6 @@ void main() {
     });
   });
 
-  group('Step 5: Session Challenge Dialog', () {
-    testWidgets('Renders device, platform, location (no raw IP) with backend timeoutSeconds and handles Keep Session', (tester) async {
-      bool kept = false;
-      bool allowed = false;
-
-      await tester.pumpWidget(
-        MaterialApp(
-          home: Scaffold(
-            body: SessionChallengeDialog(
-              deviceName: 'Chrome on Windows 11',
-              platform: 'Windows Desktop',
-              approximateLocation: 'Mumbai, Maharashtra, India',
-              timeoutSeconds: 30,
-              onKeepSession: () {
-                kept = true;
-              },
-              onAllowSession: () {
-                allowed = true;
-              },
-            ),
-          ),
-        ),
-      );
-
-      expect(find.text('Another Login Detected'), findsOneWidget);
-      expect(find.text('Chrome on Windows 11'), findsOneWidget);
-      expect(find.text('Windows Desktop'), findsOneWidget);
-      expect(find.text('Mumbai, Maharashtra, India'), findsOneWidget);
-      expect(find.textContaining('192.168'), findsNothing);
-      expect(find.text('Action Required In:'), findsOneWidget);
-      expect(find.textContaining('second(s)'), findsOneWidget);
-
-      await tester.tap(find.widgetWithText(FilledButton, 'Keep Session (30 s)'));
-      await tester.pump();
-
-      expect(kept, isTrue);
-      expect(allowed, isFalse);
-    });
-  });
-
   group('Step 8: SSE Real-Time Event Dispatching', () {
     test('WorkspaceSseEvent extracts event properties correctly', () {
       final ev = WorkspaceSseEvent(
@@ -305,22 +264,15 @@ void main() {
       expect(ev.newEditor, 'admin_user');
       expect(ev.reason, 'Break-glass takeover initiated');
 
-      final challengeEv = WorkspaceSseEvent(
-        eventType: 'LOGIN_CHALLENGE',
+      final evictedEv = WorkspaceSseEvent(
+        eventType: 'SESSION_EVICTED',
         data: {
-          'challengeSessionId': 'sess_incoming_999',
-          'requestingDevice': 'Firefox on Linux',
-          'requestingPlatform': 'Linux Desktop',
-          'approximateLocation': 'Bengaluru, India',
-          'timeoutSeconds': 30,
+          'message': 'Your session has been terminated because this account was signed in from another device.',
         },
       );
 
-      expect(challengeEv.challengeSessionId, 'sess_incoming_999');
-      expect(challengeEv.requestingDevice, 'Firefox on Linux');
-      expect(challengeEv.requestingPlatform, 'Linux Desktop');
-      expect(challengeEv.approximateLocation, 'Bengaluru, India');
-      expect(challengeEv.timeoutSeconds, 30);
+      expect(evictedEv.eventType, 'SESSION_EVICTED');
+      expect(evictedEv.message, contains('terminated because this account was signed in from another device'));
     });
   });
 }

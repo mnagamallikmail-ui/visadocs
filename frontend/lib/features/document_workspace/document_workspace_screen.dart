@@ -22,7 +22,6 @@ import 'widgets/valuation_workspace_editor_widget.dart';
 import 'widgets/workspace_health_bar_widget.dart';
 import 'widgets/draft_recovery_dialog.dart';
 import 'services/workspace_lease_client.dart';
-import '../../widgets/session_challenge_dialog.dart';
 
 class DocumentWorkspaceScreen extends StatefulWidget {
   final int orderId;
@@ -47,7 +46,6 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
   bool _showPersistentSaveFailure = false;
   bool _isReauthOpen = false;
   bool _isDraftRecoveryOpen = false;
-  bool _isChallengeDialogOpen = false;
 
   // Responsive Sidebar Adaptation (Phase 2B)
   bool? _userSidebarCompact;
@@ -101,42 +99,6 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
       });
     }
 
-    // Check for SSE Login Challenge
-    if (_provider.pendingChallengeEvent != null && !_isChallengeDialogOpen) {
-      _isChallengeDialogOpen = true;
-      final challenge = _provider.pendingChallengeEvent!;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        SessionChallengeDialog.show(
-          context,
-          deviceName: challenge.requestingDevice ?? 'Authorized Browser',
-          platform: challenge.requestingPlatform ?? 'Desktop',
-          approximateLocation: challenge.approximateLocation ?? 'India',
-          timeoutSeconds: challenge.timeoutSeconds,
-          onKeepSession: () {
-            WorkspaceLeaseClient().respondToLoginChallenge(
-              decision: 'KEEP',
-              pendingSessionId: challenge.challengeSessionId ?? '',
-            );
-            _provider.pendingChallengeEvent = null;
-            _isChallengeDialogOpen = false;
-          },
-          onAllowSession: () {
-            WorkspaceLeaseClient().respondToLoginChallenge(
-              decision: 'ALLOW',
-              pendingSessionId: challenge.challengeSessionId ?? '',
-            );
-            _provider.pendingChallengeEvent = null;
-            _isChallengeDialogOpen = false;
-            TokenStorage.clearToken();
-            TokenStorage.clearSession();
-            Navigator.of(context).pushReplacementNamed('/login');
-          },
-        ).then((_) {
-          _isChallengeDialogOpen = false;
-        });
-      });
-    }
-
     // Check for Session Eviction
     if (_provider.sessionEvicted) {
       _provider.sessionEvicted = false;
@@ -146,7 +108,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
           barrierDismissible: false,
           builder: (ctx) => AlertDialog(
             title: const Text('Session Terminated'),
-            content: const Text('Your login session was ended by another device or an administrator. Please log in again to continue.'),
+            content: const Text('Your session has been terminated because this account was signed in from another device.'),
             actions: [
               FilledButton(
                 onPressed: () {
@@ -1303,7 +1265,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
 
     final api = ApiService();
     final isSessionExpired = api.isSessionExpired ||
-        (provider.saveErrorMessage != null && provider.saveErrorMessage!.contains('Session expired'));
+        (provider.saveErrorMessage != null && provider.saveErrorMessage!.startsWith('Session expired'));
 
     if (isSessionExpired) {
       // SAVE STATE #4: ⚠ Session expired — re-authentication required

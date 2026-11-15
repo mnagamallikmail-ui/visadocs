@@ -20,12 +20,15 @@ public class AuthTokenFilter extends OncePerRequestFilter {
 
     private final JwtUtils jwtUtils;
     private final UserDetailsServiceImpl userDetailsService;
+    private final com.provaluer.repository.UserSessionRepository userSessionRepository;
 
     // Explicit constructor injection — avoids @Autowired field injection timing issues
     // when this filter is instantiated via new AuthTokenFilter() inside a @Bean factory method.
-    public AuthTokenFilter(JwtUtils jwtUtils, UserDetailsServiceImpl userDetailsService) {
+    public AuthTokenFilter(JwtUtils jwtUtils, UserDetailsServiceImpl userDetailsService,
+                           com.provaluer.repository.UserSessionRepository userSessionRepository) {
         this.jwtUtils = jwtUtils;
         this.userDetailsService = userDetailsService;
+        this.userSessionRepository = userSessionRepository;
     }
 
     @Override
@@ -43,6 +46,34 @@ public class AuthTokenFilter extends OncePerRequestFilter {
                         || !userDetails.isAccountNonExpired() || !userDetails.isCredentialsNonExpired()) {
                     logger.warn("[AuthTokenFilter] Rejected valid JWT for account with bad status: {}", username);
                 } else {
+                    // Authoritative Single-Session Check: verify session is active and not displaced
+                    if (userSessionRepository != null) {
+                        String tokenHash = com.provaluer.service.AuthSessionService.hashToken(jwt);
+                        boolean isDisplaced = false;
+
+                        java.util.Optional<com.provaluer.model.UserSession> sessionOpt = 
+                                userSessionRepository.findTopBySessionTokenHashOrderByIdDesc(tokenHash);
+                        if (sessionOpt.isPresent()) {
+                            if (!Boolean.TRUE.equals(sessionOpt.get().getIsActive())) {
+                                isDisplaced = true;
+                            }
+                        } else if (userDetails instanceof UserDetailsImpl) {
+                            Long userId = ((UserDetailsImpl) userDetails).getId();
+                            java.util.Optional<com.provaluer.model.UserSession> activeForUser = 
+                                    userSessionRepository.findByUserIdAndIsActiveTrue(userId);
+                            if (activeForUser.isPresent() && !tokenHash.equals(activeForUser.get().getSessionTokenHash())) {
+                                isDisplaced = true;
+                            }
+                        }
+
+                        if (isDisplaced) {
+                            logger.warn("[AuthTokenFilter] Displaced or terminated session for user {}. Rejecting request.", username);
+                            // Proceed without setting SecurityContext -> Spring Security will return 401
+                            filterChain.doFilter(request, response);
+                            return;
+                        }
+                    }
+
                     UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                             userDetails, null, userDetails.getAuthorities());
                     authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));

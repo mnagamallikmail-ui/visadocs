@@ -34,6 +34,7 @@ class TokenStorage {
 
   static void saveSession({
     required String token,
+    String? sessionId,
     String? username,
     String? email,
     String? role,
@@ -42,6 +43,7 @@ class TokenStorage {
     int? userId,
   }) {
     setStorageItem(keyToken, token);
+    if (sessionId != null && sessionId.isNotEmpty) setStorageItem(keySessionId, sessionId);
     if (username != null) setStorageItem(keyUsername, username);
     if (email != null) setStorageItem(keyEmail, email);
     if (role != null) setStorageItem(keyRole, role);
@@ -73,6 +75,7 @@ class TokenStorage {
 
   static void clearSession() {
     removeStorageItem(keyToken);
+    removeStorageItem(keySessionId);
     removeStorageItem(keyUsername);
     removeStorageItem(keyEmail);
     removeStorageItem(keyRole);

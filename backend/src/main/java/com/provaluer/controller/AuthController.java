@@ -162,22 +162,16 @@ public class AuthController {
             ));
         }
 
-        // 3. Single Active Login Session Check
+        // 3. Strict Single Active Session Enforcement: ONE USER = ONE ACTIVE SESSION
         Optional<UserSession> activeSessionOpt = authSessionService.getActiveSession(user.getId());
         if (activeSessionOpt.isPresent() && !loginRequest.isForceLogin()) {
             UserSession activeSession = activeSessionOpt.get();
-            String challengeStatus = authSessionService.checkChallengeStatus(activeSession.getSessionId());
-            if (!"APPROVED".equals(challengeStatus) && !"APPROVED_BY_TIMEOUT".equals(challengeStatus)) {
-                String proposedSessionId = java.util.UUID.randomUUID().toString();
-                String deviceInfo = getDeviceInfo(loginRequest, request);
-                String platformInfo = loginRequest.getPlatformInfo() != null ? loginRequest.getPlatformInfo() : "Web";
-                String ip = getClientIp(request);
-
-                java.util.Map<String, Object> challengePayload = authSessionService.initiateLoginChallenge(
-                        user, activeSession, proposedSessionId, deviceInfo, platformInfo, "India", ip
-                );
-                return ResponseEntity.status(org.springframework.http.HttpStatus.CONFLICT).body(challengePayload);
-            }
+            java.util.Map<String, Object> conflictPayload = new java.util.HashMap<>();
+            conflictPayload.put("code", "SESSION_ALREADY_ACTIVE");
+            conflictPayload.put("deviceName", activeSession.getDeviceInfo() != null ? activeSession.getDeviceInfo() : "Unknown Device");
+            conflictPayload.put("location", activeSession.getApproximateLocation() != null ? activeSession.getApproximateLocation() : "India");
+            conflictPayload.put("loginTime", activeSession.getCreatedAt() != null ? activeSession.getCreatedAt().toString() : "");
+            return ResponseEntity.status(org.springframework.http.HttpStatus.CONFLICT).body(conflictPayload);
         }
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -380,38 +374,6 @@ public class AuthController {
         return ResponseEntity.status(401).body("Unauthorized");
     }
 
-    @PostMapping("/challenge/respond")
-    public ResponseEntity<?> respondToChallenge(@RequestBody ChallengeRespondRequest req) {
-        if (req.getChallengeSessionId() == null || req.getDecision() == null) {
-            return ResponseEntity.badRequest().body(java.util.Map.of("error", "challengeSessionId and decision are required"));
-        }
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !(auth.getPrincipal() instanceof UserDetailsImpl)) {
-            return ResponseEntity.status(401).body(java.util.Map.of("error", "Authentication required"));
-        }
-        UserDetailsImpl principal = (UserDetailsImpl) auth.getPrincipal();
-        try {
-            java.util.Map<String, Object> result = authSessionService.respondToChallenge(
-                    req.getChallengeSessionId(), req.getDecision(), principal.getId()
-            );
-            return ResponseEntity.ok(result);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
-        }
-    }
-
-    @GetMapping("/challenge/status")
-    public ResponseEntity<?> checkChallengeStatus(@RequestParam("id") String challengeSessionId) {
-        if (challengeSessionId == null || challengeSessionId.isBlank()) {
-            return ResponseEntity.badRequest().body(java.util.Map.of("error", "challengeSessionId parameter 'id' is required"));
-        }
-        String status = authSessionService.checkChallengeStatus(challengeSessionId);
-        return ResponseEntity.ok(java.util.Map.of(
-                "challengeSessionId", challengeSessionId,
-                "status", status
-        ));
-    }
-
     @PostMapping("/logout")
     public ResponseEntity<?> logout(@RequestBody(required = false) java.util.Map<String, String> payload,
                                     @RequestHeader(value = "X-Session-ID", required = false) String sessionHeader) {
@@ -479,18 +441,6 @@ public class AuthController {
         public void setPlatformInfo(String platformInfo) { this.platformInfo = platformInfo; }
         public boolean isForceLogin() { return forceLogin; }
         public void setForceLogin(boolean forceLogin) { this.forceLogin = forceLogin; }
-        public String getChallengeSessionId() { return challengeSessionId; }
-        public void setChallengeSessionId(String challengeSessionId) { this.challengeSessionId = challengeSessionId; }
-    }
-
-    public static class ChallengeRespondRequest {
-        private String challengeSessionId;
-        private String decision;
-
-        public String getChallengeSessionId() { return challengeSessionId; }
-        public void setChallengeSessionId(String challengeSessionId) { this.challengeSessionId = challengeSessionId; }
-        public String getDecision() { return decision; }
-        public void setDecision(String decision) { this.decision = decision; }
     }
 
     public static class RefreshTokenRequest {

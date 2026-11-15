@@ -34,11 +34,14 @@ public class SecurityConfig {
     @Autowired
     private JwtUtils jwtUtils;
 
+    @Autowired
+    private com.provaluer.repository.UserSessionRepository userSessionRepository;
+
     @Bean
     public AuthTokenFilter authenticationJwtTokenFilter() {
-        // Explicit constructor injection ensures jwtUtils and userDetailsService
-        // are never null — both are fully wired by the time SecurityConfig is processed.
-        return new AuthTokenFilter(jwtUtils, userDetailsService);
+        // Explicit constructor injection ensures jwtUtils, userDetailsService, and userSessionRepository
+        // are never null — all are fully wired by the time SecurityConfig is processed.
+        return new AuthTokenFilter(jwtUtils, userDetailsService, userSessionRepository);
     }
 
     /**

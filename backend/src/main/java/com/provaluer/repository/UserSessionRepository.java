@@ -16,12 +16,17 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
 
     Optional<UserSession> findBySessionId(String sessionId);
 
+    Optional<UserSession> findTopBySessionTokenHashOrderByIdDesc(String sessionTokenHash);
+
     Optional<UserSession> findByUserIdAndIsActiveTrue(Long userId);
 
     List<UserSession> findAllByUserIdAndIsActiveTrue(Long userId);
 
     @Query("SELECT s FROM UserSession s WHERE s.sessionId = :sessionId AND s.isActive = true")
     Optional<UserSession> findActiveBySessionId(@Param("sessionId") String sessionId);
+
+    @Query("SELECT s FROM UserSession s WHERE s.sessionTokenHash = :tokenHash AND s.isActive = true")
+    Optional<UserSession> findActiveBySessionTokenHash(@Param("tokenHash") String tokenHash);
 
     @Modifying
     @Query(value = "UPDATE user_sessions SET is_active = false, terminated_at = NOW(), termination_reason = :reason " +
@@ -37,13 +42,6 @@ public interface UserSessionRepository extends JpaRepository<UserSession, Long> 
     @Query(value = "UPDATE user_sessions SET last_activity = NOW() WHERE session_id = :sessionId AND is_active = true", nativeQuery = true)
     int touchActivity(@Param("sessionId") String sessionId);
 
-    @Modifying
-    @Query(value = "UPDATE user_sessions SET challenge_status = :status, challenge_target_session = :targetSession, " +
-           "challenge_expiry = :expiry WHERE session_id = :sessionId", nativeQuery = true)
-    int updateChallenge(@Param("sessionId") String sessionId,
-                        @Param("status") String status,
-                        @Param("targetSession") String targetSession,
-                        @Param("expiry") LocalDateTime expiry);
 
     @Query("SELECT COUNT(s) FROM UserSession s WHERE s.isActive = true")
     long countActiveSessions();

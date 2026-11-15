@@ -26,9 +26,6 @@ public class AuthSessionService {
     private final RealtimePushService realtimePushService;
     private final AuditLogService auditLogService;
 
-    @Value("${app.security.session-challenge-timeout-seconds:30}")
-    private int sessionChallengeTimeoutSeconds;
-
     public AuthSessionService(UserSessionRepository userSessionRepository,
                               WorkspaceSessionRepository workspaceSessionRepository,
                               RealtimePushService realtimePushService,
@@ -63,105 +60,6 @@ public class AuthSessionService {
     public Optional<UserSession> getActiveSession(Long userId) {
         List<UserSession> activeSessions = userSessionRepository.findAllByUserIdAndIsActiveTrue(userId);
         return activeSessions.isEmpty() ? Optional.empty() : Optional.of(activeSessions.get(0));
-    }
-
-    /**
-     * Initiates a 30-second login challenge on the existing active session.
-     */
-    @Transactional
-    public Map<String, Object> initiateLoginChallenge(User user, UserSession activeSession,
-                                                      String newSessionId, String newDeviceInfo,
-                                                      String newPlatformInfo, String newApproximateLocation,
-                                                      String newIpAddress) {
-        LocalDateTime expiry = LocalDateTime.now().plusSeconds(sessionChallengeTimeoutSeconds);
-
-        activeSession.setChallengeStatus("PENDING_CHALLENGE");
-        activeSession.setChallengeTargetSession(newSessionId);
-        activeSession.setChallengeExpiry(expiry);
-        userSessionRepository.save(activeSession);
-
-        // Push real-time event to existing Device A via SSE
-        Map<String, Object> challengeData = new HashMap<>();
-        challengeData.put("challengeSessionId", activeSession.getSessionId());
-        challengeData.put("requestingDevice", newDeviceInfo);
-        challengeData.put("requestingPlatform", newPlatformInfo != null ? newPlatformInfo : "Desktop");
-        challengeData.put("approximateLocation", newApproximateLocation != null ? newApproximateLocation : "India");
-        challengeData.put("timeoutSeconds", sessionChallengeTimeoutSeconds);
-        challengeData.put("expiresAt", expiry.toString());
-
-        realtimePushService.broadcastLoginChallenge(activeSession.getSessionId(), challengeData);
-
-        log.info("[AuthSessionService] Dispatched login challenge to active session {} for user {}",
-                activeSession.getSessionId(), user.getUsername());
-
-        // Return user-safe payload (NO raw IP address exposed)
-        Map<String, Object> response = new HashMap<>();
-        response.put("status", "CHALLENGE_REQUIRED");
-        response.put("challengeSessionId", activeSession.getSessionId());
-        response.put("activeDevice", activeSession.getDeviceInfo());
-        response.put("activePlatform", activeSession.getPlatformInfo() != null ? activeSession.getPlatformInfo() : "Desktop");
-        response.put("approximateLocation", activeSession.getApproximateLocation() != null ? activeSession.getApproximateLocation() : "India");
-        response.put("lastActivity", activeSession.getLastActivity().toString());
-        response.put("expiresInSeconds", sessionChallengeTimeoutSeconds);
-
-        return response;
-    }
-
-    /**
-     * Resolves the 30-second challenge from Device A.
-     */
-    @Transactional
-    public Map<String, Object> respondToChallenge(String challengeSessionId, String decision, Long callerUserId) {
-        UserSession activeSession = userSessionRepository.findBySessionId(challengeSessionId)
-                .orElseThrow(() -> new NoSuchElementException("Session not found: " + challengeSessionId));
-
-        if (!activeSession.getUser().getId().equals(callerUserId)) {
-            throw new SecurityException("Unauthorized challenge response");
-        }
-
-        if ("KEEP".equalsIgnoreCase(decision)) {
-            activeSession.setChallengeStatus("CHALLENGE_REJECTED");
-            activeSession.setChallengeTargetSession(null);
-            activeSession.setChallengeExpiry(null);
-            userSessionRepository.save(activeSession);
-
-            log.info("[AuthSessionService] Active session {} rejected login from new device for user {}",
-                    challengeSessionId, activeSession.getUser().getUsername());
-
-            return Map.of("status", "CHALLENGE_REJECTED", "message", "Login from other device rejected.");
-        } else {
-            // "ALLOW" or manual approval: Evict Device A
-            evictSession(activeSession, "USER_PERMITTED_NEW_DEVICE");
-            return Map.of("status", "SESSION_TRANSFERRED", "message", "Session transferred to new device.");
-        }
-    }
-
-    /**
-     * Checks status of challenge (called by Device B polling or WebSocket).
-     */
-    @Transactional
-    public String checkChallengeStatus(String challengeSessionId) {
-        Optional<UserSession> sessionOpt = userSessionRepository.findBySessionId(challengeSessionId);
-        if (sessionOpt.isEmpty()) {
-            return "EXPIRED";
-        }
-        UserSession session = sessionOpt.get();
-
-        if ("CHALLENGE_REJECTED".equals(session.getChallengeStatus())) {
-            return "REJECTED";
-        }
-
-        // If challenge expired (> 30s) and Device A did not click KEEP -> auto-evict Device A
-        if (session.getChallengeExpiry() != null && LocalDateTime.now().isAfter(session.getChallengeExpiry())) {
-            evictSession(session, "CHALLENGE_TIMEOUT_EXPIRED");
-            return "APPROVED_BY_TIMEOUT";
-        }
-
-        if (!session.getIsActive()) {
-            return "APPROVED";
-        }
-
-        return "PENDING";
     }
 
     /**
@@ -213,17 +111,23 @@ public class AuthSessionService {
         userSessionRepository.save(session);
 
         // Cascade release any workspace leases owned by this session
-        workspaceSessionRepository.releaseAllActiveLeases(session.getUser().getId(), session.getSessionId());
+        try {
+            workspaceSessionRepository.releaseAllActiveLeases(session.getUser().getId(), session.getSessionId());
+        } catch (Exception e) {
+            log.warn("[AuthSessionService] Could not release workspace leases for evicted session {}: {}", session.getSessionId(), e.getMessage());
+        }
 
-        // Notify client via real-time SSE push
-        realtimePushService.broadcastSessionEviction(session.getSessionId(), Map.of(
-                "reason", reason,
-                "terminatedAt", LocalDateTime.now().toString(),
-                "message", "Your session was ended because this account logged in from another device."
-        ));
-
-        // Disconnect SSE emitter
-        realtimePushService.removeEmitter(session.getSessionId());
+        // Notify client via real-time SSE push (best effort; database eviction remains authoritative)
+        try {
+            realtimePushService.broadcastSessionEviction(session.getSessionId(), Map.of(
+                    "reason", reason,
+                    "terminatedAt", LocalDateTime.now().toString(),
+                    "message", "Your session was ended because this account logged in from another device."
+            ));
+            realtimePushService.removeEmitter(session.getSessionId());
+        } catch (Exception e) {
+            log.warn("[AuthSessionService] Realtime SSE push failed for evicted session {}: {}", session.getSessionId(), e.getMessage());
+        }
 
         log.info("[AuthSessionService] Evicted session {} for user {}: {}",
                 session.getSessionId(), session.getUser().getUsername(), reason);

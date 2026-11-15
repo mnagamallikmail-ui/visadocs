@@ -34,7 +34,6 @@ void connectSsePlatform(String token, String baseUrl, SseCallback onEvent, SseDi
       'FORCE_AUTOSAVE_REQUEST',
       'LEASE_LOST',
       'WORKSPACE_INVALIDATED',
-      'LOGIN_CHALLENGE',
       'SESSION_EVICTED',
       'CONNECTED'
     ];

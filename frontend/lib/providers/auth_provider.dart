@@ -7,6 +7,10 @@ class LoginResult {
   final bool success;
   final bool mfaSetupRequired;
   final bool mfaRequired;
+  final bool isSessionAlreadyActive;
+  final String? activeDeviceName;
+  final String? activeLocation;
+  final String? activeLoginTime;
   final String? setupToken;
   final String? secretKey;
   final String? otpAuthUri;
@@ -19,6 +23,10 @@ class LoginResult {
     this.success = false,
     this.mfaSetupRequired = false,
     this.mfaRequired = false,
+    this.isSessionAlreadyActive = false,
+    this.activeDeviceName,
+    this.activeLocation,
+    this.activeLoginTime,
     this.setupToken,
     this.secretKey,
     this.otpAuthUri,
@@ -29,6 +37,17 @@ class LoginResult {
   });
 
   factory LoginResult.completed() => const LoginResult(success: true);
+
+  factory LoginResult.sessionAlreadyActive({
+    required String? deviceName,
+    required String? location,
+    required String? loginTime,
+  }) => LoginResult(
+    isSessionAlreadyActive: true,
+    activeDeviceName: deviceName,
+    activeLocation: location,
+    activeLoginTime: loginTime,
+  );
 
   factory LoginResult.mfaSetup({
     required String? setupToken,
@@ -114,12 +133,13 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<LoginResult> login(String username, String password) async {
+  Future<LoginResult> login(String username, String password, {bool forceLogin = false}) async {
     try {
       final response = await _apiService.dio.post('/api/v1/auth/login', data: {
         'username': username.trim(),
         'email': username.trim(),
         'password': password,
+        'forceLogin': forceLogin,
       });
 
       if (response.statusCode == 200 && response.data != null) {
@@ -158,7 +178,16 @@ class AuthProvider extends ChangeNotifier {
       }
     } catch (e) {
       if (e is DioException) {
-        if (e.response?.statusCode == 429) {
+        if (e.response?.statusCode == 409) {
+          final data = e.response?.data;
+          if (data is Map && data['code'] == 'SESSION_ALREADY_ACTIVE') {
+            return LoginResult.sessionAlreadyActive(
+              deviceName: data['deviceName']?.toString(),
+              location: data['location']?.toString(),
+              loginTime: data['loginTime']?.toString(),
+            );
+          }
+        } else if (e.response?.statusCode == 429) {
           return LoginResult.failed('Rate limit exceeded (Max 5 attempts/minute). Please wait 60 seconds.');
         } else if (e.response?.statusCode == 423) {
           return LoginResult.failed('Account temporarily locked due to consecutive failed attempts.');
@@ -230,8 +259,10 @@ class AuthProvider extends ChangeNotifier {
     _tcRequired = false;
 
     if (_token != null) {
+      final sessionId = data['sessionId']?.toString();
       TokenStorage.saveSession(
         token: _token!,
+        sessionId: sessionId,
         username: _username,
         email: _email,
         role: _role,

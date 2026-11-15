@@ -44,8 +44,6 @@ public class AuthSessionServiceTest {
 
     @BeforeEach
     void setUp() {
-        ReflectionTestUtils.setField(authSessionService, "sessionChallengeTimeoutSeconds", 30);
-
         testUser = new User();
         testUser.setId(101L);
         testUser.setUsername("testvaluer");
@@ -78,79 +76,14 @@ public class AuthSessionServiceTest {
     }
 
     @Test
-    @DisplayName("Initiate login challenge should set pending challenge and push SSE to Device A")
-    void testInitiateLoginChallenge() {
-        when(userSessionRepository.save(any(UserSession.class))).thenReturn(activeSession);
+    @DisplayName("GetActiveSession returns existing active session")
+    void testGetActiveSession() {
+        when(userSessionRepository.findAllByUserIdAndIsActiveTrue(101L)).thenReturn(List.of(activeSession));
 
-        Map<String, Object> challengeResult = authSessionService.initiateLoginChallenge(
-                testUser,
-                activeSession,
-                "sess-new-456",
-                "Mozilla Firefox - MacOS",
-                "Desktop",
-                "Delhi, India",
-                "192.168.1.50"
-        );
+        Optional<UserSession> result = authSessionService.getActiveSession(101L);
 
-        assertNotNull(challengeResult);
-        assertEquals("CHALLENGE_REQUIRED", challengeResult.get("status"));
-        assertEquals("sess-existing-123", challengeResult.get("challengeSessionId"));
-        assertEquals("Google Chrome - Windows", challengeResult.get("activeDevice"));
-        assertEquals(30, challengeResult.get("expiresInSeconds"));
-
-        // Verify SSE broadcast was dispatched to activeSession
-        verify(realtimePushService, times(1)).broadcastLoginChallenge(eq("sess-existing-123"), anyMap());
-        verify(userSessionRepository, times(1)).save(activeSession);
-        assertEquals("PENDING_CHALLENGE", activeSession.getChallengeStatus());
-        assertEquals("sess-new-456", activeSession.getChallengeTargetSession());
-        assertNotNull(activeSession.getChallengeExpiry());
-    }
-
-    @Test
-    @DisplayName("Respond to challenge: KEEP should reject new login and preserve active session")
-    void testRespondToChallenge_Keep() {
-        when(userSessionRepository.findBySessionId("sess-existing-123")).thenReturn(Optional.of(activeSession));
-        when(userSessionRepository.save(any(UserSession.class))).thenReturn(activeSession);
-
-        Map<String, Object> response = authSessionService.respondToChallenge("sess-existing-123", "KEEP", 101L);
-
-        assertEquals("CHALLENGE_REJECTED", response.get("status"));
-        assertEquals("CHALLENGE_REJECTED", activeSession.getChallengeStatus());
-        assertNull(activeSession.getChallengeTargetSession());
-        assertNull(activeSession.getChallengeExpiry());
-        assertTrue(activeSession.getIsActive());
-        verify(userSessionRepository, times(1)).save(activeSession);
-    }
-
-    @Test
-    @DisplayName("Respond to challenge: ALLOW should evict Device A and cascade release workspace leases")
-    void testRespondToChallenge_Allow() {
-        when(userSessionRepository.findBySessionId("sess-existing-123")).thenReturn(Optional.of(activeSession));
-
-        Map<String, Object> response = authSessionService.respondToChallenge("sess-existing-123", "ALLOW", 101L);
-
-        assertEquals("SESSION_TRANSFERRED", response.get("status"));
-        assertFalse(activeSession.getIsActive());
-        assertEquals("USER_PERMITTED_NEW_DEVICE", activeSession.getTerminationReason());
-
-        // Verify cascade workspace lease release and SSE eviction
-        verify(workspaceSessionRepository, times(1)).releaseAllActiveLeases(eq(101L), eq("sess-existing-123"));
-        verify(realtimePushService, times(1)).broadcastSessionEviction(eq("sess-existing-123"), anyMap());
-        verify(realtimePushService, times(1)).removeEmitter(eq("sess-existing-123"));
-    }
-
-    @Test
-    @DisplayName("Check challenge status should auto-evict on 30s timeout expiration")
-    void testCheckChallengeStatus_TimeoutExpiry() {
-        activeSession.setChallengeExpiry(LocalDateTime.now().minusSeconds(5)); // Expired 5 seconds ago
-        when(userSessionRepository.findBySessionId("sess-existing-123")).thenReturn(Optional.of(activeSession));
-
-        String status = authSessionService.checkChallengeStatus("sess-existing-123");
-
-        assertEquals("APPROVED_BY_TIMEOUT", status);
-        assertFalse(activeSession.getIsActive());
-        assertEquals("CHALLENGE_TIMEOUT_EXPIRED", activeSession.getTerminationReason());
-        verify(workspaceSessionRepository, times(1)).releaseAllActiveLeases(eq(101L), eq("sess-existing-123"));
+        assertTrue(result.isPresent());
+        assertEquals("sess-existing-123", result.get().getSessionId());
     }
 
     @Test

@@ -14,13 +14,7 @@ class WorkspaceSseEvent {
 
   String? get reason => data['reason']?.toString();
   String? get newEditor => data['newEditor']?.toString();
-  String? get challengeSessionId => data['challengeSessionId']?.toString() ?? data['pendingSessionId']?.toString();
-  String? get requestingDevice => data['requestingDevice']?.toString() ?? data['incomingDevice']?.toString();
-  String? get requestingPlatform => data['requestingPlatform']?.toString() ?? data['incomingPlatform']?.toString() ?? 'Desktop';
-  String? get approximateLocation => data['approximateLocation']?.toString() ?? data['incomingLocation']?.toString() ?? 'India';
-  int get timeoutSeconds => data['timeoutSeconds'] is int
-      ? data['timeoutSeconds'] as int
-      : int.tryParse(data['timeoutSeconds']?.toString() ?? data['expiresInSeconds']?.toString() ?? '30') ?? 30;
+  String? get message => data['message']?.toString();
 }
 
 class WorkspaceSseService {

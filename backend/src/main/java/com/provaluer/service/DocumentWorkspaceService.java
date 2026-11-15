@@ -108,6 +108,9 @@ public class DocumentWorkspaceService {
     private WorkspaceSyncEventRepository workspaceSyncEventRepository;
 
     @Autowired
+    private com.provaluer.repository.UserSessionRepository userSessionRepository;
+
+    @Autowired
     private ValuationAuditLogRepository valuationAuditLogRepository;
 
 
@@ -988,6 +991,14 @@ public class DocumentWorkspaceService {
 
         Integer expectedRev = order.getWorkspaceRevision() != null ? order.getWorkspaceRevision() : 1;
 
+        // ENTERPRISE WORKSPACE V2.1: Concurrency Control - Stale Revision Protection
+        if (request != null && request.getWorkspaceRevision() != null) {
+            if (!request.getWorkspaceRevision().equals(expectedRev)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT,
+                        "Concurrent update detected. Workspace was modified by another session. Please refresh.");
+            }
+        }
+
         // SPRINT 6: Transition WORKSPACE_READY → DRAFTING upon first save
         if ("WORKSPACE_READY".equalsIgnoreCase(order.getStatus())) {
             order.setStatus("DRAFTING");
@@ -1255,16 +1266,27 @@ public class DocumentWorkspaceService {
             );
             orderRevisionHistoryRepository.save(revRecord);
 
-            WorkspaceSyncEvent syncEvent = new WorkspaceSyncEvent(
-                    order,
-                    user,
-                    sessionId != null ? sessionId : "DIRECT_API",
-                    tabSessionId != null ? tabSessionId : "DIRECT_TAB",
-                    "AUTOSAVE_FLUSH",
-                    "{\"keysChanged\":" + keysChanged + "}"
-            );
-            syncEvent.setSyncStatus("COMMITTED");
-            workspaceSyncEventRepository.save(syncEvent);
+            // Safely resolve active user session ID to prevent foreign key aborts on workspace_sync_events
+            String resolvedSessionId = sessionId;
+            if (user != null && (resolvedSessionId == null || "direct_save".equals(resolvedSessionId) || !userSessionRepository.findBySessionId(resolvedSessionId).isPresent())) {
+                java.util.Optional<com.provaluer.model.UserSession> activeSes = userSessionRepository.findByUserIdAndIsActiveTrue(user.getId());
+                if (activeSes.isPresent()) {
+                    resolvedSessionId = activeSes.get().getSessionId();
+                }
+            }
+
+            if (resolvedSessionId != null && userSessionRepository.findBySessionId(resolvedSessionId).isPresent()) {
+                WorkspaceSyncEvent syncEvent = new WorkspaceSyncEvent(
+                        order,
+                        user,
+                        resolvedSessionId,
+                        tabSessionId != null ? tabSessionId : "DIRECT_TAB",
+                        "AUTOSAVE_FLUSH",
+                        "{\"keysChanged\":" + keysChanged + "}"
+                );
+                syncEvent.setSyncStatus("COMMITTED");
+                workspaceSyncEventRepository.save(syncEvent);
+            }
         } catch (Exception e) {
             log.warn("Failed to record OrderRevisionHistory/SyncEvent for order #{}: {}", orderId, e.getMessage());
         }

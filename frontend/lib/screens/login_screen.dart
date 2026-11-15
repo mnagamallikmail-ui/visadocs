@@ -184,6 +184,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
       if (result.success && mounted) {
         _promptBiometricEnrollmentIfSupported(auth);
+      } else if (result.isSessionAlreadyActive && mounted) {
+        _showSessionAlreadyActiveDialog(result);
       } else if (result.mfaSetupRequired && mounted) {
         _showMfaSetupModal(result);
       } else if (result.mfaRequired && mounted) {
@@ -233,6 +235,138 @@ class _LoginScreenState extends State<LoginScreen> {
         _isLoading = false;
         _error = 'Registration failed. Email or username may already be in use.';
       });
+    }
+  }
+
+  // ── Single Active Session Conflict Modal (Strict ONE USER = ONE ACTIVE SESSION) ─
+  Future<void> _showSessionAlreadyActiveDialog(LoginResult result) async {
+    final auth = Provider.of<AuthProvider>(context, listen: false);
+    final username = _usernameCtrl.text.trim();
+    final password = _passwordCtrl.text.trim();
+
+    final proceed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 24),
+            SizedBox(width: 10),
+            Text(
+              'Session Already Active',
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF1E293B),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'This account is already logged in on another device.',
+              style: TextStyle(fontSize: 14, color: Color(0xFF334155), fontWeight: FontWeight.w600),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.devices_rounded, size: 16, color: Color(0xFF64748B)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Device: ${result.activeDeviceName ?? 'Unknown Device'}',
+                          style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on_outlined, size: 16, color: Color(0xFF64748B)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Location: ${result.activeLocation ?? 'India'}',
+                          style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (result.activeLoginTime != null && result.activeLoginTime!.isNotEmpty) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      children: [
+                        const Icon(Icons.access_time_rounded, size: 16, color: Color(0xFF64748B)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Logged in: ${result.activeLoginTime!}',
+                            style: const TextStyle(fontSize: 13, color: Color(0xFF475569)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            const Text(
+              'Do you want to log out the existing session and continue here?',
+              style: TextStyle(fontSize: 13, color: Color(0xFF475569)),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(false),
+            child: const Text('CANCEL', style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.bold)),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(ctx).pop(true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFDC2626),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+            ),
+            child: const Text('LOG OUT OTHER SESSION & CONTINUE', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+          ),
+        ],
+      ),
+    );
+
+    if (proceed == true && mounted) {
+      setState(() => _isLoading = true);
+      final forceResult = await auth.login(username, password, forceLogin: true);
+      if (mounted) {
+        setState(() => _isLoading = false);
+        if (forceResult.success) {
+          _promptBiometricEnrollmentIfSupported(auth);
+        } else if (forceResult.mfaSetupRequired) {
+          _showMfaSetupModal(forceResult);
+        } else if (forceResult.mfaRequired) {
+          _showMfaVerifyModal(forceResult);
+        } else {
+          setState(() => _error = forceResult.errorMessage ?? 'Login failed. Please try again.');
+        }
+      }
     }
   }
 
