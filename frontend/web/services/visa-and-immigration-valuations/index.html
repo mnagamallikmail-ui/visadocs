@@ -516,10 +516,22 @@
         <p>Yes. ProValuer operates an emergency express consular valuation desk across Hyderabad and Telangana. When digital property documents are provided before 12:00 PM, same-day physical site inspection is scheduled, and the certified, QR-coded dossier is issued within 24 to 48 hours.</p>
       </section>
 
+      
+      <!-- Related Statutory Valuation Practices (Internal Linking - Phase 4 & Phase 5) -->
+      <section class="related-practices-section" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 22px; margin: 28px 0;">
+        <h3 style="font-size: 16px; margin: 0 0 12px 0; color: #0F172A; font-weight: 700;">Related Statutory Valuation Practices:</h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+          <a href="/services/property-valuation" style="background: #FFFFFF; border: 1px solid #CBD5E1; color: #0D695A; font-weight: 600; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px;">→ Property Valuation</a>
+          <a href="/chartered-engineer-certificate" style="background: #FFFFFF; border: 1px solid #CBD5E1; color: #0D695A; font-weight: 600; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px;">→ Chartered Engineer Certificate</a>
+          <a href="/government-approved-valuers" style="background: #FFFFFF; border: 1px solid #CBD5E1; color: #0D695A; font-weight: 600; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px;">→ Government Approved Valuers</a>
+          <a href="/services/bank-collateral-valuation" style="background: #FFFFFF; border: 1px solid #CBD5E1; color: #0D695A; font-weight: 600; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px;">→ Bank Collateral Valuation</a>
+        </div>
+      </section>
+
       <div class="cta-box">
         <h3>Schedule Your Consular Property Valuation Dossier</h3>
         <p>Guaranteed 24 to 48-hour turnaround across Hyderabad, Telangana, and South India. Complete professional confidentiality, dual-currency reporting, and 100% consular acceptance track record.</p>
-        <p><strong>Telephone Hotline:</strong> <a href="tel:+918500880333" style="color: #10B981;">+91 85008 80333</a> | <strong>WhatsApp Advisory Desk:</strong> <a href="https://wa.me/918500880333" style="color: #10B981;">+91 85008 80333</a></p>
+        <p><strong>Telephone Hotline:</strong> <a href="tel:+918500880333" onclick="trackLeadCall(\'VISA_AND_IMMIGRATION_VALUATIONS\')" style="color: #10B981;">+91 85008 80333</a> | <strong>WhatsApp Advisory Desk:</strong> <a href="https://wa.me/918500880333" onclick="trackLeadWhatsApp(\'VISA_AND_IMMIGRATION_VALUATIONS\')" style="color: #10B981;">+91 85008 80333</a></p>
         <p><a href="/" style="color: #FFFFFF; text-decoration: underline;">Return to ProValuer Institutional Home</a> | <a href="/government-approved-valuers" style="color: #FFFFFF; text-decoration: underline;">Government Approved Valuers Practice Hub</a></p>
       </div>
     </main>
@@ -527,5 +539,25 @@
 
   <!-- Flutter Web App Bootstrap -->
   <script src="flutter_bootstrap.js" async></script>
+
+  <!-- DPDP Compliant Telemetry & Click Handlers (Phase 6) -->
+  <script>
+    function trackLeadWhatsApp(service) {
+      if (typeof gtag === 'function') {
+        gtag('event', 'lead_whatsapp_click', { 'service_type': service, 'page_url': window.location.href });
+      }
+    }
+    function trackLeadCall(service) {
+      if (typeof gtag === 'function') {
+        gtag('event', 'lead_call_click', { 'service_type': service, 'page_url': window.location.href });
+      }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof gtag === 'function') {
+        gtag('event', 'service_page_open', { 'page_url': window.location.href });
+      }
+    });
+  </script>
+
 </body>
 </html>

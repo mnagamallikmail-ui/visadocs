@@ -20,6 +20,8 @@ import 'screens/services/divorce_matrimonial_valuation_screen.dart';
 import 'screens/services/probate_inheritance_valuation_screen.dart';
 import 'screens/services/share_valuation_screen.dart';
 import 'screens/services/plant_machinery_valuation_screen.dart';
+import 'screens/services/chartered_engineer_certificate_screen.dart';
+import 'screens/services/client_review_screen.dart';
 import 'screens/request_intake_screen.dart';
 import 'theme/app_theme.dart';
 import 'services/analytics_service.dart';
@@ -111,6 +113,18 @@ class ProValuerApp extends StatelessWidget {
         GoRoute(
           path: '/services/plant-and-machinery-valuation',
           builder: (context, state) => const PlantMachineryValuationScreen(),
+        ),
+        GoRoute(
+          path: '/chartered-engineer-certificate',
+          builder: (context, state) => const CharteredEngineerCertificateScreen(),
+        ),
+        GoRoute(
+          path: '/property-valuation-hyderabad',
+          builder: (context, state) => const PropertyValuationScreen(),
+        ),
+        GoRoute(
+          path: '/review',
+          builder: (context, state) => const ClientReviewScreen(),
         ),
         GoRoute(
           path: '/request-valuation',

@@ -352,8 +352,20 @@
       <section>
         <h2>Confidential Insolvency Advisory & Valuer Appointment</h2>
         <p>Ensure strict compliance with Regulation 27 and eliminate dispute vulnerabilities before NCLT benches. Speak directly with our senior Registered Valuers under complete statutory confidentiality.</p>
-        <p>Telephone: <a href="tel:+918500880333">+91 85008 80333</a> | WhatsApp: <a href="https://wa.me/918500880333">+91 85008 80333</a></p>
+        <p>Telephone: <a href="tel:+918500880333" onclick="trackLeadCall(\'NCLT_IBC_VALUATION\')">+91 85008 80333</a> | WhatsApp: <a href="https://wa.me/918500880333" onclick="trackLeadWhatsApp(\'NCLT_IBC_VALUATION\')">+91 85008 80333</a></p>
       </section>
+    
+      <!-- Related Statutory Valuation Practices (Internal Linking - Phase 4 & Phase 5) -->
+      <section class="related-practices-section" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 22px; margin: 28px 0;">
+        <h3 style="font-size: 16px; margin: 0 0 12px 0; color: #0F172A; font-weight: 700;">Related Statutory Valuation Practices:</h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+          <a href="/services/share-valuation" style="background: #FFFFFF; border: 1px solid #CBD5E1; color: #0D695A; font-weight: 600; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px;">→ Share Valuation (Rule 11UA)</a>
+          <a href="/services/plant-and-machinery-valuation" style="background: #FFFFFF; border: 1px solid #CBD5E1; color: #0D695A; font-weight: 600; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px;">→ Plant & Machinery Valuation</a>
+          <a href="/services/bank-collateral-valuation" style="background: #FFFFFF; border: 1px solid #CBD5E1; color: #0D695A; font-weight: 600; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px;">→ Bank Collateral Valuation</a>
+          <a href="/chartered-engineer-certificate" style="background: #FFFFFF; border: 1px solid #CBD5E1; color: #0D695A; font-weight: 600; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px;">→ Chartered Engineer Certificate</a>
+        </div>
+      </section>
+
     </main>
 
     <footer>
@@ -364,5 +376,25 @@
 
   <!-- Flutter Web Application Bootstrap -->
   <script src="flutter_bootstrap.js" async></script>
+
+  <!-- DPDP Compliant Telemetry & Click Handlers (Phase 6) -->
+  <script>
+    function trackLeadWhatsApp(service) {
+      if (typeof gtag === 'function') {
+        gtag('event', 'lead_whatsapp_click', { 'service_type': service, 'page_url': window.location.href });
+      }
+    }
+    function trackLeadCall(service) {
+      if (typeof gtag === 'function') {
+        gtag('event', 'lead_call_click', { 'service_type': service, 'page_url': window.location.href });
+      }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof gtag === 'function') {
+        gtag('event', 'service_page_open', { 'page_url': window.location.href });
+      }
+    });
+  </script>
+
 </body>
 </html>

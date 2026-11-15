@@ -545,10 +545,23 @@
         <p>If the property owner is an NRI, they must provide the registered title deeds, Encumbrance Certificate, latest municipal tax receipts, and a registered General Power of Attorney (GPA) or Special Power of Attorney (SPA) executed before an Indian Embassy/Consulate or legally adjudicated in India, authorizing a local family representative to present the property for physical inspection.</p>
       </section>
 
+      
+      <!-- Related Statutory Valuation Practices (Internal Linking - Phase 4 & Phase 5) -->
+      <section class="related-practices-section" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 22px; margin: 28px 0;">
+        <h3 style="font-size: 16px; margin: 0 0 12px 0; color: #0F172A; font-weight: 700;">Related Statutory Valuation Practices:</h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+          <a href="/services/bank-collateral-valuation" style="background: #FFFFFF; border: 1px solid #CBD5E1; color: #0D695A; font-weight: 600; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px;">→ Bank Collateral Valuation</a>
+          <a href="/services/probate-inheritance-valuation" style="background: #FFFFFF; border: 1px solid #CBD5E1; color: #0D695A; font-weight: 600; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px;">→ Probate & Inheritance Valuation</a>
+          <a href="/services/visa-and-immigration-valuations" style="background: #FFFFFF; border: 1px solid #CBD5E1; color: #0D695A; font-weight: 600; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px;">→ Visa & Immigration Valuation</a>
+          <a href="/services/divorce-matrimonial-valuation" style="background: #FFFFFF; border: 1px solid #CBD5E1; color: #0D695A; font-weight: 600; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px;">→ Divorce & Matrimonial Valuation</a>
+          <a href="/government-approved-valuers" style="background: #FFFFFF; border: 1px solid #CBD5E1; color: #0D695A; font-weight: 600; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px;">→ Government Approved Valuers</a>
+        </div>
+      </section>
+
       <div class="cta-box">
         <h3>Commission Your Certified Property Valuation Dossier</h3>
         <p>Official, court-admissible valuation reports executed by Government Approved Valuers (Section 34AB) and IBBI Registered Valuers. Guaranteed 24 to 48-hour delivery across Hyderabad, Telangana, and South India.</p>
-        <p><strong>Telephone Hotline:</strong> <a href="tel:+918500880333" style="color: #10B981;">+91 85008 80333</a> | <strong>WhatsApp Advisory Desk:</strong> <a href="https://wa.me/918500880333?text=Hi%20ProValuer%2C%20I%20need%20a%20Property%20Valuation%20Report" style="color: #10B981;" target="_blank" rel="noopener">+91 85008 80333</a></p>
+        <p><strong>Telephone Hotline:</strong> <a href="tel:+918500880333" onclick="trackLeadCall(\'PROPERTY_VALUATION\')" style="color: #10B981;">+91 85008 80333</a> | <strong>WhatsApp Advisory Desk:</strong> <a href="https://wa.me/918500880333?text=Hi%20ProValuer%2C%20I%20need%20a%20Property%20Valuation%20Report" onclick="trackLeadWhatsApp(\'PROPERTY_VALUATION\')" style="color: #10B981;" target="_blank" rel="noopener">+91 85008 80333</a></p>
         <p><a href="/" style="color: #FFFFFF; text-decoration: underline;">Return to ProValuer Institutional Home</a> | <a href="/government-approved-valuers" style="color: #FFFFFF; text-decoration: underline;">Government Approved Valuers Practice Hub</a></p>
       </div>
     </main>
@@ -560,13 +573,33 @@
         <span class="floating-lead-sub">Government Approved Valuers • Wealth Tax Sec 34AB &amp; IBBI Registered</span>
       </div>
       <div class="floating-lead-actions">
-        <a href="tel:+918500880333" class="floating-btn-phone">&#9742; Call +91 85008 80333</a>
-        <a href="https://wa.me/918500880333?text=Hi%20ProValuer%2C%20I%20need%20a%20Property%20Valuation%20Report" class="floating-btn-wa" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+        <a href="tel:+918500880333" onclick="trackLeadCall(\'PROPERTY_VALUATION\')" class="floating-btn-phone">&#9742; Call +91 85008 80333</a>
+        <a href="https://wa.me/918500880333?text=Hi%20ProValuer%2C%20I%20need%20a%20Property%20Valuation%20Report" onclick="trackLeadWhatsApp(\'PROPERTY_VALUATION\')" class="floating-btn-wa" target="_blank" rel="noopener">&#128172; WhatsApp</a>
       </div>
     </div>
   </div>
 
   <!-- Flutter Web Application Bootstrap -->
   <script src="flutter_bootstrap.js" async></script>
+
+  <!-- DPDP Compliant Telemetry & Click Handlers (Phase 6) -->
+  <script>
+    function trackLeadWhatsApp(service) {
+      if (typeof gtag === 'function') {
+        gtag('event', 'lead_whatsapp_click', { 'service_type': service, 'page_url': window.location.href });
+      }
+    }
+    function trackLeadCall(service) {
+      if (typeof gtag === 'function') {
+        gtag('event', 'lead_call_click', { 'service_type': service, 'page_url': window.location.href });
+      }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof gtag === 'function') {
+        gtag('event', 'service_page_open', { 'page_url': window.location.href });
+      }
+    });
+  </script>
+
 </body>
 </html>

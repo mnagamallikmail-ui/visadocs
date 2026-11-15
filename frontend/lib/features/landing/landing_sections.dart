@@ -2423,6 +2423,298 @@ class ServicesSection extends StatelessWidget {
                   );
                 },
               ),
+
+              const SizedBox(height: 70),
+
+              // ── Specialized Valuation Practices (Phase 1) ─────────────────
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.symmetric(
+                  horizontal: isDesktop ? 40 : 20,
+                  vertical: isDesktop ? 36 : 28,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFE2E8F0), width: 1.0),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x060F172A), blurRadius: 20, offset: Offset(0, 6)),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.stars_rounded, color: LandingTheme.primaryAccent, size: 20),
+                        const SizedBox(width: 8),
+                        Text(
+                          'SPECIALIZED VALUATION PRACTICES',
+                          style: GoogleFonts.montserrat(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.5,
+                            color: LandingTheme.primaryAccent,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      'Dedicated Practice Pages & Regulatory Frameworks',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.montserrat(
+                        fontSize: isDesktop ? 24 : 20,
+                        fontWeight: FontWeight.w800,
+                        color: LandingTheme.textPrimary,
+                        letterSpacing: -0.5,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 680),
+                      child: Text(
+                        'Direct access to accredited valuation methodologies, regulatory standards, documentation checklists, and statutory turnaround SLAs.',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.montserrat(
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w400,
+                          color: LandingTheme.textSecondary,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                    LayoutBuilder(
+                      builder: (context, pracConstraints) {
+                        final int pracCols = isDesktop ? 5 : (pracConstraints.maxWidth >= 700 ? 3 : (pracConstraints.maxWidth >= 480 ? 2 : 1));
+                        const double pracSpacing = 16;
+                        final double pracWidth = (pracConstraints.maxWidth - (pracSpacing * (pracCols - 1))) / pracCols;
+
+                        final practiceItems = [
+                          {
+                            'title': 'Property Valuation',
+                            'route': '/services/property-valuation',
+                            'subtitle': 'Real Estate & Flats',
+                            'icon': Icons.apartment_rounded,
+                            'badge': 'GHMC & Circle',
+                          },
+                          {
+                            'title': 'Bank Collateral Valuation',
+                            'route': '/services/bank-collateral-valuation',
+                            'subtitle': 'Mortgage & Term Loans',
+                            'icon': Icons.account_balance_rounded,
+                            'badge': 'RBI Empanelled',
+                          },
+                          {
+                            'title': 'Plant & Machinery',
+                            'route': '/services/plant-and-machinery-valuation',
+                            'subtitle': 'Industrial & Equipment',
+                            'icon': Icons.precision_manufacturing_rounded,
+                            'badge': 'DRC Method',
+                          },
+                          {
+                            'title': 'Share Valuation',
+                            'route': '/services/share-valuation',
+                            'subtitle': 'Rule 11UA & FEMA',
+                            'icon': Icons.trending_up_rounded,
+                            'badge': 'Sec 56(2)(viib)',
+                          },
+                          {
+                            'title': 'NCLT & IBC Valuation',
+                            'route': '/services/nclt-ibc-valuation',
+                            'subtitle': 'CIRP & Liquidation',
+                            'icon': Icons.gavel_rounded,
+                            'badge': 'IBBI Sec 247',
+                          },
+                          {
+                            'title': 'Visa & Immigration',
+                            'route': '/services/visa-and-immigration-valuations',
+                            'subtitle': 'Net Worth & Solvency',
+                            'icon': Icons.flight_takeoff_rounded,
+                            'badge': 'Embassy Verified',
+                          },
+                          {
+                            'title': 'Probate & Inheritance',
+                            'route': '/services/probate-inheritance-valuation',
+                            'subtitle': 'Will & Court Partition',
+                            'icon': Icons.balance_rounded,
+                            'badge': 'High Court Legal',
+                          },
+                          {
+                            'title': 'Divorce & Matrimonial',
+                            'route': '/services/divorce-matrimonial-valuation',
+                            'subtitle': 'Asset Settlement',
+                            'icon': Icons.handshake_rounded,
+                            'badge': 'Family Court',
+                          },
+                          {
+                            'title': 'Chartered Engineer',
+                            'route': '/chartered-engineer-certificate',
+                            'subtitle': 'EPCG & Machinery Customs',
+                            'icon': Icons.engineering_rounded,
+                            'badge': 'IEI Certified',
+                          },
+                          {
+                            'title': 'Govt Approved Valuers',
+                            'route': '/government-approved-valuers',
+                            'subtitle': 'Capital Gains Sec 50C',
+                            'icon': Icons.verified_rounded,
+                            'badge': 'Wealth Tax 34AB',
+                          },
+                        ];
+
+                        return Wrap(
+                          spacing: pracSpacing,
+                          runSpacing: pracSpacing,
+                          children: practiceItems.map((item) {
+                            return SizedBox(
+                              width: pracWidth,
+                              child: _SpecializedPracticeTile(
+                                title: item['title'] as String,
+                                subtitle: item['subtitle'] as String,
+                                route: item['route'] as String,
+                                badge: item['badge'] as String,
+                                icon: item['icon'] as IconData,
+                              ),
+                            );
+                          }).toList(),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SpecializedPracticeTile extends StatefulWidget {
+  final String title;
+  final String subtitle;
+  final String route;
+  final String badge;
+  final IconData icon;
+
+  const _SpecializedPracticeTile({
+    required this.title,
+    required this.subtitle,
+    required this.route,
+    required this.badge,
+    required this.icon,
+  });
+
+  @override
+  State<_SpecializedPracticeTile> createState() => _SpecializedPracticeTileState();
+}
+
+class _SpecializedPracticeTileState extends State<_SpecializedPracticeTile> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      onEnter: (_) => setState(() => _isHovered = true),
+      onExit: (_) => setState(() => _isHovered = false),
+      child: GestureDetector(
+        onTap: () {
+          AnalyticsService.logServiceCardClick(
+            serviceTitle: widget.title,
+            targetRoute: widget.route,
+            source: 'specialized_practices_subsection',
+          );
+          context.go(widget.route);
+        },
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+          decoration: BoxDecoration(
+            color: _isHovered ? LandingTheme.accentSubtle : const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: _isHovered ? LandingTheme.primaryAccent : const Color(0xFFE2E8F0),
+              width: _isHovered ? 1.5 : 1.0,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: _isHovered ? LandingTheme.primaryAccent.withOpacity(0.12) : const Color(0x040F172A),
+                blurRadius: _isHovered ? 12 : 6,
+                offset: const Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: _isHovered ? Colors.white : LandingTheme.accentSubtle,
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Icon(widget.icon, size: 17, color: LandingTheme.primaryAccent),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                    ),
+                    child: Text(
+                      widget.badge,
+                      style: GoogleFonts.montserrat(
+                        fontSize: 9,
+                        fontWeight: FontWeight.w700,
+                        color: const Color(0xFF475569),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                widget.title,
+                style: GoogleFonts.montserrat(
+                  fontSize: 13.5,
+                  fontWeight: FontWeight.w700,
+                  color: LandingTheme.textPrimary,
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                widget.subtitle,
+                style: GoogleFonts.inter(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w500,
+                  color: LandingTheme.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Row(
+                children: [
+                  Text(
+                    'Explore Practice',
+                    style: GoogleFonts.montserrat(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w700,
+                      color: LandingTheme.primaryAccent,
+                    ),
+                  ),
+                  const SizedBox(width: 3),
+                  const Icon(Icons.arrow_forward_rounded, size: 10.5, color: LandingTheme.primaryAccent),
+                ],
+              ),
             ],
           ),
         ),
@@ -2522,7 +2814,37 @@ class WhyProValuerSection extends StatelessWidget {
                   style: LandingTheme.bodyMediumResponsive(screenW),
                 ),
               ),
-              const SizedBox(height: 60),
+              const SizedBox(height: 28),
+
+              // ── Compact Trust Proof Strip (Phase 3) ─────────────────────────
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(100),
+                  border: Border.all(color: const Color(0xFFE2E8F0)),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x040F172A), blurRadius: 10, offset: Offset(0, 3)),
+                  ],
+                ),
+                child: Wrap(
+                  spacing: 16,
+                  runSpacing: 10,
+                  alignment: WrapAlignment.center,
+                  crossAxisAlignment: WrapCrossAlignment.center,
+                  children: const [
+                    _ProofCheckItem('Government Approved Valuers'),
+                    _ProofCheckItem('IBBI Registered Valuers'),
+                    _ProofCheckItem('Chartered Engineers'),
+                    _ProofCheckItem('Court Accepted Reports'),
+                    _ProofCheckItem('Bank Accepted Reports'),
+                    _ProofCheckItem('Pan India Coverage'),
+                    _ProofCheckItem('23+ Years Experience'),
+                    _ProofCheckItem('12,000+ Assignments'),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 50),
 
               // 6 Authority Pillar Cards
               LayoutBuilder(
@@ -2670,6 +2992,30 @@ class WhyProValuerSection extends StatelessWidget {
           ),
         ),
       ),
+    );
+  }
+}
+
+class _ProofCheckItem extends StatelessWidget {
+  final String label;
+  const _ProofCheckItem(this.label);
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(Icons.check_circle_rounded, color: Color(0xFF0D695A), size: 16),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: GoogleFonts.montserrat(
+            fontSize: 12,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF0F172A),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -3117,14 +3463,17 @@ class LandingFooter extends StatelessWidget {
                 spacing: 24,
                 runSpacing: 12,
                 children: [
-                  _buildFooterServiceLink(context, 'Land & Building Valuation', '/services/property-valuation'),
-                  _buildFooterServiceLink(context, 'Plant & Machinery Valuation', '/knowledge/plant-and-machinery-valuation-complete-guide'),
-                  _buildFooterServiceLink(context, 'Financial Assets Valuation (Rule 11UA)', '/knowledge/rule-11ua-complete-guide'),
-                  _buildFooterServiceLink(context, 'Net Worth Certification', '/knowledge/net-worth-certificate-complete-guide'),
-                  _buildFooterServiceLink(context, 'Visa & Immigration Valuation', '/knowledge/visa-and-immigration-valuation-complete-guide'),
-                  _buildFooterServiceLink(context, "Lender's Independent Engineer (LIE)", '/services/bank-collateral-valuation'),
-                  _buildFooterServiceLink(context, 'Technical Due Diligence', '/knowledge/property-valuation-methods-complete-guide'),
-                  _buildFooterServiceLink(context, 'Chartered Engineering Services', '/knowledge/government-approved-valuers-complete-guide'),
+                  _buildFooterServiceLink(context, 'Property Valuation', '/services/property-valuation'),
+                  _buildFooterServiceLink(context, 'Bank Collateral Valuation', '/services/bank-collateral-valuation'),
+                  _buildFooterServiceLink(context, 'Plant & Machinery Valuation', '/services/plant-and-machinery-valuation'),
+                  _buildFooterServiceLink(context, 'Share Valuation (Rule 11UA)', '/services/share-valuation'),
+                  _buildFooterServiceLink(context, 'NCLT & IBC Valuation', '/services/nclt-ibc-valuation'),
+                  _buildFooterServiceLink(context, 'Visa & Immigration Valuation', '/services/visa-and-immigration-valuations'),
+                  _buildFooterServiceLink(context, 'Probate & Inheritance Valuation', '/services/probate-inheritance-valuation'),
+                  _buildFooterServiceLink(context, 'Divorce & Matrimonial Valuation', '/services/divorce-matrimonial-valuation'),
+                  _buildFooterServiceLink(context, 'Chartered Engineer Certificate', '/chartered-engineer-certificate'),
+                  _buildFooterServiceLink(context, 'Government Approved Valuers', '/government-approved-valuers'),
+                  _buildFooterServiceLink(context, 'Client Reviews & Verification', '/review'),
                 ],
               ),
               const SizedBox(height: 24),
@@ -3200,7 +3549,14 @@ class LandingFooter extends StatelessWidget {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
       child: GestureDetector(
-        onTap: () => context.go(route),
+        onTap: () {
+          AnalyticsService.logServiceCardClick(
+            serviceTitle: title,
+            targetRoute: route,
+            source: 'footer',
+          );
+          context.go(route);
+        },
         child: Text(
           title,
           style: GoogleFonts.montserrat(

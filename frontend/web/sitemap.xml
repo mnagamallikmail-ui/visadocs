@@ -80,6 +80,12 @@
         <changefreq>weekly</changefreq>
         <priority>0.80</priority>
     </url>
+    <url>
+        <loc>https://www.provaluer.in/review</loc>
+        <lastmod>2026-11-15</lastmod>
+        <changefreq>weekly</changefreq>
+        <priority>0.80</priority>
+    </url>
 
     <!-- ProValuer Authority Cluster Cornerstone Knowledge Guides -->
     <url>

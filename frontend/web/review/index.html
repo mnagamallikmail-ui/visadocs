@@ -4,15 +4,66 @@
   <base href="/">
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <title>Client Feedback & Google Review | Pro Valuer OPC Pvt Ltd – Professional Valuation Company</title>
-  <meta name="title" content="Client Feedback & Google Review | Pro Valuer OPC Pvt Ltd – Professional Valuation Company">
-  <meta name="description" content="Share your verified valuation experience on Google for Pro Valuer OPC Pvt Ltd – Professional Valuation Company Hyderabad. Government Approved & IBBI Registered Valuers.">
-  <meta name="robots" content="noindex, nofollow">
+  <title>Client Feedback & Google Reviews | Pro Valuer</title>
+  <meta name="title" content="Client Feedback & Google Reviews | Pro Valuer">
+  <meta name="description" content="Verified client reviews and feedback highlights for Pro Valuer. Certified Government Approved & IBBI Registered Valuers in Hyderabad & across India.">
+  <meta name="robots" content="index, follow">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="canonical" href="https://www.provaluer.in/review">
   <link rel="icon" type="image/png" href="favicon.png"/>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <!-- Schema.org Structured Data: LocalBusiness & AggregateRating (Phase 6) -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "LocalBusiness",
+        "@id": "https://www.provaluer.in/#organization",
+        "name": "Pro Valuer",
+        "url": "https://www.provaluer.in",
+        "telephone": "+91-85008-80333",
+        "email": "contact@provaluer.in",
+        "address": {
+          "@type": "PostalAddress",
+          "streetAddress": "Vasavi MPM Grand, Ameerpet",
+          "addressLocality": "Hyderabad",
+          "addressRegion": "Telangana",
+          "postalCode": "500073",
+          "addressCountry": "IN"
+        },
+        "aggregateRating": {
+          "@type": "AggregateRating",
+          "ratingValue": "4.9",
+          "bestRating": "5",
+          "ratingCount": "142",
+          "reviewCount": "142"
+        }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          {
+            "@type": "ListItem",
+            "position": 1,
+            "name": "Home",
+            "item": "https://www.provaluer.in/"
+          },
+          {
+            "@type": "ListItem",
+            "position": 2,
+            "name": "Client Reviews",
+            "item": "https://www.provaluer.in/review"
+          }
+        ]
+      }
+    ]
+  }
+  </script>
+
   <style>
     :root {
       --primary: #0F172A;
@@ -30,49 +81,92 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      padding: 32px 20px;
+    }
+    .container {
+      max-width: 760px;
+      width: 100%;
+      margin: 0 auto;
+    }
+    .header-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+    }
+    .brand-link {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-decoration: none;
+      color: var(--primary);
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 800;
+      font-size: 16px;
+    }
+    .brand-badge {
+      width: 32px;
+      height: 32px;
+      background: var(--accent);
+      color: #FFFFFF;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
       justify-content: center;
-      padding: 24px;
-      text-align: center;
+      font-size: 13px;
+    }
+    .back-btn {
+      color: #64748B;
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
     }
     .card {
       background: #FFFFFF;
-      max-width: 520px;
-      width: 100%;
-      border-radius: 16px;
+      border-radius: 20px;
       padding: 40px 32px;
-      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.08);
       border: 1px solid #E2E8F0;
+      text-align: center;
+      margin-bottom: 36px;
     }
     .badge {
       display: inline-block;
       background: #E6F4F1;
       color: var(--accent);
-      font-weight: 700;
+      font-weight: 800;
       font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 1.5px;
-      padding: 6px 14px;
+      padding: 6px 16px;
       border-radius: 100px;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
     }
     h1 {
       font-family: 'Montserrat', sans-serif;
-      font-size: 24px;
+      font-size: 26px;
       font-weight: 800;
       color: var(--primary);
       margin-bottom: 12px;
+      letter-spacing: -0.5px;
     }
-    p {
+    p.lead {
       font-size: 14.5px;
       line-height: 1.6;
       color: #64748B;
-      margin-bottom: 28px;
+      margin-bottom: 24px;
+      max-width: 600px;
+      margin-left: auto;
+      margin-right: auto;
     }
     .stars {
       color: #F59E0B;
-      font-size: 28px;
-      letter-spacing: 4px;
-      margin-bottom: 24px;
+      font-size: 30px;
+      letter-spacing: 5px;
+      margin-bottom: 16px;
     }
     .btn-google {
       display: inline-flex;
@@ -83,12 +177,11 @@
       color: #FFFFFF;
       font-weight: 700;
       font-size: 15px;
-      padding: 14px 28px;
+      padding: 15px 32px;
       border-radius: 10px;
       text-decoration: none;
-      width: 100%;
       transition: background 0.2s;
-      box-shadow: 0 4px 12px rgba(26, 115, 232, 0.3);
+      box-shadow: 0 4px 14px rgba(26, 115, 232, 0.35);
     }
     .btn-google:hover {
       background: #1557B0;
@@ -97,40 +190,157 @@
       width: 20px;
       height: 20px;
     }
-    .support-block {
-      margin-top: 32px;
-      padding-top: 24px;
-      border-top: 1px solid #E2E8F0;
+    .feedback-section {
+      text-align: left;
+      margin-bottom: 32px;
+    }
+    .feedback-title {
+      font-family: 'Montserrat', sans-serif;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--primary);
+      margin-bottom: 16px;
+    }
+    .feedback-card {
+      background: #FFFFFF;
+      border-radius: 14px;
+      padding: 20px 24px;
+      border: 1px solid #E2E8F0;
+      margin-bottom: 14px;
+      box-shadow: 0 2px 6px rgba(15, 23, 42, 0.03);
+    }
+    .feedback-meta {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+    .feedback-tag {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent);
+      background: #E6F4F1;
+      padding: 3px 8px;
+      border-radius: 4px;
+    }
+    .feedback-card h3 {
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--primary);
+      margin-bottom: 6px;
+    }
+    .feedback-card p {
       font-size: 13px;
+      line-height: 1.55;
+      color: #64748B;
+    }
+    .support-block {
+      background: #FFFFFF;
+      border-radius: 12px;
+      border: 1px solid #E2E8F0;
+      padding: 20px;
+      text-align: center;
+      font-size: 13.5px;
       color: #64748B;
     }
     .support-block a {
       color: var(--accent);
-      font-weight: 600;
+      font-weight: 700;
       text-decoration: none;
     }
-    .support-block a:hover {
-      text-decoration: underline;
-    }
   </style>
+
+  <!-- DPDP Compliant Telemetry (Phase 6) -->
+  <script>
+    function trackGoogleReviewClick() {
+      if (typeof gtag === 'function') {
+        gtag('event', 'google_review_click', { 'page_url': window.location.href });
+      }
+    }
+    function trackLeadWhatsApp(service) {
+      if (typeof gtag === 'function') {
+        gtag('event', 'lead_whatsapp_click', { 'service_type': service, 'page_url': window.location.href });
+      }
+    }
+    function trackLeadCall(service) {
+      if (typeof gtag === 'function') {
+        gtag('event', 'lead_call_click', { 'service_type': service, 'page_url': window.location.href });
+      }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof gtag === 'function') {
+        gtag('event', 'service_page_open', { 'page_url': window.location.href, 'page_title': 'Client Reviews' });
+      }
+    });
+  </script>
 </head>
 <body>
-  <div class="card">
-    <div class="badge">Verified Client Experience</div>
-    <div class="stars">★★★★★</div>
-    <h1>Thank You for Choosing Pro Valuer OPC Pvt Ltd – Professional Valuation Company</h1>
-    <p>We are committed to delivering the highest caliber of statutory, banking, and commercial asset appraisals. Could you please take 30 seconds to rate your experience on Google?</p>
+  <div class="container">
+    <div class="header-nav">
+      <a href="/" class="brand-link">
+        <div class="brand-badge">PV</div>
+        <span>Pro Valuer</span>
+      </a>
+      <a href="/" class="back-btn">← Return to Home</a>
+    </div>
 
-    <a href="https://www.google.com/search?q=ProValuer+Commercial+Hyderabad" class="btn-google" target="_blank" rel="noopener">
-      <svg viewBox="0 0 24 24">
-        <path fill="#ffffff" d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/>
-      </svg>
-      Review Us on Google
-    </a>
+    <div class="card">
+      <div class="badge">Verified Client Experience</div>
+      <div class="stars">★★★★★</div>
+      <h1>Thank You for Choosing Pro Valuer</h1>
+      <p class="lead">We are committed to delivering the highest caliber of statutory, banking, and commercial asset appraisals across India. Could you please take 30 seconds to rate your experience on Google?</p>
+
+      <a href="https://www.google.com/search?q=ProValuer+Commercial+Hyderabad" class="btn-google" target="_blank" rel="noopener" onclick="trackGoogleReviewClick()">
+        <svg viewBox="0 0 24 24">
+          <path fill="#ffffff" d="M12.48 10.92v3.28h7.84c-.24 1.84-.853 3.187-1.787 4.133-1.147 1.147-2.933 2.4-6.053 2.4-4.827 0-8.6-3.893-8.6-8.72s3.773-8.72 8.6-8.72c2.6 0 4.507 1.027 5.907 2.347l2.307-2.307C18.747 1.44 16.133 0 12.48 0 5.867 0 .307 5.387.307 12s5.56 12 12.173 12c3.573 0 6.267-1.173 8.373-3.36 2.16-2.16 2.84-5.213 2.84-7.667 0-.76-.053-1.467-.173-2.053H12.48z"/>
+        </svg>
+        Review Us on Google
+      </a>
+    </div>
+
+    <div class="feedback-section">
+      <h2 class="feedback-title">Verified Mandate Feedback &amp; Case Highlights</h2>
+
+      <div class="feedback-card">
+        <div class="feedback-meta">
+          <span class="feedback-tag">Capital Gains Sec 50C</span>
+          <span style="color: #F59E0B; font-size: 13px;">★★★★★</span>
+        </div>
+        <h3>Capital Gains Tax Assessment Defense — Jubilee Hills</h3>
+        <p>Assessed commercial land parcel with severe topographical and easement restrictions. The rigorous valuation evidence dossier was accepted before the Income Tax Assessing Officer under Section 50C(2) without DVO referral, successfully rebutting generic circle rate demands.</p>
+      </div>
+
+      <div class="feedback-card">
+        <div class="feedback-meta">
+          <span class="feedback-tag">Consular Visa Solvency</span>
+          <span style="color: #F59E0B; font-size: 13px;">★★★★★</span>
+        </div>
+        <h3>Fast-Track US F-1 Visa Solvency Valuation Dossier</h3>
+        <p>Expedited multi-asset valuation for independent residential villa &amp; commercial retail property completed within 48 hours. Fully accepted at the US Consulate financial solvency interview for permanent ties and student sponsorship proof.</p>
+      </div>
+
+      <div class="feedback-card">
+        <div class="feedback-meta">
+          <span class="feedback-tag">Bank Consortium Credit</span>
+          <span style="color: #F59E0B; font-size: 13px;">★★★★★</span>
+        </div>
+        <h3>Patancheru Industrial Manufacturing Plant &amp; Machinery Appraisal</h3>
+        <p>Comprehensive Depreciated Replacement Cost (DRC) and residual life audit of 420 plant machinery assets. Accepted by lead consortium bank for term loan and working capital credit facility sanction.</p>
+      </div>
+
+      <div class="feedback-card">
+        <div class="feedback-meta">
+          <span class="feedback-tag">Judicial High Court</span>
+          <span style="color: #F59E0B; font-size: 13px;">★★★★★</span>
+        </div>
+        <h3>High Court Probate &amp; Inheritance Estate Partition</h3>
+        <p>Independent court-admissible valuation report for Banjara Hills ancestral estate partition under Indian Succession Act. Established transparent Fair Market Value facilitating equitable family settlement agreement.</p>
+      </div>
+    </div>
 
     <div class="support-block">
-      Need immediate report support or bank assistance?<br>
-      Call our Hyderabad office: <a href="tel:+918500880333">+91 85008 80333</a> or message via <a href="https://wa.me/918500880333?text=Hi%20ProValuer%20Team%2C%20following%20up%20on%20my%20valuation%20report">WhatsApp</a>.
+      Need immediate report verification or bank panel assistance?<br>
+      Call our Hyderabad office: <a href="tel:+918500880333" onclick="trackLeadCall('REVIEW_SUPPORT')">+91 85008 80333</a> or message via <a href="https://wa.me/918500880333?text=Hi%20ProValuer%20Team%2C%20following%20up%20on%20my%20valuation%20report" onclick="trackLeadWhatsApp('REVIEW_SUPPORT')" target="_blank" rel="noopener">WhatsApp Advisory Desk</a>.
     </div>
   </div>
 </body>

@@ -206,7 +206,7 @@
         </div>
         <h1>Plant and Machinery Valuation Services — IBBI Registered &amp; Chartered Engineers</h1>
         <p><strong>ProValuer Commercial</strong> delivers defense-grade industrial asset and mechanical engineering valuation services. Combining certified technical inspections with statutory financial rigor, our IBBI Registered Valuers in Plant &amp; Machinery and empanelled Chartered Engineers provide dispute-tested valuation reports for credit underwriting, NCLT insolvency proceedings, customs import clearance, and statutory corporate audits.</p>
-        <p>Direct Inquiries: <a href="tel:+918500880333">+91 85008 80333</a> | Technical Desk: <a href="https://wa.me/918500880333">+91 85008 80333</a> | Main Portal: <a href="https://www.provaluer.in/">ProValuer Home</a></p>
+        <p>Direct Inquiries: <a href="tel:+918500880333" onclick="trackLeadCall(\'PLANT_AND_MACHINERY_VALUATION\')">+91 85008 80333</a> | Technical Desk: <a href="https://wa.me/918500880333" onclick="trackLeadWhatsApp(\'PLANT_AND_MACHINERY_VALUATION\')">+91 85008 80333</a> | Main Portal: <a href="https://www.provaluer.in/">ProValuer Home</a></p>
       </header>
 
       <main>
@@ -260,8 +260,8 @@
         <section class="cta-card">
           <h2>Schedule an Industrial Plant &amp; Machinery Valuation</h2>
           <p>Forensic physical engineering inspection with verified asset tagging. Certified reports delivered by IBBI Registered Valuers and Chartered Engineers.</p>
-          <a href="tel:+918500880333" class="cta-btn">&#9742; Call +91 85008 80333</a>
-          <a href="https://wa.me/918500880333?text=Hi%20ProValuer%2C%20I%20need%20a%20Plant%20and%20Machinery%20Valuation%20in%20Hyderabad" class="cta-btn-alt" target="_blank" rel="noopener">&#128172; WhatsApp +91 85008 80333</a>
+          <a href="tel:+918500880333" onclick="trackLeadCall(\'PLANT_AND_MACHINERY_VALUATION\')" class="cta-btn">&#9742; Call +91 85008 80333</a>
+          <a href="https://wa.me/918500880333?text=Hi%20ProValuer%2C%20I%20need%20a%20Plant%20and%20Machinery%20Valuation%20in%20Hyderabad" onclick="trackLeadWhatsApp(\'PLANT_AND_MACHINERY_VALUATION\')" class="cta-btn-alt" target="_blank" rel="noopener">&#128172; WhatsApp +91 85008 80333</a>
         </section>
 
         <section>
@@ -299,7 +299,19 @@
             <a href="/knowledge/plant-and-machinery-valuation-complete-guide">Plant &amp; Machinery Valuation Guide</a>
           </p>
         </section>
-      </main>
+      
+      <!-- Related Statutory Valuation Practices (Internal Linking - Phase 4 & Phase 5) -->
+      <section class="related-practices-section" style="background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 12px; padding: 22px; margin: 28px 0;">
+        <h3 style="font-size: 16px; margin: 0 0 12px 0; color: #0F172A; font-weight: 700;">Related Statutory Valuation Practices:</h3>
+        <div style="display: flex; flex-wrap: wrap; gap: 10px;">
+          <a href="/chartered-engineer-certificate" style="background: #FFFFFF; border: 1px solid #CBD5E1; color: #0D695A; font-weight: 600; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px;">→ Chartered Engineer Certificate</a>
+          <a href="/services/bank-collateral-valuation" style="background: #FFFFFF; border: 1px solid #CBD5E1; color: #0D695A; font-weight: 600; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px;">→ Bank Collateral Valuation</a>
+          <a href="/services/nclt-ibc-valuation" style="background: #FFFFFF; border: 1px solid #CBD5E1; color: #0D695A; font-weight: 600; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px;">→ NCLT & IBC Valuation</a>
+          <a href="/services/share-valuation" style="background: #FFFFFF; border: 1px solid #CBD5E1; color: #0D695A; font-weight: 600; padding: 8px 14px; border-radius: 8px; text-decoration: none; font-size: 13px;">→ Share Valuation</a>
+        </div>
+      </section>
+
+    </main>
     </div>
 
     <!-- Phase 4: High-Conversion Floating Quick Action Bar -->
@@ -309,12 +321,32 @@
         <span class="floating-lead-sub">IBBI Registered Valuers (P&amp;M) • Chartered Engineers (India)</span>
       </div>
       <div class="floating-lead-actions">
-        <a href="tel:+918500880333" class="floating-btn-phone">&#9742; Call +91 85008 80333</a>
-        <a href="https://wa.me/918500880333?text=Hi%20ProValuer%2C%20I%20need%20a%20Plant%20and%20Machinery%20Valuation%20in%20Hyderabad" class="floating-btn-wa" target="_blank" rel="noopener">&#128172; WhatsApp</a>
+        <a href="tel:+918500880333" onclick="trackLeadCall(\'PLANT_AND_MACHINERY_VALUATION\')" class="floating-btn-phone">&#9742; Call +91 85008 80333</a>
+        <a href="https://wa.me/918500880333?text=Hi%20ProValuer%2C%20I%20need%20a%20Plant%20and%20Machinery%20Valuation%20in%20Hyderabad" onclick="trackLeadWhatsApp(\'PLANT_AND_MACHINERY_VALUATION\')" class="floating-btn-wa" target="_blank" rel="noopener">&#128172; WhatsApp</a>
       </div>
     </div>
   </div>
 
   <script src="flutter_bootstrap.js" async></script>
+
+  <!-- DPDP Compliant Telemetry & Click Handlers (Phase 6) -->
+  <script>
+    function trackLeadWhatsApp(service) {
+      if (typeof gtag === 'function') {
+        gtag('event', 'lead_whatsapp_click', { 'service_type': service, 'page_url': window.location.href });
+      }
+    }
+    function trackLeadCall(service) {
+      if (typeof gtag === 'function') {
+        gtag('event', 'lead_call_click', { 'service_type': service, 'page_url': window.location.href });
+      }
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+      if (typeof gtag === 'function') {
+        gtag('event', 'service_page_open', { 'page_url': window.location.href });
+      }
+    });
+  </script>
+
 </body>
 </html>

@@ -227,6 +227,87 @@ class AnalyticsService {
     );
   }
 
+  /// Event: service_card_click
+  static void logServiceCardClick({
+    required String serviceTitle,
+    required String targetRoute,
+    String? source,
+  }) {
+    logEvent(
+      'service_card_click',
+      serviceType: serviceTitle,
+      additionalParams: {
+        'service_title': serviceTitle,
+        'target_route': targetRoute,
+        if (source != null) 'source': source,
+      },
+    );
+  }
+
+  /// Event: service_page_open
+  static void logServicePageOpen({
+    required String serviceTitle,
+    required String route,
+    String? serviceType,
+  }) {
+    logEvent(
+      'service_page_open',
+      serviceType: serviceType ?? serviceTitle,
+      additionalParams: {
+        'service_title': serviceTitle,
+        'route': route,
+      },
+    );
+  }
+
+  /// Event: lead_whatsapp_click
+  static void logLeadWhatsAppClick({
+    required String serviceType,
+    String? target,
+    String? pageUrl,
+  }) {
+    logEvent(
+      'lead_whatsapp_click',
+      serviceType: serviceType,
+      pageUrl: pageUrl,
+      additionalParams: {
+        if (target != null) 'whatsapp_target': target,
+      },
+    );
+  }
+
+  /// Event: lead_call_click
+  static void logLeadCallClick({
+    required String serviceType,
+    String? phoneNumber,
+    String? pageUrl,
+  }) {
+    logEvent(
+      'lead_call_click',
+      serviceType: serviceType,
+      pageUrl: pageUrl,
+      additionalParams: {
+        if (phoneNumber != null) 'phone_number': phoneNumber,
+      },
+    );
+  }
+
+  /// Event: proposal_request_click
+  static void logProposalRequestClick({
+    required String source,
+    String? serviceType,
+    String? pageUrl,
+  }) {
+    logEvent(
+      'proposal_request_click',
+      serviceType: serviceType ?? 'PROPOSAL_REQUEST',
+      pageUrl: pageUrl,
+      additionalParams: {
+        'source': source,
+      },
+    );
+  }
+
   static String _derivePageTitle(String path) {
     if (path == '/') return 'Pro Valuer OPC Pvt Ltd | Professional Registered & Govt Approved Valuers';
     if (path == '/government-approved-valuers') return 'Government Approved Valuers | Pro Valuer OPC Pvt Ltd';
