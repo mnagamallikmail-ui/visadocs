@@ -1402,13 +1402,21 @@ public class DocxTemplateEngine {
 
     private String formatIndian(String raw) {
         if (raw == null || raw.trim().isEmpty()) return "0";
-        String clean = raw.replaceAll("[^0-9.-]", "").trim();
+        String trimmed = raw.trim();
+        // Preserve scientific notation (e.g. 1.656E7 from Jackson DoubleNode.asText())
+        String clean = trimmed.replaceAll("[^0-9eE.+\\-]", "");
         if (clean.isEmpty() || clean.equals("-") || clean.equals(".")) return raw;
         try {
             BigDecimal bd = new BigDecimal(clean);
             return IndianNumberFormatter.format(bd);
         } catch (Exception e) {
-            return raw;
+            String digitsOnly = trimmed.replaceAll("[^0-9.-]", "").trim();
+            if (digitsOnly.isEmpty() || digitsOnly.equals("-") || digitsOnly.equals(".")) return raw;
+            try {
+                return IndianNumberFormatter.format(new BigDecimal(digitsOnly));
+            } catch (Exception ex) {
+                return raw;
+            }
         }
     }
 
@@ -1427,7 +1435,7 @@ public class DocxTemplateEngine {
 
     private Tbl buildDynamicCompositePropertyTable(Map<String, String> inputs) {
         List<String> headers = List.of("S.No", "Description", "Unit", "Quantity", "Rate (₹)", "Amount (₹)", "Depreciation (₹)", "Fair Value (₹)");
-        List<Integer> colWidths = List.of(700, 2700, 800, 900, 1100, 1100, 1100, 1200);
+        List<Integer> colWidths = List.of(550, 2050, 650, 800, 1300, 1400, 1350, 1500);
         List<JcEnumeration> alignments = List.of(
                 JcEnumeration.CENTER, JcEnumeration.LEFT, JcEnumeration.CENTER,
                 JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.RIGHT,
@@ -1436,6 +1444,8 @@ public class DocxTemplateEngine {
         List<List<String>> rows = new ArrayList<>();
 
         String compJson = inputs != null ? inputs.get("RAW_COMPOSITE_ITEMS_JSON") : null;
+        BigDecimal calculatedTotalAmount = BigDecimal.ZERO;
+        BigDecimal calculatedTotalDepreciation = BigDecimal.ZERO;
         BigDecimal calculatedRawFairValue = BigDecimal.ZERO;
 
         if (compJson != null && !compJson.trim().isEmpty()) {
@@ -1454,7 +1464,13 @@ public class DocxTemplateEngine {
                         String fv = "Rs " + formatIndian(n.path("fairValue").asText("0"));
 
                         try {
-                            calculatedRawFairValue = calculatedRawFairValue.add(new BigDecimal(n.path("fairValue").asText("0")));
+                            calculatedTotalAmount = calculatedTotalAmount.add(new BigDecimal(n.path("amount").asText("0").replaceAll("[^0-9.-]", "")));
+                        } catch (Exception ignored) {}
+                        try {
+                            calculatedTotalDepreciation = calculatedTotalDepreciation.add(new BigDecimal(n.path("depreciationAmount").asText("0").replaceAll("[^0-9.-]", "")));
+                        } catch (Exception ignored) {}
+                        try {
+                            calculatedRawFairValue = calculatedRawFairValue.add(new BigDecimal(n.path("fairValue").asText("0").replaceAll("[^0-9.-]", "")));
                         } catch (Exception ignored) {}
 
                         rows.add(List.of(sNoStr, desc, unit, qty, rate, amount, dep, fv));
@@ -1474,19 +1490,47 @@ public class DocxTemplateEngine {
             rows.add(List.of("1", subType, "Sq.Ft", formatIndian(area), "Rs " + formatIndian(rate), "Rs " + formatIndian(amt), "Rs " + formatIndian(dep), "Rs " + formatIndian(fv)));
             rows.add(List.of("2", "Interior Works & Improvements", "LS", "1", "Rs 0", "Rs 0", "Rs 0", "Rs 0"));
             try {
+                calculatedTotalAmount = calculatedTotalAmount.add(new BigDecimal(amt.replaceAll("[^0-9.-]", "").trim()));
+            } catch (Exception ignored) {}
+            try {
+                calculatedTotalDepreciation = calculatedTotalDepreciation.add(new BigDecimal(dep.replaceAll("[^0-9.-]", "").trim()));
+            } catch (Exception ignored) {}
+            try {
                 calculatedRawFairValue = calculatedRawFairValue.add(new BigDecimal(fv.replaceAll("[^0-9.]", "").trim()));
             } catch (Exception ignored) {}
         }
 
+        BigDecimal totalAmountBd = calculatedTotalAmount;
+        String totalAmtInput = inputs != null ? inputs.getOrDefault("TOTAL_AMOUNT", inputs.getOrDefault("total_amount", "")) : "";
+        if (totalAmtInput != null && !totalAmtInput.trim().isEmpty()) {
+            try {
+                BigDecimal parsed = new BigDecimal(totalAmtInput.replaceAll("[^0-9.]", "").trim());
+                if (parsed.compareTo(BigDecimal.ZERO) > 0 || totalAmountBd.compareTo(BigDecimal.ZERO) == 0) {
+                    totalAmountBd = parsed;
+                }
+            } catch (Exception ignored) {}
+        }
+
+        BigDecimal totalDepBd = calculatedTotalDepreciation;
+        String totalDepInput = inputs != null ? inputs.getOrDefault("TOTAL_DEPRECIATION", inputs.getOrDefault("total_depreciation", "")) : "";
+        if (totalDepInput != null && !totalDepInput.trim().isEmpty()) {
+            try {
+                BigDecimal parsed = new BigDecimal(totalDepInput.replaceAll("[^0-9.]", "").trim());
+                if (parsed.compareTo(BigDecimal.ZERO) > 0 || totalDepBd.compareTo(BigDecimal.ZERO) == 0) {
+                    totalDepBd = parsed;
+                }
+            } catch (Exception ignored) {}
+        }
+
         BigDecimal rawFairValBd = calculatedRawFairValue;
-        String rawFairValInput = inputs != null ? inputs.get("RAW_FAIR_VALUE") : null;
+        String rawFairValInput = inputs != null ? inputs.getOrDefault("RAW_FAIR_VALUE", inputs.getOrDefault("raw_fair_value", inputs.getOrDefault("TOTAL_FAIR_VALUE", inputs.getOrDefault("total_fair_value", "")))) : "";
         if (rawFairValInput != null && !rawFairValInput.trim().isEmpty()) {
             try {
                 rawFairValBd = new BigDecimal(rawFairValInput.replaceAll("[^0-9.]", "").trim());
             } catch (Exception ignored) {}
         }
 
-        String sayFairValStr = inputs != null ? inputs.getOrDefault("SAY_FAIR_VALUE", inputs.getOrDefault("SAY_VALUE", inputs.getOrDefault("say_value", inputs.getOrDefault("FAIR_VALUE", inputs.getOrDefault("fair_value", ""))))) : "";
+        String sayFairValStr = inputs != null ? inputs.getOrDefault("SAY_VALUE", inputs.getOrDefault("say_value", inputs.getOrDefault("SAY_FAIR_VALUE", inputs.getOrDefault("say_fair_value", inputs.getOrDefault("FAIR_VALUE", inputs.getOrDefault("fair_value", "")))))) : "";
         BigDecimal sayFairValBd = BigDecimal.ZERO;
         if (sayFairValStr != null && !sayFairValStr.trim().isEmpty()) {
             try {
@@ -1495,6 +1539,8 @@ public class DocxTemplateEngine {
         }
 
         List<Map.Entry<String, String>> totals = new ArrayList<>();
+        totals.add(Map.entry("Total Amount", "Rs " + formatIndian(totalAmountBd.toPlainString())));
+        totals.add(Map.entry("Total Depreciation", "Rs " + formatIndian(totalDepBd.toPlainString())));
         totals.add(Map.entry("Fair Value Of Property", "Rs " + formatIndian(rawFairValBd.toPlainString())));
 
         if (sayFairValBd.compareTo(BigDecimal.ZERO) > 0 && sayFairValBd.compareTo(rawFairValBd) != 0) {
@@ -1532,7 +1578,7 @@ public class DocxTemplateEngine {
 
     private Tbl buildDynamicLandTable(Map<String, String> inputs) {
         List<String> headers = List.of("S.No", "Description", "Unit", "Quantity", "Rate (₹)", "Amount (₹)");
-        List<Integer> colWidths = List.of(800, 3600, 1000, 1200, 1400, 1600);
+        List<Integer> colWidths = List.of(650, 3350, 850, 1250, 1600, 1900);
         List<JcEnumeration> alignments = List.of(JcEnumeration.CENTER, JcEnumeration.LEFT, JcEnumeration.CENTER, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.RIGHT);
         List<List<String>> rows = new ArrayList<>();
         
@@ -1593,7 +1639,7 @@ public class DocxTemplateEngine {
 
     private Tbl buildDynamicBuildingTable(Map<String, String> inputs) {
         List<String> headers = List.of("Description", "Building Type", "Unit", "Quantity", "Rate (₹)", "Amount (₹)", "Depreciation (₹)", "Building Value (₹)");
-        List<Integer> colWidths = List.of(2000, 1700, 800, 900, 1000, 1100, 1000, 1100);
+        List<Integer> colWidths = List.of(1650, 1350, 650, 750, 1250, 1350, 1250, 1350);
         List<JcEnumeration> alignments = List.of(JcEnumeration.LEFT, JcEnumeration.LEFT, JcEnumeration.CENTER, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.RIGHT);
         List<List<String>> rows = new ArrayList<>();
 
@@ -1733,7 +1779,7 @@ public class DocxTemplateEngine {
 
     private Tbl buildDynamicComparablesTable(Map<String, String> inputs) {
         List<String> headers = List.of("Location", "Survey No", "Area", "Rate (₹)", "Sale Value (₹)", "Date", "Source");
-        List<Integer> colWidths = List.of(1800, 1300, 1100, 1300, 1500, 1100, 1500);
+        List<Integer> colWidths = List.of(1700, 1200, 1100, 1400, 1700, 1100, 1400);
         List<JcEnumeration> alignments = List.of(JcEnumeration.LEFT, JcEnumeration.LEFT, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.RIGHT, JcEnumeration.CENTER, JcEnumeration.LEFT);
         List<List<String>> rows = new ArrayList<>();
 
@@ -2260,11 +2306,11 @@ public class DocxTemplateEngine {
         cellMar.setBottom(botMar);
         TblWidth leftMar = factory.createTblWidth();
         leftMar.setType("dxa");
-        leftMar.setW(BigInteger.valueOf(140));
+        leftMar.setW(BigInteger.valueOf(80));
         cellMar.setLeft(leftMar);
         TblWidth rightMar = factory.createTblWidth();
         rightMar.setType("dxa");
-        rightMar.setW(BigInteger.valueOf(140));
+        rightMar.setW(BigInteger.valueOf(80));
         cellMar.setRight(rightMar);
         tblPr.setTblCellMar(cellMar);
 
@@ -2376,9 +2422,7 @@ public class DocxTemplateEngine {
                 shd.setFill("3494BA");
                 tcPr.setShd(shd);
 
-                // NoWrap to guarantee single-line fit
-                tcPr.setNoWrap(factory.createBooleanDefaultTrue());
-
+                // Allow multi-word headers to wrap cleanly within fixed column widths instead of overflowing page margins
                 // Vertical center alignment
                 CTVerticalJc vAlign = factory.createCTVerticalJc();
                 vAlign.setVal(STVerticalJc.CENTER);
