@@ -272,8 +272,24 @@ public class ValuationCalculationFormulaService {
             item.setDepreciationPercentage(deprPct);
 
             BigDecimal deprAmount = qty.multiply(cost).multiply(deprFactor).multiply(age)
-                    .divide(usefulLifeBd, 2, RoundingMode.HALF_UP);
+                    .divide(usefulLifeBd, 0, RoundingMode.HALF_UP).setScale(2, RoundingMode.HALF_UP);
             item.setDepreciationAmount(deprAmount);
+
+            BigDecimal fairVal = amount.subtract(deprAmount).setScale(2, RoundingMode.HALF_UP);
+            item.setFairValue(fairVal);
+        } else if ("PARKING".equals(cat)) {
+            BigDecimal deprAmount = item.getDepreciationAmount() != null ? item.getDepreciationAmount() : BigDecimal.ZERO;
+            if (deprAmount.compareTo(BigDecimal.ZERO) > 0) {
+                if (amount.compareTo(BigDecimal.ZERO) > 0) {
+                    BigDecimal pct = deprAmount.multiply(BigDecimal.valueOf(100)).divide(amount, 2, RoundingMode.HALF_UP);
+                    item.setDepreciationPercentage(pct);
+                }
+            } else if (item.getDepreciationPercentage() != null && item.getDepreciationPercentage().compareTo(BigDecimal.ZERO) > 0) {
+                deprAmount = amount.multiply(item.getDepreciationPercentage()).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                item.setDepreciationAmount(deprAmount);
+            } else {
+                item.setDepreciationAmount(BigDecimal.ZERO);
+            }
 
             BigDecimal fairVal = amount.subtract(deprAmount).setScale(2, RoundingMode.HALF_UP);
             item.setFairValue(fairVal);

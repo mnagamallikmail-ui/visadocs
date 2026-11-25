@@ -52,6 +52,9 @@ public class ValuationEngineService {
     @Autowired
     private OrderInputRepository orderInputRepository;
 
+    @Autowired(required = false)
+    private OrderDocumentRepository orderDocumentRepository;
+
     @Autowired
     private OrderRepository orderRepository;
 
@@ -530,6 +533,21 @@ public class ValuationEngineService {
         Map<String, String> placeholders = generatePlaceholders(order, data, landItems, buildingItems, comparables, compositeItems);
         List<ValuationSnapshot> snapshots = snapshotRepository.findByOrderIdOrderByVersionNumberDesc(orderId);
 
+        // Invalidate cached FINAL_DOCX / FINAL_SIGNED_PDF so next download/PDF reflects updated valuation
+        if (orderDocumentRepository != null) {
+            try {
+                List<OrderDocument> docs = orderDocumentRepository.findAllByOrderId(orderId);
+                for (OrderDocument doc : docs) {
+                    if ("FINAL_DOCX".equalsIgnoreCase(doc.getCategory())
+                            || "FINAL_SIGNED_PDF".equalsIgnoreCase(doc.getCategory())) {
+                        orderDocumentRepository.delete(doc);
+                    }
+                }
+            } catch (Exception e) {
+                log.warn("Failed to invalidate cached report documents on saveValuation for order #{}: {}", orderId, e.getMessage());
+            }
+        }
+
         return new ValuationBundleResponse(data, landItems, buildingItems, comparables, compositeItems, snapshots, placeholders, false);
     }
 
@@ -849,6 +867,19 @@ public class ValuationEngineService {
                 String deprStr = IndianNumberFormatter.format(mainUnit.getDepreciationAmount());
                 map.put("main_unit_depreciation", deprStr);
                 map.put("composite_depreciation", deprStr);
+
+                String mainFairStr = IndianNumberFormatter.format(mainUnit.getFairValue());
+                map.put("main_unit_fair_value", mainFairStr);
+                map.put("composite_fair_value", mainFairStr);
+
+                BigDecimal totalCompAmt = BigDecimal.ZERO;
+                BigDecimal totalCompDepr = BigDecimal.ZERO;
+                for (ValuationCompositeItem ci : compositeItems) {
+                    totalCompAmt = totalCompAmt.add(ci.getAmount() != null ? ci.getAmount() : BigDecimal.ZERO);
+                    totalCompDepr = totalCompDepr.add(ci.getDepreciationAmount() != null ? ci.getDepreciationAmount() : BigDecimal.ZERO);
+                }
+                map.put("total_amount", IndianNumberFormatter.format(totalCompAmt));
+                map.put("total_depreciation", IndianNumberFormatter.format(totalCompDepr));
 
                 map.put("composite_construction_cost", IndianNumberFormatter.format(mainUnit.getConstructionCost()));
                 map.put("composite_building_age", (mainUnit.getBuildingAge() != null ? mainUnit.getBuildingAge() : BigDecimal.ZERO) + " Years");
