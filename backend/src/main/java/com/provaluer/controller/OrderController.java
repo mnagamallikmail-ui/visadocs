@@ -1392,6 +1392,8 @@ public class OrderController {
                 byte[] docxContent = finalDocxOpt.get().getFileContent();
                 return ResponseEntity.ok()
                         .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Report_" + id + ".docx\"")
+                        .header(HttpHeaders.CACHE_CONTROL, "no-store, no-cache, must-revalidate, max-age=0")
+                        .header(HttpHeaders.PRAGMA, "no-cache")
                         .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
                         .contentLength(docxContent.length)
                         .body(docxContent);
@@ -1424,6 +1426,8 @@ public class OrderController {
 
                 return ResponseEntity.ok()
                         .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Report_" + id + ".docx\"")
+                        .header(HttpHeaders.CACHE_CONTROL, "no-store, no-cache, must-revalidate, max-age=0")
+                        .header(HttpHeaders.PRAGMA, "no-cache")
                         .contentType(MediaType.parseMediaType("application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
                         .contentLength(docxBytes.length)
                         .body(docxBytes);
@@ -1972,6 +1976,8 @@ public class OrderController {
                 byte[] pdfContent = finalPdfOpt.get().getFileContent();
                 return ResponseEntity.ok()
                         .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Report_" + id + ".pdf\"")
+                        .header(HttpHeaders.CACHE_CONTROL, "no-store, no-cache, must-revalidate, max-age=0")
+                        .header(HttpHeaders.PRAGMA, "no-cache")
                         .contentType(MediaType.APPLICATION_PDF)
                         .contentLength(pdfContent.length)
                         .body(pdfContent);

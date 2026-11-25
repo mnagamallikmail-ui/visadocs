@@ -1230,6 +1230,9 @@ public class DocumentWorkspaceService {
                     log.warn("Failed to synchronize ValuationData totals from saveDocumentValues: {}", e.getMessage());
                 }
             }
+
+            // Invalidate cached FINAL_DOCX / FINAL_SIGNED_PDF whenever workspace values change
+            invalidateCachedReportDocuments(orderId);
         }
 
         // ENTERPRISE WORKSPACE V2.1: Statutory Revision History & Audit Preservation
@@ -1825,6 +1828,21 @@ public class DocumentWorkspaceService {
         orderDocumentRepository.save(doc);
     }
 
+    private void invalidateCachedReportDocuments(Long orderId) {
+        if (orderId == null || orderDocumentRepository == null) return;
+        try {
+            List<OrderDocument> existingDocs = orderDocumentRepository.findAllByOrderId(orderId);
+            for (OrderDocument doc : existingDocs) {
+                if ("FINAL_DOCX".equalsIgnoreCase(doc.getCategory())
+                        || "FINAL_SIGNED_PDF".equalsIgnoreCase(doc.getCategory())) {
+                    orderDocumentRepository.delete(doc);
+                }
+            }
+        } catch (Exception e) {
+            log.warn("Failed to invalidate cached report documents for order #{}: {}", orderId, e.getMessage());
+        }
+    }
+
     public Map<String, String> getConsolidatedValues(Long orderId) {
         Map<String, String> map = new HashMap<>();
         List<OrderInput> inputs = orderInputRepository.findAllByOrderId(orderId);
@@ -1861,7 +1879,19 @@ public class DocumentWorkspaceService {
                             || existing.trim().equals("₹ 0") || existing.trim().equals("₹ 0.00") || existing.trim().equals("INR 0")
                             || existing.trim().equalsIgnoreCase("Rupees Zero Only") || existing.trim().equalsIgnoreCase("Zero"));
 
-                    if (!map.containsKey(k) || isExistingEmptyOrZero) {
+                    String uk = k.toUpperCase();
+                    boolean isAuthoritativeCalculatedKey = uk.startsWith("TOTAL_") || uk.startsWith("RAW_FAIR_")
+                            || uk.startsWith("SAY_") || uk.startsWith("FAIR_VALUE") || uk.startsWith("FINAL_VALUATION_")
+                            || uk.startsWith("FAIR_MARKET_") || uk.startsWith("MARKET_VALUE") || uk.startsWith("PROPERTY_VALUE")
+                            || uk.startsWith("FINAL_VALUE") || uk.startsWith("VALUATION_AMOUNT") || uk.startsWith("OPINION_OF_VALUE")
+                            || uk.startsWith("RECOMMENDED_VALUE") || uk.startsWith("REPORT_FAIR_VALUE")
+                            || uk.startsWith("REALIZABLE_") || uk.startsWith("DISTRESS_") || uk.startsWith("INSURABLE_")
+                            || uk.equals("UNIT_AMOUNT") || uk.equals("FLAT_VALUE") || uk.startsWith("MAIN_UNIT_")
+                            || uk.startsWith("COMPOSITE_AMOUNT") || uk.startsWith("COMPOSITE_DEPRECIATION") || uk.startsWith("COMPOSITE_FAIR_VALUE")
+                            || uk.startsWith("LAND_REALIZABLE_") || uk.startsWith("BUILDING_REALIZABLE_")
+                            || uk.startsWith("LAND_DISTRESS_") || uk.startsWith("BUILDING_DISTRESS_");
+
+                    if (!map.containsKey(k) || isExistingEmptyOrZero || (isAuthoritativeCalculatedKey && v != null && !v.trim().isEmpty())) {
                         if (v != null && !v.trim().isEmpty()) {
                             map.put(k, v);
                         } else if (!map.containsKey(k)) {
