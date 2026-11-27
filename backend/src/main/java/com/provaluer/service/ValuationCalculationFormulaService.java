@@ -152,8 +152,8 @@ public class ValuationCalculationFormulaService {
         data.setBuildingRealizablePercentage(bldgRealPct);
         data.setRealizablePercentage(defaultReal);
 
-        BigDecimal landRealVal = roundValuationOutput(sayLand.multiply(landRealPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP));
-        BigDecimal bldgRealVal = roundValuationOutput(sayBldg.multiply(bldgRealPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP));
+        BigDecimal landRealVal = sayLand.multiply(landRealPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal bldgRealVal = sayBldg.multiply(bldgRealPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         BigDecimal totalRealVal = roundValuationOutput(landRealVal.add(bldgRealVal).setScale(2, RoundingMode.HALF_UP));
 
         data.setLandRealizableValue(landRealVal);
@@ -168,8 +168,8 @@ public class ValuationCalculationFormulaService {
         data.setBuildingDistressPercentage(bldgDistPct);
         data.setDistressSalePercentage(defaultDist);
 
-        BigDecimal landDistVal = roundValuationOutput(sayLand.multiply(landDistPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP));
-        BigDecimal bldgDistVal = roundValuationOutput(sayBldg.multiply(bldgDistPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP));
+        BigDecimal landDistVal = sayLand.multiply(landDistPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal bldgDistVal = sayBldg.multiply(bldgDistPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
         BigDecimal totalDistVal = roundValuationOutput(landDistVal.add(bldgDistVal).setScale(2, RoundingMode.HALF_UP));
 
         data.setLandDistressValue(landDistVal);

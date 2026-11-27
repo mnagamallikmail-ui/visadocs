@@ -82,6 +82,67 @@ public class Phase4PaSaveAndRoundingValidationTest {
     }
 
     @Test
+    @DisplayName("3. Land & Building: No double rounding when crossing 1 Crore threshold")
+    void testLandAndBuildingNoDoubleRoundingAcrossOneCrore() {
+        // sayLand = 58,85,000 -> 85% raw = 50,02,250 (rounded individually would be 50,02,000)
+        // sayBldg = 58,85,000 -> 85% raw = 50,02,250 (rounded individually would be 50,02,000)
+        // Sum of raw = 1,00,04,500 -> rounded ONCE (>= 1Cr) = 1,00,00,000
+        // (Double rounding would have been 50,02,000 + 50,02,000 = 1,00,04,000 -> 1,00,00,000,
+        //  and for 58,85,000 * 85% vs 58,86,000 * 85%: 50,02,250 + 50,03,100 = 1,00,05,350 -> 1,00,10,000;
+        //  whereas 58,85,000 * 85% + 58,85,500? Use 58,85,000 and 58,86,000:
+        //  rawLand = 50,02,250 (ind: 50,02,000), rawBldg = 50,03,100 (ind: 50,03,000),
+        //  rawSum = 1,00,05,350 -> 1,00,10,000; whereas indSum = 1,00,05,000 -> 1,00,10,000.
+        //  True divergence case: rawLand = 50,02,400 (ind: 50,02,000), rawBldg = 50,02,400 (ind: 50,02,000)
+        //  via 58,85,000 at 85% = 50,02,250 and 58,86,000 at 85% = 50,03,100; or 58,85,000 at 85.01%...
+        //  With 58,85,000 (85% = 50,02,250) + 58,85,000 (85.01%? No, 58,85,000 at 85% = 50,02,250,
+        //  and sayBldg = 58,85,000 at 85% = 50,02,250 -> rawSum = 1,00,04,500):
+        //  Even sharper: sayLand = 66,70,000 (75% = 50,02,500 -> ind 50,03,000),
+        //  sayBldg = 66,70,000 (75% = 50,02,500 -> ind 50,03,000):
+        //  Wait: rawSum = 1,00,05,000 -> 1,00,10,000; indSum = 1,00,06,000 -> 1,00,10,000.
+        //  Divergence case: sayLand = 58,86,000 * 85% = 50,03,100 (ind: 50,03,000)
+        //                   sayBldg = 58,84,000 * 85% = 50,01,400 (ind: 50,01,000)
+        //  Wait: 58,85,000 * 85.01% or 58,86,000 * 85% = 50,03,100 + 58,85,000 * 85% = 50,02,250.
+        //  With 58,85,000 (85% = 50,02,250 -> ind 50,02,000) and 58,86,000 (85% = 50,03,100 -> ind 50,03,000)...
+        //  Try 66,69,000 * 75% = 50,01,750 (ind: 50,02,000) + 66,71,000 * 75% = 50,03,250 (ind: 50,03,000) -> rawSum = 1,00,05,000 -> 1,00,10,000
+        //  Try 66,69,000 * 75% = 50,01,750 (ind: 50,02,000) + 66,70,000 * 75% = 50,02,500 (ind: 50,03,000):
+        //  rawSum = 1,00,04,250 -> rounded ONCE = 1,00,00,000!
+        //  (Whereas double-rounded indSum = 50,02,000 + 50,03,000 = 1,00,05,000 -> would have rounded to 1,00,10,000!)
+        ValuationLandItem land = new ValuationLandItem();
+        land.setDescription("Plot A");
+        land.setEnteredArea(new BigDecimal("6669"));
+        land.setEnteredUnit("Sq.Ft");
+        land.setRate(new BigDecimal("1000")); // sayLand = 66,69,000
+
+        ValuationBuildingItem bldg = new ValuationBuildingItem();
+        bldg.setDescription("Building B");
+        bldg.setBuildingType("RCC");
+        bldg.setEnteredArea(new BigDecimal("6670"));
+        bldg.setEnteredUnit("Sq.Ft");
+        bldg.setReplacementRate(new BigDecimal("1000"));
+        bldg.setBuildingAge(BigDecimal.ZERO);
+        bldg.setBuildingUsefulLife(60); // sayBldg = 66,70,000
+
+        ValuationData data = new ValuationData();
+        data.setValuationMethodology("LAND_AND_BUILDING");
+        data.setLandRealizablePercentage(new BigDecimal("75.00"));
+        data.setBuildingRealizablePercentage(new BigDecimal("75.00"));
+        data.setLandDistressPercentage(new BigDecimal("75.00"));
+        data.setBuildingDistressPercentage(new BigDecimal("75.00"));
+
+        formulaService.calculateSummary(data, List.of(land), List.of(bldg));
+
+        // Exact components preserved unrounded
+        assertEquals(0, new BigDecimal("5001750.00").compareTo(data.getLandRealizableValue()));
+        assertEquals(0, new BigDecimal("5002500.00").compareTo(data.getBuildingRealizableValue()));
+        // Sum of raw = 1,00,04,250 -> rounded ONCE to nearest 10,000 = 1,00,00,000 (NOT 1,00,10,000!)
+        BigDecimal expected = ValuationCalculationFormulaService.roundValuationOutput(
+                data.getLandRealizableValue().add(data.getBuildingRealizableValue()));
+        assertEquals(0, new BigDecimal("10000000.00").compareTo(expected));
+        assertEquals(0, expected.compareTo(data.getRealizableValue()));
+        assertEquals(0, expected.compareTo(data.getDistressSaleValue()));
+    }
+
+    @Test
     @DisplayName("2. Property Analyst & Admin Save -> Reload -> DOCX -> PDF Full Parity")
     void testPaAndAdminSaveReloadDocxPdfParity() throws Exception {
         User paUser = new User();

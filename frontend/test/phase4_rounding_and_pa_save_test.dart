@@ -51,5 +51,41 @@ void main() {
       expect(NumericFormulaEngine.applyRoundingGovernance('INSURABLE_VALUE', 2619782), 2620000.0);
       expect(NumericFormulaEngine.applyRoundingGovernance('GOVERNMENT_VALUE', 4112922), 4112922.0);
     });
+
+    test('Land & Building: No double rounding when crossing 1 Crore threshold', () {
+      final data = ValuationDataModel(
+        orderId: 102,
+        valuationMethodology: 'LAND_AND_BUILDING',
+        landRealizablePercentage: 75.0,
+        buildingRealizablePercentage: 75.0,
+        landDistressPercentage: 75.0,
+        buildingDistressPercentage: 75.0,
+      );
+      final land = ValuationLandItemModel(
+        orderId: 102,
+        enteredArea: 6669.0,
+        enteredUnit: 'Sq.Ft',
+        rate: 1000.0, // 66,69,000 -> 75% = 50,01,750
+      );
+      final bldg = ValuationBuildingItemModel(
+        orderId: 102,
+        enteredArea: 6670.0,
+        enteredUnit: 'Sq.Ft',
+        replacementRate: 1000.0,
+        buildingAge: 0.0,
+        buildingUsefulLife: 60, // 66,70,000 -> 75% = 50,02,500
+      );
+
+      ValuationCalculator.recalculateSummary(data, [land], [bldg]);
+
+      expect(data.landRealizableValue, 5001750.0);
+      expect(data.buildingRealizableValue, 5002500.0);
+      // Sum of raw = 1,00,04,250 -> rounded ONCE = 1,00,00,000 (not double-rounded to 1,00,10,000)
+      final expected = ValuationCalculator.roundValuationOutput(data.landRealizableValue + data.buildingRealizableValue);
+      expect(expected, 10000000.0);
+      expect(data.realizableValue, expected);
+      expect(data.distressSaleValue, expected);
+    });
   });
 }
+

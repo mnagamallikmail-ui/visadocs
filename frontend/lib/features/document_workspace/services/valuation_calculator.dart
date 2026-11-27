@@ -271,8 +271,8 @@ class ValuationCalculator {
     data.landRealizablePercentage = landRealPct;
     data.buildingRealizablePercentage = bldgRealPct;
 
-    final landRealVal = roundValuationOutput(sayLand * (landRealPct / 100.0));
-    final bldgRealVal = roundValuationOutput(sayBldg * (bldgRealPct / 100.0));
+    final landRealVal = sayLand * (landRealPct / 100.0);
+    final bldgRealVal = sayBldg * (bldgRealPct / 100.0);
     data.landRealizableValue = landRealVal;
     data.buildingRealizableValue = bldgRealVal;
     data.realizableValue = roundValuationOutput(landRealVal + bldgRealVal);
@@ -283,8 +283,8 @@ class ValuationCalculator {
     data.landDistressPercentage = landDistPct;
     data.buildingDistressPercentage = bldgDistPct;
 
-    final landDistVal = roundValuationOutput(sayLand * (landDistPct / 100.0));
-    final bldgDistVal = roundValuationOutput(sayBldg * (bldgDistPct / 100.0));
+    final landDistVal = sayLand * (landDistPct / 100.0);
+    final bldgDistVal = sayBldg * (bldgDistPct / 100.0);
     data.landDistressValue = landDistVal;
     data.buildingDistressValue = bldgDistVal;
     data.distressSaleValue = roundValuationOutput(landDistVal + bldgDistVal);
