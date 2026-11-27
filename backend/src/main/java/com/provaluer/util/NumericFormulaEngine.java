@@ -444,22 +444,30 @@ public class NumericFormulaEngine {
         if (fieldKey == null || value <= 0) return value;
         String upper = fieldKey.toUpperCase().replaceAll("[<>]", "").trim();
 
-        // Strict target check
-        boolean isTargetField = upper.equals("REALIZABLE_VALUE")
+        // Strict target check (NEVER apply to GOVERNMENT_VALUE / GOVT_VALUE)
+        boolean isTargetField = upper.equals("FAIR_VALUE")
+                || upper.equals("SAY_VALUE")
+                || upper.equals("SAY_FAIR_VALUE")
+                || upper.equals("REALIZABLE_VALUE")
                 || upper.equals("DISTRESS_SALE_VALUE")
                 || upper.equals("DISTRESS_VALUE")
                 || upper.equals("INSURABLE_VALUE");
 
         if (!isTargetField) {
-            return value; // Government Value & Fair Value are NEVER rounded here
+            return value; // Government Value is NEVER rounded here
         }
 
-        if (value >= 10_000_000.0) { // Crores: nearest 10,000
-            return Math.round(value / 10000.0) * 10000.0;
-        } else if (value >= 100_000.0) { // Lakhs: nearest 1,000
-            return Math.round(value / 1000.0) * 1000.0;
+        if (value >= 10_000_000.0) { // >= 1 Crore: nearest 10,000
+            return BigDecimal.valueOf(value)
+                    .divide(BigDecimal.valueOf(10000), 0, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(10000))
+                    .doubleValue();
+        } else { // < 1 Crore: nearest 1,000
+            return BigDecimal.valueOf(value)
+                    .divide(BigDecimal.valueOf(1000), 0, RoundingMode.HALF_UP)
+                    .multiply(BigDecimal.valueOf(1000))
+                    .doubleValue();
         }
-        return value;
     }
 
     /**

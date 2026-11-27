@@ -204,15 +204,15 @@ class ValuationCalculator {
     final distPct = data.distressSalePercentage > 0 ? data.distressSalePercentage : 75.0;
     data.realizablePercentage = realPct;
     data.distressSalePercentage = distPct;
-    data.realizableValue = sayFairValue * (realPct / 100.0);
-    data.distressSaleValue = sayFairValue * (distPct / 100.0);
+    data.realizableValue = roundValuationOutput(sayFairValue * (realPct / 100.0));
+    data.distressSaleValue = roundValuationOutput(sayFairValue * (distPct / 100.0));
 
     // Government Value = Area * Government Composite Rate
     final govtRate = data.compositeGovernmentRate;
     data.governmentValue = mainUnitArea * govtRate;
 
     // Insurable Value = Area * Construction Cost + Insurable Interior Improvements
-    data.insurableValue = (mainUnitArea * mainUnitCost) + totalInsurableInteriors;
+    data.insurableValue = roundValuationOutput((mainUnitArea * mainUnitCost) + totalInsurableInteriors);
   }
 
   static void recalculateSummary(
@@ -271,11 +271,11 @@ class ValuationCalculator {
     data.landRealizablePercentage = landRealPct;
     data.buildingRealizablePercentage = bldgRealPct;
 
-    final landRealVal = sayLand * (landRealPct / 100.0);
-    final bldgRealVal = sayBldg * (bldgRealPct / 100.0);
+    final landRealVal = roundValuationOutput(sayLand * (landRealPct / 100.0));
+    final bldgRealVal = roundValuationOutput(sayBldg * (bldgRealPct / 100.0));
     data.landRealizableValue = landRealVal;
     data.buildingRealizableValue = bldgRealVal;
-    data.realizableValue = landRealVal + bldgRealVal;
+    data.realizableValue = roundValuationOutput(landRealVal + bldgRealVal);
 
     // 6. Separate Distress Percentages (Phase 7 & 11)
     final landDistPct = data.landDistressPercentage > 0 ? data.landDistressPercentage : 75.0;
@@ -283,18 +283,18 @@ class ValuationCalculator {
     data.landDistressPercentage = landDistPct;
     data.buildingDistressPercentage = bldgDistPct;
 
-    final landDistVal = sayLand * (landDistPct / 100.0);
-    final bldgDistVal = sayBldg * (bldgDistPct / 100.0);
+    final landDistVal = roundValuationOutput(sayLand * (landDistPct / 100.0));
+    final bldgDistVal = roundValuationOutput(sayBldg * (bldgDistPct / 100.0));
     data.landDistressValue = landDistVal;
     data.buildingDistressValue = bldgDistVal;
-    data.distressSaleValue = landDistVal + bldgDistVal;
+    data.distressSaleValue = roundValuationOutput(landDistVal + bldgDistVal);
 
     // 7. Insurable Value = Total Replacement Cost of Buildings (Phase 13)
     // Land has no insurable value (land is indestructible).
     if (buildingItems.isEmpty) {
       data.insurableValue = 0.0;
     } else {
-      data.insurableValue = totalReplCost;
+      data.insurableValue = roundValuationOutput(totalReplCost);
     }
 
     // 8. Government Values (Phase 12)
@@ -761,18 +761,20 @@ class ValuationCalculator {
     return map;
   }
 
-  /// Authoritative Say Value Rounding Governance:
-  /// Round to nearest ₹ 10,000 for values in Lakhs and Crores (>= ₹ 10,000).
-  /// Examples:
-  /// - ₹ 81,22,000 -> ₹ 81,20,000
-  /// - ₹ 1,47,86,000 -> ₹ 1,47,90,000
-  /// - ₹ 2,83,42,000 -> ₹ 2,83,40,000
-  static double computeSayValue(double value) {
+  /// Authoritative Valuation Output Rounding Governance:
+  /// - Values < Rs. 1,00,00,000 (1 Crore): Round to nearest Rs. 1,000
+  /// - Values >= Rs. 1,00,00,000 (1 Crore): Round to nearest Rs. 10,000
+  static double roundValuationOutput(double value) {
     if (value <= 0) return 0.0;
-    if (value >= 10000.0) {
+    const double oneCrore = 10000000.0;
+    if (value >= oneCrore) {
       return (value / 10000.0).roundToDouble() * 10000.0;
     } else {
       return (value / 1000.0).roundToDouble() * 1000.0;
     }
+  }
+
+  static double computeSayValue(double value) {
+    return roundValuationOutput(value);
   }
 }

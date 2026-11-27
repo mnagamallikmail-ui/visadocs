@@ -152,9 +152,9 @@ public class ValuationCalculationFormulaService {
         data.setBuildingRealizablePercentage(bldgRealPct);
         data.setRealizablePercentage(defaultReal);
 
-        BigDecimal landRealVal = sayLand.multiply(landRealPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        BigDecimal bldgRealVal = sayBldg.multiply(bldgRealPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        BigDecimal totalRealVal = landRealVal.add(bldgRealVal).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal landRealVal = roundValuationOutput(sayLand.multiply(landRealPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP));
+        BigDecimal bldgRealVal = roundValuationOutput(sayBldg.multiply(bldgRealPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP));
+        BigDecimal totalRealVal = roundValuationOutput(landRealVal.add(bldgRealVal).setScale(2, RoundingMode.HALF_UP));
 
         data.setLandRealizableValue(landRealVal);
         data.setBuildingRealizableValue(bldgRealVal);
@@ -168,9 +168,9 @@ public class ValuationCalculationFormulaService {
         data.setBuildingDistressPercentage(bldgDistPct);
         data.setDistressSalePercentage(defaultDist);
 
-        BigDecimal landDistVal = sayLand.multiply(landDistPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        BigDecimal bldgDistVal = sayBldg.multiply(bldgDistPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        BigDecimal totalDistVal = landDistVal.add(bldgDistVal).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal landDistVal = roundValuationOutput(sayLand.multiply(landDistPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP));
+        BigDecimal bldgDistVal = roundValuationOutput(sayBldg.multiply(bldgDistPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP));
+        BigDecimal totalDistVal = roundValuationOutput(landDistVal.add(bldgDistVal).setScale(2, RoundingMode.HALF_UP));
 
         data.setLandDistressValue(landDistVal);
         data.setBuildingDistressValue(bldgDistVal);
@@ -180,7 +180,7 @@ public class ValuationCalculationFormulaService {
         // Land has zero insurable value (land is indestructible).
         BigDecimal insurableValue = (buildingItems == null || buildingItems.isEmpty())
                 ? BigDecimal.ZERO
-                : totalReplCost.setScale(2, RoundingMode.HALF_UP);
+                : roundValuationOutput(totalReplCost.setScale(2, RoundingMode.HALF_UP));
         data.setInsurableValue(insurableValue);
 
         // 8. Government Values (Phase 12)
@@ -381,8 +381,8 @@ public class ValuationCalculationFormulaService {
         data.setRealizablePercentage(realPct);
         data.setDistressSalePercentage(distPct);
 
-        BigDecimal realizableVal = sayValue.multiply(realPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
-        BigDecimal distressVal = sayValue.multiply(distPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+        BigDecimal realizableVal = roundValuationOutput(sayValue.multiply(realPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP));
+        BigDecimal distressVal = roundValuationOutput(sayValue.multiply(distPct).divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP));
         data.setRealizableValue(realizableVal);
         data.setDistressSaleValue(distressVal);
 
@@ -392,27 +392,32 @@ public class ValuationCalculationFormulaService {
         data.setGovernmentValue(govtVal);
 
         // Insurable Value = Area * Construction Cost + Insurable Interior Improvements
-        BigDecimal insurableVal = mainUnitArea.multiply(mainUnitCost).add(totalInsurableInteriors).setScale(2, RoundingMode.HALF_UP);
+        BigDecimal insurableVal = roundValuationOutput(mainUnitArea.multiply(mainUnitCost).add(totalInsurableInteriors).setScale(2, RoundingMode.HALF_UP));
         data.setInsurableValue(insurableVal);
     }
 
     /**
-     * Authoritative Say Value Rounding Governance:
-     * - For values in Lakhs (>= 10,000): Round to nearest ₹ 10,000 (e.g. ₹ 81,22,000 -> ₹ 81,20,000)
-     * - For values in Crores (>= 1 Crore): Round to nearest ₹ 10,000 (e.g. ₹ 1,47,86,000 -> ₹ 1,47,90,000; ₹ 2,83,42,000 -> ₹ 2,83,40,000)
+     * Authoritative Valuation Output Rounding Governance:
+     * - For values < Rs. 1,00,00,000 (below 1 Crore): Round to nearest Rs. 1,000
+     * - For values >= Rs. 1,00,00,000 (1 Crore and above): Round to nearest Rs. 10,000
      */
-    public static BigDecimal computeSayValue(BigDecimal value) {
+    public static BigDecimal roundValuationOutput(BigDecimal value) {
         if (value == null || value.compareTo(BigDecimal.ZERO) <= 0) return BigDecimal.ZERO;
+        BigDecimal oneCrore = new BigDecimal("10000000");
         BigDecimal tenThousand = new BigDecimal("10000");
         BigDecimal oneThousand = new BigDecimal("1000");
 
-        if (value.compareTo(tenThousand) >= 0) {
+        if (value.compareTo(oneCrore) >= 0) {
             BigDecimal rounded = value.divide(tenThousand, 0, RoundingMode.HALF_UP);
             return rounded.multiply(tenThousand).setScale(2, RoundingMode.HALF_UP);
         } else {
             BigDecimal rounded = value.divide(oneThousand, 0, RoundingMode.HALF_UP);
             return rounded.multiply(oneThousand).setScale(2, RoundingMode.HALF_UP);
         }
+    }
+
+    public static BigDecimal computeSayValue(BigDecimal value) {
+        return roundValuationOutput(value);
     }
 
     /**

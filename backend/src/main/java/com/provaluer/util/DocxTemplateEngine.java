@@ -1550,6 +1550,19 @@ public class DocxTemplateEngine {
         return createDocxTableWithMultipleMergedTotals("Valuation of Property (Composite Rate Method)", headers, colWidths, rows, totals, 17, alignments);
     }
 
+    private String formatIndianRounded(String raw) {
+        if (raw == null || raw.trim().isEmpty()) return "0";
+        String clean = raw.trim().replaceAll("[^0-9eE.+\\-]", "");
+        if (clean.isEmpty() || clean.equals("-") || clean.equals(".")) return formatIndian(raw);
+        try {
+            BigDecimal bd = new BigDecimal(clean);
+            BigDecimal rounded = com.provaluer.service.ValuationCalculationFormulaService.roundValuationOutput(bd);
+            return IndianNumberFormatter.format(rounded);
+        } catch (Exception e) {
+            return formatIndian(raw);
+        }
+    }
+
     private Tbl buildDynamicCompositeSummaryTable(Map<String, String> inputs) {
         List<String> headers = List.of("Valuation Parameter", "Amount (₹)");
         List<Integer> colWidths = List.of(5600, 4000);
@@ -1558,19 +1571,19 @@ public class DocxTemplateEngine {
 
         if (inputs != null) {
             String sayFairValStr = inputs.getOrDefault("SAY_VALUE", inputs.getOrDefault("say_value", inputs.getOrDefault("SAY_FAIR_VALUE", inputs.getOrDefault("say_fair_value", inputs.getOrDefault("FAIR_VALUE", inputs.getOrDefault("fair_value", "0"))))));
-            rows.add(List.of("Fair Value", "Rs " + formatIndian(sayFairValStr)));
+            rows.add(List.of("Fair Value", "Rs " + formatIndianRounded(sayFairValStr)));
 
             String realizable = inputs.getOrDefault("REALIZABLE_VALUE", inputs.getOrDefault("realizable_value", "0"));
-            rows.add(List.of("Realizable Value", "Rs " + formatIndian(realizable)));
+            rows.add(List.of("Realizable Value", "Rs " + formatIndianRounded(realizable)));
 
             String distress = inputs.getOrDefault("DISTRESS_SALE_VALUE", inputs.getOrDefault("distress_sale_value", "0"));
-            rows.add(List.of("Distress Sale Value", "Rs " + formatIndian(distress)));
+            rows.add(List.of("Distress Sale Value", "Rs " + formatIndianRounded(distress)));
 
             String govt = inputs.getOrDefault("GOVERNMENT_VALUE", inputs.getOrDefault("government_value", "0"));
             rows.add(List.of("Government Value", "Rs " + formatIndian(govt)));
 
             String insurable = inputs.getOrDefault("INSURABLE_VALUE", inputs.getOrDefault("insurable_value", "0"));
-            rows.add(List.of("Insurable Value", "Rs " + formatIndian(insurable)));
+            rows.add(List.of("Insurable Value", "Rs " + formatIndianRounded(insurable)));
         }
 
         return createDocxTable("Valuation Parameters Summary", headers, colWidths, rows, null, 18, alignments);
@@ -1713,31 +1726,31 @@ public class DocxTemplateEngine {
 
         if (inputs != null) {
             // 1. Fair Value Row (Phase 9): Say Land Value | Say Building Value | Fair Value
-            String sayLandVal = formatIndian(inputs.getOrDefault("SAY_LAND_VALUE", inputs.getOrDefault("say_land_value", inputs.getOrDefault("TOTAL_LAND_VALUE", "0"))));
-            String sayBldgVal = formatIndian(inputs.getOrDefault("SAY_BUILDING_VALUE", inputs.getOrDefault("say_building_value", inputs.getOrDefault("TOTAL_BUILDING_VALUE", "0"))));
-            String fairVal = formatIndian(inputs.getOrDefault("SAY_VALUE", inputs.getOrDefault("say_value", inputs.getOrDefault("FAIR_VALUE", inputs.getOrDefault("fair_value", "0")))));
+            String sayLandVal = formatIndianRounded(inputs.getOrDefault("SAY_LAND_VALUE", inputs.getOrDefault("say_land_value", inputs.getOrDefault("TOTAL_LAND_VALUE", "0"))));
+            String sayBldgVal = formatIndianRounded(inputs.getOrDefault("SAY_BUILDING_VALUE", inputs.getOrDefault("say_building_value", inputs.getOrDefault("TOTAL_BUILDING_VALUE", "0"))));
+            String fairVal = formatIndianRounded(inputs.getOrDefault("SAY_VALUE", inputs.getOrDefault("say_value", inputs.getOrDefault("FAIR_VALUE", inputs.getOrDefault("fair_value", "0")))));
             rows.add(List.of("Fair Value", "₹ " + sayLandVal, "₹ " + sayBldgVal, "₹ " + fairVal));
 
             // 2. Realizable Value Row (Phase 10): Land Realizable | Building Realizable | Total Realizable
-            String landReal = formatIndian(inputs.getOrDefault("LAND_REALIZABLE_VALUE", inputs.getOrDefault("land_realizable_value", "0")));
-            String bldgReal = formatIndian(inputs.getOrDefault("BUILDING_REALIZABLE_VALUE", inputs.getOrDefault("building_realizable_value", "0")));
-            String totalReal = formatIndian(inputs.getOrDefault("REALIZABLE_VALUE", inputs.getOrDefault("realizable_value", "0")));
+            String landReal = formatIndianRounded(inputs.getOrDefault("LAND_REALIZABLE_VALUE", inputs.getOrDefault("land_realizable_value", "0")));
+            String bldgReal = formatIndianRounded(inputs.getOrDefault("BUILDING_REALIZABLE_VALUE", inputs.getOrDefault("building_realizable_value", "0")));
+            String totalReal = formatIndianRounded(inputs.getOrDefault("REALIZABLE_VALUE", inputs.getOrDefault("realizable_value", "0")));
             rows.add(List.of("Realizable Value", "₹ " + landReal, "₹ " + bldgReal, "₹ " + totalReal));
 
             // 3. Distress Sale Value Row (Phase 11): Land Distress | Building Distress | Total Distress
-            String landDist = formatIndian(inputs.getOrDefault("LAND_DISTRESS_VALUE", inputs.getOrDefault("land_distress_value", "0")));
-            String bldgDist = formatIndian(inputs.getOrDefault("BUILDING_DISTRESS_VALUE", inputs.getOrDefault("building_distress_value", "0")));
-            String totalDist = formatIndian(inputs.getOrDefault("DISTRESS_SALE_VALUE", inputs.getOrDefault("distress_sale_value", "0")));
+            String landDist = formatIndianRounded(inputs.getOrDefault("LAND_DISTRESS_VALUE", inputs.getOrDefault("land_distress_value", "0")));
+            String bldgDist = formatIndianRounded(inputs.getOrDefault("BUILDING_DISTRESS_VALUE", inputs.getOrDefault("building_distress_value", "0")));
+            String totalDist = formatIndianRounded(inputs.getOrDefault("DISTRESS_SALE_VALUE", inputs.getOrDefault("distress_sale_value", "0")));
             rows.add(List.of("Distress Sale Value", "₹ " + landDist, "₹ " + bldgDist, "₹ " + totalDist));
 
-            // 4. Government Value Row (Phase 12): Land Govt | Building Govt | Total Govt
+            // 4. Government Value Row (Phase 12): Land Govt | Building Govt | Total Govt (NEVER rounded)
             String landGovt = formatIndian(inputs.getOrDefault("LAND_GOVERNMENT_VALUE", inputs.getOrDefault("land_government_value", "0")));
             String bldgGovt = formatIndian(inputs.getOrDefault("BUILDING_GOVERNMENT_VALUE", inputs.getOrDefault("building_government_value", "0")));
             String totalGovt = formatIndian(inputs.getOrDefault("GOVERNMENT_VALUE", inputs.getOrDefault("government_value", "0")));
             rows.add(List.of("Government Value", "₹ " + landGovt, "₹ " + bldgGovt, "₹ " + totalGovt));
 
             // 5. Insurable Value Row (Phase 13): N/A | Building Insurable | Total Insurable
-            String insVal = formatIndian(inputs.getOrDefault("INSURABLE_VALUE", inputs.getOrDefault("insurable_value", inputs.getOrDefault("TOTAL_REPLACEMENT_COST", "0"))));
+            String insVal = formatIndianRounded(inputs.getOrDefault("INSURABLE_VALUE", inputs.getOrDefault("insurable_value", inputs.getOrDefault("TOTAL_REPLACEMENT_COST", "0"))));
             rows.add(List.of("Insurable Value", "N/A", "₹ " + insVal, "₹ " + insVal));
         }
 
@@ -1759,15 +1772,15 @@ public class DocxTemplateEngine {
                     inputs.getOrDefault("LAND_FAIR_VALUE", inputs.getOrDefault("land_fair_value",
                     inputs.getOrDefault("TOTAL_LAND_VALUE", inputs.getOrDefault("total_land_value",
                     inputs.getOrDefault("FAIR_VALUE", inputs.getOrDefault("fair_value", "0"))))))));
-            rows.add(List.of("Land Fair Value", "Rs " + formatIndian(landFair)));
+            rows.add(List.of("Land Fair Value", "Rs " + formatIndianRounded(landFair)));
 
             String landReal = inputs.getOrDefault("LAND_REALIZABLE_VALUE", inputs.getOrDefault("land_realizable_value",
                     inputs.getOrDefault("REALIZABLE_VALUE", inputs.getOrDefault("realizable_value", "0"))));
-            rows.add(List.of("Land Realizable Value", "Rs " + formatIndian(landReal)));
+            rows.add(List.of("Land Realizable Value", "Rs " + formatIndianRounded(landReal)));
 
             String landDist = inputs.getOrDefault("LAND_DISTRESS_VALUE", inputs.getOrDefault("land_distress_value",
                     inputs.getOrDefault("DISTRESS_SALE_VALUE", inputs.getOrDefault("distress_sale_value", "0"))));
-            rows.add(List.of("Land Distress Value", "Rs " + formatIndian(landDist)));
+            rows.add(List.of("Land Distress Value", "Rs " + formatIndianRounded(landDist)));
 
             String landGovt = inputs.getOrDefault("LAND_GOVERNMENT_VALUE", inputs.getOrDefault("land_government_value",
                     inputs.getOrDefault("GOVERNMENT_VALUE", inputs.getOrDefault("government_value", "0"))));

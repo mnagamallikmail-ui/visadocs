@@ -123,12 +123,14 @@ class NumericFormulaEngine {
     if (value <= 0) return 0.0;
     final lower = fieldKey.toLowerCase();
 
-    // Never apply to government value or fair value
-    if (lower.contains('government') || lower.contains('guideline') || lower.contains('fair')) {
+    // Never apply to government value
+    if (lower.contains('government') || lower.contains('guideline')) {
       return value;
     }
 
-    final isTarget = lower.contains('realizable') ||
+    final isTarget = lower.contains('fair') ||
+        lower.contains('say') ||
+        lower.contains('realizable') ||
         lower.contains('distress') ||
         lower.contains('insurable');
 
