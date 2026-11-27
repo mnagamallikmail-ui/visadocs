@@ -51,12 +51,6 @@ public class Phase8ReportIntegrityRegressionTest {
     private OrderDocumentRepository orderDocumentRepository;
 
     @Autowired
-    private ValuationDataRepository valuationDataRepository;
-
-    @Autowired
-    private ValuationCompositeItemRepository compositeItemRepository;
-
-    @Autowired
     private UserRepository userRepository;
 
     @Autowired

@@ -30,7 +30,6 @@ import static org.junit.jupiter.api.Assertions.*;
 public class Phase4PaSaveAndRoundingValidationTest {
 
     @Autowired private ValuationCalculationFormulaService formulaService;
-    @Autowired private ValuationEngineService valuationEngineService;
     @Autowired private DocumentWorkspaceService documentWorkspaceService;
     @Autowired private DocxTemplateEngine docxTemplateEngine;
     @Autowired private OrderRepository orderRepository;
