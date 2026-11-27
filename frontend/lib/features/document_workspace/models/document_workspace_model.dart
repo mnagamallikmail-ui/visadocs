@@ -17,6 +17,7 @@ class DocumentWorkspaceModel {
   final StudioDocumentModel? documentDom;
   final bool readOnly;
   final int workspaceRevision;
+  final Map<String, String> fieldAuthorities;
 
   const DocumentWorkspaceModel({
     required this.orderId,
@@ -27,6 +28,7 @@ class DocumentWorkspaceModel {
     this.documentDom,
     this.readOnly = false,
     this.workspaceRevision = 1,
+    this.fieldAuthorities = const {},
   });
 
   factory DocumentWorkspaceModel.fromJson(Map<String, dynamic> json) {
@@ -45,6 +47,14 @@ class DocumentWorkspaceModel {
       } catch (_) {}
     }
 
+    final rawAuth = json['fieldAuthorities'] as Map<String, dynamic>? ?? {};
+    final Map<String, String> parsedAuthorities = {};
+    rawAuth.forEach((key, val) {
+      if (val != null) {
+        parsedAuthorities[key.toUpperCase()] = val.toString().toUpperCase();
+      }
+    });
+
     return DocumentWorkspaceModel(
       orderId: json['orderId'] as int? ?? 0,
       status: json['status'] as String? ?? 'ASSIGNED',
@@ -61,6 +71,7 @@ class DocumentWorkspaceModel {
       documentDom: parsedDom,
       readOnly: json['readOnly'] as bool? ?? false,
       workspaceRevision: json['workspaceRevision'] as int? ?? 1,
+      fieldAuthorities: parsedAuthorities,
     );
   }
 

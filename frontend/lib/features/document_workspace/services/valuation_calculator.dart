@@ -344,15 +344,9 @@ class ValuationCalculator {
   }) {
     final map = <String, String>{};
 
-    // Property
-    map['report_no'] = orderInfo['reportNumber']?.toString() ?? 'PV-${orderInfo['id'] ?? ''}';
+    // Version/status metadata only; never inject owner/client/bank/branch/date metadata
     map['report_version'] = 'v${data.currentVersion}';
     map['valuation_status'] = data.valuationStatus;
-    map['owner_name'] = orderInfo['clientName']?.toString() ?? '';
-    map['client_name'] = orderInfo['clientName']?.toString() ?? '';
-    map['bank_name'] = orderInfo['bankName']?.toString() ?? '';
-    map['branch_name'] = orderInfo['branchName']?.toString() ?? '';
-    map['property_type'] = orderInfo['propertyCategory']?.toString() ?? 'Commercial Property';
 
     final isComposite = data.valuationMethodology == 'COMPOSITE' || compositeItems.isNotEmpty;
 

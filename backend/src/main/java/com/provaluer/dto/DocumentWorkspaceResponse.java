@@ -15,6 +15,7 @@ public class DocumentWorkspaceResponse implements Serializable {
     private boolean readOnly;
     private JsonNode documentDom;
     private Integer workspaceRevision = 1;
+    private Map<String, String> fieldAuthorities;
 
     public DocumentWorkspaceResponse() {}
 
@@ -65,4 +66,7 @@ public class DocumentWorkspaceResponse implements Serializable {
 
     public Integer getWorkspaceRevision() { return workspaceRevision; }
     public void setWorkspaceRevision(Integer workspaceRevision) { this.workspaceRevision = workspaceRevision; }
+
+    public Map<String, String> getFieldAuthorities() { return fieldAuthorities; }
+    public void setFieldAuthorities(Map<String, String> fieldAuthorities) { this.fieldAuthorities = fieldAuthorities; }
 }

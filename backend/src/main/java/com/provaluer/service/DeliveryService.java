@@ -51,6 +51,7 @@ public class DeliveryService {
     @Autowired private AuditLogRepository auditLogRepository;
     @Autowired private ObjectMapper objectMapper;
     @Autowired private TelegramNotificationService telegramNotificationService;
+    @Autowired(required = false) private DocumentWorkspaceService documentWorkspaceService;
 
     /**
      * SPRINT 8: Delivery Gate Evaluation (SNAPSHOT_CREATED → DELIVERY_READY)
@@ -154,6 +155,18 @@ public class DeliveryService {
         ValuationSnapshot snapshot = valuationSnapshotRepository.findFirstByOrderIdOrderByVersionNumberDesc(orderId)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "ValuationSnapshot not found"));
 
+        // Ensure snapshot is never stale when authoritative order data changed after snapshot creation
+        boolean snapshotStale = snapshot.getPdfContent() == null || snapshot.getPdfContent().length == 0
+                || (order.getUpdatedAt() != null && snapshot.getCreatedAt() != null && order.getUpdatedAt().isAfter(snapshot.getCreatedAt()));
+        if (snapshotStale && documentWorkspaceService != null) {
+            try {
+                documentWorkspaceService.generatePdfOnDemand(orderId, principal);
+                snapshot = valuationSnapshotRepository.findFirstByOrderIdOrderByVersionNumberDesc(orderId).orElse(snapshot);
+            } catch (Exception e) {
+                log.warn("Failed to refresh stale snapshot PDF before delivery release for order #{}: {}", orderId, e.getMessage());
+            }
+        }
+
         User client = userRepository.findById(order.getClientId())
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Client user not found"));
 
@@ -183,13 +196,22 @@ public class DeliveryService {
             manifestJson = "{}";
         }
 
-        // 4. Save DeliveryPackage
-        DeliveryPackage deliveryPackage = deliveryPackageRepository.findByOrderId(orderId)
-                .orElseGet(() -> {
-                    DeliveryPackage dp = new DeliveryPackage();
-                    dp.setOrderId(orderId);
-                    return dp;
-                });
+        // 4. Save Immutable DeliveryPackage Revision (Never overwrite an already-released package in place)
+        Optional<DeliveryPackage> prevOpt = deliveryPackageRepository.findFirstByOrderIdOrderByRevisionNumberDesc(orderId);
+        int nextPkgRevision = 1;
+        Long parentPkgId = null;
+        if (prevOpt.isPresent()) {
+            DeliveryPackage prev = prevOpt.get();
+            prev.setSuperseded(true);
+            deliveryPackageRepository.save(prev);
+            nextPkgRevision = prev.getRevisionNumber() + 1;
+            parentPkgId = prev.getId();
+        }
+        DeliveryPackage deliveryPackage = new DeliveryPackage();
+        deliveryPackage.setOrderId(orderId);
+        deliveryPackage.setRevisionNumber(nextPkgRevision);
+        deliveryPackage.setParentPackageId(parentPkgId);
+        deliveryPackage.setSuperseded(false);
         deliveryPackage.setEncryptedPdfContent(encryptedPdf);
         deliveryPackage.setEncryptedPdfHash(encryptedPdfHash);
         deliveryPackage.setManifestJson(manifestJson);
@@ -385,13 +407,13 @@ public class DeliveryService {
                     "Tax invoice downloaded: " + inv.getInvoiceNumber(), clientIp);
             return new StreamResult(inv.getInvoicePdfContent(), "Invoice_" + inv.getInvoiceNumber() + ".pdf", "application/pdf");
         } else if ("MANIFEST".equalsIgnoreCase(token.getFileType())) {
-            DeliveryPackage pkg = deliveryPackageRepository.findByOrderId(order.getId())
+            DeliveryPackage pkg = deliveryPackageRepository.findFirstByOrderIdOrderByRevisionNumberDesc(order.getId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Delivery package not found"));
             byte[] manifestBytes = pkg.getManifestJson() != null ? pkg.getManifestJson().getBytes(StandardCharsets.UTF_8) : "{}".getBytes(StandardCharsets.UTF_8);
             return new StreamResult(manifestBytes, "Integrity_Manifest_" + order.getReferenceCode() + ".json", "application/json");
         } else {
             // REPORT_PDF
-            DeliveryPackage pkg = deliveryPackageRepository.findByOrderId(order.getId())
+            DeliveryPackage pkg = deliveryPackageRepository.findFirstByOrderIdOrderByRevisionNumberDesc(order.getId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Delivery package not found"));
 
             // Advance state: FINAL_DELIVERY → CLIENT_DOWNLOADED
@@ -824,9 +846,17 @@ public class DeliveryService {
     }
 
     /**
-     * Helper: Render Fallback Report PDF if snapshot binary is empty
+     * Helper: Render Fallback Report PDF if snapshot binary is empty (reads Single Source of Truth)
      */
     private byte[] renderFallbackReportPdf(Order order) {
+        Map<String, String> values = documentWorkspaceService != null
+                ? documentWorkspaceService.getConsolidatedValues(order.getId())
+                : Collections.emptyMap();
+        String ownerDisplay = values.getOrDefault("OWNER_NAME", values.getOrDefault("CLIENT_NAME", order.getClientName() != null ? order.getClientName() : ""));
+        String finalValDisplay = values.getOrDefault("MARKET_VALUE",
+                values.getOrDefault("FAIR_VALUE",
+                values.getOrDefault("FINAL_VALUE",
+                order.getFinalValue() != null ? order.getFinalValue().toPlainString() : "0")));
         try (PDDocument doc = new PDDocument()) {
             PDPage page = new PDPage(PDRectangle.A4);
             doc.addPage(page);
@@ -839,9 +869,9 @@ public class DeliveryService {
                 cs.newLineAtOffset(0, -30);
                 cs.showText("Property Category: " + order.getPropertyCategory());
                 cs.newLineAtOffset(0, -20);
-                cs.showText("Client: " + order.getClientName());
+                cs.showText("Owner / Client: " + ownerDisplay);
                 cs.newLineAtOffset(0, -20);
-                cs.showText("Final Valuation: INR " + (order.getFinalValue() != null ? order.getFinalValue() : "50,00,00,000"));
+                cs.showText("Final Valuation: INR " + finalValDisplay);
                 cs.newLineAtOffset(0, -20);
                 cs.showText("Approved by Senior Property Analyst (SPA)");
                 cs.endText();

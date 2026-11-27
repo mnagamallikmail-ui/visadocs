@@ -634,15 +634,45 @@ public class SuperAdminController {
     public ResponseEntity<?> editOrderInputs(@PathVariable Long id, @RequestBody Map<String, String> inputs) {
         Order order = orderRepository.findById(id).orElse(null);
         if (order == null) return ResponseEntity.notFound().build();
+
+        UserDetailsImpl principal = null;
+        try {
+            Object p = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+            if (p instanceof UserDetailsImpl) principal = (UserDetailsImpl) p;
+        } catch (Exception ignored) {}
+
         for (Map.Entry<String, String> entry : inputs.entrySet()) {
-            Optional<OrderInput> existing = orderInputRepository.findByOrderIdAndFieldKey(id, entry.getKey());
-            if (existing.isPresent()) {
-                existing.get().setFieldValue(entry.getValue());
-                orderInputRepository.save(existing.get());
-            } else {
-                orderInputRepository.save(new OrderInput(id, entry.getKey(), entry.getValue()));
+            documentWorkspaceService.saveOrUpdateInputWithAuthority(id, entry.getKey(), entry.getValue(), principal);
+        }
+
+        // Sync orders.finalValue & orders.inputValues and invalidate all stale report artifacts
+        for (String key : List.of("FINAL_VALUE", "FAIR_VALUE", "MARKET_VALUE", "SAY_VALUE", "FINAL_VALUATION_AMOUNT")) {
+            for (Map.Entry<String, String> entry : inputs.entrySet()) {
+                if (entry.getKey() != null && entry.getKey().trim().equalsIgnoreCase(key) && entry.getValue() != null) {
+                    String clean = entry.getValue().replaceAll("[^0-9.]", "").trim();
+                    if (!clean.isEmpty()) {
+                        try {
+                            order.setFinalValue(new BigDecimal(clean));
+                        } catch (Exception ignored) {}
+                    }
+                }
             }
         }
+        try {
+            Map<String, String> consolidated = documentWorkspaceService.getConsolidatedValues(id);
+            Map<String, String> textOnly = new HashMap<>();
+            for (Map.Entry<String, String> e : consolidated.entrySet()) {
+                if (e.getValue() != null && !e.getValue().startsWith("data:image")) {
+                    textOnly.put(e.getKey(), e.getValue());
+                }
+            }
+            order.setInputValues(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(textOnly));
+        } catch (Exception ignored) {}
+        order.setUpdatedAt(LocalDateTime.now());
+        orderRepository.save(order);
+
+        documentWorkspaceService.invalidateReportArtifacts(id);
+
         auditLogService.log(actorId(), actorEmail(), "SUPER_ADMIN", "ORDER_INPUT_EDIT", "ORDER",
                 String.valueOf(id), null, inputs.toString(), "Order inputs edited directly by SUPER_ADMIN");
         return ResponseEntity.ok("Inputs updated.");

@@ -26,6 +26,21 @@ public class OrderInput {
     @Column(name = "version", nullable = false)
     private Long version = 0L;
 
+    @Column(name = "authority_rank", nullable = false)
+    private Integer authorityRank = 1;
+
+    @Column(name = "last_modified_by_role", length = 32)
+    private String lastModifiedByRole;
+
+    @Column(name = "last_modified_by_user", length = 255)
+    private String lastModifiedByUser;
+
+    @Column(name = "updated_by")
+    private Long updatedBy;
+
+    @Column(name = "updated_at")
+    private java.time.LocalDateTime updatedAt = java.time.LocalDateTime.now();
+
     public static boolean isSensitiveKey(String key) {
         if (key == null) return false;
         String k = key.toUpperCase();
@@ -96,4 +111,19 @@ public class OrderInput {
 
     public Long getVersion() { return version; }
     public void setVersion(Long version) { this.version = version; }
+
+    public Integer getAuthorityRank() { return authorityRank != null ? authorityRank : 1; }
+    public void setAuthorityRank(Integer authorityRank) { this.authorityRank = authorityRank != null ? authorityRank : 1; }
+
+    public String getLastModifiedByRole() { return lastModifiedByRole; }
+    public void setLastModifiedByRole(String lastModifiedByRole) { this.lastModifiedByRole = lastModifiedByRole; }
+
+    public String getLastModifiedByUser() { return lastModifiedByUser; }
+    public void setLastModifiedByUser(String lastModifiedByUser) { this.lastModifiedByUser = lastModifiedByUser; }
+
+    public Long getUpdatedBy() { return updatedBy; }
+    public void setUpdatedBy(Long updatedBy) { this.updatedBy = updatedBy; }
+
+    public java.time.LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(java.time.LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

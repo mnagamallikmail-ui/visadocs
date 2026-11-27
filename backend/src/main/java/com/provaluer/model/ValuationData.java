@@ -288,8 +288,20 @@ public class ValuationData {
     @Column(name = "version", nullable = false)
     private Long version = 0L;
 
+    @Column(name = "authority_rank", nullable = false)
+    private Integer authorityRank = 1;
+
+    @Column(name = "updated_by")
+    private Long updatedBy;
+
     public Long getVersion() { return version; }
     public void setVersion(Long version) { this.version = version; }
+
+    public Integer getAuthorityRank() { return authorityRank != null ? authorityRank : 1; }
+    public void setAuthorityRank(Integer authorityRank) { this.authorityRank = authorityRank != null ? authorityRank : 1; }
+
+    public Long getUpdatedBy() { return updatedBy; }
+    public void setUpdatedBy(Long updatedBy) { this.updatedBy = updatedBy; }
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }

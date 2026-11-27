@@ -8,5 +8,6 @@ import java.util.Optional;
 public interface OrderInputRepository extends JpaRepository<OrderInput, Long> {
     List<OrderInput> findAllByOrderId(Long orderId);
     Optional<OrderInput> findByOrderIdAndFieldKey(Long orderId, String fieldKey);
+    Optional<OrderInput> findByOrderIdAndFieldKeyIgnoreCase(Long orderId, String fieldKey);
     void deleteByOrderId(Long orderId);
 }

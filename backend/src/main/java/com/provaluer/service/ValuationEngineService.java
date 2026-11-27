@@ -356,6 +356,12 @@ public class ValuationEngineService {
         }
 
         boolean isPa = user != null && user.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_PA"));
+        int actorRank = com.provaluer.util.AuthorityGovernance.resolveRank(user);
+        if (data.getId() != null && actorRank > 0 && actorRank < data.getAuthorityRank()) {
+            throw new org.springframework.security.access.AccessDeniedException(
+                    "Authority violation: Cannot overwrite " + com.provaluer.util.AuthorityGovernance.resolveRoleLabel(data.getAuthorityRank())
+                    + " valuation with " + com.provaluer.util.AuthorityGovernance.resolveRoleLabel(actorRank) + " save.");
+        }
         if (isPa) {
             boolean isLockedOrFinalized = "SPA_CONFIRMED".equalsIgnoreCase(order.getStatus())
                     || "FINAL_DELIVERY".equalsIgnoreCase(order.getStatus())
@@ -493,6 +499,8 @@ public class ValuationEngineService {
         } else {
             formulaService.calculateSummary(data, landItems, buildingItems);
         }
+        data.setAuthorityRank(Math.max(data.getAuthorityRank(), actorRank));
+        data.setUpdatedBy(user != null ? user.getId() : null);
         data.setUpdatedAt(LocalDateTime.now());
         valuationDataRepository.save(data);
 
@@ -1072,14 +1080,14 @@ public class ValuationEngineService {
         map.put("variance_justification", varianceResult.getJustification());
         map.put("govt_variance_note", varianceResult.getJustification());
 
-        // Add uppercase alias keys for flexible template authoring (e.g. <<FAIR_VALUE>>)
-        Map<String, String> uppercaseAliases = new HashMap<>();
+        // Canonical UPPER_SNAKE_CASE keys only (eliminate case-sensitive duplication)
+        Map<String, String> canonicalMap = new LinkedHashMap<>();
         for (Map.Entry<String, String> e : map.entrySet()) {
-            uppercaseAliases.put(e.getKey().toUpperCase(), e.getValue());
+            if (e.getKey() != null) {
+                canonicalMap.put(e.getKey().trim().toUpperCase(), e.getValue());
+            }
         }
-        map.putAll(uppercaseAliases);
-
-        return map;
+        return canonicalMap;
     }
 
     /**

@@ -1983,6 +1983,24 @@ public class OrderController {
                         .body(pdfContent);
             }
 
+            // Regenerate PDF from authoritative consolidated values if invalidated/missing
+            try {
+                documentWorkspaceService.generatePdfOnDemand(id, principal);
+                Optional<OrderDocument> regenPdfOpt = orderDocumentRepository.findAllByOrderId(id).stream()
+                        .filter(d -> "FINAL_SIGNED_PDF".equalsIgnoreCase(d.getCategory()))
+                        .findFirst();
+                if (regenPdfOpt.isPresent() && regenPdfOpt.get().getFileContent() != null) {
+                    byte[] pdfContent = regenPdfOpt.get().getFileContent();
+                    return ResponseEntity.ok()
+                            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"Report_" + id + ".pdf\"")
+                            .header(HttpHeaders.CACHE_CONTROL, "no-store, no-cache, must-revalidate, max-age=0")
+                            .header(HttpHeaders.PRAGMA, "no-cache")
+                            .contentType(MediaType.APPLICATION_PDF)
+                            .contentLength(pdfContent.length)
+                            .body(pdfContent);
+                }
+            } catch (Exception ignored) {}
+
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(Map.of("error", "PDF not generated yet. Please generate PDF first."));
         }

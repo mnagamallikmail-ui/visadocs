@@ -880,14 +880,33 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     }
   }
 
+  static const Set<String> _protectedMetadataKeys = {
+    'OWNER_NAME',
+    'CLIENT_NAME',
+    'BANK_NAME',
+    'BRANCH_NAME',
+    'PROPERTY_ADDRESS',
+    'SITE_ADDRESS',
+    'VALUATION_DATE',
+    'INSPECTION_DATE',
+    'REPORT_DATE',
+  };
+
   void _mergePlaceholdersPreservingRaw(Map<String, String> placeholders) {
+    final authorities = _workspaceModel?.fieldAuthorities ?? const <String, String>{};
     placeholders.forEach((k, v) {
       final uk = k.toUpperCase();
+      // Never allow recalculation to overwrite metadata fields or SPA/ADMIN authority-approved fields
+      if (_protectedMetadataKeys.contains(uk)) {
+        return;
+      }
+      final authRole = authorities[uk];
+      if (authRole == 'SPA' || authRole == 'ADMIN') {
+        return;
+      }
       if (isCalculatedValuationKey(uk)) {
         _activeValues[uk] = v;
         _deltaValues[uk] = v;
-        _activeValues[k] = v;
-        _deltaValues[k] = v;
         return;
       }
       if (uk.endsWith('_RAW') || (uk.endsWith('_NUMERIC') && !uk.contains('AMOUNT') && !uk.contains('FAIR_VALUE') && !uk.contains('DEPRECIATION')) || (uk.endsWith('_UNIT') && !uk.contains('AMOUNT')) || uk.endsWith('_STANDARD_SQFT')) {
@@ -900,14 +919,10 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         if (!PlaceholderNormalizationRegistry.isAreaKey(uk) && !PlaceholderNormalizationRegistry.isRateKey(uk)) {
           _activeValues[uk] = _activeValues[rawKey]!;
           _deltaValues[uk] = _activeValues[rawKey]!;
-          _activeValues[k] = _activeValues[rawKey]!;
-          _deltaValues[k] = _activeValues[rawKey]!;
         }
       } else {
         _activeValues[uk] = v;
         _deltaValues[uk] = v;
-        _activeValues[k] = v;
-        _deltaValues[k] = v;
       }
     });
   }
@@ -1915,6 +1930,8 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         _errorMessage = null;
         _deltaValues.clear();
         _isDirty = false;
+        TokenStorage.clearDraftFromStorage(_workspaceModel!.orderId);
+        IndexedDbDraftService.instance.deleteDraft(_workspaceModel!.orderId);
         _workspaceModel = _workspaceModel!.copyWith(status: 'SPA_CONFIRMED');
 
         // Immediately refresh workspace, order state, documents & preview

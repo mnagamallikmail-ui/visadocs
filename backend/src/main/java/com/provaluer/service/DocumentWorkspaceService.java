@@ -809,7 +809,7 @@ public class DocumentWorkspaceService {
             }
         }
 
-        return new DocumentWorkspaceResponse(
+        DocumentWorkspaceResponse resp = new DocumentWorkspaceResponse(
                 order.getId(),
                 order.getStatus(),
                 order.getReportNumber(),
@@ -819,6 +819,8 @@ public class DocumentWorkspaceService {
                 domNode,
                 order.getWorkspaceRevision() != null ? order.getWorkspaceRevision() : 1
         );
+        resp.setFieldAuthorities(getFieldAuthorities(orderId));
+        return resp;
     }
 
     /**
@@ -836,7 +838,8 @@ public class DocumentWorkspaceService {
             order.setFieldMappingSnapshot(json);
             order.setUpdatedAt(LocalDateTime.now());
             orderRepository.save(order);
-            log.info("SPA user #{} saved {} order-level text overrides for order #{}", principal.getId(), overrides != null ? overrides.size() : 0, orderId);
+            invalidateReportArtifacts(orderId);
+            log.info("SPA/Admin user #{} saved {} order-level text overrides for order #{}", principal.getId(), overrides != null ? overrides.size() : 0, orderId);
         } catch (Exception e) {
             log.error("Failed to serialize order text overrides for order #{}: {}", orderId, e.getMessage());
             throw new RuntimeException("Failed to save text overrides: " + e.getMessage());
@@ -1046,10 +1049,18 @@ public class DocumentWorkspaceService {
             }
             orderRepository.save(order);
 
-            // 2. Persist to order_inputs table for hydration & image binary persistence
+            // 2. Persist to order_inputs table with strict authority provenance
+            int actorRank = com.provaluer.util.AuthorityGovernance.resolveRank(principal);
+            String actorRoleLabel = com.provaluer.util.AuthorityGovernance.resolveRoleLabel(actorRank);
+            String actorDisplay = com.provaluer.util.AuthorityGovernance.resolveUserDisplay(principal);
+            Long actorUserId = principal != null ? principal.getId() : null;
+
             for (Map.Entry<String, String> entry : expandedInputs.entrySet()) {
-                saveOrUpdateInput(orderId, entry.getKey(), entry.getValue());
+                saveOrUpdateInput(orderId, entry.getKey(), entry.getValue(), actorRank, actorRoleLabel, actorDisplay, actorUserId);
             }
+
+            // Sync scalar monetary overrides onto order.finalValue when SPA/Admin saves them
+            syncOrderMonetaryOverride(order, expandedInputs, actorRank);
 
             boolean tablesModified = false;
 
@@ -1232,8 +1243,9 @@ public class DocumentWorkspaceService {
                                 continue;
                             }
                         }
-                        saveOrUpdateInput(orderId, entry.getKey(), entry.getValue());
-                        existingValues.put(entry.getKey(), entry.getValue());
+                        saveOrUpdateInput(orderId, entry.getKey(), entry.getValue(),
+                                com.provaluer.util.AuthorityGovernance.RANK_SYSTEM, "SYSTEM", "SYSTEM", null);
+                        existingValues.put(uk, entry.getValue());
                     }
 
                     Map<String, String> textOnly = new HashMap<>();
@@ -1430,12 +1442,34 @@ public class DocumentWorkspaceService {
 
         validateOrderAccess(order, principal, "APPROVE");
 
-        // 1. Save modified values if provided
-        if (request != null && request.getModifiedValues() != null) {
-            for (Map.Entry<String, String> entry : request.getModifiedValues().entrySet()) {
-                saveOrUpdateInput(orderId, entry.getKey(), entry.getValue());
-            }
+        // 1. Save modified values if provided with strict authority provenance
+        int actorRank = com.provaluer.util.AuthorityGovernance.resolveRank(principal);
+        if (actorRank < com.provaluer.util.AuthorityGovernance.RANK_SPA) {
+            actorRank = com.provaluer.util.AuthorityGovernance.RANK_SPA;
         }
+        String actorRoleLabel = com.provaluer.util.AuthorityGovernance.resolveRoleLabel(actorRank);
+        String actorDisplay = com.provaluer.util.AuthorityGovernance.resolveUserDisplay(principal);
+        Long actorUserId = principal != null ? principal.getId() : null;
+
+        if (request != null && request.getModifiedValues() != null && !request.getModifiedValues().isEmpty()) {
+            for (Map.Entry<String, String> entry : request.getModifiedValues().entrySet()) {
+                saveOrUpdateInput(orderId, entry.getKey(), entry.getValue(), actorRank, actorRoleLabel, actorDisplay, actorUserId);
+            }
+            syncOrderMonetaryOverride(order, request.getModifiedValues(), actorRank);
+            try {
+                Map<String, String> consolidatedAfter = getConsolidatedValues(orderId);
+                Map<String, String> textOnly = new HashMap<>();
+                for (Map.Entry<String, String> e : consolidatedAfter.entrySet()) {
+                    if (e.getValue() != null && !e.getValue().startsWith("data:image")) {
+                        textOnly.put(e.getKey(), e.getValue());
+                    }
+                }
+                order.setInputValues(objectMapper.writeValueAsString(textOnly));
+            } catch (Exception ignored) {}
+        }
+
+        // Invalidate stale FINAL_DOCX / FINAL_SIGNED_PDF / preview cache before recompiling
+        invalidateReportArtifacts(orderId);
 
         if (request != null && request.getFinalValue() != null) {
             order.setFinalValue(request.getFinalValue());
@@ -1846,8 +1880,10 @@ public class DocumentWorkspaceService {
         orderDocumentRepository.save(doc);
     }
 
-    private void invalidateCachedReportDocuments(Long orderId) {
-        if (orderId == null || orderDocumentRepository == null) return;
+    public void invalidateReportArtifacts(Long orderId) {
+        if (orderId == null) return;
+        orderPreviewCache.remove(orderId);
+        if (orderDocumentRepository == null) return;
         try {
             List<OrderDocument> existingDocs = orderDocumentRepository.findAllByOrderId(orderId);
             for (OrderDocument doc : existingDocs) {
@@ -1861,16 +1897,81 @@ public class DocumentWorkspaceService {
         }
     }
 
+    private void invalidateCachedReportDocuments(Long orderId) {
+        invalidateReportArtifacts(orderId);
+    }
+
+    public Map<String, String> getFieldAuthorities(Long orderId) {
+        Map<String, String> authorities = new LinkedHashMap<>();
+        List<OrderInput> inputs = orderInputRepository.findAllByOrderId(orderId);
+        Map<String, OrderInput> bestByKey = new LinkedHashMap<>();
+        for (OrderInput oi : inputs) {
+            String uk = com.provaluer.util.AuthorityGovernance.canonicalKey(oi.getFieldKey());
+            if (uk.isEmpty()) continue;
+            OrderInput prev = bestByKey.get(uk);
+            if (prev == null || oi.getAuthorityRank() > prev.getAuthorityRank()
+                    || (oi.getAuthorityRank().equals(prev.getAuthorityRank())
+                        && oi.getId() != null && prev.getId() != null && oi.getId() > prev.getId())) {
+                bestByKey.put(uk, oi);
+            }
+        }
+        for (Map.Entry<String, OrderInput> e : bestByKey.entrySet()) {
+            String role = e.getValue().getLastModifiedByRole();
+            if (role == null || role.isBlank()) {
+                role = com.provaluer.util.AuthorityGovernance.resolveRoleLabel(e.getValue().getAuthorityRank());
+            }
+            authorities.put(e.getKey(), role);
+        }
+        return authorities;
+    }
+
+    private void syncOrderMonetaryOverride(Order order, Map<String, String> inputs, int actorRank) {
+        if (order == null || inputs == null || actorRank < com.provaluer.util.AuthorityGovernance.RANK_SPA) {
+            return;
+        }
+        for (String key : List.of("FINAL_VALUE", "FAIR_VALUE", "MARKET_VALUE", "SAY_VALUE", "FINAL_VALUATION_AMOUNT")) {
+            for (Map.Entry<String, String> e : inputs.entrySet()) {
+                if (e.getKey() != null && e.getKey().trim().equalsIgnoreCase(key) && e.getValue() != null) {
+                    String clean = e.getValue().replaceAll("[^0-9.]", "").trim();
+                    if (!clean.isEmpty()) {
+                        try {
+                            order.setFinalValue(new BigDecimal(clean));
+                            return;
+                        } catch (Exception ignored) {}
+                    }
+                }
+            }
+        }
+    }
+
     public Map<String, String> getConsolidatedValues(Long orderId) {
-        Map<String, String> map = new HashMap<>();
+        // Case-insensitive TreeMap backed by canonical UPPER_SNAKE_CASE keys (Single Source of Truth)
+        Map<String, String> map = new TreeMap<>(String.CASE_INSENSITIVE_ORDER);
+        Map<String, Integer> rankByKey = new HashMap<>();
+        Map<String, OrderInput> bestByKey = new LinkedHashMap<>();
+
         List<OrderInput> inputs = orderInputRepository.findAllByOrderId(orderId);
         for (OrderInput input : inputs) {
+            String uk = com.provaluer.util.AuthorityGovernance.canonicalKey(input.getFieldKey());
+            if (uk.isEmpty()) continue;
+            OrderInput prev = bestByKey.get(uk);
+            if (prev == null || input.getAuthorityRank() > prev.getAuthorityRank()
+                    || (input.getAuthorityRank().equals(prev.getAuthorityRank())
+                        && input.getId() != null && prev.getId() != null && input.getId() > prev.getId())) {
+                bestByKey.put(uk, input);
+            }
+        }
+
+        for (Map.Entry<String, OrderInput> entry : bestByKey.entrySet()) {
+            String uk = entry.getKey();
+            OrderInput input = entry.getValue();
             if (input.getImageValue() != null) {
                 String base64Data = "data:image/png;base64," + Base64.getEncoder().encodeToString(input.getImageValue());
-                map.put(input.getFieldKey(), base64Data);
+                map.put(uk, base64Data);
             } else {
-                map.put(input.getFieldKey(), input.getFieldValue());
+                map.put(uk, input.getFieldValue());
             }
+            rankByKey.put(uk, input.getAuthorityRank());
         }
 
         // Ensure bidirectional alias coverage for cover page / front page images
@@ -1883,21 +1984,32 @@ public class DocumentWorkspaceService {
             map.put("IMG_COVER_PAGE", map.get("COVER_IMAGE"));
         }
 
-        // Merge Valuation Engine Placeholders as fallback / bundle computation
+        // Merge Valuation Engine Placeholders strictly respecting authority_rank (SPA/ADMIN overrides NEVER overwritten)
         try {
             com.provaluer.dto.ValuationBundleResponse valBundle = valuationEngineService.getValuationBundle(orderId);
             if (valBundle != null && valBundle.getPlaceholders() != null) {
+                int valDataRank = valBundle.getValuationData() != null ? valBundle.getValuationData().getAuthorityRank() : com.provaluer.util.AuthorityGovernance.RANK_PA;
                 for (Map.Entry<String, String> entry : valBundle.getPlaceholders().entrySet()) {
-                    String k = entry.getKey();
+                    String uk = com.provaluer.util.AuthorityGovernance.canonicalKey(entry.getKey());
+                    if (uk.isEmpty()) continue;
                     String v = entry.getValue();
-                    String existing = map.get(k);
+                    String existing = map.get(uk);
+                    int existingRank = rankByKey.getOrDefault(uk, com.provaluer.util.AuthorityGovernance.RANK_SYSTEM);
+
+                    // Authority Guard: If SPA or ADMIN (rank >= 2) saved this field in order_inputs and valuation_data is lower rank, NEVER overwrite!
+                    if (existingRank >= com.provaluer.util.AuthorityGovernance.RANK_SPA && existingRank > valDataRank) {
+                        continue;
+                    }
+                    // Even when same rank (e.g. SPA edited scalar MARKET_VALUE after PA's valuation_data), do not overwrite non-empty SPA/ADMIN override
+                    if (existingRank >= com.provaluer.util.AuthorityGovernance.RANK_SPA && existing != null && !existing.trim().isEmpty()) {
+                        continue;
+                    }
 
                     boolean isExistingEmptyOrZero = (existing == null || existing.trim().isEmpty()
                             || existing.trim().equals("0") || existing.trim().equals("0.0") || existing.trim().equals("0.00")
                             || existing.trim().equals("₹ 0") || existing.trim().equals("₹ 0.00") || existing.trim().equals("INR 0")
                             || existing.trim().equalsIgnoreCase("Rupees Zero Only") || existing.trim().equalsIgnoreCase("Zero"));
 
-                    String uk = k.toUpperCase();
                     boolean isAuthoritativeCalculatedKey = uk.startsWith("TOTAL_") || uk.startsWith("RAW_FAIR_")
                             || uk.startsWith("SAY_") || uk.startsWith("FAIR_VALUE") || uk.startsWith("FINAL_VALUATION_")
                             || uk.startsWith("FAIR_MARKET_") || uk.startsWith("MARKET_VALUE") || uk.startsWith("PROPERTY_VALUE")
@@ -1909,11 +2021,30 @@ public class DocumentWorkspaceService {
                             || uk.startsWith("LAND_REALIZABLE_") || uk.startsWith("BUILDING_REALIZABLE_")
                             || uk.startsWith("LAND_DISTRESS_") || uk.startsWith("BUILDING_DISTRESS_");
 
-                    if (!map.containsKey(k) || isExistingEmptyOrZero || (isAuthoritativeCalculatedKey && v != null && !v.trim().isEmpty())) {
+                    if (!map.containsKey(uk) || isExistingEmptyOrZero || (isAuthoritativeCalculatedKey && v != null && !v.trim().isEmpty())) {
                         if (v != null && !v.trim().isEmpty()) {
-                            map.put(k, v);
-                        } else if (!map.containsKey(k)) {
-                            map.put(k, "");
+                            map.put(uk, v);
+                        } else if (!map.containsKey(uk)) {
+                            map.put(uk, "");
+                        }
+                    }
+                }
+
+                // Propagate high-authority MARKET_VALUE / FAIR_VALUE overrides across synonymous valuation aliases
+                String highAuthMarket = null;
+                int highAuthRank = 0;
+                for (String alias : List.of("MARKET_VALUE", "FAIR_VALUE", "SAY_VALUE", "FINAL_VALUE", "FINAL_VALUATION_AMOUNT")) {
+                    int r = rankByKey.getOrDefault(alias, 0);
+                    String val = map.get(alias);
+                    if (r >= com.provaluer.util.AuthorityGovernance.RANK_SPA && val != null && !val.trim().isEmpty() && r >= highAuthRank) {
+                        highAuthRank = r;
+                        highAuthMarket = val;
+                    }
+                }
+                if (highAuthMarket != null) {
+                    for (String alias : List.of("MARKET_VALUE", "FAIR_VALUE", "SAY_VALUE", "SAY_FAIR_VALUE", "FINAL_VALUE", "FINAL_VALUATION_AMOUNT", "FAIR_MARKET_VALUE", "REPORT_FAIR_VALUE", "TOTAL_VALUATION")) {
+                        if (rankByKey.getOrDefault(alias, 0) < highAuthRank) {
+                            map.put(alias, highAuthMarket);
                         }
                     }
                 }
@@ -1950,19 +2081,49 @@ public class DocumentWorkspaceService {
         return map;
     }
 
+    public void saveOrUpdateInputWithAuthority(Long orderId, String key, String value, UserDetailsImpl principal) {
+        int rank = com.provaluer.util.AuthorityGovernance.resolveRank(principal);
+        String roleLabel = com.provaluer.util.AuthorityGovernance.resolveRoleLabel(rank);
+        String userDisplay = com.provaluer.util.AuthorityGovernance.resolveUserDisplay(principal);
+        Long userId = principal != null ? principal.getId() : null;
+        saveOrUpdateInput(orderId, key, value, rank, roleLabel, userDisplay, userId);
+    }
+
     private void saveOrUpdateInput(Long orderId, String key, String value) {
-        Optional<OrderInput> existing = orderInputRepository.findByOrderIdAndFieldKey(orderId, key);
+        saveOrUpdateInput(orderId, key, value, com.provaluer.util.AuthorityGovernance.RANK_PA, "PA", "PA", null);
+    }
+
+    private void saveOrUpdateInput(Long orderId, String key, String value, int actorRank, String actorRole, String actorUser, Long actorUserId) {
+        String canonicalKey = com.provaluer.util.AuthorityGovernance.canonicalKey(key);
+        if (canonicalKey.isEmpty()) return;
+
+        Optional<OrderInput> existing = orderInputRepository.findByOrderIdAndFieldKeyIgnoreCase(orderId, canonicalKey);
         OrderInput field = existing.orElseGet(() -> {
-            // Prevent stale case-variant OrderInput rows from shadowing newly saved keys on reload
             List<OrderInput> allInputs = orderInputRepository.findAllByOrderId(orderId);
             for (OrderInput oi : allInputs) {
-                if (oi.getFieldKey() != null && oi.getFieldKey().equalsIgnoreCase(key)) {
-                    oi.setFieldKey(key);
+                if (oi.getFieldKey() != null && oi.getFieldKey().trim().equalsIgnoreCase(canonicalKey)) {
+                    oi.setFieldKey(canonicalKey);
                     return oi;
                 }
             }
-            return new OrderInput(orderId, key, "");
+            OrderInput created = new OrderInput(orderId, canonicalKey, "");
+            created.setAuthorityRank(actorRank);
+            return created;
         });
+
+        // Monotonic Authority Guard: lower-rank actor/system cannot overwrite higher-rank field
+        if (field.getId() != null && actorRank < field.getAuthorityRank()) {
+            log.debug("Authority guard blocked overwrite on order #{} key={} (existingRank={} > actorRank={})",
+                    orderId, canonicalKey, field.getAuthorityRank(), actorRank);
+            return;
+        }
+
+        field.setFieldKey(canonicalKey);
+        field.setAuthorityRank(actorRank);
+        field.setLastModifiedByRole(actorRole);
+        field.setLastModifiedByUser(actorUser);
+        field.setUpdatedBy(actorUserId);
+        field.setUpdatedAt(LocalDateTime.now());
 
         if (value != null && (value.startsWith("data:image/") || (value.length() > 200 && !value.contains(" ") && !value.contains("\n")))) {
             try {

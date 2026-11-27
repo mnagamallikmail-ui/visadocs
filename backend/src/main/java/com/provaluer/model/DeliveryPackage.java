@@ -11,8 +11,17 @@ public class DeliveryPackage {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "order_id", nullable = false, unique = true)
+    @Column(name = "order_id", nullable = false)
     private Long orderId;
+
+    @Column(name = "revision_number", nullable = false)
+    private Integer revisionNumber = 1;
+
+    @Column(name = "parent_package_id")
+    private Long parentPackageId;
+
+    @Column(name = "superseded", nullable = false)
+    private boolean superseded = false;
 
     @Basic(fetch = FetchType.LAZY)
     @Column(name = "encrypted_pdf_content")
@@ -38,6 +47,15 @@ public class DeliveryPackage {
 
     public Long getOrderId() { return orderId; }
     public void setOrderId(Long orderId) { this.orderId = orderId; }
+
+    public Integer getRevisionNumber() { return revisionNumber != null ? revisionNumber : 1; }
+    public void setRevisionNumber(Integer revisionNumber) { this.revisionNumber = revisionNumber != null ? revisionNumber : 1; }
+
+    public Long getParentPackageId() { return parentPackageId; }
+    public void setParentPackageId(Long parentPackageId) { this.parentPackageId = parentPackageId; }
+
+    public boolean isSuperseded() { return superseded; }
+    public void setSuperseded(boolean superseded) { this.superseded = superseded; }
 
     public byte[] getEncryptedPdfContent() { return encryptedPdfContent; }
     public void setEncryptedPdfContent(byte[] encryptedPdfContent) { this.encryptedPdfContent = encryptedPdfContent; }
