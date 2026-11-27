@@ -1742,7 +1742,16 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
 
   /// Saves changed delta values to backend with robust error visibility & concurrency protection
   Future<bool> saveChanges({bool isAutoSave = false}) async {
-    // FIX 3: Re-entrancy protection - only one save may execute at a time
+    // Wait briefly if an autosave is in-flight when a manual save is triggered
+    if (!isAutoSave && (_isSaving || _isAutoSaving)) {
+      int attempts = 0;
+      while ((_isSaving || _isAutoSaving) && attempts < 20) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        attempts++;
+      }
+    }
+
+    // Re-entrancy protection - only one save may execute at a time
     if (_isSaving || _isAutoSaving) {
       return false;
     }
@@ -1780,6 +1789,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         final newRevStr = saveResult['workspaceRevision']?.toString();
         final newRev = int.tryParse(newRevStr ?? '') ?? (_workspaceModel!.workspaceRevision + 1);
         _workspaceModel = _workspaceModel!.copyWith(workspaceRevision: newRev);
+        _autosaveQueue?.updateRevision(newRev);
         hasRevisionConflict = false;
 
         deltaToSave.forEach((k, _) {
@@ -1861,13 +1871,11 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
 
     try {
       if (_deltaValues.isNotEmpty) {
-        await _apiService.saveDocumentValues(
-          _workspaceModel!.orderId,
-          _deltaValues,
-          workspaceRevision: _workspaceModel?.workspaceRevision,
-        );
-        _deltaValues.clear();
-        _isDirty = false;
+        final saved = await saveChanges(isAutoSave: false);
+        if (!saved) {
+          _errorMessage = saveErrorMessage ?? 'Failed to save pending changes before submitting to SPA.';
+          return false;
+        }
       }
 
       final success = await _apiService.submitToSpa(_workspaceModel!.orderId);

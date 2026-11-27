@@ -761,7 +761,8 @@ public class DocumentWorkspaceService {
         boolean isSpaOrAdmin = principal.getAuthorities().stream().anyMatch(
                 a -> a.getAuthority().equals("ROLE_SPA") || a.getAuthority().equals("ROLE_SUPER_ADMIN") || a.getAuthority().equals("ROLE_ADMIN"));
         boolean readOnly = false;
-        boolean isLockedOrFinalized = "FINAL_DELIVERY".equalsIgnoreCase(order.getStatus())
+        boolean isLockedOrFinalized = "SPA_GATE".equalsIgnoreCase(order.getStatus())
+                || "FINAL_DELIVERY".equalsIgnoreCase(order.getStatus())
                 || "SPA_CONFIRMED".equalsIgnoreCase(order.getStatus())
                 || "FINALIZED".equalsIgnoreCase(order.getValuationStatus())
                 || "LOCKED".equalsIgnoreCase(order.getValuationStatus());
@@ -1054,7 +1055,7 @@ public class DocumentWorkspaceService {
 
             if (expandedInputs.containsKey("RAW_LAND_ITEMS_JSON")) {
                 String landJson = expandedInputs.get("RAW_LAND_ITEMS_JSON");
-                if (landJson != null && !landJson.trim().isEmpty() && !landJson.equals("[]")) {
+                if (landJson != null && !landJson.trim().isEmpty()) {
                     try {
                         List<ValuationLandItem> items = objectMapper.readValue(
                                 landJson,
@@ -1065,14 +1066,15 @@ public class DocumentWorkspaceService {
                             tablesModified = true;
                         }
                     } catch (Exception e) {
-                        log.warn("Failed to sync landItemRepository from saveDocumentValues: {}", e.getMessage());
+                        log.error("Failed to sync landItemRepository from saveDocumentValues for order #{}: {}", orderId, e.getMessage(), e);
+                        throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to persist land items: " + e.getMessage());
                     }
                 }
             }
 
             if (expandedInputs.containsKey("RAW_BUILDING_ITEMS_JSON")) {
                 String bldgJson = expandedInputs.get("RAW_BUILDING_ITEMS_JSON");
-                if (bldgJson != null && !bldgJson.trim().isEmpty() && !bldgJson.equals("[]")) {
+                if (bldgJson != null && !bldgJson.trim().isEmpty()) {
                     try {
                         List<ValuationBuildingItem> items = objectMapper.readValue(
                                 bldgJson,
@@ -1083,14 +1085,15 @@ public class DocumentWorkspaceService {
                             tablesModified = true;
                         }
                     } catch (Exception e) {
-                        log.warn("Failed to sync buildingItemRepository from saveDocumentValues: {}", e.getMessage());
+                        log.error("Failed to sync buildingItemRepository from saveDocumentValues for order #{}: {}", orderId, e.getMessage(), e);
+                        throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to persist building items: " + e.getMessage());
                     }
                 }
             }
 
             if (expandedInputs.containsKey("RAW_COMPOSITE_ITEMS_JSON")) {
                 String compJson = expandedInputs.get("RAW_COMPOSITE_ITEMS_JSON");
-                if (compJson != null && !compJson.trim().isEmpty() && !compJson.equals("[]")) {
+                if (compJson != null && !compJson.trim().isEmpty()) {
                     try {
                         List<ValuationCompositeItem> items = objectMapper.readValue(
                                 compJson,
@@ -1101,7 +1104,8 @@ public class DocumentWorkspaceService {
                             tablesModified = true;
                         }
                     } catch (Exception e) {
-                        log.warn("Failed to sync compositeItemRepository from saveDocumentValues: {}", e.getMessage());
+                        log.error("Failed to sync compositeItemRepository from saveDocumentValues for order #{}: {}", orderId, e.getMessage(), e);
+                        throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to persist composite items: " + e.getMessage());
                     }
                 }
             } else if (expandedInputs.containsKey("SALEABLE_AREA_NUMERIC") || expandedInputs.containsKey("SALEABLE_AREA")) {
@@ -1210,10 +1214,24 @@ public class DocumentWorkspaceService {
                     }
 
                     // Single source of truth: synchronize calculated totals to order_inputs
+                    // Never overwrite user-entered metadata (OWNER_NAME, CLIENT_NAME, BANK_NAME, BRANCH_NAME, dates, address)
+                    Set<String> metadataKeys = Set.of(
+                            "REPORT_NO", "REPORT_VERSION", "VALUATION_STATUS",
+                            "REPORT_DATE", "VALUATION_DATE", "INSPECTION_DATE",
+                            "OWNER_NAME", "CLIENT_NAME", "BANK_NAME", "BRANCH_NAME",
+                            "PROPERTY_TYPE", "PROPERTY_ADDRESS", "ADDRESS", "SITE_ADDRESS", "LOCATION"
+                    );
                     Map<String, String> calculatedPlaceholders = valuationEngineService.generatePlaceholders(
                             order, valData, landItems, buildingItems, List.of(), compositeItems
                     );
                     for (Map.Entry<String, String> entry : calculatedPlaceholders.entrySet()) {
+                        String uk = entry.getKey().toUpperCase();
+                        if (metadataKeys.contains(uk)) {
+                            String cur = existingValues.getOrDefault(entry.getKey(), existingValues.get(uk));
+                            if (cur != null && !cur.trim().isEmpty()) {
+                                continue;
+                            }
+                        }
                         saveOrUpdateInput(orderId, entry.getKey(), entry.getValue());
                         existingValues.put(entry.getKey(), entry.getValue());
                     }
@@ -1934,7 +1952,17 @@ public class DocumentWorkspaceService {
 
     private void saveOrUpdateInput(Long orderId, String key, String value) {
         Optional<OrderInput> existing = orderInputRepository.findByOrderIdAndFieldKey(orderId, key);
-        OrderInput field = existing.orElseGet(() -> new OrderInput(orderId, key, ""));
+        OrderInput field = existing.orElseGet(() -> {
+            // Prevent stale case-variant OrderInput rows from shadowing newly saved keys on reload
+            List<OrderInput> allInputs = orderInputRepository.findAllByOrderId(orderId);
+            for (OrderInput oi : allInputs) {
+                if (oi.getFieldKey() != null && oi.getFieldKey().equalsIgnoreCase(key)) {
+                    oi.setFieldKey(key);
+                    return oi;
+                }
+            }
+            return new OrderInput(orderId, key, "");
+        });
 
         if (value != null && (value.startsWith("data:image/") || (value.length() > 200 && !value.contains(" ") && !value.contains("\n")))) {
             try {
