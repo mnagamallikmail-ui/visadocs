@@ -9,7 +9,7 @@ import '../../screens/app_info_screen.dart';
 import '../../services/api_service.dart';
 import '../valuation_portal/valuation_portal_widget.dart';
 import 'admin_sections.dart';
-import 'admin_seo_intelligence_section.dart';
+import 'admin_website_analytics_section.dart';
 import 'admin_leads_crm_section.dart';
 import '../quotations/admin_release_queue_section.dart';
 import '../privacy/privacy_governance_dashboard.dart';
@@ -655,7 +655,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
   static const _menuItems = [
     {'key': 'overview', 'label': 'Overview', 'icon': Icons.dashboard_outlined},
     {'key': 'leads_crm', 'label': 'Leads CRM', 'icon': Icons.leaderboard_rounded},
-    {'key': 'seo_intelligence', 'label': 'CRM Revenue & SEO Intelligence', 'icon': Icons.insights_rounded},
+    {'key': 'website_analytics', 'label': 'Website Analytics', 'icon': Icons.analytics_outlined},
     {'key': 'valuation_portal', 'label': 'Valuation Portal', 'icon': Icons.swap_horiz_outlined},
     {'key': 'users', 'label': 'User Management', 'icon': Icons.manage_accounts_outlined},
     {'key': 'queue', 'label': 'Queue Management', 'icon': Icons.queue_play_next_outlined},
@@ -677,7 +677,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
     return _menuItems.where((m) {
       final key = m['key'] as String;
       if (isSuper) return true;
-      return key == 'overview' || key == 'leads_crm' || key == 'queue' || key == 'intake_clearance' || key == 'templates' || key == 'signing' || key == 'valuation_portal' || key == 'seo_intelligence';
+      return key == 'overview' || key == 'leads_crm' || key == 'queue' || key == 'intake_clearance' || key == 'templates' || key == 'signing' || key == 'valuation_portal' || key == 'website_analytics';
     }).toList();
   }
 
@@ -984,7 +984,7 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
   Widget _buildCanvas() {
     final isSuper = widget.role == 'SUPER_ADMIN';
     final menu = _selectedMenu;
-    if (!isSuper && menu != 'overview' && menu != 'leads_crm' && menu != 'queue' && menu != 'intake_clearance' && menu != 'templates' && menu != 'signing' && menu != 'seo_intelligence') {
+    if (!isSuper && menu != 'overview' && menu != 'leads_crm' && menu != 'queue' && menu != 'intake_clearance' && menu != 'templates' && menu != 'signing' && menu != 'website_analytics') {
       return AdminOverviewSection(onNavigate: _navigateTo);
     }
     switch (menu) {
@@ -992,8 +992,8 @@ class _SuperAdminWidgetState extends State<SuperAdminWidget> {
         return AdminOverviewSection(onNavigate: _navigateTo);
       case 'leads_crm':
         return const AdminLeadsCrmSection();
-      case 'seo_intelligence':
-        return const AdminSeoIntelligenceSection();
+      case 'website_analytics':
+        return const AdminWebsiteAnalyticsSection();
       case 'users':
         return _buildUserManagement();
       case 'queue':

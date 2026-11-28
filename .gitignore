@@ -83,3 +83,9 @@ frontend/build/
 frontend/.dart_tool/
 *.apk
 *.aab
+
+###############################################################################
+# MaxMind GeoIP Databases (Never commit binary MMDB files)
+###############################################################################
+*.mmdb
+storage/geoip/

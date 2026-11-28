@@ -95,7 +95,7 @@ public class SecurityConfig {
                             "/client/delivery/stream", "/api/v1/client/delivery/stream",
                             "/api/v1/documents/download",
                             "/api/v1/telemetry/**", "/api/v1/governance/health", "/api/v1/governance/metrics",
-                            "/api/v1/admin/seo/real-telemetry",
+                            "/api/v1/analytics/visit",
                             "/api/v1/privacy/consent",
                             "/api/v1/privacy/consent/withdraw",
                             "/api/v1/privacy/governance",

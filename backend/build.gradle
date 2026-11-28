@@ -35,6 +35,9 @@ dependencies {
     // OpenAPI Swagger
     implementation 'org.springdoc:springdoc-openapi-starter-webmvc-ui:2.6.0'
 
+    // Local IP Geolocation (MaxMind GeoLite2 City MMDB)
+    implementation 'com.maxmind.geoip2:geoip2:4.2.0'
+
     // JWT Security
     implementation 'io.jsonwebtoken:jjwt-api:0.11.5'
     runtimeOnly 'io.jsonwebtoken:jjwt-impl:0.11.5'

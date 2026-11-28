@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'api_service.dart';
 import 'analytics_service_stub.dart'
     if (dart.library.html) 'analytics_service_web.dart';
 
@@ -12,10 +14,26 @@ class AnalyticsService {
   /// Get the current window location or canonical fallback URL
   static String get currentUrl => getCurrentUrlWeb();
 
-  /// Send a route-based page_view event to GA4
+  /// Send a route-based page_view event to GA4 and first-party Website Analytics
   static void trackPageView(String pagePath, [String? pageTitle]) {
     final title = pageTitle ?? _derivePageTitle(pagePath);
     trackPageViewWeb(pagePath, title);
+    _recordFirstPartyVisit(pagePath);
+  }
+
+  static void _recordFirstPartyVisit(String pagePath) {
+    if (pagePath.startsWith('/admin') ||
+        pagePath.startsWith('/portal') ||
+        pagePath.startsWith('/workspace') ||
+        pagePath.startsWith('/login')) {
+      return;
+    }
+    unawaited(
+      ApiService()
+          .dio
+          .post('/api/v1/analytics/visit', data: {'pagePath': pagePath})
+          .then((_) {}, onError: (_) {}),
+    );
   }
 
   /// General conversion / custom event dispatcher

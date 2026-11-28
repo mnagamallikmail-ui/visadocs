@@ -47,6 +47,8 @@ app:
     expiration-ms: 86400000 # 24 hours
   mfa:
     enforcement-enabled: ${MFA_ENFORCEMENT_ENABLED:false}
+  geoip:
+    database-path: ${GEOIP_DB_PATH:storage/geoip/GeoLite2-City.mmdb}
   telegram:
     enabled: ${TELEGRAM_NOTIFICATIONS_ENABLED:false}
     bot-token: ${TELEGRAM_BOT_TOKEN:}
