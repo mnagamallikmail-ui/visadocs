@@ -1,6 +1,6 @@
 import 'dart:async';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:flutter/foundation.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter/widgets.dart';
 import '../../../services/indexed_db_draft_service.dart';
 import 'document_workspace_api_service.dart';
@@ -31,11 +31,32 @@ class WorkspaceAutosaveQueue {
   Timer? _retryTimer;
   StreamSubscription? _connectivitySub;
   bool _isFlushing = false;
+  Future<bool>? _inFlightFlush;
   bool _isOnline = true;
   int _workspaceRevision = 1;
 
+  bool get isFlushing => _isFlushing;
+  Future<bool> waitForInFlight() async => _inFlightFlush != null ? await _inFlightFlush! : true;
+
+  void cancelPendingDebounce() {
+    _debounceTimer?.cancel();
+  }
+
+  void clearPendingKeys(Iterable<String> keys) {
+    for (final k in keys) {
+      _pendingDeltas.remove(k);
+    }
+    pendingSyncCount.value = _pendingDeltas.length;
+    if (_pendingDeltas.isEmpty) {
+      syncStatus.value = QueueSyncStatus.saved;
+    }
+  }
+
   VoidCallback? onConflictOrReadOnly;
+  VoidCallback? onRevisionConflict;
   void Function(int newRevision)? onRevisionUpdated;
+  void Function(Map<String, String> committedKeys, int? serverRevision)? onCommitSuccess;
+  bool Function()? canSaveCheck;
 
   WorkspaceAutosaveQueue({
     required this.orderId,
@@ -53,10 +74,8 @@ class WorkspaceAutosaveQueue {
   }
 
   void _initConnectivity() {
-    if (WidgetsBinding.instance == null) {
-      _isOnline = true;
-      return;
-    }
+    // WidgetsBinding.instance is non-null in test harness too; keep online
+    _isOnline = true;
     try {
       _connectivitySub = Connectivity().onConnectivityChanged.listen((results) {
         final hasConn = results.any((r) => r != ConnectivityResult.none);
@@ -107,7 +126,13 @@ class WorkspaceAutosaveQueue {
 
   /// Step 2 Workflow: Pending Sync -> API Commit -> Success -> Queue Removal
   Future<bool> flushImmediately() async {
-    if (_isFlushing || _pendingDeltas.isEmpty) return true;
+    if (_isFlushing) {
+      return _inFlightFlush != null ? await _inFlightFlush! : false;
+    }
+    if (_pendingDeltas.isEmpty) return true;
+    if (canSaveCheck != null && !canSaveCheck!()) {
+      return false;
+    }
     _debounceTimer?.cancel();
     _retryTimer?.cancel();
 
@@ -117,6 +142,8 @@ class WorkspaceAutosaveQueue {
     }
 
     _isFlushing = true;
+    final completer = Completer<bool>();
+    _inFlightFlush = completer.future;
     syncStatus.value = QueueSyncStatus.syncing;
 
     final batchToCommit = Map<String, String>.from(_pendingDeltas);
@@ -144,6 +171,7 @@ class WorkspaceAutosaveQueue {
           _workspaceRevision = serverRev;
           onRevisionUpdated?.call(serverRev);
         }
+        onCommitSuccess?.call(batchToCommit, serverRev);
 
         // Record forensic sync event in PostgreSQL
         leaseClient.recordSyncEvent(
@@ -163,15 +191,28 @@ class WorkspaceAutosaveQueue {
         }
 
         _isFlushing = false;
+        _inFlightFlush = null;
+        if (!completer.isCompleted) completer.complete(true);
         return true;
       }
     } catch (e) {
       debugPrint('[WorkspaceAutosaveQueue] Commit failed: $e');
+      final int? statusCode = e is DioException ? e.response?.statusCode : null;
       final errStr = e.toString().toLowerCase();
-      if (errStr.contains('403') || errStr.contains('locked') || errStr.contains('read-only') || errStr.contains('conflict')) {
+      if (statusCode == 409 || errStr.contains('409') || errStr.contains('conflict')) {
+        syncStatus.value = QueueSyncStatus.error;
+        onRevisionConflict?.call();
+        _isFlushing = false;
+        _inFlightFlush = null;
+        if (!completer.isCompleted) completer.complete(false);
+        return false;
+      }
+      if (statusCode == 403 || errStr.contains('403') || errStr.contains('locked') || errStr.contains('read-only')) {
         syncStatus.value = QueueSyncStatus.error;
         onConflictOrReadOnly?.call();
         _isFlushing = false;
+        _inFlightFlush = null;
+        if (!completer.isCompleted) completer.complete(false);
         return false;
       }
 
@@ -185,6 +226,8 @@ class WorkspaceAutosaveQueue {
     }
 
     _isFlushing = false;
+    _inFlightFlush = null;
+    if (!completer.isCompleted) completer.complete(false);
     return false;
   }
 

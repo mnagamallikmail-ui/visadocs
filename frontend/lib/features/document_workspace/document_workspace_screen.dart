@@ -21,7 +21,6 @@ import 'widgets/section_navigation_tree_widget.dart';
 import 'widgets/valuation_workspace_editor_widget.dart';
 import 'widgets/workspace_health_bar_widget.dart';
 import 'widgets/draft_recovery_dialog.dart';
-import 'services/workspace_lease_client.dart';
 
 class DocumentWorkspaceScreen extends StatefulWidget {
   final int orderId;
@@ -494,7 +493,9 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
                       onSwitchTab: provider.isSameUserConflict
                           ? () => provider.switchEditingToThisTab()
                           : null,
-                      onTakeover: (widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN' || widget.role == 'SPA') && provider.isReadOnly
+                      onTakeover: (widget.role == 'SUPER_ADMIN' || widget.role == 'ADMIN' || widget.role == 'SPA') &&
+                              provider.isReadOnly &&
+                              !provider.hasRevisionConflict
                           ? () => _showTakeoverConfirmation(provider)
                           : null,
                     ),
@@ -1581,7 +1582,7 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
           Expanded(
             child: Text(
               provider.saveErrorMessage ??
-                  'Workspace updated elsewhere. Newer revision exists on server. Refresh required to prevent overwrite.',
+                  'Revision conflict detected. Your changes are preserved locally. Click Refresh & Retry.',
               style: const TextStyle(fontSize: 13, color: Color(0xFF991B1B), fontWeight: FontWeight.bold),
             ),
           ),
@@ -1592,9 +1593,9 @@ class _DocumentWorkspaceScreenState extends State<DocumentWorkspaceScreen> {
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
               visualDensity: VisualDensity.compact,
             ),
-            icon: const Icon(Icons.refresh_rounded, size: 16),
-            label: const Text('Refresh Workspace', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-            onPressed: () => provider.loadWorkspace(widget.orderId),
+            icon: const Icon(Icons.sync_rounded, size: 16),
+            label: const Text('Sync Latest Revision & Retry Save', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+            onPressed: () => provider.syncLatestRevisionAndRetrySave(),
           ),
         ],
       ),

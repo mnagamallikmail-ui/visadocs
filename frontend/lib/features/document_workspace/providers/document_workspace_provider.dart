@@ -316,14 +316,44 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         leaseClient: _leaseClient,
         initialRevision: _workspaceModel?.workspaceRevision ?? 1,
       );
+      _autosaveQueue!.canSaveCheck = () => !_isSaving && !_isAutoSaving && _saveMutex == null && !hasRevisionConflict;
       _autosaveQueue!.onConflictOrReadOnly = () {
         _isReadOnly = true;
+        notifyListeners();
+      };
+      _autosaveQueue!.onRevisionConflict = () {
+        hasRevisionConflict = true;
+        _saveState = SaveState.error;
+        saveErrorMessage = 'Revision conflict detected. Your changes are preserved locally. Click Refresh & Retry.';
+        _errorMessage = saveErrorMessage;
+        _autoSaveTimer?.cancel();
+        _persistLocalDraft();
         notifyListeners();
       };
       _autosaveQueue!.onRevisionUpdated = (newRev) {
         if (_workspaceModel != null) {
           _workspaceModel = _workspaceModel!.copyWith(workspaceRevision: newRev);
         }
+      };
+      _autosaveQueue!.onCommitSuccess = (committed, serverRev) {
+        if (_workspaceModel != null && serverRev != null && serverRev > _workspaceModel!.workspaceRevision) {
+          _workspaceModel = _workspaceModel!.copyWith(workspaceRevision: serverRev);
+        }
+        committed.forEach((k, v) {
+          if (_deltaValues[k] == v) {
+            _deltaValues.remove(k);
+          }
+        });
+        _isDirty = _deltaValues.isNotEmpty;
+        _lastSavedAt = DateTime.now();
+        hasRevisionConflict = false;
+        if (_deltaValues.isEmpty && _workspaceModel != null) {
+          TokenStorage.clearDraftFromStorage(_workspaceModel!.orderId);
+          _saveState = SaveState.saved;
+          saveErrorMessage = null;
+          _errorMessage = null;
+        }
+        notifyListeners();
       };
 
       // Phase 3 Step 1 & 4: Check IndexedDB V2 Draft (Never restore automatically)
@@ -1628,8 +1658,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
   void ensureCompositeMainUnit() {
     final orderId = _workspaceModel?.orderId ?? 0;
     final areaStr = _activeValues['SALEABLE_AREA_STANDARD_SQFT'] ?? _activeValues['SALEABLE_AREA_NUMERIC'] ?? _activeValues['SALEABLE_AREA'] ?? '1000';
-    final parsedArea = ValueNormalizationEngine.extractNumericValue(areaStr);
-    final area = parsedArea ?? (double.tryParse(areaStr.replaceAll(RegExp(r'[^0-9.]'), '').trim()) ?? 1000.0);
+    final area = ValueNormalizationEngine.extractNumericValue(areaStr);
     final rateStr = _activeValues['SALEABLE_RATE'] ?? _activeValues['MARKET_RATE_FLAT_NUMERIC'] ?? _activeValues['MARKET_RATE_FLAT'] ?? '0';
     final rate = double.tryParse(rateStr.replaceAll(',', '').trim()) ?? 0.0;
     final costStr = _activeValues['COMPOSITE_CONSTRUCTION_COST'] ?? '2000';
@@ -1684,9 +1713,8 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     if (existingIdx >= 0) {
       final item = _compositeItems[existingIdx];
       if (_activeValues.containsKey('SALEABLE_AREA_STANDARD_SQFT') || _activeValues.containsKey('SALEABLE_AREA_NUMERIC') || _activeValues.containsKey('SALEABLE_AREA')) {
-        if (parsedArea != null && parsedArea > 0) {
-          item.quantity = parsedArea;
-        } else if (area > 0) {
+        // area is already parsedArea ?? fallback, so use it directly
+        if (area > 0) {
           item.quantity = area;
         }
         if (_activeValues.containsKey('SALEABLE_AREA_UNIT')) {
@@ -1755,19 +1783,26 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     updateValue(key, value);
   }
 
-  /// Saves changed delta values to backend with robust error visibility & concurrency protection
+  Completer<bool>? _saveMutex;
+
+  /// Saves changed delta values to backend with a single shared save mutex & revision sync
   Future<bool> saveChanges({bool isAutoSave = false}) async {
-    // Wait briefly if an autosave is in-flight when a manual save is triggered
-    if (!isAutoSave && (_isSaving || _isAutoSaving)) {
-      int attempts = 0;
-      while ((_isSaving || _isAutoSaving) && attempts < 20) {
-        await Future.delayed(const Duration(milliseconds: 100));
-        attempts++;
-      }
+    // 1. Shared save mutex: serialize all save attempts so autosave & manual save never race
+    if (_saveMutex != null) {
+      if (isAutoSave) return false;
+      return await _saveMutex!.future;
     }
 
+    // Wait for any in-flight WorkspaceAutosaveQueue flush to complete and update revision/deltas
+    if (_autosaveQueue != null && _autosaveQueue!.isFlushing) {
+      await _autosaveQueue!.waitForInFlight();
+    }
+
+    // Cancel any pending debounce flush so it cannot fire concurrently
+    _autosaveQueue?.cancelPendingDebounce();
+
     // Re-entrancy protection - only one save may execute at a time
-    if (_isSaving || _isAutoSaving) {
+    if (_isSaving || _isAutoSaving || _saveMutex != null) {
       return false;
     }
 
@@ -1784,6 +1819,8 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       return false;
     }
 
+    final mutex = Completer<bool>();
+    _saveMutex = mutex;
     _saveState = SaveState.saving;
     if (isAutoSave) {
       _isAutoSaving = true;
@@ -1792,6 +1829,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     }
     notifyListeners();
 
+    bool outcome = false;
     try {
       final deltaToSave = Map<String, String>.from(_deltaValues);
       final saveResult = await _apiService.saveDocumentValues(
@@ -1805,6 +1843,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         final newRev = int.tryParse(newRevStr ?? '') ?? (_workspaceModel!.workspaceRevision + 1);
         _workspaceModel = _workspaceModel!.copyWith(workspaceRevision: newRev);
         _autosaveQueue?.updateRevision(newRev);
+        _autosaveQueue?.clearPendingKeys(deltaToSave.keys);
         hasRevisionConflict = false;
 
         deltaToSave.forEach((k, _) {
@@ -1823,6 +1862,7 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
         } else {
           _persistLocalDraft();
         }
+        outcome = true;
         return true;
       } else {
         _saveState = SaveState.error;
@@ -1835,12 +1875,10 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
       if (dioErr.response?.statusCode == 409) {
         hasRevisionConflict = true;
         _saveState = SaveState.error;
-        final serverMsg = dioErr.response?.data is Map
-            ? dioErr.response?.data['error']?.toString()
-            : null;
-        saveErrorMessage = serverMsg ?? 'Workspace updated elsewhere. Refresh required.';
+        saveErrorMessage = 'Revision conflict detected. Your changes are preserved locally. Click Refresh & Retry.';
         _errorMessage = saveErrorMessage;
         _autoSaveTimer?.cancel();
+        _persistLocalDraft();
         notifyListeners();
         return false;
       } else if (dioErr.response?.statusCode == 403) {
@@ -1873,8 +1911,53 @@ class DocumentWorkspaceProvider extends ChangeNotifier {
     } finally {
       _isSaving = false;
       _isAutoSaving = false;
+      if (!mutex.isCompleted) mutex.complete(outcome);
+      _saveMutex = null;
       notifyListeners();
     }
+  }
+
+  /// Recovery flow: reload latest workspace revision, replay locally preserved draft, and retry save
+  Future<bool> syncLatestRevisionAndRetrySave() async {
+    if (_workspaceModel == null) return false;
+    final orderId = _workspaceModel!.orderId;
+
+    final pendingDeltas = Map<String, String>.from(_deltaValues);
+    if (pendingDeltas.isEmpty) {
+      final idbDraft = await IndexedDbDraftService.instance.getDraft(orderId);
+      if (idbDraft != null && idbDraft.deltaValues.isNotEmpty) {
+        pendingDeltas.addAll(idbDraft.deltaValues);
+      } else {
+        final stored = TokenStorage.loadDraftFromStorage(orderId);
+        if (stored != null && stored.isNotEmpty) {
+          pendingDeltas.addAll(stored);
+        }
+      }
+    }
+
+    hasRevisionConflict = false;
+    _isReadOnly = false;
+    saveErrorMessage = null;
+    _errorMessage = null;
+
+    await loadWorkspace(orderId);
+
+    if (pendingDeltas.isNotEmpty) {
+      _activeValues.addAll(pendingDeltas);
+      _deltaValues.addAll(pendingDeltas);
+      _isDirty = true;
+      _persistLocalDraft();
+      if (_workspaceModel?.documentDom != null) {
+        _workspaceVm = DocumentWorkspaceVm.fromDocumentDom(_workspaceModel!.documentDom!, _activeValues);
+      }
+      notifyListeners();
+    }
+
+    initAutoSave();
+    if (_deltaValues.isNotEmpty) {
+      return await saveChanges(isAutoSave: false);
+    }
+    return true;
   }
 
   /// Submits order to SPA Review (PA Action)
